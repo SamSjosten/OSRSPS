@@ -1,43 +1,370 @@
 {
- "name": "Construction step CON3: in building mode, Build on the parlour's chair space opens the furniture creation menu; the crude wooden chair is built from 2 planks and 2 nails for 58 XP, and Remove takes it away again (::keys on)",
+ "name": "Construction steps CON3 and CON4a: in building mode, Build on the parlour's chair space opens the furniture creation menu; the crude wooden chair is built from 2 planks and 2 nails for 58 XP, and Remove takes it away again; then the brown rug covers every rug tile, the wooden bookcase brings its scroll rack, the clay fireplace and the torn curtains on every window, each for the Wiki's XP, and Remove on one part clears the whole piece (::keys on)",
  "account": "test",
  "steps": [
-  {"step": "waitForLogin"},
-  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
-  {"step": "command", "text": "::scenario construction", "expectMessage": "Started scenario construction.", "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"},
-  {"step": "npcOption", "npc": "Estate agent", "option": "Talk-to"},
-  {"step": "assertDialogue", "contains": "[estate_agent.greeting]"},
-  {"step": "continueDialogue"},
-  {"step": "chooseOption", "text": "[estate_agent.how_get]"},
-  {"step": "continueDialogue"},
-  {"step": "continueDialogue"},
-  {"step": "continueDialogue"},
-  {"step": "chooseOption", "text": "[estate_agent.yes_please]"},
-  {"step": "continueDialogue"},
-  {"step": "continueDialogue"},
-  {"step": "assertDialogue", "contains": "[estate_agent.sold_book]"},
-  {"step": "continueDialogue"},
-  {"step": "command", "text": "::item 2347 1", "expectMessage": "Hammer", "comment": "a hammer, a saw, 2 planks and 2 steel nails"},
-  {"step": "command", "text": "::item 8794 1", "expectMessage": "Saw"},
-  {"step": "command", "text": "::item 960 2", "expectMessage": "Plank"},
-  {"step": "command", "text": "::item 1539 2", "expectMessage": "Steel nails"},
-  {"step": "command", "text": "::tele 2953 3224 0", "expectMessage": "Teleported to 2953, 3224, 0"},
-  {"step": "waitTicks", "ticks": 3},
-  {"step": "locOption", "locId": 15478, "option": "Build mode"},
-  {"step": "waitTicks", "ticks": 4, "comment": "the house is a new instance: the region redraws"},
-  {"step": "assertVarbit", "id": 2176, "value": 1, "comment": "poh_building_mode on"},
-  {"step": "locOption", "locId": 4515, "option": "Build", "comment": "the parlour's first chair space, north of the garden"},
-  {"step": "assertInterface", "interfaceId": 458, "timeoutMs": 10000, "comment": "poh_furniture_creation"},
-  {"step": "clickWidget", "interfaceId": 458, "component": 4, "comment": "slot 1 (poh_furniture_creation:01): the crude wooden chair; its Build resumes the menu with slot 1"},
-  {"step": "assertInventory", "item": "Plank", "count": 0, "timeoutMs": 5000},
-  {"step": "assertInventory", "item": "Steel nails", "count": 0},
-  {"step": "assertStat", "skill": "Construction", "level": 1, "xp": 58, "timeoutMs": 5000},
-  {"step": "locOption", "locId": 6752, "option": "Remove", "comment": "poh_chair1, where the space was"},
-  {"step": "chooseOption", "text": "[construction.remove_furniture_yes]"},
-  {"step": "assertNoDialogue"},
-  {"step": "waitTicks", "ticks": 2},
-  {"step": "locOption", "locId": 4515, "option": "Build", "comment": "the space is back"},
-  {"step": "assertInterface", "interfaceId": 458, "timeoutMs": 10000},
-  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer",
+   "comment": "a hammer, a saw, 2 planks and 2 steel nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 2",
+   "expectMessage": "Plank"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 2",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 4515,
+   "option": "Build",
+   "comment": "the parlour's first chair space, north of the garden"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000,
+   "comment": "poh_furniture_creation"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1 (poh_furniture_creation:01): the crude wooden chair; its Build resumes the menu with slot 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Plank",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Steel nails",
+   "count": 0
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 1,
+   "xp": 58,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 6752,
+   "option": "Remove",
+   "comment": "poh_chair1, where the space was"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 4",
+   "expectMessage": "4",
+   "comment": "the wooden bookcase needs 4; its XP is level 4's 276"
+  },
+  {
+   "step": "command",
+   "text": "::item 8790 5",
+   "expectMessage": "Bolt of cloth",
+   "comment": "2 for the brown rug, 3 for the torn curtains"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 7",
+   "expectMessage": "Plank",
+   "comment": "4 for the bookcase, 3 for the curtains"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 7",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 1761 3",
+   "expectMessage": "Soft clay",
+   "comment": "the clay fireplace"
+  },
+  {
+   "step": "locOption",
+   "locId": 4518,
+   "option": "Build",
+   "comment": "the rug space's middle (poh_parlour_4_middle)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the brown rug"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 4,
+   "xp": 306,
+   "timeoutMs": 5000,
+   "comment": "the brown rug's 30 XP"
+  },
+  {
+   "step": "locOption",
+   "locId": 6759,
+   "option": "Remove",
+   "comment": "a corner (poh_rugcorner1): shown on its own tile"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_no]",
+   "comment": "keep it: the corner was there to click"
+  },
+  {
+   "step": "locOption",
+   "locId": 6760,
+   "option": "Remove",
+   "comment": "a side (poh_rugside1)"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_no]"
+  },
+  {
+   "step": "locOption",
+   "locId": 4521,
+   "option": "Build",
+   "comment": "the bookcase space (poh_parlour_5)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the wooden bookcase"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 5,
+   "xp": 421,
+   "timeoutMs": 5000,
+   "comment": "the wooden bookcase's 115 XP"
+  },
+  {
+   "step": "locOption",
+   "locId": 6768,
+   "option": "Remove",
+   "comment": "the wooden bookcase (poh_bookcase1); the starter parlour has two bookcase spaces and no scroll space, so one build fills both"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 4523,
+   "option": "Build",
+   "comment": "the fireplace space (poh_parlour_6)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the clay fireplace"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 5,
+   "xp": 451,
+   "timeoutMs": 5000,
+   "comment": "the clay fireplace's 30 XP"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Soft clay",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 4524,
+   "option": "Build",
+   "comment": "a curtain space (poh_parlour_7): one build hangs every window"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: torn curtains"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 5,
+   "xp": 583,
+   "timeoutMs": 5000,
+   "comment": "the torn curtains' 132 XP"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bolt of cloth",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Plank",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 6774,
+   "option": "Remove",
+   "comment": "torn curtains (poh_curtains_1)"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 4515,
+   "option": "Build",
+   "comment": "the space is back"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
  ]
 }
