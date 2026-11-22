@@ -213,7 +213,7 @@ flock -x "$tmp/vm/.deploy/lock" sleep 3 &
 sleep 0.5
 STAGING_LOCK_WAIT=1 staging up feature
 wait
-expect_status 1
+expect_status 75
 expect_output "try again"
 expect_no_calls
 expect_state deployed "$cache"
@@ -382,6 +382,48 @@ wait
 expect_status 0
 expect_output "Another staging run is going"
 expect_no_calls
+
+step="auto while a deploy's git command holds .deploy/git.lock"
+mkdir -p "$tmp/vm/.deploy"
+flock -x "$tmp/vm/.deploy/git.lock" sleep 3 &
+sleep 0.5
+OSRSPS_GIT_LOCK_WAIT=1 staging auto
+wait
+expect_status 75
+expect_output "held .deploy/git.lock for 1 s"
+expect_no_calls
+staging auto
+expect_status 0
+
+step="auto when a deploy's git command takes .deploy/git.lock between the fetch and the checkout: tried again next run"
+# git, as the real one, but after the first fetch with $tmp/grab-git-lock there, a "deploy" waits for .deploy/git.lock
+# and holds it for 3 s from the moment staging.sh lets it go.
+real_git=$(command -v git)
+cat >"$tmp/bin/git" <<EOF2
+#!/usr/bin/env bash
+status=0
+"$real_git" "\$@" || status=\$?
+if [[ \$1 == fetch && -e $tmp/grab-git-lock ]]; then
+	rm -f "$tmp/grab-git-lock"
+	flock -x .deploy/git.lock sleep 3 7>&- 8>&- 9>&- &
+fi
+exit \$status
+EOF2
+chmod +x "$tmp/bin/git"
+push src/main/Server.kt=busy
+git -C "$tmp/dev" push -q origin HEAD:staging
+touch "$tmp/grab-git-lock"
+OSRSPS_GIT_LOCK_WAIT=1 staging auto
+expect_status 1
+expect_output "the next run tries again"
+expect_no_calls
+[[ $(cat "$tmp/vm/.staging/failed" 2>/dev/null) != "$head" ]] || fail "a lock held by another run counted the commit as failed"
+rm -f "$tmp/bin/git"
+sleep 3
+staging auto
+expect_status 0
+expect_calls "build OSRSPS_COMMIT=$head" 1
+expect_state deployed "$head"
 
 step="the timer's units"
 units=$(dirname "$script")

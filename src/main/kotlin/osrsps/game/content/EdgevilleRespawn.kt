@@ -65,7 +65,7 @@ object EdgevilleRespawn {
 
     /** Where [player], dying where they stand, comes back when they respawn in Edgeville; null otherwise. */
     fun deathPlace(world: World, player: Player): DeathPlace? =
-        if (active(world, player)) DeathPlace(keepItems = false, player.x, player.z, player.level, X, Z, 0) else null
+        if (active(world, player)) DeathPlace(keepItems = false, player.x, player.z, player.level, X, Z, 0, respawnOnly = true) else null
 
     /** Her talk menu's option about what she does apart from Slayer ([KrystiliaRespawnLines.APART]). */
     internal suspend fun Dialogue.talk(world: World): Unit = with(KrystiliaRespawnLines) {

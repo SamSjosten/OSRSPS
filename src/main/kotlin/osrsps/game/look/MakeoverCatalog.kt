@@ -25,7 +25,8 @@ class MakeoverCatalog(val pages: Map<MakeoverPage, Page>) {
 /**
  * The makeover screen's pages, as `makeover_interface_type` (varbit 4130) numbers them in `makeover_init` (rev 242
  * osrs-dumps): each page's style enum (of db rows whose columns 1 and 2 are the body type A and B kits), its colour
- * enum (null for none), the body part its styles fill and the colour its swatches set.
+ * enum (null for none), the body part its styles fill and the colour its swatches set. Type 2, the burger menu's
+ * "Body types", is another interface ([MakeoverScreen.BODY_TYPES]), not a page of this one.
  */
 enum class MakeoverPage(
     val type: Int,
@@ -34,6 +35,8 @@ enum class MakeoverPage(
     val part: Int,
     val colour: PlayerLook.ColourPart?,
 ) {
+    HAIR(0, 496, 890, PlayerLook.BodyPart.HAIR, PlayerLook.ColourPart.HAIR),
+    FACIAL_HAIR(1, 2630, 890, PlayerLook.BodyPart.JAW, PlayerLook.ColourPart.HAIR),
     TORSOS(3, 5495, 789, PlayerLook.BodyPart.TORSO, PlayerLook.ColourPart.TORSO),
     SLEEVES(4, 5496, 789, PlayerLook.BodyPart.ARMS, PlayerLook.ColourPart.TORSO),
     BOTTOMS(5, 5497, 791, PlayerLook.BodyPart.LEGS, PlayerLook.ColourPart.LEGS),

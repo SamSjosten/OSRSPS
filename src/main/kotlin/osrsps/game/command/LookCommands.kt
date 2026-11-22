@@ -56,5 +56,6 @@ private fun describe(look: PlayerLook): String {
     val body = if (look.bodyType == PlayerLook.BODY_TYPE_A) "A" else "B"
     val kits = PlayerLook.BodyPart.NAMES.zip(look.kits).joinToString { (part, kit) -> "$part $kit" }
     val colours = PlayerLook.ColourPart.entries.zip(look.colours).joinToString { (part, colour) -> "${part.name.lowercase()} $colour" }
-    return "Look: body type $body; kits $kits; colours $colours"
+    val pronoun = listOf("he/him", "she/her", "they/them")[look.pronoun]
+    return "Look: body type $body; kits $kits; colours $colours; pronouns $pronoun"
 }
