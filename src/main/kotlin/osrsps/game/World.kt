@@ -3003,9 +3003,9 @@ class World(
             player.logoutRequested = true
             return@act
         }
-        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray): only
-        // in a window that is open, and dropped while delayed, as onResumePauseButton does (exploit review R50A-2).
-        if (op == 1 && !player.scripts.delayed && interfaceId in player.modals.values &&
+        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray, the
+        // Quiz Master's chat box window): only in a window that is open, main or chat box, and dropped while delayed, as onResumePauseButton does (exploit review R50A-2).
+        if (op == 1 && !player.scripts.delayed && (interfaceId in player.modals.values || interfaceId == player.chatModal) &&
             scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)
         ) return@act
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
