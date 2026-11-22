@@ -31,17 +31,23 @@ abstract class RandomEvent(
     /** Whether its NPC stays when its player walks into a bank: only Count Check, Dr Jekyll and the Genie do (Wiki). */
     open val entersBanks: Boolean = false
 
-    /** Overhead as it appears, with `{name}`, the player's name. */
-    abstract val greeting: Line
+    /** Whether its NPC follows its player; one that doesn't (the Strange plant) stays where it came up. */
+    open val follows: Boolean = true
+
+    /** Overhead as it appears, with `{name}`, the player's name; null for none. */
+    open val greeting: Line? = null
 
     /** Overhead while it waits, one at random each time; may hold `{name}`. */
-    abstract val nags: List<Line>
+    open val nags: List<Line> = emptyList()
 
-    /** Overhead as it gives up and goes. */
-    abstract val leaving: Line
+    /** Overhead as it gives up and goes; null for none. */
+    open val leaving: Line? = null
 
-    /** Talk-to by anyone but its player. */
-    abstract val notYours: Line
+    /** Talk-to by anyone but its player, with `{name}` their player's name; null for nothing at all. */
+    open val notYours: Line? = null
+
+    /** Called once its NPC is out, before its first words. */
+    open fun started(world: World, out: RandomEvents.Out) {}
 
     /** Talk-to by its player, which ends the event when it returns true: its NPC then goes. */
     abstract suspend fun Dialogue.talk(world: World, events: RandomEvents): Boolean
@@ -87,6 +93,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         const val LINGER_TICKS = 100
         const val NAG_TICKS = 20
         const val LEAVE_TICKS = 2
+        const val CLAIMED_TICKS = 10
         const val CATCH_UP = 10
         const val BANK_RANGE = 4
 
@@ -107,7 +114,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     }
 
     /** One event NPC out for its player. */
-    class Out(val owner: String, val event: RandomEvent, val npc: Npc, val since: Long) {
+    class Out(val owner: String, val ownerName: String, val event: RandomEvent, val npc: Npc, val since: Long) {
         var nextNag: Long = since + NAG_TICKS
         var leaveAt: Long = -1
     }
@@ -187,7 +194,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         held -= key
         setNext(player)
         if (outFor(player) != null) return
-        val allowed = all.values.filter { allowedAt(player, it) }
+        val allowed = all.values.filter { allowedAt(player, it) && world.npcTypes[it.npcId] != null }
         if (allowed.isEmpty()) return
         start(player, allowed[world.random.nextInt(allowed.size)])
     }
@@ -226,10 +233,12 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val type = world.npcTypes[event.npcId] ?: return null.also { logger.warn { "No NPC ${event.npcId} for random event ${event.key}" } }
         val (x, z) = freeTileBeside(player, type.size) ?: return null
         val npc = world.spawnNpc(NpcSpawn(type, x, z, player.level, source = "random event ${event.key} for ${player.saveKey}", respawns = false)) ?: return null
-        val started = Out(player.saveKey, event, npc, world.tick)
+        val started = Out(player.saveKey, player.username, event, npc, world.tick)
         out[npc] = started
-        world.npcs.follow(npc, player)
-        say(started, player, event.greeting)
+        if (event.follows) world.npcs.follow(npc, player)
+        event.started(world, started)
+        // With no greeting of its own, it opens with one of its waiting lines (the Mysterious Old Man's transcript).
+        say(started, player, event.greeting ?: event.nags.takeIf { it.isNotEmpty() }?.let { it[world.random.nextInt(it.size)] })
         return started
     }
 
@@ -240,7 +249,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
                 world.npcs.near(x, z, player.level, size).none { it.covers(x, z) }
         }
 
-    private fun say(it: Out, owner: Player, line: Line) {
+    private fun say(it: Out, owner: Player, line: Line?) {
+        if (line == null) return
         val words = world.textFor(owner)
         it.npc.effects.say(if ("name" in line.args) words.get(line, "name" to owner.username) else words[line])
     }
@@ -265,7 +275,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
                 remove(it)
                 continue
             }
-            val far = owner.level != it.npc.level || maxOf(abs(owner.x - it.npc.x), abs(owner.z - it.npc.z)) > CATCH_UP
+            // One that doesn't follow stays put, wherever its player goes, till its minute is up.
+            val far = it.event.follows && (owner.level != it.npc.level || maxOf(abs(owner.x - it.npc.x), abs(owner.z - it.npc.z)) > CATCH_UP)
             // Changing level puts a new NPC, with its own entry, in its place: the timers carry on with that.
             val current = if (far) catchUp(it, owner) else it
             if (current == null) {
@@ -274,7 +285,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
             }
             when {
                 tick - current.since >= LINGER_TICKS -> leave(current, owner)
-                tick >= current.nextNag -> {
+                tick >= current.nextNag && current.event.nags.isNotEmpty() -> {
                     say(current, owner, current.event.nags[world.random.nextInt(current.event.nags.size)])
                     current.nextNag = tick + NAG_TICKS
                 }
@@ -289,7 +300,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
             // An NPC can't change level in place: a fresh one takes its place beside the player.
             val type = it.npc.type
             val npc = world.spawnNpc(NpcSpawn(type, x, z, owner.level, source = it.npc.spawn.source, respawns = false)) ?: return null
-            val moved = Out(it.owner, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag }
+            val moved = Out(it.owner, it.ownerName, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag }
             out.remove(it.npc)
             world.removeNpc(it.npc)
             out[npc] = moved
@@ -299,6 +310,17 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         world.npcs.teleport(it.npc, x, z)
         world.npcs.follow(it.npc, owner)
         return it
+    }
+
+    /**
+     * [player]'s event has given its reward but still has a line to say: from now on it has nothing more for them (a
+     * Talk-to does nothing), and it goes [CLAIMED_TICKS] later if the talk is cut off before it ends (it goes at once
+     * when it does end). Guessed: the time, and that it says nothing as it goes.
+     */
+    fun claimed(player: Player) {
+        val it = outFor(player) ?: return
+        world.npcs.stopFollowing(it.npc)
+        it.leaveAt = world.tick + CLAIMED_TICKS
     }
 
     /** [it] gives up: its leaving line, then it goes. */
@@ -322,7 +344,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val player = context.player
         val it = out[npc] ?: return
         if (it.owner != player.saveKey) {
-            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, it.event.notYours) }
+            notYours(context, npc, it)
             return
         }
         // Guessed: once it has said its leaving line it has nothing more for its player.
@@ -332,24 +354,49 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         }
     }
 
+    /** Another player's Talk-to or Dismiss: the event's line for them, naming its own player if the words do. */
+    private suspend fun notYours(context: ScriptContext, npc: Npc, it: Out) {
+        val line = it.event.notYours ?: return
+        world.dialogues.start(context, npc) {
+            if ("name" in line.args) chatNpc(ChatAnim.NEUTRAL, line, "name" to it.ownerName) else chatNpc(ChatAnim.NEUTRAL, line)
+        }
+    }
+
     private suspend fun dismiss(context: ScriptContext, npc: Npc) {
         val player = context.player
         val it = out[npc] ?: return
         if (it.owner != player.saveKey) {
-            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, it.event.notYours) }
+            notYours(context, npc, it)
             return
         }
         remove(it)
     }
 
-    /** Gives [player] [count] of item [id], or puts what doesn't fit on the ground under them, theirs alone. Guessed. */
-    fun reward(player: Player, id: Int, count: Int = 1) {
-        val type = world.objTypes[id] ?: return logger.warn { "No item $id in the cache for a random event reward" }
+    /**
+     * Gives [player] [count] of item [id], or puts what doesn't fit on the ground under them, theirs alone for the
+     * usual drop's while (guessed) or, with [ownTicks], theirs alone for that long and then gone. Returns false when
+     * anything went on the ground.
+     */
+    fun reward(player: Player, id: Int, count: Int = 1, ownTicks: Int? = null): Boolean {
+        val type = world.objTypes[id] ?: return true.also { logger.warn { "No item $id in the cache for a random event reward" } }
         val left = count - player.inventory.add(type, count)
-        if (left <= 0) return
+        if (left <= 0) return true
         val stacks = if (type.stackable) listOf(left) else List(left) { 1 }
         for (n in stacks) {
-            world.groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+            if (ownTicks != null) {
+                world.groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, ownTicks, ownTicks, neverPublic = true)
+            } else {
+                world.groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+            }
         }
+        return false
     }
+}
+
+/** Every random event built, and the strange fruit's Eat. */
+fun registerRandomEvents(world: World) {
+    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant)) {
+        world.randomEvents.register(event)
+    }
+    world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
