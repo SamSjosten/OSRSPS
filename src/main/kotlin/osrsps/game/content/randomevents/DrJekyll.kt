@@ -80,6 +80,7 @@ object DrJekyll : RandomEvent("dr_jekyll", 307) {
                 // Herb out and potion in on the same tick, before his thanks: shutting the chat can't lose the herb.
                 player.inventory.remove(slot, 1)
                 events.reward(player, herb.potion)
+                events.claimed(player)
                 chatNpc(ChatAnim.HAPPY, THANK_YOU)
                 return true
             }

@@ -93,6 +93,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         const val LINGER_TICKS = 100
         const val NAG_TICKS = 20
         const val LEAVE_TICKS = 2
+        const val CLAIMED_TICKS = 10
         const val CATCH_UP = 10
         const val BANK_RANGE = 4
 
@@ -309,6 +310,17 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         world.npcs.teleport(it.npc, x, z)
         world.npcs.follow(it.npc, owner)
         return it
+    }
+
+    /**
+     * [player]'s event has given its reward but still has a line to say: from now on it has nothing more for them (a
+     * Talk-to does nothing), and it goes [CLAIMED_TICKS] later if the talk is cut off before it ends (it goes at once
+     * when it does end). Guessed: the time, and that it says nothing as it goes.
+     */
+    fun claimed(player: Player) {
+        val it = outFor(player) ?: return
+        world.npcs.stopFollowing(it.npc)
+        it.leaveAt = world.tick + CLAIMED_TICKS
     }
 
     /** [it] gives up: its leaving line, then it goes. */

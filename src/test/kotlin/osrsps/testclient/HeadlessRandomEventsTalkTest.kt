@@ -152,8 +152,14 @@ class HeadlessRandomEventsTalkTest {
                     // The potion is given with the herb taken, before his thanks is continued.
                     client.awaitDialogue("his thanks") { it is DialogueView.Chat && it.text == "[dr_jekyll.thank_you]" }
                     client.has(STAMINA)
-                    client.continueDialogue()
+                    // Shut there, he has nothing more: another Talk-to gets nothing, and he goes soon after.
+                    client.closeModal()
                     client.over()
+                    client.npcOp(jekyll.index, RandomEvents.TALK_TO)
+                    client.awaitTicks(2)
+                    assertEquals(null, client.dialogueView)
+                    client.gone(DrJekyll.npcId)
+                    assertEquals(1, client.count(STAMINA))
                     assertEquals(0, client.count(TORSTOL))
                     assertEquals(1, client.count(GUAM))
 
