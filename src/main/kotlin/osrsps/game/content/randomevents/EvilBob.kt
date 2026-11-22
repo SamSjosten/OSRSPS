@@ -137,8 +137,8 @@ object UncookingPotLines : Lines("uncooking_pot", "Transcript:Uncooking pot") {
  * sends the player home, with the small net's message and animation (the spot works "the same as
  * a regular small fishing net"); the nets lying until the island ends; the uncooking pot's Uncooking level drawn at
  * random from 40, 50, 60 and 70 each time; the XP at the server's rate, as other XP the game grants. Inferred: Evil
- * Bob on his island is 390 awake (the Wiki's ids) and turns into 391 as he falls asleep. Left out: the player's "Be
- * seeing you!" overhead (players have no overhead text here yet), the portal's reminder about dropped items, and the
+ * Bob on his island is 390 awake (the Wiki's ids) and turns into 391 as he falls asleep. Left out: the player's farewell
+ * overhead as they enter the portal (players have no overhead text here yet), the portal's reminder about dropped items, and the
  * catch that the transcript's kitten trivia hints at (talking to the servant again to fish again).
  */
 object EvilBob : RandomEvent("evil_bob", 390) {
@@ -207,6 +207,7 @@ object EvilBob : RandomEvent("evil_bob", 390) {
     }
 
     override val teleports = true
+    override val placeItems = (FISH + NET).toSet()
     override val nags = with(EvilBobLines) { listOf(MEW, YOWL, MEEEOW, MEEEEOW) }
     override val leaving = EvilBobLines.MEOWBY_LATER
     override val notYours = EvilBobLines.NOT_INTERESTED
@@ -427,11 +428,12 @@ object EvilBob : RandomEvent("evil_bob", 390) {
                             mesbox(LESS_ATTENTIVE)
                             return@start
                         }
-                        chatNpc(ChatAnim.HAPPY, DELICIOUS)
-                        chatNpc(ChatAnim.HAPPY, CATNAP)
+                        // Asleep before his lines, so shutting them can't lose the hand-in.
                         island.asleep = true
                         npc.effects.say(text(ZZZ))
                         world.npcTypes[ASLEEP]?.let { world.npcs.transform(npc, it, SLEEP_TICKS) }
+                        chatNpc(ChatAnim.HAPPY, DELICIOUS)
+                        chatNpc(ChatAnim.HAPPY, CATNAP)
                     }
                     else -> chatNpc(ChatAnim.ANGRY, ANYTHING_ELSE)
                 }

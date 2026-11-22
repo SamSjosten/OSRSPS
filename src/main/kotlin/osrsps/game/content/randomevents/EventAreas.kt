@@ -1,5 +1,6 @@
 package osrsps.game.content.randomevents
 
+import osrsps.game.InvObj
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.instance.Instance
@@ -33,6 +34,12 @@ class EventAreas(private val world: World) {
     /** The stay [player] is in, if any. */
     fun awayOf(player: Player): Away? = awayAt(player.x, player.z)?.takeIf { it.owner == player.saveKey }
 
+    /** [inventory] without the items of the place [player] is saved in, if they are in one ([RandomEvent.placeItems]). */
+    fun withoutPlaceItems(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+        val items = awayOf(player)?.event?.placeItems ?: return inventory
+        return if (items.isEmpty()) inventory else inventory.filterValues { it.id !in items }
+    }
+
     fun awayAt(x: Int, z: Int): Away? {
         val instance = world.instances.at(x, z) ?: return null
         return stays[instance.id]?.takeIf { it.instance === instance }
@@ -57,8 +64,13 @@ class EventAreas(private val world: World) {
         return away
     }
 
-    /** Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now. */
+    /**
+     * Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now, without the
+     * place's own items ([RandomEvent.placeItems]).
+     */
     fun bringBack(player: Player, away: Away) {
+        val items = away.event.placeItems
+        if (items.isNotEmpty()) for (slot in 0 until player.inventory.capacity) if (player.inventory[slot]?.id in items) player.inventory.remove(slot)
         val (x, z, level) = if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
         else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
         world.teleport(player, x, z, level)

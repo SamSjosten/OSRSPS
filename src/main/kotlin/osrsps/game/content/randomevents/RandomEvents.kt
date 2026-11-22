@@ -57,6 +57,9 @@ abstract class RandomEvent(
     /** Whether [notYours] shows in a message box rather than as the NPC's words (Evil Bob's does). */
     open val notYoursInBox: Boolean = false
 
+    /** Items that belong to its place and stay there: taken as the player leaves it, by any way out, logging out too. */
+    open val placeItems: Set<Int> = emptySet()
+
     /** Called once its NPC is out, before its first words. */
     open fun started(world: World, out: RandomEvents.Out) {}
 

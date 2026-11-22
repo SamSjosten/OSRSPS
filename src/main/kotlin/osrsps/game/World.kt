@@ -2095,7 +2095,8 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
-            player, inventory, bank,
+            // A random event's place keeps its own items: a player saved there leaves without them.
+            player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
             held = held,
         )

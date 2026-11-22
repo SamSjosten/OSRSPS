@@ -131,6 +131,7 @@ object Gravedigger : RandomEvent("gravedigger", 6746) {
     }
 
     override val teleports = true
+    override val placeItems = COFFINS.toSet()
     override val nags = with(GravediggerLines) { listOf(HELLO, PLEASE_HELP, NEED_HELP, BORROW) }
     override val leaving = GravediggerLines.MAYBE_LATER
     override val notYours = GravediggerLines.SOMEONE_ELSE

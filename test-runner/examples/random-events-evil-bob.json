@@ -39,7 +39,7 @@
     {"step": "continueDialogue"},
     {"step": "assertDialogue", "speaker": "Servant", "contains": "[evil_bob_servant.over_there]"},
     {"step": "continueDialogue"},
-    {"comment": "The cutscene: look that the camera swings to one statue and its spots under \"Watch the statue! Fish here!\", then comes back.", "step": "assertInterface", "interfaceId": 186, "timeoutMs": 20000},
+    {"comment": "The cutscene: look that the camera swings to one statue and its spots under the macro_evil_bob overlay's caption, then comes back.", "step": "assertInterface", "interfaceId": 186, "timeoutMs": 20000},
     {"step": "assertInterface", "interfaceId": 186, "absent": true, "timeoutMs": 20000},
     {"step": "takeItem", "item": "Small fishing net", "timeoutMs": 20000},
     {"step": "assertInventory", "item": "Small fishing net", "count": 1, "timeoutMs": 20000},

@@ -1,6 +1,7 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -13,6 +14,8 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.World.Companion.LOGOUT_BUTTON
+import osrsps.game.World.Companion.LOGOUT_TAB
 import osrsps.game.content.randomevents.EvilBob
 import osrsps.game.content.randomevents.RandomEvents
 import osrsps.game.dialogue.Chatbox
@@ -199,10 +202,11 @@ class HeadlessEvilBobTest {
                 client.uncook(EvilBob.COOKED_RIGHT, EvilBob.RAW_RIGHT, dx, dz)
                 val bob = client.bob()
                 client.feed(EvilBob.RAW_RIGHT, dx, dz)
-                client.chat("[evil_bob.delicious]")
-                client.chat("[evil_bob.catnap]")
-                client.await("his snore") { client.npcSaid().firstOrNull { it.index == bob.index && it.text == "[evil_bob.zzz]" } }
+                // Shutting his first line still leaves him asleep: the hand-in counts before he speaks.
+                client.awaitDialogue("his line") { it is DialogueView.Chat && it.text == "[evil_bob.delicious]" }
+                client.closeModal()
                 client.over()
+                client.await("his snore") { client.npcSaid().firstOrNull { it.index == bob.index && it.text == "[evil_bob.zzz]" } }
                 assertTrue(island.asleep)
                 assertEquals(EvilBob.ASLEEP, island.bob!!.type.id)
                 client.npcOp(bob.index, RandomEvents.TALK_TO)
@@ -280,6 +284,36 @@ class HeadlessEvilBobTest {
                 assertTrue(client.inventory(Inventory.INV).all { it == null }, "the net and fish go")
                 client.await("the island ended") { if (server.world.instances.all.isEmpty()) Unit else null }
             }
+        }
+    }
+
+    @Test
+    fun `logging out on the island leaves the net and fish behind`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                val (dx, dz) = client.ontoIsland("carol")
+                client.takeNet(dx, dz)
+                val right = EvilBob.islandOf(server.world, server.world.onlinePlayers.single())!!.second.right
+                val cooked = if (right == EvilBob.Spots.NORTH) EvilBob.COOKED_RIGHT else EvilBob.COOKED_WRONG
+                client.fish(EvilBob.Spots.NORTH, cooked, dx, dz)
+                client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            server.login("carol").use { client ->
+                client.await("back where they came from") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.awaitTicks(2)
+                assertTrue(client.inventory(Inventory.INV).all { it == null }, "the net and fish stay on the island")
+            }
+        }
+    }
+
+    private fun TestServer.awaitNobodyOn() {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (world.playerCount != 0) {
+            check(System.nanoTime() < deadline) { "Timed out waiting for the world to let the last player go" }
+            Thread.sleep(10)
         }
     }
 
