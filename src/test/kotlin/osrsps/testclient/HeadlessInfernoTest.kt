@@ -20,6 +20,7 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.command.Admins
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcCombat
 import osrsps.game.loc.LocType
@@ -62,6 +63,7 @@ class HeadlessInfernoTest {
         monster(7698, "Jal-Xil", 3, "inferno_creature_ranger", 125),
         monster(7699, "Jal-Zek", 4, "inferno_creature_mager", 220),
         monster(7700, "JalTok-Jad", 5, "inferno_jad", 350),
+        monster(7701, "Yt-HurKot", 1, "inferno_jad_healer", 90),
         monster(7706, "TzKal-Zuk", 7, "inferno_tzkalzuk_placeholder", 1200),
         monster(InfernoPillars.SUPPORT, "Rocky support", 3, "inferno_invisible_3x3", 1, ops = listOf(null, null, null, null, null)),
         monster(InfernoPillars.COLLAPSING, "Rocky support", 3, "inferno_safespot_dying", 1, ops = listOf(null, null, null, null, null)),
@@ -80,7 +82,7 @@ class HeadlessInfernoTest {
         20_000,
     )
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path, admins: Admins = Admins.EVERYONE) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val objTypes = ObjTypes.of(
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
@@ -90,7 +92,7 @@ class HeadlessInfernoTest {
         val loc = { id: Int, name: String, ops: List<String?>, w: Int, l: Int -> LocType(id, name, ops, LocCollisionType(width = w, length = l)) }
         World(
             crcs, CollisionMap().apply { markLoaded(35, 83); markLoaded(38, 80); markLoaded(39, 79); markLoaded(39, 80) }, varTypes,
-            objTypes = objTypes, npcTypes = types,
+            objTypes = objTypes, npcTypes = types, admins = admins,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE),
             npcSpawns = listOf(NpcSpawn(types[KetKeh.TZHAAR_KET_KEH]!!, 2496, 5115, source = "test")),
             locTypes = LocTypes(
@@ -372,6 +374,21 @@ class HeadlessInfernoTest {
     }
 
     @Test
+    fun `until Zuk fights the entrance lets in admins only`(@TempDir dir: Path) {
+        assertFalse(Inferno.OPEN_TO_ALL, "IN4 opens it")
+        server(dir, Admins.parse("someone-else")).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ivy")!!
+                server.world.inferno.sacrifice(player)
+                server.world.inferno.enter(player)
+                assertNull(server.run("ivy"), "no Inferno")
+                client.await("the line") { client.messages().firstOrNull { "inferno.not_ready" in it.text } }
+            }
+        }
+    }
+
+    @Test
     fun `the entrance turns away a player in a test setup`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ivy").use { client ->
@@ -509,11 +526,20 @@ class HeadlessInfernoTest {
                 val corner = listOf(run.at(Tile(2258, 5330)), run.at(Tile(2284, 5357))).maxBy { maxOf(Math.abs(it.x - imKot.x), Math.abs(it.z - imKot.z)) }
                 client.command("tele ${corner.x} ${corner.z} 0")
                 client.await("in the corner") { client.position?.takeIf { it == Coord(corner.x, corner.z, 0) } }
+                // Paused and stepped, so a slow machine can't miss the 4-tick dig-down or the 2 ticks under (Codex review on #835).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 monsters.digNow(imKot)
-                client.await("it digs") { monsters.digs[imKot]?.takeIf { it >= 1 } }
+                client.stepTicks(1)
+                assertTrue((monsters.digs[imKot] ?: 0) >= 1, "it digs")
                 assertFalse(imKot.hidden, "its dig-down shows before it goes from sight")
-                client.await("under") { imKot.takeIf { it.hidden } }
-                client.await("it comes up beside them", timeoutMillis = 10_000) { imKot.takeIf { !it.hidden } }
+                var down = 1
+                while (!imKot.hidden && down <= InfernoMonsters.DIG_TICKS + 1) { client.stepTicks(1); down++ }
+                assertTrue(imKot.hidden, "under after its dig-down")
+                assertTrue(down >= InfernoMonsters.DIG_TICKS, "the dig-down lasted its ticks")
+                var under = 0
+                while (imKot.hidden && under <= InfernoMonsters.UNDER_TICKS + 1) { client.stepTicks(1); under++ }
+                assertFalse(imKot.hidden, "it comes up")
+                client.commandReply("resume") { it.startsWith("Resumed") }
                 assertTrue(server.world.meleeCombat.reaches(imKot, player), "beside them")
                 assertTrue(server.world.npcs.canStand(imKot, imKot.x, imKot.z), "on ground it can stand on")
                 assertTrue(imKot.target === player)
@@ -603,6 +629,51 @@ class HeadlessInfernoTest {
                 client.commandReply("kill ${back.index}") { it.startsWith("Killed") }
                 client.await("its death not counted again") { run.takeIf { back.dead } }
                 assertTrue(run.slain.isEmpty(), "a revived monster isn't revived twice")
+            }
+        }
+    }
+
+    // Inferno step IN3: the JalTok-Jads and their healers.
+
+    @Test
+    fun `wave 68's three JalTok-Jads attack three ticks apart, each every 9 ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 68") { it.startsWith("Inferno") }
+                val jads = client.waveIn(server, "kim", 68)
+                assertEquals(List(3) { InfernoMonster.JAD.type }, jads.map { it.type.id })
+                val firsts = jads.map { server.world.inferno.jads.firstAttack(it)!! }
+                assertEquals(listOf(0L, 3L, 6L), firsts.map { it - firsts[0] })
+                assertTrue(jads.all { server.world.inferno.jads.attackSpeed(it) == osrsps.game.tzhaar.InfernoJads.TRIPLE_SPEED && it.scriptedAttacks })
+                // Whether or not each could make its attacks, every one stays on its beat, 3 ticks from the others' (Codex
+                // review on #849).
+                val speed = osrsps.game.tzhaar.InfernoJads.TRIPLE_SPEED
+                client.await("two rounds", timeoutMillis = 20_000) { jads.takeIf { j -> j.all { it.nextAttackTick > firsts[0] + 2 * speed } } }
+                for ((i, jad) in jads.withIndex()) assertEquals(0L, (jad.nextAttackTick - firsts[i]) % speed, "Jad ${i + 1} on its beat")
+            }
+        }
+    }
+
+    @Test
+    fun `wave 67's JalTok-Jad summons five healers below half health, who heal him, and they go when he dies`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lee").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 67") { it.startsWith("Inferno") }
+                val jad = client.waveIn(server, "lee", 67).single()
+                assertEquals(osrsps.game.tzhaar.InfernoJads.ATTACK_SPEED, server.world.inferno.jads.attackSpeed(jad))
+                client.commandReply("hit 200 ${jad.index}") { it.startsWith("Hit") }
+                val healers = client.await("five healers") { server.world.inferno.jads.healersOf(jad).takeIf { it.size == 5 } }
+                assertTrue(healers.all { it.type.id == osrsps.game.tzhaar.InfernoJads.HEALER && it.target == null })
+                // No regeneration, so only a healer's 15-24 can lift him (Codex review on #849).
+                jad.hitpointsRegenTicks = Int.MAX_VALUE
+                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it >= 150 + osrsps.game.tzhaar.InfernoJads.HEAL_MIN } }
+                client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
+                client.await("the healers gone") { healers.takeIf { h -> h.none { server.world.npcs[it.index] === it } } }
+                client.await("wave 68 coming") { server.run("lee")?.takeIf { it.wave == 68 } }
             }
         }
     }
