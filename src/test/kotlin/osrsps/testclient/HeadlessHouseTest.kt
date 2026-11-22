@@ -17,6 +17,7 @@ import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -26,6 +27,8 @@ import osrsps.game.skill.construction.Furniture
 import osrsps.game.skill.construction.FurnitureData
 import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
+import osrsps.game.skill.construction.Kitchen
+import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -60,6 +63,7 @@ class HeadlessHouseTest {
         hotspot(House.DOOR_HOTSPOT_RIGHT, "Door hotspot"),
         hotspot(CHAIR_SPACE, "Chair space"),
         hotspot(RUG_MIDDLE_SPACE, "Rug space"), hotspot(RUG_SIDE_SPACE, "Rug space"), hotspot(RUG_CORNER_SPACE, "Rug space"),
+        LocType(WOODEN_LARDER, "Larder", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
         LocType(BROWN_RUG_CORNER, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_SIDE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_MIDDLE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
@@ -89,6 +93,8 @@ class HeadlessHouseTest {
         objs[PLANK] = ObjType(PLANK, "Plank")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
+        objs[TEA_LEAVES] = ObjType(TEA_LEAVES, "Tea leaves")
+        objs[MILK] = ObjType(MILK, "Bucket of milk")
         objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
         objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
         objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
@@ -132,7 +138,12 @@ class HeadlessHouseTest {
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
-            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains))),
+            furnitureData = FurnitureData(
+                mapOf(
+                    RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains),
+                    RoomType.KITCHEN.id to List(4) { emptyList<FurnitureOption>() } + listOf(larders),
+                ),
+            ),
         )
     }
 
@@ -141,6 +152,9 @@ class HeadlessHouseTest {
         FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
         FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
     )
+
+    /** The larder space's first choice (row 5562). */
+    private val larders = listOf(FurnitureOption(WOODEN_LARDER_ROW, "Wooden larder", 8233, listOf(PLANK to 8, Furniture.ANY_NAILS to 8), level = 9))
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -580,6 +594,46 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a wooden larder is built in the kitchen, and Search gives its tea leaves and milk without end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("finn")!!
+                // A kitchen east of the parlour, as building mode would add it (the rooms test builds one that way).
+                player.house!!.rooms += HouseRoom(RoomType.KITCHEN, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 9")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 8")
+                client.command("item $STEEL_NAILS 8")
+                client.await("the materials") { if (client.count(STEEL_NAILS) == 8 && client.count(PLANK) == 8) Unit else null }
+                val xp = client.await("level 9") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 9 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val lx = instance.baseX + ((House.STARTER_X + 1) shl 3) + 1
+                val lz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 6
+
+                client.locOp(LARDER_SPACE, lx, lz, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the larder") { if (client.shown(WOODEN_LARDER, lx, lz)) Unit else null }
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 228 } }
+
+                // Search: the Make-X box of its supplies; two tea leaves, then a bucket of milk.
+                client.locOp(WOODEN_LARDER, lx, lz, Kitchen.SEARCH)
+                client.await("the supplies box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                client.await("the tea leaves") { if (client.count(TEA_LEAVES) == 2) Unit else null }
+                client.locOp(WOODEN_LARDER, lx, lz, Kitchen.SEARCH)
+                client.await("the supplies box again") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
+                client.await("the milk") { if (client.count(MILK) == 1) Unit else null }
+                assertEquals(2, client.count(TEA_LEAVES))
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
@@ -587,6 +641,10 @@ class HeadlessHouseTest {
         const val WOODEN_CHAIR_ROW = 5518
         const val PLANK = 960
         const val BOLT_OF_CLOTH = 8790
+        const val WOODEN_LARDER_ROW = 5562
+        const val WOODEN_LARDER = 13565
+        const val TEA_LEAVES = 7738
+        const val MILK = 1927
         const val RUG_MIDDLE_SPACE = 4518
         const val RUG_SIDE_SPACE = 4519
         const val RUG_CORNER_SPACE = 4520

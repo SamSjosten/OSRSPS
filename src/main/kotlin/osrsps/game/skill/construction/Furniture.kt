@@ -18,7 +18,8 @@ private val logger = KotlinLogging.logger {}
 /**
  * A piece of furniture a hotspot can hold, from the cache's `furniture` table ([osrsps.cache.FurnitureLoader]): its
  * row, its name and icon (`model_obj`) in the creation menu, its materials (obj and count; `any_nails` is any nails)
- * and its Construction level. [hidden] rows are left out of the menu, as the table says.
+ * and its Construction level, and any other skill's level it needs (by stat id: the barrels' Cooking). [hidden] rows are
+ * left out of the menu, as the table says.
  */
 data class FurnitureOption(
     val row: Int,
@@ -27,6 +28,7 @@ data class FurnitureOption(
     val materials: List<Pair<Int, Int>>,
     val level: Int,
     val hidden: Boolean = false,
+    val otherLevels: List<Pair<Int, Int>> = emptyList(),
 )
 
 /** The cache's furniture by room type id ([RoomType.id]): each hotspot's choices, in the order the room lists them. */
@@ -66,6 +68,7 @@ object FurnitureBuilds {
     private const val SIDE = "side"
     private const val CORNER = "corner"
     private const val SCROLLS = "scrolls"
+    private const val CROCKERY = "crockery"
 
     val HOTSPOTS: Map<Int, Hotspot> = mapOf(
         CHAIR_SPACE_1 to Hotspot(RoomType.PARLOUR, 0),
@@ -79,9 +82,22 @@ object FurnitureBuilds {
         4522 to Hotspot(RoomType.PARLOUR, 4, SCROLLS),
         4523 to Hotspot(RoomType.PARLOUR, 5),
         4524 to Hotspot(RoomType.PARLOUR, 6),
+        // poh_kitchen_1 (stove), _2 and _2_crockery (shelves), _3 (barrel), _4 (pet bed), _5 (larder), _6 (sink),
+        // _7 (table), _8 (spice rack).
+        15398 to Hotspot(RoomType.KITCHEN, 0),
+        15399 to Hotspot(RoomType.KITCHEN, 1),
+        15400 to Hotspot(RoomType.KITCHEN, 1, CROCKERY),
+        15401 to Hotspot(RoomType.KITCHEN, 2),
+        15402 to Hotspot(RoomType.KITCHEN, 3),
+        15403 to Hotspot(RoomType.KITCHEN, 4),
+        15404 to Hotspot(RoomType.KITCHEN, 5),
+        15405 to Hotspot(RoomType.KITCHEN, 6),
+        37620 to Hotspot(RoomType.KITCHEN, 7),
     )
 
     private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
+
+    private fun shelves(loc: Int, crockery: Int, xp: Int) = Build(loc, xp, mapOf(CROCKERY to crockery))
 
     private fun bookcase(loc: Int, scrolls: Int, xp: Int) = Build(loc, xp, mapOf(SCROLLS to scrolls))
 
@@ -115,6 +131,49 @@ object FurnitureBuilds {
         5536 to Build(6775, 225),
         5537 to Build(6776, 315),
         5538 to Build(56079, 487),
+        // The kitchen (the Kitchen page's XP). Stoves: firepit, with hook, with pot, small and large ovens, steel and
+        // fancy ranges (poh_stove_1 to 7, without their kettle or pot).
+        5539 to Build(13528, 40),
+        5540 to Build(13529, 60),
+        5541 to Build(13531, 80),
+        5542 to Build(13533, 80),
+        5543 to Build(13536, 100),
+        5544 to Build(13539, 120),
+        5545 to Build(13542, 160),
+        // Wooden shelves 1 to 3, oak 1 and 2, teak 1 and 2 (poh_kitchen_shelves_1 to 7, each with its crockery).
+        5546 to shelves(13545, 13552, 87),
+        5547 to shelves(13546, 13553, 147),
+        5548 to shelves(13547, 13554, 147),
+        5549 to shelves(13548, 13555, 240),
+        5550 to shelves(13549, 13556, 240),
+        5551 to shelves(13550, 13557, 330),
+        5552 to shelves(13551, 13558, 930),
+        // Beer, cider, Asgarnian ale, Greenman's ale, Dragon bitter and Chef's Delight barrels (poh_barrel_1 to 6).
+        5553 to Build(13568, 87),
+        5554 to Build(13569, 91),
+        5555 to Build(13570, 184),
+        5556 to Build(13571, 184),
+        5557 to Build(13572, 224),
+        5558 to Build(13573, 224),
+        // Cat blanket, cat basket, cushioned basket (poh_pet_1 to 3).
+        5559 to Build(13574, 15),
+        5560 to Build(13575, 58),
+        5561 to Build(13576, 58),
+        // Wooden, oak and teak larders (poh_larder_1 to 3).
+        5562 to Build(13565, 228),
+        5563 to Build(13566, 480),
+        5564 to Build(13567, 750),
+        // Pump and drain, pump and tub, sink (poh_sink_1 to 3) and the gold sink (poh_sink_4).
+        5565 to Build(13559, 100),
+        5566 to Build(13561, 200),
+        5567 to Build(13563, 300),
+        5568 to Build(26458, 11144),
+        // Wooden, oak and teak kitchen tables (poh_kitchentable_1 to 3).
+        5569 to Build(13577, 87),
+        5570 to Build(13578, 180),
+        5571 to Build(13579, 270),
+        // The spice rack (poh_kitchen_rack_1).
+        5572 to Build(37621, 374),
     )
 
     /**
@@ -129,6 +188,14 @@ object FurnitureBuilds {
         (RoomType.PARLOUR to 4) to 5529..5531,
         (RoomType.PARLOUR to 5) to 5532..5534,
         (RoomType.PARLOUR to 6) to 5535..5538,
+        (RoomType.KITCHEN to 0) to 5539..5545,
+        (RoomType.KITCHEN to 1) to 5546..5552,
+        (RoomType.KITCHEN to 2) to 5553..5558,
+        (RoomType.KITCHEN to 3) to 5559..5561,
+        (RoomType.KITCHEN to 4) to 5562..5564,
+        (RoomType.KITCHEN to 5) to 5565..5568,
+        (RoomType.KITCHEN to 6) to 5569..5571,
+        (RoomType.KITCHEN to 7) to 5572..5572,
     )
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
@@ -199,6 +266,8 @@ class Furniture(private val world: World, private val houses: Houses, private va
     private suspend fun build(context: ScriptContext, hotspot: ZoneLoc) {
         val player = context.player
         val (house, room) = houses.buildingRoom(player, hotspot.x, hotspot.z) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
+        // Only a hotspot of the room it stands in: what is built is saved, and a save checks the two match (R50B note).
+        if (FurnitureBuilds.HOTSPOTS[hotspot.id]?.room != room.type) return world.message(player, GameLines.NOTHING_INTERESTING)
         val options = menu(hotspot.id)
         if (options.isEmpty()) return world.message(player, GameLines.NOTHING_INTERESTING)
         openMenu(player, options)
@@ -208,6 +277,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         if (!houses.stillHere(house, player) || world.locs[hotspot.x, hotspot.z, hotspot.level, hotspot.layer] != hotspot) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
+        lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
         if (!hasTools(player)) return world.message(player, ConstructionLines.FURNITURE_TOOLS)
         val nails = nailsFor(player, piece) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
         player.anim(BUILD_ANIM)
@@ -260,7 +330,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
         world.interfaces.setEvents(player, MENU, MENU_CONTENTS, 1, MAX_SLOTS, Chatbox.EVENT_PAUSE_BUTTON)
         val level = player.skills.currentLevel(Skill.CONSTRUCTION)
         options.forEachIndexed { i, piece ->
-            val can = level >= piece.level && piece.materials.all { (obj, count) -> have(player, obj) >= count }
+            val can = level >= piece.level && lacking(player, piece) == null && piece.materials.all { (obj, count) -> have(player, obj) >= count }
             world.interfaces.runClientScript(player, ENTRY_SCRIPT, listOf(i + 1, piece.row, piece.level, materialsText(piece), if (can) 1 else 0))
         }
         world.interfaces.runClientScript(player, LAYOUT_SCRIPT, listOf(options.size, 0))
@@ -271,6 +341,15 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val lines = piece.materials.map { (obj, count) -> "$count x ${world.objTypes[obj]?.name ?: "?"}" }
         val half = (lines.size + 1) / 2
         return lines.take(half).joinToString("<br>") + "|" + lines.drop(half).joinToString("<br>")
+    }
+
+    /** The first other skill [piece] needs that [player] is below (a boost counts), with its level; null when none. */
+    private fun lacking(player: Player, piece: FurnitureOption): Pair<Skill, Int>? {
+        for ((stat, level) in piece.otherLevels) {
+            val skill = Skill.entries.firstOrNull { it.id == stat } ?: continue
+            if (player.skills.currentLevel(skill) < level) return skill to level
+        }
+        return null
     }
 
     /** How many of material [obj] [player] has: for [ANY_NAILS], every kind of nails together. */

@@ -35,21 +35,31 @@ object FurnitureLoader {
     fun load(library: CacheLibrary): FurnitureData =
         build(DbRows.load(library, FURNITURE_TABLE), DbRows.load(library, ROOM_TABLE), DbRows.load(library, HOTSPOT_TABLE))
 
+    /** [values] as (int, int) pairs, or null if any value isn't an int or one is left over. */
+    private fun pairs(values: List<Any?>): List<Pair<Int, Int>>? {
+        if (values.size % 2 != 0) return null
+        return values.chunked(2).map { (a, b) -> Pair(a as? Int ?: return null, b as? Int ?: return null) }
+    }
+
     internal fun build(furnitureRows: Map<Int, DbRow>, roomRows: Map<Int, DbRow>, hotspotRows: Map<Int, DbRow>): FurnitureData {
         val furniture = HashMap<Int, FurnitureOption>()
         for ((row, db) in furnitureRows) {
-            val levels = db.columns[LEVEL_REQUIREMENT].orEmpty().chunked(2)
-            val level = levels.firstOrNull { (stat, _) -> stat == Skill.CONSTRUCTION.id }?.get(1) as? Int ?: continue
+            // Every level and material pair must read as two ints; a row with one that doesn't is left out whole, never
+            // built with a requirement or a cost dropped (exploit review R50B-2).
+            val levels = pairs(db.columns[LEVEL_REQUIREMENT].orEmpty())
+            val materials = pairs(db.columns[MATERIAL_COST].orEmpty())
+            if (levels == null || materials == null) {
+                logger.warn { "Furniture row $row left out: its levels or materials don't read as pairs" }
+                continue
+            }
+            val level = levels.firstOrNull { (stat, _) -> stat == Skill.CONSTRUCTION.id }?.second ?: continue
             furniture[row] = FurnitureOption(
                 row = row,
                 name = db.columns[NAME]?.firstOrNull() as? String ?: continue,
                 icon = db.columns[MODEL_OBJ]?.firstOrNull() as? Int ?: continue,
-                materials = db.columns[MATERIAL_COST].orEmpty().chunked(2).mapNotNull { pair ->
-                    val obj = pair.getOrNull(0) as? Int ?: return@mapNotNull null
-                    val count = pair.getOrNull(1) as? Int ?: return@mapNotNull null
-                    obj to count
-                },
+                materials = materials,
                 level = level,
+                otherLevels = levels.filter { (stat, _) -> stat != Skill.CONSTRUCTION.id },
                 hidden = (db.columns[HIDDEN_IN_BUILD_MENU]?.firstOrNull() as? Int ?: 0) != 0,
             )
         }
