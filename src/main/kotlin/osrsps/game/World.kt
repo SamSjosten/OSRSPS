@@ -1375,6 +1375,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerDemonicBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerBrutusScoreboard(this)
         osrsps.game.content.registerCowbellAmulet(this)
