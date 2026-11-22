@@ -26,7 +26,7 @@ class FurPiece(val item: Int, val fee: Int, val furs: List<Int>, val count: Int 
  * Guessed: the panel's items in the Wiki table's order in the inv, Value as the item's op1 and Buy as its op2 (the
  * panel's client script isn't in our sources), what Value and Buy say, a pack needing a free slot (or a stack of its
  * item) and opening one at a time. Left out: opening the rest of a stack of packs on its own, the Hunter Guild's Imia, the
- * shopkeepers' Talk-to, Leon's crossbows, Bea's Swap-darts.
+ * shopkeepers' Talk-to, Leon's crossbows. Bea's Talk-to and Swap-darts are [osrsps.game.content.FarmerBea]'s.
  */
 class HunterShops(private val world: World) {
     fun register() {

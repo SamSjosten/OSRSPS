@@ -135,6 +135,8 @@ fun registerVarrock(world: World) {
     registerVarrockPalace(world)
     registerPalaceGarden(world)
     registerPhoenixGang(world)
+    registerGuidorsHouse(world)
+    registerFarmerBea(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)
     registerVarrockTownsfolk(world)
