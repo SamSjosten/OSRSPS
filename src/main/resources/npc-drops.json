@@ -687,7 +687,7 @@
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}],
       "source": "OSRS Wiki, Skeleton, Drops (Unarmed), read 2026-11-01. Its rows add up to 149/128; the 10 coins at 21/128 are taken as the free-to-play line the herbs replace on a members world (inferred: the page gives no members rate for it, and without it the rest add up to 128). The Wilderness-only looting bag and the champion scroll are left out"
     },
-    {"npcs": ["skeleton_armed", "skeleton_armed2", "skeleton_armed3", "skeleton_armed4", "skeleton_armed5", "giantskeleton"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+    {"npcs": ["skeleton_armed", "skeleton_armed2", "skeleton_armed3", "skeleton_armed4", "skeleton_armed5", "giantskeleton", "giantskeleton2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 1137, "name": "Iron med helm", "weight": 6}, {"item": 1279, "name": "Iron shortsword", "weight": 4}, {"item": 1349, "name": "Iron axe", "weight": 2}, {"item": 1323, "name": "Iron scimitar", "weight": 1},
       {"item": 556, "name": "Air rune", "min": 12, "max": 15, "weight": 3}, {"item": 555, "name": "Water rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 5, "weight": 3},
       {"item": 884, "name": "Iron arrow", "count": 12, "weight": 2}, {"item": 563, "name": "Law rune", "count": 2, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
