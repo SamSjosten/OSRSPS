@@ -15,6 +15,7 @@ import osrsps.game.SpotanimNames
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.RangedWeapons
+import osrsps.game.content.FairyRings
 import osrsps.game.content.LumbridgeSwamp
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -69,6 +70,7 @@ class HeadlessLumbridgeSwampRestTest {
             crcs,
             CollisionMap().apply {
                 for (loc in listOf(door, ruins, raft)) markLoaded(loc.x shr 6, loc.z shr 6)
+                markLoaded(FairyRings.ZANARIS_ARRIVAL.x shr 6, FairyRings.ZANARIS_ARRIVAL.z shr 6)
             },
             random = GameRandom(3), objTypes = objTypes, locTypes = types,
             staticLocs = StaticLocs().apply { listOf(door, tools, ruins, raft).forEach(::add) },
@@ -97,7 +99,7 @@ class HeadlessLumbridgeSwampRestTest {
     private fun HeadlessClient.held(id: Int) = inventory(BACKPACK).count { it?.id == id }
 
     @Test
-    fun `the shed's door lets a player in and out, but not with a dramen staff wielded`(@TempDir dir: Path) {
+    fun `the shed's door lets a player in and out, and with a dramen staff wielded takes them to Zanaris`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -110,11 +112,11 @@ class HeadlessLumbridgeSwampRestTest {
                 client.awaitAt(3201, 3169)
                 client.await("the door shut again") { world.locs[3202, 3169, 0, 0]?.takeIf { it.id == LumbridgeSwamp.SHED_DOOR } }
 
+                // With a staff wielded the door doesn't open: fairy magic takes the player to Zanaris instead.
                 client.wield(LumbridgeSwamp.DRAMEN_STAFF)
                 client.locOp(door.id, door.x, door.z, LumbridgeSwamp.OPEN)
-                client.awaitMessage("[lumbridge_swamp.zanaris_closed]")
-                client.awaitTicks(3)
-                assertEquals(Coord(3201, 3169, 0), client.position)
+                val zanaris = FairyRings.ZANARIS_ARRIVAL
+                client.await("in Zanaris", timeoutMillis = 10_000) { client.position?.takeIf { it == Coord(zanaris.x, zanaris.z, zanaris.level) } }
                 assertEquals(LumbridgeSwamp.SHED_DOOR, world.locs[3202, 3169, 0, 0]?.id)
             }
         }

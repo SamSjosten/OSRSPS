@@ -1307,7 +1307,7 @@ the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-w
 
 | Behaviour | Source |
 |-----------|--------|
-| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
+| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it takes them to Zanaris instead (travel networks step T3, see Travel networks). Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
 | The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
 | The Water Altar's ruins (34815) are Runecraft's: see Runecraft | OSRS Wiki, Mysterious ruins; the 242 cache |
 | The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
@@ -1685,6 +1685,24 @@ an egg each search, then nothing to that player for a minute; the Digsite barge'
 | Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, the coops' one-minute wait after an egg, every chathead expression | guessed |
 | Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
 | Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
+
+#### Misthalin's small options
+
+The 19 Nov 2026 review's small option pack (`game/content/MisthalinOptionPack.kt`, words under `wild_bush.*`,
+`signpost.*` and `varrock_reading.*`). The wild cadava and redberry bushes south-east of Varrock give two berries each,
+and each berry grows back after 200 ticks; the south-western cadava bush is always empty. The signposts by the Lum
+bridge, at the Draynor crossroads and south of Varrock open the compass with each post's own words, and the Exam
+Centre's gives its one line. The Combat Scroll and the VTAM Corporation plaque can be read, the boxes in Lumbridge and
+upstairs in Edgeville are empty, and the 242 cache's onion and cabbage field east of the south-east Varrock mine is
+picked like Fred's.
+
+| Misthalin's small options | Source |
+|---------------------------|--------|
+| Two berries a bush, 200 ticks a berry, the empty messages | OSRS Wiki, Cadava bush (wild) and Redberry bush (wild), read 2026-11-19 |
+| The signposts' words | OSRS Wiki, Signpost (its pictures of each post) and Signpost (Exam Centre), read 2026-11-19 |
+| The Combat Scroll's words | OSRS Wiki, Transcript:Combat Scroll, read 2026-11-19 |
+| The second berry's 200 ticks start once the first is back | inferred |
+| The pick messages and animation, the scroll and plaque shown in a message box; the plaque's words (no source yet) | guessed |
 
 #### Walking Misthalin's roads
 
