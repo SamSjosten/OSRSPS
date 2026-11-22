@@ -740,6 +740,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   opens macro_certer, and an answer (the first, right or wrong as the item falls) ends it.
 - `random-events-sandwich-lady.json`: random events step 3 (with `::keys on`): the Sandwich lady names a food and opens
   her tray; Key shows the names, Back hides them, and a pick (the baguette, right or wrong as her pick falls) ends it.
+- `random-events-freaky-forester.json`: random events step 4 (with `::keys on`): the Freaky Forester takes the player to
+  his forest, a pheasant is killed and its carcass handed in, and the exit portal brings them back to 3222,3218 with a
+  Lederhosen piece (or a lamp for an account that has all three).
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
