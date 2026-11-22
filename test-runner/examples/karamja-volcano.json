@@ -33,7 +33,7 @@
 
     {"step": "command", "text": "::tele 2851 3294 0", "expectMessage": "Teleported to 2851, 3294, 0", "comment": "among Crandor's King Scorpions"},
     {"step": "waitTicks", "ticks": 3},
-    {"step": "command", "text": "::npcs 10", "comment": "lists King Scorpion"},
+    {"step": "command", "text": "::npcs 10", "expectMessage": " King Scorpion ", "comment": "lists King Scorpion"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"}
   ]
 }
