@@ -32,7 +32,8 @@
     "NPCs: Inferno step IN4 (2026-11-17): the Zuk wave's Jal-Xil, Jal-Zek, JalTok-Jad and Yt-HurKot (7702 to 7705), the moving Ancestral Glyph (7707) and the Jal-MejJak (7708), from the infobox of the page named after each.",
     "NPCs and locs: Inferno step IN1 (2026-11-17): the Inferno's monsters (7691 to 7701, 7706), TzHaar-Ket-Keh as each of his forms shows (11247, 11248), the Inferno's entrance as it shows (30281, 30282: the Wiki has no page for it, so no words yet), its exit (30283) and the rocky supports' four looks (30284 to 30287), one per id, from the infobox of the page named after each.",
     "The Clan Hub (2026-11-19): npc-spawns/clan-hub.json's Clerk (10759), from the Clerk (Clan Hub) page.",
-    "NPCs and locs: Karamja (step K1.2): Musa Point's Luthas, Zembo and general store keeper and assistant, and the banana trees as they lose their fruit (the 242 cache, 2026-11-17)."
+    "NPCs and locs: Karamja (step K1.2): Musa Point's Luthas, Zembo and general store keeper and assistant, and the banana trees as they lose their fruit (the 242 cache, 2026-11-17).",
+    "NPCs: random events step 1 (2026-11-19): the Genie (326), from his page's infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -100,6 +101,7 @@
     {"npc": 306, "name": "Lumbridge Guide"},
     {"npc": 311, "name": "Ironman tutor", "also": [16814], "wiki": "Ironman tutor page, infobox (16814 is the type the 242 multi-NPC shows Ironmen)"},
     {"npc": 316, "name": "Leagues Tutor", "wiki": "none: ours, as the raid tester (RaidTester.kt), a testing NPC with no live counterpart, so his examine is our own words, not the Leagues Tutor's"},
+    {"npc": 326, "name": "Genie"},
     {"npc": 403, "name": "Vannaka"},
     {"npc": 404, "name": "Chaeldar"},
     {"npc": 406, "name": "Cave crawler"},
@@ -718,6 +720,7 @@
     {"npc": 6818, "name": "Man", "wiki": "Man page, infobox"},
     {"npc": 6825, "name": "Rod Fishing spot", "wiki": "Rod Fishing spot (anglerfish) page, infobox"},
     {"npc": 7221, "name": "Scurrius", "also": [7222]},
+    {"npc": 7223, "name": "Giant rat", "wiki": "Giant rat (Scurrius) page, infobox"},
     {"npc": 7226, "name": "Historian Aldo", "also": [7615, 12606]},
     {"npc": 7389, "name": "Chasm Crawler"},
     {"npc": 7392, "name": "Giant rockslug"},

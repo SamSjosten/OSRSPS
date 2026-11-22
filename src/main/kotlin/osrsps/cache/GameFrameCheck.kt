@@ -59,6 +59,7 @@ object GameFrameCheck {
             LevelUps.CACHE_NAMES, Deaths.CACHE_NAMES, HomeTeleport.CACHE_NAMES, AvaDevicesShop.CACHE_NAMES,
             Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES, SlayerRewards.CACHE_NAMES, osrsps.game.ge.ItemSetsScreen.CACHE_NAMES, osrsps.game.ge.PriceGuides.CACHE_NAMES,
             osrsps.game.skill.Canoes.CACHE_NAMES, GameFrame.PVP_ICONS_CACHE_NAMES, osrsps.game.content.WildernessDitch.CACHE_NAMES,
+            osrsps.game.content.XpLamp.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */

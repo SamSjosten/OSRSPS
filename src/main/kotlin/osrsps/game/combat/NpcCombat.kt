@@ -145,6 +145,12 @@ data class NpcCombatDef(
      * refused ([Combat.slayerGated]).
      */
     val slayerLevel: Int = 0,
+    /**
+     * The share of its melee damage, in percent, that a protection prayer against it lets through ([MeleeCombat.swingAt]):
+     * 0 for most, which a prayer blocks fully; 25 for Scurrius's giant rats ("the prayer reduces their overall damage by
+     * 75%", OSRS Wiki, Giant rat (Scurrius)).
+     */
+    val prayerPasses: Int = 0,
     /** Ticks between the hitpoints it gets back ([MeleeCombat]): [MeleeCombat.REGEN_TICKS] for most, 5 for cave bugs and crawlers. */
     val regenTicks: Int = MeleeCombat.REGEN_TICKS,
     /**
@@ -226,7 +232,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
          * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
-         * takes it below, for a rockslug) and `"typeless": true` (no protection prayer blocks its attacks).
+         * takes it below, for a rockslug), `"prayerPasses": 25` (the share of its melee damage, in percent, that a
+         * protection prayer lets through) and `"typeless": true` (no protection prayer blocks its attacks).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
@@ -315,6 +322,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {
                     require(it.isEmpty() || attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "attacks on a $attackType NPC" }
                 },
+                prayerPasses = (entry["prayerPasses"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "$it% through a prayer" } },
                 xpBonusTenths = (entry["xpBonus"]?.jsonPrimitive?.double ?: 0.0).let { percent ->
                     require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
                     Math.round(percent * 10).toInt()
