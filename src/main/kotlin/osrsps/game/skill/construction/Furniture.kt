@@ -42,28 +42,52 @@ class FurnitureData(val rooms: Map<Int, List<List<FurnitureOption>>>) {
 /**
  * What the cache doesn't hold about furniture: which hotspot loc is which of its room's hotspots, and what each piece
  * becomes once built and the XP it gives. Built locs are matched to the furniture rows by the order of their names
- * (`poh_chair1` to `poh_chair7` for `poh_armchair_1` to `_7`; inferred). XP is the Wiki's (Chair space page).
+ * (`poh_chair1` to `poh_chair7` for the seven chairs, `poh_rugcorner1` to `3` for the three plain rugs; inferred). XP is
+ * the Wiki's (Chair space page; the Parlour page for the rest of the parlour).
  */
 object FurnitureBuilds {
-    /** A hotspot loc type: the room it is in and its place in the room's hotspot list (`poh_parlour_1` is the first). */
-    data class Hotspot(val room: RoomType, val index: Int)
+    /**
+     * A hotspot loc type: the room it is in, its place in the room's hotspot list (`poh_parlour_1` is the first), and for
+     * a place with more than one loc type (a rug's corners, sides and middle; the bookcase's scroll rack) which it is.
+     */
+    data class Hotspot(val room: RoomType, val index: Int, val variant: String? = null)
 
-    /** What a piece of furniture (by its row) builds as, and its XP. */
-    data class Build(val loc: Int, val xp: Int)
+    /** What a piece of furniture (by its row) builds as, its XP, and on a [Hotspot.variant] what it builds as there. */
+    data class Build(val loc: Int, val xp: Int, val variants: Map<String, Int> = emptyMap()) {
+        fun locFor(variant: String?): Int = variant?.let { variants[it] } ?: loc
+    }
 
     /** The parlour's three chair spaces (`poh_parlour_1` to `_3`, "Chair space"). */
     const val CHAIR_SPACE_1 = 4515
     const val CHAIR_SPACE_2 = 4516
     const val CHAIR_SPACE_3 = 4517
 
+    private const val MIDDLE = "middle"
+    private const val SIDE = "side"
+    private const val CORNER = "corner"
+    private const val SCROLLS = "scrolls"
+
     val HOTSPOTS: Map<Int, Hotspot> = mapOf(
         CHAIR_SPACE_1 to Hotspot(RoomType.PARLOUR, 0),
         CHAIR_SPACE_2 to Hotspot(RoomType.PARLOUR, 1),
         CHAIR_SPACE_3 to Hotspot(RoomType.PARLOUR, 2),
+        // poh_parlour_4_middle, _side, _corner; poh_parlour_5 and _5_scrolls; poh_parlour_6 (fireplace); _7 (curtains).
+        4518 to Hotspot(RoomType.PARLOUR, 3, MIDDLE),
+        4519 to Hotspot(RoomType.PARLOUR, 3, SIDE),
+        4520 to Hotspot(RoomType.PARLOUR, 3, CORNER),
+        4521 to Hotspot(RoomType.PARLOUR, 4),
+        4522 to Hotspot(RoomType.PARLOUR, 4, SCROLLS),
+        4523 to Hotspot(RoomType.PARLOUR, 5),
+        4524 to Hotspot(RoomType.PARLOUR, 6),
     )
 
-    /** By `furniture` row: crude wooden chair, wooden chair, rocking chair, oak chair, oak, teak and mahogany armchairs. */
+    private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
+
+    private fun bookcase(loc: Int, scrolls: Int, xp: Int) = Build(loc, xp, mapOf(SCROLLS to scrolls))
+
+    /** By `furniture` row. */
     val BUILDS: Map<Int, Build> = mapOf(
+        // Crude wooden chair, wooden chair, rocking chair, oak chair, oak, teak and mahogany armchairs.
         5517 to Build(6752, 58),
         5518 to Build(6753, 87),
         5519 to Build(6754, 87),
@@ -71,10 +95,36 @@ object FurnitureBuilds {
         5521 to Build(6756, 180),
         5522 to Build(6757, 180),
         5523 to Build(6758, 280),
+        // Brown rug, rug, opulent rug (poh_rug*1 to 3), the Deadman rug (poh_deadman_rug*) and the Raging Echoes rug
+        // (poh_league5_rug*).
+        5524 to rug(6759, 6760, 6761, 30),
+        5525 to rug(6762, 6763, 6764, 60),
+        5526 to rug(6765, 6766, 6767, 360),
+        5527 to rug(54114, 54115, 54116, 283),
+        5528 to rug(56076, 56077, 56078, 82),
+        // Wooden, oak and mahogany bookcases, each a scroll rack on the scroll space (poh_bookcase_scrolls1 to 3).
+        5529 to bookcase(6768, 6771, 115),
+        5530 to bookcase(6769, 6772, 180),
+        5531 to bookcase(6770, 6773, 420),
+        // Clay, stone and marble fireplaces (poh_fireplace_1 to 3, unlit).
+        5532 to Build(6780, 30),
+        5533 to Build(6782, 40),
+        5534 to Build(6784, 500),
+        // Torn curtains, curtains, opulent curtains (poh_curtains_1 to 3) and the Raging Echoes curtains.
+        5535 to Build(6774, 132),
+        5536 to Build(6775, 225),
+        5537 to Build(6776, 315),
+        5538 to Build(56079, 487),
     )
 
+    /** The hotspot loc types at the same place in the room as [hotspot] (itself included): built and removed together. */
+    fun siblings(hotspot: Int): Set<Int> {
+        val spot = HOTSPOTS[hotspot] ?: return setOf(hotspot)
+        return HOTSPOTS.filterValues { it.room == spot.room && it.index == spot.index }.keys
+    }
+
     /** Every built loc type, each with Remove as its op 5. */
-    val BUILT_LOCS: Set<Int> get() = BUILDS.values.mapTo(HashSet()) { it.loc }
+    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc }
 
     /** Hotspots and what is built on them: the house's locs that need handlers in its instance. */
     val INSTANCE_LOCS: Set<Int> get() = HOTSPOTS.keys + BUILT_LOCS
@@ -92,10 +142,15 @@ object FurnitureBuilds {
  * `human_poh_build`, gives the piece's XP and puts it on the hotspot, saved with the house. Remove on built furniture
  * asks yes or no and takes it away, giving nothing back.
  *
+ * Step CON4 (the parlour): a place in a room can hold several hotspot loc types (a rug's corners, sides and middle; the
+ * bookcase and its scroll rack) and several tiles (curtains on each window): one build fills them all, each with its own
+ * part, and one Remove clears them all ([FurnitureBuilds.siblings]). Left out for now: lighting a fireplace (the Wiki
+ * gives no Firemaking XP for it) and the bookcase's Search (its book list).
+ *
  * GUESSED: the materials text's layout (count and name, the obj types' names from the cache); the build taking 2
  * ticks; the remove prompt; removing with the same animation; the messages (held, no source yet). Left out: nail
  * bending (the Wiki says nails bend, more often with worse nails and lower levels, but gives no odds); the crystal
- * saw's +3 boost; flatpacks (step CON4).
+ * saw's +3 boost; flatpacks (with the workshop).
  */
 class Furniture(private val world: World, private val houses: Houses, private val data: FurnitureData) {
     fun register() {
@@ -142,8 +197,10 @@ class Furniture(private val world: World, private val houses: Houses, private va
         for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
         for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
         player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
-        room.built[hotspot.id] = build.loc
-        world.locs.setPermanent(hotspot.x, hotspot.z, hotspot.level, hotspot.layer, hotspot.copy(id = build.loc))
+        // Every hotspot of the same place in the room takes the piece: each rug tile its corner, side or middle, every
+        // window its curtains.
+        for (id in FurnitureBuilds.siblings(hotspot.id)) room.built[id] = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+        redraw(house, room, hotspot.id)
         logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
     }
 
@@ -159,9 +216,21 @@ class Furniture(private val world: World, private val houses: Houses, private va
         }
         if (pick != 1 || !houses.stillHere(house, player) || room.built[hotspot.id] != loc.id || !world.locs.exists(loc)) return
         player.anim(BUILD_ANIM)
-        room.built.remove(hotspot.id)
-        world.locs.setPermanent(hotspot.x, hotspot.z, hotspot.level, hotspot.layer, hotspot)
+        for (id in FurnitureBuilds.siblings(hotspot.id)) room.built.remove(id)
+        redraw(house, room, hotspot.id)
         logger.info { "${player.username} removed furniture ${loc.id} from hotspot ${hotspot.id}" }
+    }
+
+    /** Shows what is built now on every tile of [room] holding [hotspot] or one of its siblings, or the hotspot itself. */
+    private fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
+        val ids = FurnitureBuilds.siblings(hotspot)
+        val baseX = house.instance.baseX + (room.x shl 3)
+        val baseZ = house.instance.baseZ + (room.z shl 3)
+        for (spot in house.hotspots.values) {
+            if (spot.id !in ids || spot.x - baseX !in 0..7 || spot.z - baseZ !in 0..7) continue
+            val built = room.built[spot.id]
+            world.locs.setPermanent(spot.x, spot.z, spot.level, spot.layer, if (built != null) spot.copy(id = built) else spot)
+        }
     }
 
     /** Opens the creation menu with [options] in its slots, from 1, as the client's own scripts draw them. */

@@ -56,6 +56,10 @@ class HeadlessHouseTest {
         hotspot(House.DOOR_HOTSPOT_LEFT, "Door hotspot"),
         hotspot(House.DOOR_HOTSPOT_RIGHT, "Door hotspot"),
         hotspot(CHAIR_SPACE, "Chair space"),
+        hotspot(RUG_MIDDLE_SPACE, "Rug space"), hotspot(RUG_SIDE_SPACE, "Rug space"), hotspot(RUG_CORNER_SPACE, "Rug space"),
+        LocType(BROWN_RUG_CORNER, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(BROWN_RUG_SIDE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(BROWN_RUG_MIDDLE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
         LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
@@ -76,6 +80,7 @@ class HeadlessHouseTest {
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
         objs[PLANK] = ObjType(PLANK, "Plank")
+        objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
         objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
         objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
@@ -101,6 +106,10 @@ class HeadlessHouseTest {
                 add(ZoneLoc(House.CENTREPIECE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, garden.templateX + 3, garden.templateZ + 3, 0))
                 doors(garden.templateX, garden.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
                 add(ZoneLoc(CHAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 2, parlour.templateZ + 4, 0))
+                // A small rug: a corner, a side and the middle, one tile each (the cache's rug is bigger).
+                add(ZoneLoc(RUG_CORNER_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 1, parlour.templateZ + 1, 0))
+                add(ZoneLoc(RUG_SIDE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 1, 0))
+                add(ZoneLoc(RUG_MIDDLE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 2, 0))
                 doors(parlour.templateX, parlour.templateZ, listOf(0, 2, 3)).forEach(::add)
                 // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
@@ -109,7 +118,7 @@ class HeadlessHouseTest {
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
-            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs })),
+            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs))),
         )
     }
 
@@ -118,6 +127,9 @@ class HeadlessHouseTest {
         FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
         FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
     )
+
+    /** The rug space's first choice (row 5524). */
+    private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
 
     private fun HeadlessClient.ready() = await("the login rebuild") { position }
 
@@ -447,12 +459,70 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a rug is built on every rug space at once, each tile its own part, and mixed nails make up a chair`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val px = instance.baseX + (House.STARTER_X shl 3)
+                val pz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val player = server.world.playerNamed("erin")!!
+                client.command("setlevel construction 2")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $BOLT_OF_CLOTH 2")
+                client.await("the cloth") { if (client.count(BOLT_OF_CLOTH) == 2) Unit else null }
+                val xp = client.await("level 2") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 2 } }.xp
+
+                // Build on the side tile: the corner, the side and the middle each become their part of the brown rug.
+                client.locOp(RUG_SIDE_SPACE, px + 2, pz + 1, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                val parts = listOf(Triple(BROWN_RUG_CORNER, px + 1, pz + 1), Triple(BROWN_RUG_SIDE, px + 2, pz + 1), Triple(BROWN_RUG_MIDDLE, px + 2, pz + 2))
+                client.await("the rug") { if (parts.all { (id, x, z) -> client.shown(id, x, z) }) Unit else null }
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 30 } }
+                val room = player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!
+                assertEquals(mapOf(RUG_CORNER_SPACE to BROWN_RUG_CORNER, RUG_SIDE_SPACE to BROWN_RUG_SIDE, RUG_MIDDLE_SPACE to BROWN_RUG_MIDDLE), room.built)
+                assertEquals(0, client.count(BOLT_OF_CLOTH))
+
+                // Remove on the middle takes the whole rug up.
+                client.locOp(BROWN_RUG_MIDDLE, px + 2, pz + 2, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                val spaces = listOf(Triple(RUG_CORNER_SPACE, px + 1, pz + 1), Triple(RUG_SIDE_SPACE, px + 2, pz + 1), Triple(RUG_MIDDLE_SPACE, px + 2, pz + 2))
+                client.await("the spaces back") { if (spaces.all { (id, x, z) -> client.shown(id, x, z) }) Unit else null }
+                assertEquals(emptyMap(), room.built)
+
+                // One steel nail and one bronze make the crude chair's two, the steel taken first.
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 1")
+                client.command("item $BRONZE_NAILS 1")
+                client.await("the materials") { if (client.count(BRONZE_NAILS) == 1 && client.count(PLANK) == 2) Unit else null }
+                client.locOp(CHAIR_SPACE, px + 2, pz + 4, House.BUILD)
+                client.await("the creation menu again") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the chair") { if (client.shown(CRUDE_CHAIR, px + 2, pz + 4)) Unit else null }
+                assertEquals(listOf(0, 0, 0), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
         const val CRUDE_CHAIR_ROW = 5517
         const val WOODEN_CHAIR_ROW = 5518
         const val PLANK = 960
+        const val BOLT_OF_CLOTH = 8790
+        const val RUG_MIDDLE_SPACE = 4518
+        const val RUG_SIDE_SPACE = 4519
+        const val RUG_CORNER_SPACE = 4520
+        const val BROWN_RUG_ROW = 5524
+        const val BROWN_RUG_CORNER = 6759
+        const val BROWN_RUG_SIDE = 6760
+        const val BROWN_RUG_MIDDLE = 6761
         const val STEEL_NAILS = 1539
         const val BRONZE_NAILS = 4819
         const val HAMMER = 2347
