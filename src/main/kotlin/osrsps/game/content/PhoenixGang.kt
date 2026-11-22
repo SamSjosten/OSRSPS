@@ -82,7 +82,8 @@ object GangHouseLines : Lines("gang_house", "Transcript:Shield of Arrav") {
  *   out).
  * - The VTAM Corporation's plaque (23636) by the door is [MisthalinOptionPack]'s.
  *
- * Guessed: every chathead expression; each door's two open ticks and the posh door's swing (as the Draynor jail's); the
+ * The weapon store's and Black Arm Gang's doors move only the player across, shown shut throughout, so no one follows
+ * them through (guessed: no swing shown). Guessed: every chathead expression; the hideout door's two open ticks and the posh door's swing (as the Draynor jail's); the
  * chest's open look for 3 ticks with the human_openchest animation; where Straven and Katrine stand (mejrs's tiles,
  * no wander). Left out: the thieves' armband Straven hands back before the key (Heroes' Quest), the Black Arm Gang's
  * side (Sam's choice), the antique lamp from King Roald.
@@ -97,6 +98,7 @@ object PhoenixGang {
     const val TALK_TO = 1
 
     const val HIDEOUT_LADDER = 2405
+    val LADDER_TILE = Tile(3244, 9783)
     const val HIDEOUT_DOOR = 2397
     const val STORE_DOOR = 2398
     const val BLACK_ARM_DOOR = 2399
@@ -176,7 +178,7 @@ object PhoenixGang {
      * needs no leave; from the other side [allowed] must hold or the player is told [refused]. The player steps through
      * onto the tile across the edge, as the Draynor jail's door does.
      */
-    internal suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, inside: Boolean, allowed: Boolean) {
+    internal suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, inside: Boolean, allowed: Boolean, locked: Boolean = false) {
         if (!inside && !allowed) {
             world.message(player, GangHouseLines.SECURELY_LOCKED)
             return
@@ -184,7 +186,16 @@ object PhoenixGang {
         val (from, to) = sides(door)
         val here = if (player.x == from.x && player.z == from.z) from else if (player.x == to.x && player.z == to.z) to else null
         val there = if (here == to) from else to
-        world.doors.openAs(door, DOOR_OPEN, shutAfter = DOOR_TICKS)
+        if (locked) {
+            // A locked door lets only this player across: opening it would let anyone follow them through for its
+            // open ticks. Guessed: no swing shown.
+            delay(1)
+            world.teleport(player, there.x, there.z, door.level)
+            return
+        }
+        // Another player may have opened it during the arrival delay: then it is already open, and this one just walks.
+        val closed = world.locs[door.x, door.z, door.level, door.layer]?.takeIf { it.id == door.id }
+        if (closed != null) world.doors.openAs(closed, DOOR_OPEN, shutAfter = DOOR_TICKS)
         player.waypoints.clear()
         if (here == null) player.waypoints.add(if (there == to) from else to)
         player.waypoints.add(there)
@@ -245,6 +256,8 @@ fun registerPhoenixGang(world: World) = with(PhoenixGang) {
 
     world.handlers.onLoc(HIDEOUT_LADDER, OP1) { op ->
         val loc = op.loc!!
+        // This ladder only: another copy of the type would send the player 6400 tiles south.
+        if (loc.x != LADDER_TILE.x || loc.z != LADDER_TILE.z || loc.level != 0) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
         climbBetween(world, loc, Tile(loc.x, loc.z), Tile(loc.x, loc.z - Climbing.DUNGEON_OFFSET), Climbing.ANIM_REACH_FOR_LADDER)
     }
     // Members pass Straven's door both ways; the store's door wants the key from the alley; the Black Arm Gang's inner
@@ -266,8 +279,8 @@ fun registerPhoenixGang(world: World) = with(PhoenixGang) {
             when (id) {
                 HIDEOUT_DOOR -> throughDoor(world, door, inside = true, allowed = true)
                 // The key held, not banked: Straven's spare goes by any key the player owns ([hasKey]).
-                STORE_DOOR -> throughDoor(world, door, inside = !ownSide, allowed = player.inventory.count(WEAPON_STORE_KEY) > 0)
-                else -> throughDoor(world, door, inside = ownSide, allowed = false)
+                STORE_DOOR -> throughDoor(world, door, inside = !ownSide, allowed = player.inventory.count(WEAPON_STORE_KEY) > 0, locked = true)
+                else -> throughDoor(world, door, inside = ownSide, allowed = false, locked = true)
             }
         }
     }
