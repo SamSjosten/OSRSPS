@@ -117,6 +117,27 @@ object FurnitureBuilds {
         5538 to Build(56079, 487),
     )
 
+    /**
+     * The furniture rows each place in a room offers, as the cache's `poh_hotspot` table lists them, so a save can be
+     * checked without the cache: a piece is only ever built on its own place.
+     */
+    val PLACES: Map<Pair<RoomType, Int>, IntRange> = mapOf(
+        (RoomType.PARLOUR to 0) to 5517..5523,
+        (RoomType.PARLOUR to 1) to 5517..5523,
+        (RoomType.PARLOUR to 2) to 5517..5523,
+        (RoomType.PARLOUR to 3) to 5524..5528,
+        (RoomType.PARLOUR to 4) to 5529..5531,
+        (RoomType.PARLOUR to 5) to 5532..5534,
+        (RoomType.PARLOUR to 6) to 5535..5538,
+    )
+
+    /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
+    fun buildsOn(hotspot: Int, loc: Int): Boolean {
+        val spot = HOTSPOTS[hotspot] ?: return false
+        val rows = PLACES[spot.room to spot.index] ?: return false
+        return rows.any { row -> BUILDS[row]?.locFor(spot.variant) == loc }
+    }
+
     /** The hotspot loc types at the same place in the room as [hotspot] (itself included): built and removed together. */
     fun siblings(hotspot: Int): Set<Int> {
         val spot = HOTSPOTS[hotspot] ?: return setOf(hotspot)

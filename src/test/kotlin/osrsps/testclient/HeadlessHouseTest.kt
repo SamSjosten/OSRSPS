@@ -47,6 +47,9 @@ class HeadlessHouseTest {
     private fun hotspot(id: Int, name: String, width: Int = 1) =
         LocType(id, name, ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = width, length = width, interactType = 0))
 
+    private fun built(id: Int, name: String) =
+        LocType(id, name, ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0))
+
     private fun door(id: Int, op: String) = LocType(id, "Door", ops = listOf(op, null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
 
     private val types = listOf(
@@ -60,6 +63,10 @@ class HeadlessHouseTest {
         LocType(BROWN_RUG_CORNER, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_SIDE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_MIDDLE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        hotspot(BOOKCASE_SPACE, "Bookcase space"), hotspot(SCROLL_SPACE, "Bookcase space"),
+        hotspot(FIREPLACE_SPACE, "Fireplace space"), hotspot(CURTAIN_SPACE, "Curtain space"),
+        built(WOODEN_BOOKCASE, "Wooden bookcase"), built(WOODEN_SCROLLS, "Wooden bookcase"),
+        built(CLAY_FIREPLACE, "Clay fireplace"), built(TORN_CURTAINS, "Torn curtains"),
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
         LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
@@ -81,6 +88,7 @@ class HeadlessHouseTest {
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
         objs[PLANK] = ObjType(PLANK, "Plank")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
+        objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
         objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
         objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
         objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
@@ -110,6 +118,12 @@ class HeadlessHouseTest {
                 add(ZoneLoc(RUG_CORNER_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 1, parlour.templateZ + 1, 0))
                 add(ZoneLoc(RUG_SIDE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 1, 0))
                 add(ZoneLoc(RUG_MIDDLE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 2, 0))
+                // A bookcase with its scroll rack beside it, a fireplace, and curtains on two windows of the north wall.
+                add(ZoneLoc(BOOKCASE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 6, parlour.templateZ + 2, 0))
+                add(ZoneLoc(SCROLL_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 6, parlour.templateZ + 3, 0))
+                add(ZoneLoc(FIREPLACE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 4, parlour.templateZ + 6, 0))
+                add(ZoneLoc(CURTAIN_SPACE, LocShape.WALL_STRAIGHT, 1, parlour.templateX + 2, parlour.templateZ + 7, 0))
+                add(ZoneLoc(CURTAIN_SPACE, LocShape.WALL_STRAIGHT, 1, parlour.templateX + 5, parlour.templateZ + 7, 0))
                 doors(parlour.templateX, parlour.templateZ, listOf(0, 2, 3)).forEach(::add)
                 // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
@@ -118,7 +132,7 @@ class HeadlessHouseTest {
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
-            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs))),
+            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains))),
         )
     }
 
@@ -130,6 +144,11 @@ class HeadlessHouseTest {
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
+
+    /** The other parlour places' first choices (rows 5529, 5532 and 5535), with the Wiki's materials and levels. */
+    private val bookcases = listOf(FurnitureOption(WOODEN_BOOKCASE_ROW, "Wooden bookcase", 8319, listOf(PLANK to 4, Furniture.ANY_NAILS to 4), level = 4))
+    private val fireplaces = listOf(FurnitureOption(CLAY_FIREPLACE_ROW, "Clay fireplace", 8325, listOf(SOFT_CLAY to 3), level = 3))
+    private val curtains = listOf(FurnitureOption(TORN_CURTAINS_ROW, "Torn curtains", 8322, listOf(PLANK to 3, BOLT_OF_CLOTH to 3, Furniture.ANY_NAILS to 3), level = 2))
 
     private fun HeadlessClient.ready() = await("the login rebuild") { position }
 
@@ -509,6 +528,58 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a bookcase builds with its scroll rack, a fireplace on its own, and curtains on every window at once`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val px = instance.baseX + (House.STARTER_X shl 3)
+                val pz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val room = server.world.playerNamed("finn")!!.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!
+                client.command("setlevel construction 4")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 7")
+                client.command("item $STEEL_NAILS 7")
+                client.command("item $BOLT_OF_CLOTH 3")
+                client.command("item $SOFT_CLAY 3")
+                client.await("the materials") { if (client.count(SOFT_CLAY) == 3 && client.count(BOLT_OF_CLOTH) == 3) Unit else null }
+                var xp = client.await("level 4") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 4 } }.xp
+
+                fun build(space: Int, x: Int, z: Int, gain: Int, vararg shown: Triple<Int, Int, Int>) {
+                    client.locOp(space, x, z, House.BUILD)
+                    client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                    client.await("$space built") { if (shown.all { (id, sx, sz) -> client.shown(id, sx, sz) }) Unit else null }
+                    xp += gain
+                    client.await("the XP for $space") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp } }
+                }
+
+                // The bookcase and, on the space beside it, its scroll rack.
+                build(BOOKCASE_SPACE, px + 6, pz + 2, 115, Triple(WOODEN_BOOKCASE, px + 6, pz + 2), Triple(WOODEN_SCROLLS, px + 6, pz + 3))
+                assertEquals(mapOf(BOOKCASE_SPACE to WOODEN_BOOKCASE, SCROLL_SPACE to WOODEN_SCROLLS), room.built)
+                build(FIREPLACE_SPACE, px + 4, pz + 6, 30, Triple(CLAY_FIREPLACE, px + 4, pz + 6))
+                // One build hangs curtains on both windows.
+                build(CURTAIN_SPACE, px + 2, pz + 7, 132, Triple(TORN_CURTAINS, px + 2, pz + 7), Triple(TORN_CURTAINS, px + 5, pz + 7))
+                assertEquals(TORN_CURTAINS, room.built[CURTAIN_SPACE])
+                assertEquals(listOf(0, 0, 0, 0), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BOLT_OF_CLOTH), client.count(SOFT_CLAY)))
+
+                // Remove on the scroll rack takes the bookcase down too; Remove on the far window takes both curtains.
+                client.locOp(WOODEN_SCROLLS, px + 6, pz + 3, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the bookcase spaces back") { if (client.shown(BOOKCASE_SPACE, px + 6, pz + 2) && client.shown(SCROLL_SPACE, px + 6, pz + 3)) Unit else null }
+                client.locOp(TORN_CURTAINS, px + 5, pz + 7, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the curtain spaces back") { if (client.shown(CURTAIN_SPACE, px + 2, pz + 7) && client.shown(CURTAIN_SPACE, px + 5, pz + 7)) Unit else null }
+                assertEquals(mapOf(FIREPLACE_SPACE to CLAY_FIREPLACE), room.built)
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
@@ -523,6 +594,18 @@ class HeadlessHouseTest {
         const val BROWN_RUG_CORNER = 6759
         const val BROWN_RUG_SIDE = 6760
         const val BROWN_RUG_MIDDLE = 6761
+        const val BOOKCASE_SPACE = 4521
+        const val SCROLL_SPACE = 4522
+        const val FIREPLACE_SPACE = 4523
+        const val CURTAIN_SPACE = 4524
+        const val WOODEN_BOOKCASE_ROW = 5529
+        const val CLAY_FIREPLACE_ROW = 5532
+        const val TORN_CURTAINS_ROW = 5535
+        const val WOODEN_BOOKCASE = 6768
+        const val WOODEN_SCROLLS = 6771
+        const val CLAY_FIREPLACE = 6780
+        const val TORN_CURTAINS = 6774
+        const val SOFT_CLAY = 1761
         const val STEEL_NAILS = 1539
         const val BRONZE_NAILS = 4819
         const val HAMMER = 2347

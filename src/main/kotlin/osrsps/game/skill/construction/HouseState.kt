@@ -217,8 +217,8 @@ object HouseSaves {
     /** Whether this server builds [loc] on [hotspot] in a [type] room: the garden's exit portal, or CON3's furniture. */
     private fun builds(type: RoomType, hotspot: Int, loc: Int): Boolean {
         if (loc == House.EXIT_PORTAL) return type == RoomType.GARDEN && hotspot == House.CENTREPIECE_SPACE
-        val spot = FurnitureBuilds.HOTSPOTS[hotspot]?.takeIf { it.room == type } ?: return false
-        return FurnitureBuilds.BUILDS.values.any { it.locFor(spot.variant) == loc }
+        if (FurnitureBuilds.HOTSPOTS[hotspot]?.room != type) return false
+        return FurnitureBuilds.buildsOn(hotspot, loc)
     }
 
     private fun JsonObject.int(key: String): Int = this[key]?.jsonPrimitive?.int ?: throw IllegalArgumentException("House room has no $key")
