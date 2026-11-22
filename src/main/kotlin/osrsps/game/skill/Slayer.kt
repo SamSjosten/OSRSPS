@@ -6,6 +6,7 @@ import osrsps.game.Quests
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.WearPos
+import osrsps.game.Wilderness
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.SlayerHelm
 import osrsps.game.content.message
@@ -22,6 +23,10 @@ object SlayerLines : Lines("slayer", "Slayer") {
         "task_done_points",
         "the last kill of a task: the streak, the points it gave and the points held, and to go back to a master (the Wiki's Slayer reward point); words unsourced",
         "streak", "points", "total",
+    )
+    val WILDERNESS_ONLY = line(
+        "wilderness_only",
+        "a kill of a Krystilia task's monster outside the Wilderness, which doesn't count (the Wiki's Krystilia page quotes it)",
     )
 }
 
@@ -50,7 +55,7 @@ enum class SlayerMaster(
     CHAELDAR(4, 404, 10, combat = 70, blockList = 3, blockCost = 70),
     KURADAL(5, 13623, 15, combat = 100, slayer = 50, blockList = 6, blockCost = 100),
     STEVE(6, 6798, 12, combat = 85, blockList = 5, blockCost = 90),
-    KRYSTILIA(7, 7663, 25, blockList = 7, blockCost = 100),
+    KRYSTILIA(7, 7663, 25, slayer = 2, blockList = 7, blockCost = 100),
     KONAR(8, 8623, 18, combat = 75, blockList = 4, blockCost = 80),
     SPRIA(9, 10432, 0, blockList = 0, blockCost = 40),
     ;
@@ -78,8 +83,13 @@ enum class SlayerMaster(
  * session now, so a player who logged out and back in since (a poisoned monster dying later) still gets it. Guessed:
  * of two players who dealt the same most damage, the first to deal it counts.
  * A black mask or Slayer helmet worn on task makes the player's attacks on the task's monster stronger ([helm],
- * [SlayerHelm]). Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
- * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places. Superiors are [SlayerSuperiors].
+ * [SlayerHelm]). Slayer partners aren't built.
+ *
+ * Krystilia's tasks (OSRS Wiki, Krystilia, read 2026-11-19): she checks no combat levels, only the Slayer levels; a kill
+ * counts only while the player stands inside the Wilderness as the monster dies, else it says so and gives nothing; a
+ * task of hers completed counts on its own streak, slayer_wilderness_tasks_completed, paying her 25 points from its
+ * fifth. Guessed: that a kill outside gives no Slayer XP either. Left out: the Larran's key and Slayer's enchantment
+ * drops her tasks give in the Wilderness. Out: boss tasks, Konar's places. Superiors are [SlayerSuperiors].
  */
 class Slayer(private val world: World, val data: SlayerData) {
     /** Superior Slayer monsters; see [SlayerSuperiors]. */
@@ -179,6 +189,15 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     fun setStreak(player: Player, streak: Int) = player.vars.setVarbit(VARBIT_STREAK, streak.coerceIn(0, MAX_STREAK))
 
+    fun setWildernessStreak(player: Player, streak: Int) = player.vars.setVarbit(VARBIT_WILDERNESS_STREAK, streak.coerceIn(0, MAX_STREAK))
+
+    /** The streak a task from [master] adds to: Krystilia's own, or the standard one. */
+    fun streakOf(player: Player, master: SlayerMaster?): Int =
+        if (master == SlayerMaster.KRYSTILIA) wildernessStreak(player) else streak(player)
+
+    fun setStreakOf(player: Player, master: SlayerMaster?, streak: Int) =
+        if (master == SlayerMaster.KRYSTILIA) setWildernessStreak(player, streak) else setStreak(player, streak)
+
     /** Whether [player] has bought the reward in slayer_unlock row [row]. */
     fun unlocked(player: Player, row: Int): Boolean = data.unlocks[row]?.let { hasBit(player, it.bit) } ?: false
 
@@ -227,13 +246,13 @@ class Slayer(private val world: World, val data: SlayerData) {
     /**
      * Whether [master] may give [player] [entry]: with base levels (OSRS Wiki, Slayer task: "The player cannot boost their
      * Slayer level to obtain a task"), the task's combat level unless they've turned the check off, every one of its
-     * stats and one of its either-or stats, the reward it needs bought, and not the reward that blocks it. Quests count
+     * stats and one of its either-or stats (the combat level not at all when [combat] is false: Krystilia's), the reward it needs bought, and not the reward that blocks it. Quests count
      * as done. Boss tasks, whose amount the player picks, aren't built.
      */
-    fun eligible(player: Player, entry: SlayerMasterTask): Boolean {
+    fun eligible(player: Player, entry: SlayerMasterTask, combat: Boolean = true): Boolean {
         val task = entry.task
         if (entry.min <= 0 || entry.max < entry.min) return false
-        if (!fit(player, task)) return false
+        if (!fit(player, task, combat)) return false
         if (entry.unlockedBy != null && !unlocked(player, entry.unlockedBy)) return false
         if (SlayerMaster.of(entry.master)?.let { blocked(player, it, task.id) } == true) return false
         if (task.blockedBy != null && unlocked(player, task.blockedBy)) return false
@@ -255,7 +274,7 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     /** [master]'s tasks [player] may be given. */
     fun choices(player: Player, master: SlayerMaster): List<SlayerMasterTask> =
-        data.masterTasks[master.id].orEmpty().filter { eligible(player, it) }
+        data.masterTasks[master.id].orEmpty().filter { eligible(player, it, combat = master != SlayerMaster.KRYSTILIA) }
 
     /**
      * Draws [master]'s next task for [player] by the cache's weights over what they may be given (OSRS Wiki, Slayer task,
@@ -342,7 +361,7 @@ class Slayer(private val world: World, val data: SlayerData) {
         superiors.xpTenths(npc)?.let { superiorXp ->
             val player = online(killerKey) ?: return
             player.skills.addTenths(Skill.SLAYER, superiorXp)
-            if (onTask(player, npc)) countKill(player)
+            if (onTask(player, npc) && countsHere(player)) countKill(player)
             return
         }
         val xp = xpTenths(npc)
@@ -350,11 +369,24 @@ class Slayer(private val world: World, val data: SlayerData) {
         val credited = if (shared) listOf(killerKey, topKey!!) else listOf(killerKey)
         for (key in credited) {
             val player = online(key) ?: continue
-            if (!onTask(player, npc)) continue
+            if (!onTask(player, npc) || !countsHere(player)) continue
             player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
             superiors.rolled(player, npc)
             countKill(player)
         }
+    }
+
+    /**
+     * Whether a kill on [player]'s task counts where they stand: anywhere, but for a Krystilia task only inside the
+     * Wilderness and outside Ferox Enclave (the Wiki: the Enclave itself doesn't count, the safe buffer outside it does),
+     * which says so when it doesn't. Inferred: the Wilderness as [Wilderness.inside] has it and the Enclave as
+     * [Wilderness.inFerox] does.
+     */
+    private fun countsHere(player: Player): Boolean {
+        if (master(player) != SlayerMaster.KRYSTILIA) return true
+        if (Wilderness.inside(player.x, player.z) && !Wilderness.inFerox(player.x, player.z)) return true
+        world.message(player, SlayerLines.WILDERNESS_ONLY)
+        return false
     }
 
     /** One off [player]'s task, completing it with the last. */
@@ -371,10 +403,11 @@ class Slayer(private val world: World, val data: SlayerData) {
         // A streak past what the 14-bit varbit holds goes back 1,000, so every milestone (10, 50, 100, 250 and 1,000
         // all divide 1,000) still comes round on time: the Wiki's March 2023 update keeps a huge streak's bonuses
         // coming "as if you didn't have a ludicrous streak count". Guessed: how live stores it.
-        val next = streak(player) + 1
+        val master = master(player)
+        val next = streakOf(player, master) + 1
         val streak = if (next > MAX_STREAK) next - STREAK_WRAP else next
-        setStreak(player, streak)
-        val points = pointsFor(master(player)?.points ?: 0, streak)
+        setStreakOf(player, master, streak)
+        val points = pointsFor(master?.points ?: 0, streak)
         setPoints(player, points(player) + points)
         // Guessed: the task var is cleared too, not only the count.
         player.vars[VARP_TARGET] = 0
