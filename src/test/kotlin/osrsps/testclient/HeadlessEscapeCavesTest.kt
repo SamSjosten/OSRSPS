@@ -171,6 +171,21 @@ class HeadlessEscapeCavesTest {
                 val eve = client.await("eve again") { server.world.playerNamed("eve") }
                 assertTrue(server.world.escapeCaves.debuffed(eve), "the debuff kept through a relog")
             }
+            // Logged out there for good: forgotten after a while, so such accounts don't pile up (Codex review on #861).
+            server.login("fay").use { fay ->
+                fay.await("the login rebuild") { fay.position }
+                fay.await("eve gone") { Unit.takeIf { server.world.playerNamed("eve") == null } }
+                assertEquals(1, server.world.escapeCaves.remembered)
+                val left = server.world.tick
+                // A command every few seconds, so the server's 15-second read timeout doesn't close fay's connection.
+                val until = System.currentTimeMillis() + 40_000
+                while (server.world.escapeCaves.remembered != 0) {
+                    check(System.currentTimeMillis() < until) { "eve's visit never forgotten" }
+                    fay.commandReply("pos") { true }
+                    fay.awaitTicks(40)
+                }
+                assertTrue(server.world.tick - left >= EscapeCaves.FORGET_TICKS - 1, "not before ${EscapeCaves.FORGET_TICKS} ticks")
+            }
         }
     }
 

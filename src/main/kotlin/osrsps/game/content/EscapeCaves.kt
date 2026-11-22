@@ -32,17 +32,25 @@ class EscapeCaves {
     /** A surface cave and the way out below that leads back to it, and the tiles players come out on at each end. */
     data class Pair(val surface: Tile, val outside: Tile, val exitId: Int, val exit: Tile, val inside: Tile)
 
-    private class Visit(val since: Long, val debuff: Boolean)
+    private class Visit(val since: Long, val debuff: Boolean) {
+        /** The last tick its player was seen in the caves. */
+        var seen: Long = since
+    }
 
     /**
      * By save key, not the Player, so relogging (a new Player each login) keeps the debuff and the linger count (exploit
-     * review round 48, R48B-1). Kept while they are offline; dropped the first tick they are seen outside the caves.
+     * review round 48, R48B-1). Kept while they are offline, up to [FORGET_TICKS] after they were last seen in the caves
+     * (so accounts that log out there and never come back don't pile up); dropped the first tick they are seen outside.
      */
     private val visits = HashMap<String, Visit>()
+    private var pruned = 0L
     /** By lair: when its last player left and which cave mouth they came out of. */
     private val lastLeft = HashMap<String, kotlin.Pair<Long, Tile>>()
 
     fun debuffed(player: Player): Boolean = visits[player.saveKey]?.debuff == true
+
+    /** How many accounts' visits are kept, online or not. */
+    val remembered: Int get() = visits.size
 
     /**
      * The cave mouth a player leaving [lair] at [tick] comes out of: the last one's, within [SHARED_TICKS] of them, else
@@ -70,11 +78,16 @@ class EscapeCaves {
 
     /** Every tick for every player: forgotten once out of the caves; the debuff's and lingering's drains while in. */
     fun tick(world: World, player: Player) {
+        if (world.tick != pruned) {
+            pruned = world.tick
+            visits.values.removeIf { world.tick - it.seen > FORGET_TICKS }
+        }
         if (player.level != 0 || !inCaves(player.x, player.z)) {
             visits.remove(player.saveKey)
             return
         }
         val visit = visits.getOrPut(player.saveKey) { Visit(world.tick, debuff = false) }
+        visit.seen = world.tick
         val stayed = world.tick - visit.since
         if (stayed <= 0) return
         if (visit.debuff && stayed % DEBUFF_TICKS == 0L) drainPrayer(world, player, 1)
@@ -104,6 +117,8 @@ class EscapeCaves {
         const val DEBUFF_TICKS = 5L
         const val LINGER_AFTER = 50L
         const val LINGER_TICKS = 5L
+        /** An offline account's visit is forgotten 5 minutes after it was last seen in the caves (GUESSED). */
+        const val FORGET_TICKS = 500L
         /** 3% of the run energy's 10,000. */
         const val LINGER_ENERGY = 300
 
