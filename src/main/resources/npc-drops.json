@@ -1271,6 +1271,10 @@
     ]},
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/15"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/40"}, {"item": 33124, "name": "Beef", "chance": "1/1000"}],
       "source": "OSRS Wiki, Brutus, Drops, read 2026-11-22: bull bones and a raw t-bone steak always; the uniques' pre-roll, one roll of 10/150 split 5 mooleta, 4 bottomless milk bucket, 1 cow slippers (written as 5/150, then 4/145 and 1/141 of what is left, the same odds); the main table of 81 as a members world has it (the free-to-play coins out, the seeds and noted steaks in); tertiary the beginner clue 1/15, easy clue 1/40 and Beef 1/1000. Left out: the cow bone (Rag and Bone Man III only)"
+    },
+    {"npcs": ["cowboss_hardmode"], "always": [{"item": 33099, "name": "Brutus slippers"}],
+      "tertiary": [{"item": 33124, "name": "Beef", "chance": "1/400"}],
+      "source": "OSRS Wiki, Demonic Brutus, Drops, read 2026-11-22 (Brutus step 7): Brutus slippers always, Beef 1/400 (the Wiki's approximate)"
     }
   ],
   "chests": {

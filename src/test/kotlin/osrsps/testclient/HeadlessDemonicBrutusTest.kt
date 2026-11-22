@@ -15,8 +15,11 @@ import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
 import osrsps.game.Skill
 import osrsps.game.VarTypes
+import osrsps.game.VarbitType
+import osrsps.game.content.BrutusScoreboard
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.content.Brutus
 import osrsps.game.content.DemonicBrutus
 import osrsps.game.content.DemonicLines
@@ -35,6 +38,11 @@ import osrsps.map.LocShape
  * one first, going clockwise from the west or south, at the player, the charge's start swapping after each charge.
  */
 class HeadlessDemonicBrutusTest {
+    private companion object {
+        const val SLIPPERS = 33099
+        const val BEEF = 33124
+    }
+
     private fun type(id: Int, name: String, vararg ops: String?) =
         LocType(id, name, ops = ops.toList() + List(5 - ops.size) { null }, collision = LocCollisionType(width = 1, length = 1))
 
@@ -43,6 +51,7 @@ class HeadlessDemonicBrutusTest {
             type(Brutus.GATE_LEFT, "Gate", "Release"), type(Brutus.GATE_RIGHT, "Gate", "Release"),
             type(Brutus.EXIT_LEFT, "Gate", "Leave", "Quick-escape"), type(Brutus.EXIT_RIGHT, "Gate", "Leave", "Quick-escape"),
             type(DemonicBrutus.GROWTH, "Growth", "Pluck"),
+            LocType(BrutusScoreboard.SCOREBOARD_MULTI, "null", collision = LocCollisionType(width = 1, length = 1), multiloc = true),
         ).associateBy { it.id },
     )
 
@@ -59,16 +68,21 @@ class HeadlessDemonicBrutusTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
         val npcTypes = NpcTypes.of(brutus, demonic, ghost)
+        val objs = ObjTypes.of(
+            ObjType(DemonicBrutus.POTATO, "Abyssal potato", iops = listOf("Eat", null, null, null, "Drop")),
+            ObjType(SLIPPERS, "Brutus slippers"), ObjType(BEEF, "Beef"),
+        )
         World(
             crcs, map, random = GameRandom(9), locTypes = types,
-            objTypes = ObjTypes.of(ObjType(DemonicBrutus.POTATO, "Abyssal potato", iops = listOf("Eat", null, null, null, "Drop"))),
+            objTypes = objs, npcDrops = NpcDrops.load(npcTypes, objs),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Brutus.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3262, 3294, 0))
                 add(ZoneLoc(Brutus.GATE_RIGHT, LocShape.WALL_STRAIGHT, 1, 3263, 3294, 0))
                 // Stood in for the Scar's growth, near the pen.
                 add(ZoneLoc(DemonicBrutus.GROWTH, LocShape.CENTREPIECE_STRAIGHT, 0, 3256, 3290, 0))
+                add(ZoneLoc(BrutusScoreboard.SCOREBOARD_MULTI, LocShape.CENTREPIECE_STRAIGHT, 1, 3258, 3298, 0))
             },
-            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), varTypes = VarTypes(6_000, emptyMap()), cycleMillis = millis,
+            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), varTypes = VarTypes(6_000, mapOf(BrutusScoreboard.SCOREBOARDS_VARBIT to VarbitType(5405, 0, 2))), cycleMillis = millis,
         )
     }
 
@@ -144,12 +158,60 @@ class HeadlessDemonicBrutusTest {
                 val run = client.feedIn(server, "alice", 3262, 3270)
                 val boss = run.boss!!
                 client.await("his Moo") { if (DemonicBrutus.fight(boss).mooed) Unit else null }
+                // Beside him, to see his drop.
+                client.command("tele ${boss.x - 1} ${boss.z} 0")
+                client.await("beside him") { client.position?.takeIf { it.x == boss.x - 1 || it.x == boss.x + 3 } }
+                // His first 0 is his second phase: his MOO_MOO line and 487 hitpoints.
+                client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                client.await("phase two") { if (DemonicBrutus.fight(boss).phaseTwo) Unit else null }
+                assertTrue(!boss.dead)
+                assertEquals(DemonicBrutus.PHASE_TWO_HEAL, boss.hitpoints)
                 client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
                 client.seen(DialogueText.NONE[DemonicLines.KILL_COUNT, "count" to 1])
+                assertEquals(BrutusScoreboard.SCOREBOARD_DEMONIC_SHOWN, alice.vars.getVarbit(BrutusScoreboard.SCOREBOARDS_VARBIT), "Read (Demonic) on the board")
+                assertEquals(1L, server.world.brutusDemonicRecords.kills)
+                assertEquals(0L, server.world.brutusRecords.kills, "not Brutus's records")
+                client.await("the slippers") { client.groundObjs().firstOrNull { it.id == SLIPPERS } }
+
+                // Read (Demonic) on the scoreboard: his numbers.
+                client.command("tele 3258 3297 0")
+                client.await("by the board") { client.position?.takeIf { it == Coord(3258, 3297, 0) } }
+                client.locOp(BrutusScoreboard.SCOREBOARD_MULTI, 3258, 3298, BrutusScoreboard.READ_DEMONIC)
+                val texts = client.await("the Demonic page") { client.texts(BrutusScoreboard.INTERFACE).takeIf { it.size >= 6 } }
+                assertEquals("1", texts[BrutusScoreboard.PERSONAL_KILLS])
+                assertEquals("1", texts[BrutusScoreboard.GLOBAL_KILLS])
                 assertEquals(1, alice.vars[Brutus.HARDMODE_KILL_COUNT_VARP])
                 assertEquals(0, alice.vars[Brutus.KILL_COUNT_VARP], "not Brutus's count")
                 client.awaitTicks(50)
                 assertTrue(server.world.npcs.all.none { !it.dead && it.type.id == DemonicBrutus.BOSS && run.instance.contains(it.x, it.z) }, "no respawn")
+            }
+        }
+    }
+
+    @Test
+    fun `quicker below 500, anticlockwise below 250, and in his second phase four orbs a special, magic, melee and ranged first`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                val run = client.feedIn(server, "carol", 3262, 3270)
+                val boss = run.boss!!
+                val fight = DemonicBrutus.fight(boss)
+                client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }
+                boss.hitpoints = 400
+                client.await("a quick special", timeoutMillis = 60_000) { fight.timings.firstOrNull() }.let { (window, gap) ->
+                    assertEquals(DemonicBrutus.FAST_GHOST_GAP, gap)
+                    assertTrue(window == DemonicBrutus.FAST_CHARGE_WINDOW || window == DemonicBrutus.FAST_SLAM_WINDOW, "window $window")
+                }
+                assertTrue(fight.clockwise)
+                boss.hitpoints = 200
+                client.await("an anticlockwise special", timeoutMillis = 60_000) { fight.bulls.drop(4).take(4).takeIf { it.size == 4 } }.let { bulls ->
+                    assertEquals(DemonicBrutus.order(bulls[0].index, false), bulls.map { it.index })
+                }
+                // His second phase: orbs.
+                client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                client.await("phase two") { if (fight.phaseTwo) Unit else null }
+                client.await("four orbs", timeoutMillis = 60_000) { fight.orbs.takeIf { it.size >= 4 } }
+                assertEquals(DemonicBrutus.ORB_STYLES, fight.orbs.take(3).map { it.first })
+                assertTrue(fight.orbs[3].first in DemonicBrutus.ORB_STYLES)
             }
         }
     }
