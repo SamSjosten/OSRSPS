@@ -43,7 +43,9 @@ import osrsps.map.Tile
  * - **Giant rats** (`rat_boss_giant_rat` 7223): with a screech, six around the lair, up to [WAVES] waves a fight.
  *   Slash max 4, every 4 ticks, aggressive; any hit kills one ("They will always die in a single hit from any
  *   weapon"), and Protect from Melee lets a quarter of their damage through ("reduces their overall damage by 75%",
- *   their NPC file's prayerPasses). They stay when he dies.
+ *   their NPC file's prayerPasses). They stay when he dies ("The rats will persist even after Scurrius is slain"),
+ *   until no living player is left in that lair or he comes back there (guessed: the Wiki says nothing of when they
+ *   go; exploit review round 49, R49B-2, so a lair can't fill up with them kill after kill).
  *
  * GUESSED until recorded (each marked where it is used): [EATING_TAKES_PERCENT] and [FEED_AFTER_ATTACKS]; when he picks each attack ([BRICK_ODDS], [SUMMON_ODDS], magic
  * and ranged at even odds, the swipe whenever he reaches in the phases that have it); the phases with rats (from the
@@ -129,6 +131,13 @@ object ScurriusFight {
     }
 
     private val fights = WeakHashMap<Npc, Fight>()
+
+    /** Rats left by a dead Scurrius, by the lair they are in (its private run, or null for the public one). */
+    internal class Leftover(val run: ScurriusLairs.Run?, val rats: List<Npc>)
+
+    private val leftoversByWorld = WeakHashMap<World, ArrayList<Leftover>>()
+
+    internal fun leftovers(world: World) = leftoversByWorld.getOrPut(world) { ArrayList() }
 
     fun fight(boss: Npc): Fight = fights.getOrPut(boss) { Fight() }
 
@@ -309,6 +318,9 @@ object ScurriusFight {
 
     private fun EncounterContext.walkToPile(fight: Fight) {
         val pile = fight.pile ?: return
+        // He breaks free of binds on the way, every tick, so a re-freeze can't hold him off the pile and stop all his
+        // attacks (exploit review round 49, R49B-1; the Wiki's "He will break free of any binds in the process").
+        boss.freezeTicks = 0
         val at = here(standAt(pile).x, standAt(pile).z)
         if (boss.x == at.x && boss.z == at.z) {
             fight.stage = Stage.FEEDING
@@ -323,6 +335,8 @@ object ScurriusFight {
 
     private fun EncounterContext.walkToCentre(fight: Fight) {
         val at = here(CENTRE.x, CENTRE.z)
+        // As on the way to a pile (R49B-1). Guessed: the Wiki names binds breaking only for the piles.
+        boss.freezeTicks = 0
         if (boss.x == at.x && boss.z == at.z) {
             fight.stage = Stage.CENTRE
             log("at the centre")
@@ -358,6 +372,38 @@ object ScurriusFight {
     /** Whether [boss] is eating now, so takes less of each hit. */
     fun eating(boss: Npc): Boolean = fights[boss]?.stage == Stage.FEEDING
 
+    /** Leaves [boss]'s rats in his lair once he dies, to go when [clearLeftovers] says. */
+    internal fun leaveRats(world: World, boss: Npc) {
+        val rats = rats(boss).filter { world.npcs[it.index] === it }
+        fights[boss]?.rats?.clear()
+        if (rats.isNotEmpty()) leftovers(world) += Leftover(world.scurriusLairs.runAt(boss.x, boss.z), rats)
+    }
+
+    /**
+     * Each tick: takes away the rats a dead Scurrius left in a lair once no living player is in it, or at once when
+     * [back] (a new Scurrius starting a fight in a lair, by its run) names it.
+     */
+    internal fun clearLeftovers(world: World, back: ScurriusLairs.Run? = null, backPublic: Boolean = false) {
+        val leftovers = leftovers(world)
+        if (leftovers.isEmpty()) return
+        val iterator = leftovers.iterator()
+        while (iterator.hasNext()) {
+            val left = iterator.next()
+            val alive = left.rats.filter { world.npcs[it.index] === it }
+            val returned = if (left.run == null) backPublic else left.run === back
+            val someone = world.onlinePlayers.any {
+                !it.dead && !it.loggedOut && world.scurriusLairs.inLair(it.level, it.x, it.z) &&
+                    world.scurriusLairs.runAt(it.x, it.z) === left.run
+            }
+            if (alive.isNotEmpty() && someone && !returned) continue
+            for (rat in alive) world.removeNpc(rat)
+            iterator.remove()
+        }
+    }
+
+    /** Rats a dead Scurrius left that are still in, for tests. */
+    fun leftoverRats(world: World): List<Npc> = leftovers(world).flatMap { it.rats }.filter { world.npcs[it.index] === it }
+
     /** Giant rats of [boss]'s fight still in, for tests. */
     fun rats(boss: Npc): List<Npc> = fights[boss]?.rats?.mapNotNull { it.get() }?.filter { !it.dead } ?: emptyList()
 }
@@ -372,11 +418,19 @@ fun registerScurriusFight(world: World) {
                 // His own lair only: the public one, or the private instance he is in.
                 val run = world.scurriusLairs.runAt(npc.x, npc.z)
                 val level = npc.level
+                clearLeftovers(world, run, backPublic = run == null)
                 world.encounters.start(def, npc, { x, z ->
                     world.scurriusLairs.inLair(level, x, z) && world.scurriusLairs.runAt(x, z) === run
                 })
             }
-            world.npcScripts.onDeath(defs.keys.toList()) { boss -> fight(boss).stage = ScurriusFight.Stage.MELEE }
+            world.npcScripts.onDeath(defs.keys.toList()) { boss ->
+                fight(boss).stage = ScurriusFight.Stage.MELEE
+                leaveRats(world, boss)
+                world.npcScripts.laterUntil(1) {
+                    clearLeftovers(world)
+                    leftovers(world).isEmpty()
+                }
+            }
         }
         // Any hit kills one of his giant rats, whatever the style.
         val sureHit = world.combat.sureHit
