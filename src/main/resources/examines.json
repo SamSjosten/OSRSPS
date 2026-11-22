@@ -43,7 +43,8 @@
     "Locs and NPCs: Karamja (step K2.1): Mor Ul Rek's cave entrance and exit, TzHaar-Ket-Zuh, and the city's TzHaar-Hur, -Mej, -Xil and level 149 -Ket, one examine for each kind, all its looks sharing it (the Wiki's infoboxes give one).",
     "NPCs and locs: random events step 5 (2026-11-19): Sergeant Damien (6743 out in the world, 337 in his camp), from his infobox; the four exercise mats (9313, 16508, 20801, 20810), from the Exercise mat page.",
     "NPCs and locs: random events step 6 (2026-11-19): Leo (6746 out in the world, 6745 in his graveyard), and the graveyard's gravestones (9359 to 9363), graves with a coffin (9364 to 9367, 10049), empty graves (10050 to 10054) and mausoleum (10055), from each page's infobox.",
-    "NPCs: random events step 7 (2026-11-19): the mime (321), from the Mime page's infobox; the Mysterious Old Man's mime show form (6753) shares his examine."
+    "NPCs: random events step 7 (2026-11-19): the mime (321), from the Mime page's infobox; the Mysterious Old Man's mime show form (6753) shares his examine.",
+    "NPCs: random events step 8 (2026-11-19): the Bee keeper (6747 out in the world, 3235 in his field), from his infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -514,6 +515,7 @@
     {"npc": 3218, "name": "Farmer Bea", "wiki": "Bea page, infobox"},
     {"npc": 3231, "name": "Ellis"},
     {"npc": 3232, "name": "Wizard Jalarast"},
+    {"npc": 3235, "name": "Bee keeper", "also": [6747]},
     {"npc": 3243, "name": "Farmer"},
     {"npc": 3244, "name": "Farmer"},
     {"npc": 3245, "name": "Farmer", "wiki": "Farmer (Misthalin) page, infobox"},
