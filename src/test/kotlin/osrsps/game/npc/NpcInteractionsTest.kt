@@ -215,6 +215,42 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `an NPC registered with an approach range is used from that far with it in sight, as on a ledge`() {
+        // A platform no player can step beside: a ring of ledges (block walking, not projectiles) two tiles thick round
+        // the NPC at 3216, 3216, as TzHaar-Ket-Keh's by the Inferno.
+        for (x in 3213..3219) for (z in 3213..3219) {
+            if (x in 3215..3217 && z in 3215..3217) continue
+            LocCollision(map).addLoc(LocCollisionType(blocksProjectile = false), x, z, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        }
+        val npc = spawn(x = 3216, z = 3216)
+        val used = mutableListOf<Long>()
+        handlers.onNpc(HANS, 1) { used += tick }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(8) { tick() }
+        assertEquals(emptyList(), used)
+        assertEquals(listOf("[game.cant_reach]"), messages)
+
+        interactions.reachFromRange(HANS, 10)
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        tick()
+        assertEquals(1, used.size, "used from below the ledge, at ${player.x}, ${player.z}")
+    }
+
+    @Test
+    fun `an approach range needs the NPC in sight`() {
+        interactions.reachFromRange(HANS, 10)
+        for (x in 3213..3219) for (z in 3213..3219) {
+            if (x in 3215..3217 && z in 3215..3217) continue
+            LocCollision(map).addLoc(LocCollisionType(), x, z, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        }
+        val npc = spawn(x = 3216, z = 3216)
+        handlers.onNpc(HANS, 1) { error("used") }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(8) { tick() }
+        assertEquals(listOf("[game.cant_reach]"), messages)
+    }
+
+    @Test
     fun `a counter that blocks projectiles stops the reach across it`() {
         interactions.reachOverCounter(HANS)
         for (x in 3200..3263) LocCollision(map).addLoc(LocCollisionType(), x, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
