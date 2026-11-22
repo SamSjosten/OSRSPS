@@ -443,6 +443,7 @@ object DialogueLines {
         SlayerSuperiorLines,
         SlayerHelmetLines,
         KuradalLines,
+        KrystiliaLines,
         MazchnaLines,
         SteveLines,
         SmithingLines,

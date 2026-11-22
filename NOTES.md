@@ -876,7 +876,7 @@ Masters (`game/content/SlayerMasters.kt`): Aya in Burthorpe (`::tele 2931 3536`;
 Turael's place, as since While Guthix Sleeps), Spria in Draynor Village and Vannaka in Edgeville Dungeon; built in place
 outside Misthalin, Mazchna in Canifis (`::tele 3511 3509`), Chaeldar in Zanaris (`::tele 2444 4431`), Steve at the
 Stronghold Slayer Cave (`::tele 2432 3423`, Nieve's place since Monkey Madness II) and Kuradal in Shilo Village
-(`::tele 2869 2982 1`, Duradel's place). Talk-to and Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
+(`::tele 2869 2982 1`, Duradel's place); and Krystilia in Edgeville's jail. Talk-to and Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
 (combat level unless they've asked the masters to stop checking it, base levels, rewards bought or blocking) and an
 amount from the entry's range, or an extend's once bought. Below a master's combat level (Vannaka 40) they turn the
 player away; with a task the player is no longer fit for (its combat level while checked, or its stat levels) they
@@ -930,6 +930,8 @@ held or worn, is the gem's.
 | Aya's, Spria's and Vannaka's talk, the strong-player bands (Mazchna 20, Vannaka 40, Chaeldar 70), Aya's swap resetting the streak | the Wiki's transcripts (Aya's bands inferred from Spria's) |
 | Mazchna's, Chaeldar's, Steve's and Kuradal's talk; the cancel offer for a task the player is no longer fit for | the Wiki's transcripts |
 | Mazchna suggesting Chaeldar from combat 70; the cancel offer coming before Aya's swap | guessed |
+| Krystilia (3109,3516): no combat check, Slayer 2 needed, kills counting only inside the Wilderness and not in Ferox Enclave, her own streak (varbit slayer_wilderness_tasks_completed) paying 25 points from the fifth, her talk, warning, tip line, difficulty answer and hat talk; Aya's swap of her task resetting the Wilderness streak | OSRS Wiki, Krystilia and Transcript:Krystilia, read 2026-11-19; tile from mejrs NPCList_OSRS |
+| Krystilia: her warning shown while her streak is 0; Aya's swap leaving the standard streak; no Slayer XP for a kill outside the Wilderness; the standard "you're still hunting" line for another master's task | inferred; guessed |
 | Aya's and Spria's tiles; Mazchna's, Chaeldar's, Steve's and Kuradal's (listed under older types: Steve's tile as Nieve's 490, Kuradal's as Duradel's 405) | mejrs NPCList_OSRS (live), the Wiki's map pins |
 | A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
 | The amount even across the range | inferred |
@@ -947,7 +949,7 @@ held or worn, is the gem's.
 | The helmet taking the used mask's slot; Disassemble needing six free slots; a plain mask chosen before an imbued one when both are carried; all six messages (none quoted on the Wiki, so their words stay empty) | guessed |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia's Edgeville respawn deal and the Larran's keys and Slayer's enchantments her tasks drop, Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 
