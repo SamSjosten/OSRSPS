@@ -327,6 +327,9 @@ class Player(
     /** Ticks to the next poison hit or immunity step, -1 while the poison varp is 0; see [osrsps.game.combat.Poison]. Not saved. */
     var poisonTicks: Int = -1
 
+    /** Ticks left of a block on poison and venom going on, from a strange fruit; see [osrsps.game.combat.Poison.block]. */
+    var poisonBlockTicks: Int = 0
+
     /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
     var stunnedUntil: Long = 0
 

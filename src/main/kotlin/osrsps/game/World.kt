@@ -182,6 +182,7 @@ import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
+import osrsps.game.content.registerKaramjaVolcano
 import osrsps.game.content.registerMusaPoint
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
@@ -1133,7 +1134,7 @@ class World(
         registerBones(this)
         registerRottenPotato(this)
         registerXpLamp(this)
-        randomEvents.register(osrsps.game.content.randomevents.Genie)
+        osrsps.game.content.randomevents.registerRandomEvents(this)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
@@ -1222,6 +1223,7 @@ class World(
         registerLodestones(this)
         registerKaramjaShips(this)
         registerMusaPoint(this)
+        registerKaramjaVolcano(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
@@ -2997,6 +2999,8 @@ class World(
             player.logoutRequested = true
             return@act
         }
+        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray).
+        if (op == 1 && scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)) return@act
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
