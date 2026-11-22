@@ -35,7 +35,7 @@ class LodestonesTest {
         }
         val locFiles = locs.overlayFiles.filter { it.group == CustomLocs.LOC_TYPE_GROUP }
         assertEquals(locs.all.map { it.id }, locFiles.map { it.file })
-        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006), locs.all.map { it.id })
+        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006, 65007), locs.all.map { it.id })
         assertTrue(locs.overlayFiles.all { it.index == 2 && (it.group == 6 || it.group == MapElementCodec.GROUP) })
         assertContentEquals(Lodestones.DORMANT_TYPE.encoded, locFiles.first { it.file == Lodestones.DORMANT }.data)
     }
@@ -80,8 +80,8 @@ class LodestonesTest {
             // Another cache's ids give another type, so a stone can't be built before the cache is read.
             assertEquals(varbit + 100, site.type(varbit + 100).definition.transform?.varbit)
         }
-        assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville"), Lodestones.SITES.map { it.slug })
-        assertEquals(listOf(65002, 65003, 65004, 65005, 65006), Lodestones.SITES.map { it.id })
+        assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville", "karamja"), Lodestones.SITES.map { it.slug })
+        assertEquals(listOf(65002, 65003, 65004, 65005, 65006, 65007), Lodestones.SITES.map { it.id })
     }
 
     @Test

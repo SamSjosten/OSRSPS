@@ -118,6 +118,12 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `musa-point-people.json` (Karamja step K1.3, for test on 215: under `::god`, Examine under `::keys on` on the Karamja man by Musa Point's dock (3652) and on a snake west of the general store (2845), each read off its `examine.` key, then Attack on the snake, a hitsplat, `::kill` and its bones on the floor) needs 0.5.0 for `assertHitsplat` (and `assertGroundItem`).
 
+`karamja-lodestone.json` (Karamja step K1.1b, for test on 215: `::varp lodestones 0`, Activate on the Karamja stone at 2759,3146 south of Brimhaven and `[lodestone.activated name=[lodestone.karamja]]`, `::varbit lodestone.karamja` reading bit 5 set, the stone redrawn with Teleport, then from Lumbridge `::lodestone karamja` landing on 2760,3147) needs 0.4.2 for `assertLoc`.
+
+`karamja-volcano.json` (Karamja step K1.4, for test on 215: under `::god`, Climb-down on the volcano's rocks (11441 at 2856,3168) to 2856,9570, Open on the wall (2606 at 2836,9600) both ways, Climb on the rope below (18969) back to 2856,3167, Enter on Crandor's hole (25154 at 2833,3255) to 2834,9656 and Climb on its rope (25213) back to 2834,3254, then `::npcs 10` among Crandor's King Scorpions) needs nothing newer than `assertLocation`.
+
+`mor-ul-rek.json` (Karamja step K2.1, for test on 215: two Karamjan rums (431) from `::item` under `::god`, Enter on the cave entrance (11835 at 2863,9571) to 2480,5175 with `[mor_ul_rek.rum_explodes]` and the rum gone, TzHaar-Ket-Zuh's greeting naming the player `JalYt-...`, his what-did-you-call-me option, Bank opening the bank (12), Smelt on the lava forge (11978 at 2446,5152) opening the Make-X box and making a bronze bar, a raw shrimp used on a sulphur vent (11851 at 2451,5171) cooking, and Enter on the cave exit (11836 at 2479,5176) back to 2862,9572) needs nothing newer than `assertDialogue`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
@@ -726,6 +732,14 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `random-events-genie.json`: random events step 1 (with `::keys on`): turns the account's random events off, sends the
   Genie with `::randomevent genie`, takes his lamp, rubs it and picks Agility in the experience reward window, for 300
   XP at level 30.
+- `random-events-talk.json`: random events step 2 (with `::keys on`): Dr Jekyll asks for the torstol over the guam leaf
+  and gives a Stamina potion(4) for it, the Drunken Dwarf gives a kebab and a beer, and the Strange plant, once grown,
+  gives a strange fruit that is then eaten; Count Check gives a lamp, Rick Turpentine a gift, and the Mysterious Old
+  Man, with the backpack full of beer, says his gift went on the ground.
+- `random-events-certer.json`: random events step 3 (with `::keys on`): Miles (sent with `::randomevent certer 5437`)
+  opens macro_certer, and an answer (the first, right or wrong as the item falls) ends it.
+- `random-events-sandwich-lady.json`: random events step 3 (with `::keys on`): the Sandwich lady names a food and opens
+  her tray; Key shows the names, Back hides them, and a pick (the baguette, right or wrong as her pick falls) ends it.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

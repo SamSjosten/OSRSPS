@@ -78,6 +78,8 @@ class HeadlessScurriusFightTest {
                 // At 80% he goes to a pile and eats: five heals of 5 for one player.
                 boss.hitpoints = 390
                 client.await("to a pile") { fight.lines.firstOrNull { it.contains("goes to the food pile") } }
+                // A freeze on the way doesn't hold him off the pile (R49B-1): he breaks free every tick he walks.
+                server.world.npcs.freeze(boss, 1_000)
                 client.await("eating", timeoutMillis = 30_000) { if (ScurriusFight.eating(boss)) Unit else null }
                 assertEquals(80, server.world.combat.rolledOn(alice, boss, AttackType.SLASH, 100), "a slight damage reduction while eating")
                 val before = boss.hitpoints
@@ -125,12 +127,16 @@ class HeadlessScurriusFightTest {
                 assertEquals(rat.hitpoints, server.world.combat.rolledOn(bob, rat, AttackType.RANGED, 1), "and kills it")
                 assertEquals(0, server.world.combat.rolledOn(bob, rat, AttackType.MAGIC, 0), "but a spell with no damage (Bind) does none")
                 assertTrue(server.world.multiCombat.at(0, rat.x, rat.z))
-                // They stay when he dies.
-                val rats = ScurriusFight.rats(boss).size
+                // They stay when he dies, while Bob is still in his lair...
+                val rats = ScurriusFight.rats(boss).filter { server.world.npcs[it.index] === it }
                 client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
                 client.await("his death") { if (boss.dead) Unit else null }
                 client.awaitTicks(2)
-                assertEquals(rats, ScurriusFight.rats(boss).size)
+                assertEquals(rats.size, ScurriusFight.leftoverRats(server.world).size)
+                // ...and go once no one is left in it (R49B-2).
+                client.command("tele ${Scurrius.OUTSIDE.x} ${Scurrius.OUTSIDE.z} 0")
+                client.await("the rats gone") { if (ScurriusFight.leftoverRats(server.world).isEmpty()) Unit else null }
+                assertTrue(rats.none { server.world.npcs[it.index] === it }, "none of them left in the world")
             }
         }
     }

@@ -182,6 +182,8 @@ import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
+import osrsps.game.content.registerKaramjaVolcano
+import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMusaPoint
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
@@ -426,6 +428,8 @@ class World(
     val trailRewards: osrsps.game.trail.TrailRewards = osrsps.game.trail.TrailRewards.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
+    /** Construction's furniture, from the cache ([osrsps.cache.FurnitureLoader]); tests that build pass their own. */
+    furnitureData: osrsps.game.skill.construction.FurnitureData = osrsps.game.skill.construction.FurnitureData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
     /** The cache's identity kits, which ::look and the makeover screens check kits against. */
@@ -490,6 +494,9 @@ class World(
 
     /** Scurrius's lairs, public and private ([osrsps.game.content.ScurriusLairs]). */
     val scurriusLairs = osrsps.game.content.ScurriusLairs(this)
+
+    /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
+    val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -671,7 +678,8 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
-                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
+                it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS
         },
     )
 
@@ -715,6 +723,7 @@ class World(
             archiveRaids.damaged(npc, player, dealt)
             slayer.damaged(npc, player, dealt)
             wildernessBosses.damaged(npc, player, dealt)
+            scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -975,6 +984,9 @@ class World(
     /** Player-owned houses: the estate agent, the house portals and each house's instance; see [osrsps.game.skill.construction.Houses]. */
     val houses = osrsps.game.skill.construction.Houses(this)
 
+    /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
+    val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1123,7 +1135,7 @@ class World(
         registerBones(this)
         registerRottenPotato(this)
         registerXpLamp(this)
-        randomEvents.register(osrsps.game.content.randomevents.Genie)
+        osrsps.game.content.randomevents.registerRandomEvents(this)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
@@ -1212,6 +1224,8 @@ class World(
         registerLodestones(this)
         registerKaramjaShips(this)
         registerMusaPoint(this)
+        registerKaramjaVolcano(this)
+        registerMorUlRek(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
@@ -1224,6 +1238,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerScurriusFight(this)
+        npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
@@ -1273,6 +1288,7 @@ class World(
         arceuusRunecraft.register()
         ourania.register()
         houses.register()
+        furniture.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -2408,6 +2424,8 @@ class World(
             // does the tutorial, so a new account gets them at its first login.
             interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
             interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
+            // Where Tutorial Island starts on live: the Character Creator, for the look the new account will have.
+            designScreen.open(player)
         }
     }
 
@@ -2848,6 +2866,7 @@ class World(
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
+        if (designScreen.click(player, interfaceId, componentId, sub)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -2982,6 +3001,8 @@ class World(
             player.logoutRequested = true
             return@act
         }
+        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray).
+        if (op == 1 && scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)) return@act
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
@@ -3094,6 +3115,9 @@ class World(
         confirmed = { player, _, by -> (by as? Npc)?.let { osrsps.game.content.VarrockStores.compliment(this, player, it) } },
     )
 
+    /** The Character Creator a new account gets at its first login; see [osrsps.game.look.DesignScreen]. */
+    val designScreen = osrsps.game.look.DesignScreen({ makeoverCatalog }, interfaces, keep = ::setLook, switchBodyType = makeoverScreen::switchBodyType)
+
     /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
     val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
         collectionLog, interfaces::openModal, interfaces::closeModals, interfaces::runClientScript, interfaces::setVarbitNow,
@@ -3134,6 +3158,8 @@ class World(
         trails.fights.dropKey(npc, killer)
         // A Wilderness boss with group loot puts its own down, split by damage.
         if (wildernessBosses.loot(npc)) return
+        // Scurrius's goes to his most damage and the rest apart.
+        if (scurriusLoot.loot(npc)) return
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
@@ -3186,6 +3212,7 @@ class World(
         slayer.removed(npc)
         wildernessBosses.removed(npc)
         randomEvents.removed(npc)
+        scurriusLoot.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }

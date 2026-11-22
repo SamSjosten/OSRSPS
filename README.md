@@ -336,8 +336,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
 | `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away, `superior` puts the task's superior out beside you |
-| `::randomevent [list\|now\|on\|off\|<event>]` | Alone, whether random events are on for you and when your next is due. `list` names the events built, `now` makes yours due so it comes the next tick you are free, `off` and `on` hold events back or let them come again (saved with the account), and an event's name (`::randomevent genie`) sends it to you at once, wherever you are. Not live's: for testing |
-| `::look [body a\|b \| kit part id \| colour part n \| reset]` | Alone, your look: body type, the identity kit of each part (hair, jaw, torso, arms, hands, legs, feet) and the five colours (hair, torso, legs, feet, skin). `body` switches body type, starting from its first kit of each part (none for body type B's jaw); `kit` sets one part to a kit of your body type from the cache (`::look kit hair 5`; `-1` for no jaw); `colour` sets one colour (`::look colour skin 7`); `reset` goes back to the default look. It shows the pronouns too. Saved with the account, kept by `::reset`; everyone around sees the change |
+| `::randomevent [list\|now\|on\|off\|<event> [npc]]` | Alone, whether random events are on for you and when your next is due. `list` names the events built, `now` makes yours due so it comes the next tick you are free, `off` and `on` hold events back or let them come again (saved with the account), and an event's name (`::randomevent genie`) sends it to you at once, wherever you are; an NPC id after it picks which of its NPCs comes (`::randomevent certer 5437`, Miles). Not live's: for testing |
+| `::look [body a\|b \| kit part id \| colour part n \| reset \| design]` | Alone, your look: body type, the identity kit of each part (hair, jaw, torso, arms, hands, legs, feet) and the five colours (hair, torso, legs, feet, skin). `body` switches body type, starting from its first kit of each part (none for body type B's jaw); `kit` sets one part to a kit of your body type from the cache (`::look kit hair 5`; `-1` for no jaw); `colour` sets one colour (`::look colour skin 7`); `reset` goes back to the default look; `design` opens the Character Creator a new account gets at its first login. It shows the pronouns too. Saved with the account, kept by `::reset`; everyone around sees the change |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -773,8 +773,11 @@ Shortcuts (on no course, both ways): the Varrock south fence (13), the Grand Exc
 Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, for 1 to 3 damage and 1 XP), the
 Draynor underwall tunnel (42), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones
 (52, 2.5 XP on the first stone and 2.5 on the third). The stones are jumped onto from the bank, as their sides are
-water: a click walks to the nearest bank tile, not beside the stone. Left for later: the Lumbridge Swamp stepping stone, the River Lum raft, the Edgeville Dungeon
-pipes and the Paterdomus railing. The Varrock Palace trellis is post-quest step 1's (Varrock's table).
+water: a click walks to the nearest bank tile, not beside the stone. Left for later: the Lumbridge Swamp stepping stone, the River Lum raft and the
+Paterdomus railing. The Varrock Palace trellis is post-quest step 1's (Varrock's table).
+The Edgeville Dungeon's two obstacle pipes (51, east to the Varrock Sewers' moss giants; 60, the south one to the
+hobgoblins) give 10 XP; getting stuck still takes the player through, for 1 to 6 damage and a message, and at 6
+hitpoints or less nobody gets stuck.
 
 Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
 the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
@@ -809,6 +812,9 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Shortcuts: levels and XP (the south stones' 2.5 on the first and third stone); the stone's failure landing on the far bank with damage and 1 XP | OSRS Wiki, Shortcuts and each shortcut's page (read 2026-11-02) |
 | Shortcuts: each side's tile; the stones used from the bank (the river around them is blocked in the map) | inferred from the map |
 | Shortcuts: the animations (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall), tick counts, the stone's fail chance and 1 to 3 damage | guessed until recorded |
+| Edgeville Dungeon pipes: levels, 10 XP, 1 to 6 damage when stuck, never stuck at 6 hitpoints or less, 7 and 4 ticks across, the north pipe's chance to cross unhurt (0 to 254 out of 256) | OSRS Wiki, Obstacle pipe (Edgeville Dungeon) and (Edgeville Dungeon south) (read 2026-11-19) |
+| Edgeville Dungeon pipes: each end's tile | inferred from the 242 map |
+| Edgeville Dungeon pipes: human_doublepipesqueeze, the exact move timing, the south pipe's chance (as the north's), XP on a stuck crossing too, the damage and message at the far end | guessed until recorded |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
@@ -2290,7 +2296,7 @@ in `game/content/EdgevilleDungeon.kt`, spawns in `npc-spawns/edgeville-dungeon.j
 | The mine's copper, tin, iron, coal, silver, mithril and adamantite rocks mine by type; Vannaka stands without talk | 241 map; `Mining.ROCKS` |
 
 The Wilderness half past the north gate is under Wilderness (step W2.1). Left out: Slayer (Vannaka's talk),
-the Agility pipes and monkey bars, and Obor. Check:
+the monkey bars, and Obor; the obstacle pipes are under Agility. Check:
 `test-runner/examples/edgeville-dungeon.json` climbs down, kills a zombie, mines iron, opens a gate, goes through the
 north gate and back, pushes through the wall and climbs back; `HeadlessEdgevilleDungeonTest` does the same through the headless
 client, `NpcCombatTest` and `NpcDropsTest` the new NPCs' numbers and tables.
@@ -2476,6 +2482,7 @@ Village piece's.
 | Post-quest step 1: Varrock Palace's garden as Garden of Tranquillity leaves it: every bed, the vines, the rose bushes and both orchid pots fully grown, the Statue of Saradomin and the king's statue on their plinths (and Lumbridge's plinth bare), set at login (`Quests.AFTER_QUESTS`, varbits 963, 964, 979 to 987); the White Tree's fruit (`PalaceGarden`): four on a new account, Pick-fruit for a fruit (6469) and 12 Farming XP, one growing back each farming tick up to four (`palace_garden.*`; custom varp `white_tree`); the garden's trellis shortcut (2149, Climb, Agility 35, `agility.varrock_palace_trellis_level`); Marlo's house mended after Daddy's Home (varbits 10563 to 10569) and Sir Prysin's sword case empty (2567) | OSRS Wiki, Garden of Tranquillity, White Tree, White tree fruit and Trellis (Varrock); the varbits' values from the cache's multiloc forms; the regrowth on the farming clock inferred, the picking animation and tick, the trellis's jump and timing guessed |
 | Post-quest step 2: Shield of Arrav as a Phoenix Gang member finishes it (`PhoenixGang`): Straven (5212) by the hideout's door, handing a member with no weapon store key (759) held, worn or banked a spare, then talking of the treasures and thieving (`straven.*`); the hideout's door (2397) letting a member through both ways, its empty chest (2403, `gang_house.chest_*`), grapes by it, and its ladder (2405) up to the alley; the weapon store's door (2398) securely locked without the key from the alley; the Weaponsmaster's talk (14137, `weaponsmaster.*`) and Straven's two crossbows (767) on the store's floor, which he won't let a member take; Katrine (5210) sending a member away (`katrine.phoenix_scum`) and the Black Arm Gang's inner door (2399) locked to them | OSRS Wiki, Transcript:Shield of Arrav (Phoenix Gang and Post-quest), Straven, Katrine, Weaponsmaster, Phoenix Gang Hideout and Phoenix crossbow; tiles from the cache's map and mejrs's live NPC list; the chest empty after the quest inferred; chatheads, door and chest timings, the store door from inside and the Weaponsmaster's watch range guessed |
 | Post-quest step 3: Guidor's gate (2050, 2051) into Varrock's fenced south-east corner, passing players through both ways as the member gates do, and his bedroom door (2032): through in the priest gown's top and bottom (426, 428), Julie's four lines without (`julie.door_*`), out from his side (`GuidorsHouse`); Farmer Bea's Talk-to after The Birds and the Wasps (the farm, her shop, the dart swap's rule, hunting tips; `farmer_bea.*`), Swap-darts (35 wasp darts or 20 killer wasp darts for Bea's supplies, 34791) and the supplies' Open, one of the Wiki's ten rewards at its rates (`FarmerBea`) | OSRS Wiki, Biohazard, Guidor, Transcript:Julie, Farmer Bea, Transcript:Farmer Bea and Bea's supplies; tiles and angles from the cache's map; the gown still wanted after the quest and one reward a bag inferred; chatheads, the gate's and door's timing, which darts go first and the swap's message guessed |
+| Scurrius (`game/content/Scurrius.kt`, `ScurriusFight.kt`, `ScurriusLoot.kt`), in the Varrock Sewers: the broken bars (14203) into the public lair (`rat_boss_normal` 7221) or a private one (`rat_boss_instance` 7222), the sewage water out, the food piles, Historian Aldo and the grave beside him; his fight (swipes and bricks, the food piles from 80%, the centre from 30%, his magic and ranged shots, giant rats that any hit kills); his MVP and non-MVP loot (spine once a kill, Scurry 1/3,000), kill count (varp 4079). Check: `HeadlessScurriusLairTest`, `HeadlessScurriusFightTest`, `HeadlessScurriusLootTest`; in RuneLite `::scenario scurrius` or the `scurrius-lair.json` and `scurrius-fight.json` scripts | OSRS Wiki, Scurrius, Giant rat (Scurrius), Food Pile, Historian Aldo; guesses in the code's doc comments |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
@@ -3516,6 +3523,14 @@ game login, typed where a made-up name belongs. Any other name must keep to live
 letters, numbers, spaces, hyphens and underscores (refused the same way, and not logged either), so no name can carry
 look-alike letters or a line break into the log. A name listed in `OSRSPS_ADMINS` with no account yet can't be claimed;
 claim it first, then list it.
+
+A new account's first login opens the Character Creator (`player_design`, 679), where live's Tutorial Island starts:
+arrows for each body part step through the styles the makeover screen's page for that part lists, colour arrows step
+through each colour (skin through the nine every account has), body type A or B keeps each part's style as the other
+body type's kit, the Pronouns dropdown sets the pronoun, and Confirm closes it. Each change is kept at once, so a
+creator closed some other way keeps what was picked, and it doesn't open again (`::look design` opens it on any
+account). The components and what they send are read from the rev 242 client scripts (osrs-dumps); the arrows' order
+and wrapping, the kept-at-once changes and the skin colours offered are guessed, not seen on live.
 
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its

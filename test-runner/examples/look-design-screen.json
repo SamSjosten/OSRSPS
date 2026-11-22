@@ -1,0 +1,23 @@
+{
+  "name": "Looks step 4: the Character Creator a new account gets at its first login, opened here with ::look design",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::look reset", "expectMessage": "Look: body type A"},
+    {"step": "command", "text": "::look design", "expectMessage": "Opened the Character Creator"},
+    {"step": "assertInterface", "interfaceId": 679},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "clickWidget", "interfaceId": 679, "component": 16, "op": 1, "comment": "the hair's right arrow: the makeover page's second hairstyle, kit 1"},
+    {"step": "command", "text": "::look", "expectMessage": "kits hair 1,"},
+    {"step": "clickWidget", "interfaceId": 679, "component": 62, "op": 1, "comment": "the skin's left arrow: from 0 round to 12, the last colour every account has"},
+    {"step": "command", "text": "::look", "expectMessage": "skin 12;"},
+    {"step": "clickWidget", "interfaceId": 679, "component": 69, "op": 1, "comment": "Body type B; check by eye that the model switches and B is lit"},
+    {"step": "assertVarbit", "id": 14021, "value": 1, "comment": "player_design_bodytype"},
+    {"step": "command", "text": "::look", "expectMessage": "body type B; kits hair 47,", "comment": "the second hairstyle's body type B kit; the pronoun follows, she/her"},
+    {"step": "clickWidget", "interfaceId": 679, "component": 78, "slot": 3, "op": 1, "comment": "the Pronouns dropdown's They/them (child 3); the list needn't be shown for the click to go"},
+    {"step": "command", "text": "::look", "expectMessage": "pronouns they/them"},
+    {"step": "clickWidget", "interfaceId": 679, "component": 74, "op": 1, "comment": "Confirm"},
+    {"step": "assertInterface", "interfaceId": 679, "absent": true},
+    {"step": "command", "text": "::look reset", "expectMessage": "Look: body type A", "comment": "the account back as it was"}
+  ]
+}
