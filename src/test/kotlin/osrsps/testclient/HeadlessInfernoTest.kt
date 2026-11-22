@@ -580,6 +580,31 @@ class HeadlessInfernoTest {
     }
 
     @Test
+    fun `a fresh Jal-Ak losing its read every tick from its spawn still attacks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("tog").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val monsters = server.world.inferno.monsterMechanics
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "tog", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                assertNull(monsters.lastStyle[blob], "fresh: it hasn't attacked")
+                // Its read dropped before every tick, as stepping out of sight at a pillar does (exploit
+                // review R48A-1): its first-read grace comes once, so it still attacks.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                var ticks = 0
+                while (monsters.lastStyle[blob] == null && ticks < 200) {
+                    monsters.blobStyles.remove(blob)
+                    client.stepTicks(1)
+                    ticks++
+                }
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertNotNull(monsters.lastStyle[blob], "it attacked within $ticks ticks")
+            }
+        }
+    }
+
+    @Test
     fun `a Jal-Xil beside the player uses its melee, even on a diagonal`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("lou").use { client ->
