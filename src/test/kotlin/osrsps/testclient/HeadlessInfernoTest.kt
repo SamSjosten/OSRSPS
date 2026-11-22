@@ -767,6 +767,26 @@ class HeadlessInfernoTest {
     }
 
     @Test
+    fun `a set member owed for want of room comes in later, to the glyph`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("pip").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                client.waveIn(server, "pip", 69)
+                val run = server.run("pip")!!
+                val zukFight = server.world.inferno.zuk
+                val fight = zukFight.fightOf(run)!!
+                // As if the ranger of a set couldn't come in: owed, it comes in with the next free tick.
+                fight.setOwed += InfernoZuk.FINAL_RANGER to InfernoZuk.RANGER_TILE
+                val ranger = client.await("the owed ranger") { run.monsters.firstOrNull { it.type.id == InfernoZuk.FINAL_RANGER && !it.dead } }
+                assertTrue(fight.setOwed.isEmpty())
+                assertTrue(zukFight.onGlyph(run, ranger))
+            }
+        }
+    }
+
+    @Test
     fun `TzHaar-Ket-Keh's Exchange takes an infernal cape for a chance at Jal-Nib-Rek, never with the pet owned`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("oz").use { client ->

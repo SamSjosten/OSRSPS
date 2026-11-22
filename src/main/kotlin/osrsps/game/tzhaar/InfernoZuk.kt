@@ -75,6 +75,9 @@ class InfernoZuk(private val world: World) {
         var jadOwed = false
         val mejJaksOwed: MutableList<Tile> = ArrayList()
 
+        /** Set members (type to tile) due that had no room yet: tried each tick, the set timer running on (Codex review on #851). */
+        val setOwed: MutableList<Pair<Int, Tile>> = ArrayList()
+
         /** Monsters that attack the glyph until the player attacks them. */
         val onGlyph: MutableSet<Npc> = LinkedHashSet()
         val mejJaks: MutableList<Npc> = ArrayList()
@@ -147,9 +150,10 @@ class InfernoZuk(private val world: World) {
         moveGlyph(run, fight)
         thresholds(inferno, run, player, fight)
         if (fight.nextSet >= 0 && fight.setPausedLeft < 0 && world.tick >= fight.nextSet) {
-            spawnSet(inferno, run, player, fight)
+            spawnSet(fight)
             fight.nextSet = world.tick + SET_TICKS
         }
+        spawnOwedSet(inferno, run, player, fight)
         glyphAttackers(run, player, fight)
         mejJaks(player, fight)
         if (world.tick >= fight.nextZukAttack) {
@@ -264,9 +268,19 @@ class InfernoZuk(private val world: World) {
         }
     }
 
-    private fun spawnSet(inferno: Inferno, run: Inferno.Run, player: Player, fight: Fight) {
-        for ((type, tile) in listOf(FINAL_RANGER to RANGER_TILE, FINAL_MAGER to MAGER_TILE)) {
-            inferno.spawn(player, run, type, run.at(tile), fight = false)?.let { fight.onGlyph += it }
+    private fun spawnSet(fight: Fight) {
+        fight.setOwed += FINAL_RANGER to RANGER_TILE
+        fight.setOwed += FINAL_MAGER to MAGER_TILE
+    }
+
+    /** The set members owed, each in as soon as the world has room for it. */
+    private fun spawnOwedSet(inferno: Inferno, run: Inferno.Run, player: Player, fight: Fight) {
+        val owed = fight.setOwed.iterator()
+        while (owed.hasNext()) {
+            val (type, tile) = owed.next()
+            val npc = inferno.spawn(player, run, type, run.at(tile), fight = false) ?: break
+            owed.remove()
+            fight.onGlyph += npc
         }
     }
 
