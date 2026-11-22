@@ -37,8 +37,9 @@
     "NPCs: random events step 2 (2026-11-19): Dr Jekyll (307), the Drunken Dwarf (322), the Strange plant (323), Rick Turpentine (375), the Mysterious Old Man (6750) and Count Check's event form (12551), from each page's infobox.",
     "NPCs: Karamja (step K1.3): Musa Point's two men and the snakes (the 242 cache, 2026-11-17).",
     "Construction step CON3 (2026-11-19): the seven chairs built on the parlour's chair spaces (poh_chair1 to 7), one per id, each from the Wiki page of the chair it is.",
-    "Locs and NPCs: Karamja (step K1.4): the ways into and out of the Crandor and Karamja Dungeon, and the level 45 skeleton's second id (83). None yet for the volcano's climbing rope below (18969), which has no Wiki page.",
-    "Construction step CON4 (2026-11-22): the parlour's other built furniture (rugs, bookcases and scroll racks, unlit fireplaces, curtains), one per id, each from the Wiki page of the piece it is."
+    "Construction step CON4 (2026-11-22): the parlour's other built furniture (rugs, bookcases and scroll racks, unlit fireplaces, curtains), one per id, each from the Wiki page of the piece it is.",
+    "NPCs: random events step 3 (2026-11-19): the certer brothers Niles, Miles and Giles (5436 to 5438) and the Sandwich lady (5510), from each page's infobox.",
+    "Locs and NPCs: Karamja (step K1.4): the ways into and out of the Crandor and Karamja Dungeon, and the level 45 skeleton's second id (83). None yet for the volcano's climbing rope below (18969), which has no Wiki page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -644,11 +645,15 @@
     {"npc": 5300, "name": "Mawrth"},
     {"npc": 5418, "name": "Guard"},
     {"npc": 5420, "name": "Watchman"},
+    {"npc": 5436, "name": "Niles"},
+    {"npc": 5437, "name": "Miles"},
+    {"npc": 5438, "name": "Giles"},
     {"npc": 5445, "name": "Johnathon"},
     {"npc": 5449, "name": "Bob Barter (herbs)"},
     {"npc": 5450, "name": "Murky Matt (runes)"},
     {"npc": 5451, "name": "Relobo Blinyo (logs)"},
     {"npc": 5452, "name": "Hofuthand (weapons and armour)"},
+    {"npc": 5510, "name": "Sandwich lady"},
     {"npc": 5525, "name": "Toby"},
     {"npc": 5531, "name": "Spotted kebbit", "wiki": "Spotted kebbit page, infobox"},
     {"npc": 5532, "name": "Dark kebbit", "wiki": "Dark kebbit page, infobox"},

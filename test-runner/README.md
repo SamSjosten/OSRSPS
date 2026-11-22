@@ -734,6 +734,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   and gives a Stamina potion(4) for it, the Drunken Dwarf gives a kebab and a beer, and the Strange plant, once grown,
   gives a strange fruit that is then eaten; Count Check gives a lamp, Rick Turpentine a gift, and the Mysterious Old
   Man, with the backpack full of beer, says his gift went on the ground.
+- `random-events-certer.json`: random events step 3 (with `::keys on`): Miles (sent with `::randomevent certer 5437`)
+  opens macro_certer, and an answer (the first, right or wrong as the item falls) ends it.
+- `random-events-sandwich-lady.json`: random events step 3 (with `::keys on`): the Sandwich lady names a food and opens
+  her tray; Key shows the names, Back hides them, and a pick (the baguette, right or wrong as her pick falls) ends it.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
