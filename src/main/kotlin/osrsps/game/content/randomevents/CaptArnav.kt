@@ -74,6 +74,13 @@ object CaptArnav : RandomEvent("capt_arnav", 5426) {
 
     private val WORDS = with(CaptArnavLines) { listOf(PICTURE_0, PICTURE_1, PICTURE_2, PICTURE_3) }
 
+    /** The lock: each column's word and where it stands, and the wrong tries so far. */
+    class Lock(val wanted: List<Int>, val columns: IntArray) {
+        var wrong = 0
+    }
+
+    const val TRIES = 2
+
     override val greeting = CaptArnavLines.AVAST
     override val nags = with(CaptArnavLines) { listOf(AHOY, PARLEY, NEED_HELP, TREASURE, IGNORING, OLD_PIRATE, KNOWS) }
     override val leaving = CaptArnavLines.MAYBE_LATER
@@ -88,9 +95,13 @@ object CaptArnav : RandomEvent("capt_arnav", 5426) {
         }
         chatPlayer(ChatAnim.HAPPY, YES)
         chatNpc(ChatAnim.NEUTRAL, COLUMNS)
-        val wanted = List(3) { world.random.nextInt(PICTURES) }
-        val columns = IntArray(3) { world.random.nextInt(PICTURES) }
-        for (attempt in 1..2) {
+        // Kept on the event, so a talk shut after a wrong try neither rerolls the lock nor gives the try back.
+        val out = events.outOf(npc)
+        val lock = out?.state as? Lock ?: Lock(List(3) { world.random.nextInt(PICTURES) }, IntArray(3) { world.random.nextInt(PICTURES) })
+        out?.state = lock
+        val wanted = lock.wanted
+        val columns = lock.columns
+        while (lock.wrong < TRIES) {
             delay(1)
             open(world, player, wanted, columns)
             while (true) {
@@ -109,7 +120,8 @@ object CaptArnav : RandomEvent("capt_arnav", 5426) {
                 chatNpc(ChatAnim.HAPPY, WELL_DONE)
                 return true
             }
-            if (attempt == 2) break
+            lock.wrong++
+            if (lock.wrong >= TRIES) break
             chatNpc(ChatAnim.ANGRY, NOWHERE_NEAR)
             chatPlayer(ChatAnim.SAD, MISUNDERSTOOD)
             chatNpc(ChatAnim.NEUTRAL, ARROWS)

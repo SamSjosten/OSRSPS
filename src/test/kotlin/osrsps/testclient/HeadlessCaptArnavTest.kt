@@ -156,14 +156,24 @@ class HeadlessCaptArnavTest {
 
                 client.awaitTicks(2)
                 client.start("bob")
+                val words = client.wanted()
                 client.wrong()
-                client.chat("[capt_arnav.nowhere_near]")
-                client.chat("[capt_arnav.misunderstood]")
-                client.chat("[capt_arnav.arrows]")
-                client.chat("[capt_arnav.middle_row]")
-                client.chat("[capt_arnav.clearer]")
-                client.chat("[capt_arnav.try_again]")
+                val turned = (0 until 3).map { client.column(it) }
+                // Shut partway through his explanation, then talked to again: the same lock, and the wrong try kept.
+                client.awaitDialogue("his explanation") { it is DialogueView.Chat && it.text == "[capt_arnav.nowhere_near]" }
+                client.closeModal()
+                client.over()
+                val again = client.await("Capt' Arnav still there") { client.npcs().firstOrNull { it.id == CaptArnav.npcId } }
+                client.npcOp(again.index, RandomEvents.TALK_TO)
+                client.chat("[capt_arnav.dug_up]")
+                client.chat("[capt_arnav.fiddly]")
+                client.awaitDialogue("the options") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.chat("[capt_arnav.yes]")
+                client.chat("[capt_arnav.columns]")
                 client.lock()
+                assertEquals(words, client.wanted())
+                assertEquals(turned, (0 until 3).map { client.column(it) })
                 client.wrong()
                 // Shutting his last line gives no third try.
                 client.awaitDialogue("his last line") { it is DialogueView.Chat && it.text == "[capt_arnav.someone_else]" }

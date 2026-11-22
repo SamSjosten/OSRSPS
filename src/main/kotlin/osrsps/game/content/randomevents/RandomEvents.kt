@@ -128,6 +128,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
         /** Set while its player talks to it; its timers wait until that script ends (a window can be open meanwhile). */
         var talking: Boolean = false
+
+        /** The event's own progress while it is out, kept across talks (a talk shut partway starts again from here). */
+        var state: Any? = null
     }
 
     /** The places teleporting events take their player to. */
@@ -372,6 +375,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     }
 
     /** The world took [npc] out (`::npcs`, an instance ending): forget its event. */
+    /** The event out as [npc], if it is one. */
+    fun outOf(npc: Npc?): Out? = npc?.let { out[it] }
+
     fun removed(npc: Npc) {
         out.remove(npc)
     }
