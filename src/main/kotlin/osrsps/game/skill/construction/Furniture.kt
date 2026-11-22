@@ -139,7 +139,8 @@ class Furniture(private val world: World, private val houses: Houses, private va
         // Checked again after the wait: the materials may have gone, or the room or hotspot with them.
         if (!houses.stillHere(house, player) || world.locs[hotspot.x, hotspot.z, hotspot.level, hotspot.layer] != hotspot) return
         if (nailsFor(player, piece) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
-        for ((obj, count) in piece.materials) Ned.take(player.inventory, if (obj == ANY_NAILS) nails!! else obj, count)
+        for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
+        for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
         player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
         room.built[hotspot.id] = build.loc
         world.locs.setPermanent(hotspot.x, hotspot.z, hotspot.level, hotspot.layer, hotspot.copy(id = build.loc))
@@ -187,14 +188,23 @@ class Furniture(private val world: World, private val houses: Houses, private va
         if (obj == ANY_NAILS) NAILS.sumOf { player.inventory.count(it) } else player.inventory.count(obj)
 
     /**
-     * Whether [player] has [piece]'s materials, and which nails it takes (the best kind with enough, the Wiki's Nails
-     * page: "the higher tier ones are used first"): null when they lack any, else the nails, or -1 for none needed.
+     * Whether [player] has [piece]'s materials, and which nails it takes: null when they lack any, else the nails by kind
+     * and count (empty when it needs none). Nails are taken best kind first (the Wiki's Nails page: "the higher tier ones
+     * are used first"), across kinds when no one kind has enough, as the menu counts every kind together (Codex review
+     * on #869).
      */
-    private fun nailsFor(player: Player, piece: FurnitureOption): Int? {
-        var nails = -1
+    private fun nailsFor(player: Player, piece: FurnitureOption): Map<Int, Int>? {
+        val nails = LinkedHashMap<Int, Int>()
         for ((obj, count) in piece.materials) {
             if (obj == ANY_NAILS) {
-                nails = NAILS.firstOrNull { player.inventory.count(it) >= count } ?: return null
+                var left = count.toLong()
+                for (kind in NAILS) {
+                    if (left == 0L) break
+                    val take = minOf(left, player.inventory.count(kind))
+                    if (take > 0) nails[kind] = (nails[kind] ?: 0) + take.toInt()
+                    left -= take
+                }
+                if (left > 0) return null
             } else if (player.inventory.count(obj) < count) {
                 return null
             }

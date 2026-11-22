@@ -432,6 +432,17 @@ class HeadlessHouseTest {
                 client.chooseOption(1)
                 client.await("the space back") { if (client.shown(CHAIR_SPACE, rx, rz)) Unit else null }
                 assertNull(player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!.built[CHAIR_SPACE])
+
+                // The three bronze nails left over and one steel make the next chair's two: the steel first, then one bronze,
+                // as the menu counts every kind together (Codex review on #869).
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 1")
+                client.await("more materials") { if (client.count(STEEL_NAILS) == 1 && client.count(PLANK) == 2) Unit else null }
+                client.locOp(CHAIR_SPACE, rx, rz, House.BUILD)
+                client.await("the creation menu again") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the second chair") { if (client.shown(CRUDE_CHAIR, rx, rz)) Unit else null }
+                assertEquals(listOf(0, 0, 2), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
             }
         }
     }
