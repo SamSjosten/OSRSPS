@@ -53,7 +53,6 @@ object GangHouseLines : Lines("gang_house", "Transcript:Shield of Arrav") {
     val SECURELY_LOCKED = line("securely_locked", "the weapon store door without its key, and the Black Arm Gang's inner door to a Phoenix member")
     val CHEST_SEARCH = line("chest_search", "the Phoenix Gang's chest opened: the player searches it")
     val CHEST_NOTHING = line("chest_nothing", "the Phoenix Gang's chest after the quest: nothing of interest inside")
-    val PLAQUE = line("plaque", "Read on the VTAM Corporation's plaque by the Phoenix Gang's door")
 }
 
 /**
@@ -81,7 +80,7 @@ object GangHouseLines : Lines("gang_house", "Transcript:Shield of Arrav") {
  *   and its inner door (`blackarmdoor` 2399, 3185,3388, on the south edge of its tile) is securely locked to them; from
  *   the far side it lets the player out (guessed). Behind it, the cupboard upstairs is the Black Arm Gang's side (left
  *   out).
- * - The VTAM Corporation's plaque (23636) reads its line.
+ * - The VTAM Corporation's plaque (23636) by the door is [MisthalinOptionPack]'s.
  *
  * Guessed: every chathead expression; each door's two open ticks and the posh door's swing (as the Draynor jail's); the
  * chest's open look for 3 ticks with the human_openchest animation; where Straven and Katrine stand (mejrs's tiles,
@@ -103,7 +102,6 @@ object PhoenixGang {
     const val BLACK_ARM_DOOR = 2399
     const val CHEST = 2403
     const val CHEST_OPEN = 2404
-    const val PLAQUE = 23636
     /** poshdooropen, the open look the gangs' doors swing to, as the Draynor jail's door does. Guessed. */
     const val DOOR_OPEN = 1541
     const val OP1 = 1
@@ -274,6 +272,5 @@ fun registerPhoenixGang(world: World) = with(PhoenixGang) {
         }
     }
     world.handlers.onLoc(CHEST, OP1) { op -> openChest(world, op.loc!!) }
-    registerSearch(world, PLAQUE, OP1, GangHouseLines.PLAQUE)
     world.handlers.onGroundObj(PHOENIX_CROSSBOW, GroundObjs.TAKE_OPTION) { op -> takeCrossbow(world, op.groundObj!!) }
 }
