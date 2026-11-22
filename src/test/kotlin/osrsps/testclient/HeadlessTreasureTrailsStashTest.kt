@@ -29,8 +29,8 @@ import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
- * Treasure Trails step TT5 through the headless client: Build on an easy STASH unit wants the level, the tools and the
- * materials, then builds it (the varbit set, the planks and nails gone, the experience given); Search stashes the
+ * Treasure Trails step TT5 through the headless client: Build on an easy STASH unit wants the level (a crystal saw adds
+ * three), the tools and the materials, then builds it (the varbit set, the planks and nails gone, the experience given); Search stashes the
  * clue's full outfit from the backpack, refuses a part of it, and gives it all back. A made-up step and unit: the real
  * ones come from the cache.
  */
@@ -44,7 +44,7 @@ class HeadlessTreasureTrailsStashTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(26_000)
         for ((id, name) in listOf(
-            HAT to "Made-up hat", BOOTS to "Made-up boots", OTHER_BOOTS to "Other boots", 2347 to "Hammer", 8794 to "Saw", StashUnits.PLANK to "Plank",
+            HAT to "Made-up hat", BOOTS to "Made-up boots", OTHER_BOOTS to "Other boots", 2347 to "Hammer", 8794 to "Saw", StashUnits.CRYSTAL_SAW to "Crystal saw", StashUnits.PLANK to "Plank",
         )) objs[id] = ObjType(id, name)
         objs[4819] = ObjType(4819, "Bronze nails", stackable = true)
         objs[CLUE] = ObjType(CLUE, "Clue scroll (easy)", iops = listOf("Read", "Check steps", null, null, "Drop"))
@@ -77,10 +77,12 @@ class HeadlessTreasureTrailsStashTest {
                 assertEquals(setOf(STASH), server.world.trails.stashes.units.keys)
 
                 client.unit(StashUnits.BUILD, "stash.level")
-                client.commandReply("setlevel construction 27") { it.contains("level 27") }
+                // Level 24 is three short of easy; a crystal saw in the backpack makes it up.
+                client.commandReply("setlevel construction 24") { it.contains("level 24") }
+                client.unit(StashUnits.BUILD, "stash.level")
+                player.inventory[1] = InvObj(StashUnits.CRYSTAL_SAW, 1)
                 client.unit(StashUnits.BUILD, "stash.tools")
                 player.inventory[0] = InvObj(2347, 1)
-                player.inventory[1] = InvObj(8794, 1)
                 player.inventory[2] = InvObj(StashUnits.PLANK, 1)
                 player.inventory[3] = InvObj(4819, 25)
                 client.unit(StashUnits.BUILD, "stash.materials")

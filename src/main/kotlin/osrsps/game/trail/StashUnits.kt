@@ -24,7 +24,7 @@ object StashLines : Lines("stash", "STASH units") {
  * on a one-bit varbit of the player's (hh_constructed_*): 0 shows the inconspicuous bush, crate, hole or rocks with
  * Build, 1 the built STASH with Search. Varps are saved, so the built units are too.
  *
- * - Build takes the tier's Construction level (boostable), a hammer and a saw, two of the tier's planks, ten nails of
+ * - Build takes the tier's Construction level (boostable, and a crystal saw in the backpack adds three), a hammer and a saw, two of the tier's planks, ten nails of
  *   one metal (any but dragon) and for master a gold leaf, and gives the tier's experience: the Wiki's table, beginner
  *   12 and 150 with planks, easy 27 and 150, medium 42 and 250 with oak, hard 55 and 400 with teak, elite 77 and 600
  *   with mahogany, master 88 and 1,500 with mahogany and a gold leaf. Three ticks (the Wiki's recipe).
@@ -53,7 +53,7 @@ class StashUnits(private val world: World, data: TrailData) {
         val player = context.player
         if (built(player, stash.loc)) return search(context, stash)
         val cost = COSTS.getValue(stash.tier)
-        if (player.skills.currentLevel(Skill.CONSTRUCTION) < cost.level) return world.message(player, StashLines.LEVEL, "level" to cost.level)
+        if (constructionLevel(player) < cost.level) return world.message(player, StashLines.LEVEL, "level" to cost.level)
         if (HAMMERS.none { player.inventory.count(it) > 0 } || SAWS.none { player.inventory.count(it) > 0 }) return world.message(player, StashLines.TOOLS)
         val nails = NAILS.firstOrNull { player.inventory.count(it) >= NAILS_EACH }
         if (player.inventory.count(cost.plank) < PLANKS_EACH || nails == null || (cost.goldLeaf && player.inventory.count(GOLD_LEAF) < 1)) {
@@ -64,7 +64,7 @@ class StashUnits(private val world: World, data: TrailData) {
         context.delay(BUILD_TICKS)
         // Checked again after the wait, as the backpack may have changed.
         if (HAMMERS.none { player.inventory.count(it) > 0 } || SAWS.none { player.inventory.count(it) > 0 }) return
-        if (built(player, stash.loc)) return
+        if (built(player, stash.loc) || constructionLevel(player) < cost.level) return
         if (player.inventory.count(cost.plank) < PLANKS_EACH || player.inventory.count(nails) < NAILS_EACH || (cost.goldLeaf && player.inventory.count(GOLD_LEAF) < 1)) return
         removeId(player, cost.plank, PLANKS_EACH)
         removeId(player, nails, NAILS_EACH)
@@ -111,6 +111,15 @@ class StashUnits(private val world: World, data: TrailData) {
         return null
     }
 
+    /**
+     * The Construction level a build is checked against: the current (boosted) level, plus the crystal saw's three
+     * invisible levels while one is in the backpack (the Wiki's Crystal saw page, read 2026-11-22: STASH units count,
+     * and it stacks with visible boosts). Left out: the saw's 28 charges (56 with the medium Western Provinces diary),
+     * one used when the boost is needed, as no charge store exists for it yet, so the boost never runs out here.
+     */
+    private fun constructionLevel(player: Player): Int =
+        player.skills.currentLevel(Skill.CONSTRUCTION) + if (player.inventory.count(CRYSTAL_SAW) > 0) CRYSTAL_SAW_BOOST else 0
+
     private fun removeId(player: Player, id: Int, count: Int) {
         var left = count
         for ((slot, obj) in player.inventory.contents()) {
@@ -141,6 +150,8 @@ class StashUnits(private val world: World, data: TrailData) {
 
         val HAMMERS = listOf(2347, 25644)
         val SAWS = listOf(8794, 9625, 24880)
+        const val CRYSTAL_SAW = 9625
+        const val CRYSTAL_SAW_BOOST = 3
 
         /** Bronze, iron, steel, black, mithril, adamantite and rune nails, cheapest first. */
         val NAILS = listOf(4819, 4820, 1539, 4821, 4822, 4823, 4824)
