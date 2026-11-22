@@ -120,6 +120,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `karamja-lodestone.json` (Karamja step K1.1b, for test on 215: `::varp lodestones 0`, Activate on the Karamja stone at 2759,3146 south of Brimhaven and `[lodestone.activated name=[lodestone.karamja]]`, `::varbit lodestone.karamja` reading bit 5 set, the stone redrawn with Teleport, then from Lumbridge `::lodestone karamja` landing on 2760,3147) needs 0.4.2 for `assertLoc`.
 
+`karamja-volcano.json` (Karamja step K1.4, for test on 215: under `::god`, Climb-down on the volcano's rocks (11441 at 2856,3168) to 2856,9570, Open on the wall (2606 at 2836,9600) both ways, Climb on the rope below (18969) back to 2856,3167, Enter on Crandor's hole (25154 at 2833,3255) to 2834,9656 and Climb on its rope (25213) back to 2834,3254, then `::npcs 10` among Crandor's King Scorpions) needs nothing newer than `assertLocation`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
