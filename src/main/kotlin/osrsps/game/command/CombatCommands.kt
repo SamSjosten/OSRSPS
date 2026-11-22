@@ -334,6 +334,13 @@ private fun target(world: World, player: Player, args: List<String>, usage: Stri
                 // than the search reaches from its way in (raid step 18a).
                 ?: world.encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
                     ?.let { fight -> (listOf(fight.boss) + fight.adds).firstOrNull { !it.outOfPlay && named(it) } }
+                // Else one in the player's own instance, anywhere in it: TzKal-Zuk stands 21 tiles from where a player
+                // comes into the Inferno's last wave.
+                ?: world.instances.at(player.x, player.z)?.let { instance ->
+                    world.npcs.near(player.x, player.z, player.level, INSTANCE_SEARCH_RADIUS)
+                        .filter { !it.outOfPlay && named(it) && instance.contains(it.x, it.z) }
+                        .minByOrNull { max(abs(it.x - player.x), abs(it.z - player.z)) }
+                }
                 ?: throw CommandFailure("No NPC called '$text' within $SEARCH_RADIUS tiles")
         }
     }
@@ -345,6 +352,9 @@ private fun nearest(world: World, x: Int, z: Int, level: Int, filter: (Npc) -> B
 private fun percent(chance: Double): String = String.format(Locale.ROOT, "%.1f%%", chance * 100)
 
 private const val SEARCH_RADIUS = 15
+
+/** How far `::hit`, `::kill` and the rest look by name inside the player's own instance. */
+private const val INSTANCE_SEARCH_RADIUS = 64
 
 /** A minute, so a mistyped `::stun` can't hold an account for long. */
 private const val MAX_STUN_TICKS = 100
