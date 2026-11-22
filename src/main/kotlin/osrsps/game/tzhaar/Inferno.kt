@@ -251,6 +251,11 @@ class Inferno(private val world: World) {
             resuming -= key
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
             if (player.dead || runs.containsKey(key) || world.instances.at(player.x, player.z) != null) continue
+            // In a test setup the saved run waits for a login after ::reset, or the kit would fight it (exploit review R45B-2).
+            if (player.scenario != null) {
+                if (saved(player) != null) world.message(player, InfernoLines.IN_SCENARIO)
+                continue
+            }
             val wave = saved(player) ?: continue
             start(player, wave, MIDDLE, RESUME_TICKS, fresh = false)
         }
@@ -332,13 +337,18 @@ class Inferno(private val world: World) {
         end(run)
         forget(player)
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
-        world.objTypes[INFERNAL_CAPE]?.let { world.groundObjs.give(player, it, 1) }
+        world.fightCaves.reward(player, INFERNAL_CAPE, 1)
         pay(player, WIN_TOKKUL)
         // Jal-Nib-Rek: 1 in 100, 1 in 75 on a Slayer task (the Wiki's Jal-Nib-Rek). Ours is the item alone: no followers yet.
         if (world.random.chance(1, if (onTask) InfernoZuk.PET_ODDS_ON_TASK else InfernoZuk.PET_ODDS)) {
-            world.objTypes[InfernoZuk.PET]?.let { world.groundObjs.give(player, it, 1) }
-            world.collectionLog.add(player, InfernoZuk.PET, 1)
-            world.message(player, FightCaveLines.PET)
+            // A player who owns Jal-Nib-Rek gets the message instead of a second one, as live (exploit review R45B-3).
+            if (KetKeh.ownsPet(player)) {
+                world.message(player, FightCaveLines.PET_OWNED)
+            } else {
+                world.fightCaves.reward(player, InfernoZuk.PET, 1)
+                world.collectionLog.add(player, InfernoZuk.PET, 1)
+                world.message(player, FightCaveLines.PET)
+            }
         }
         if (player.vars.types.varpCount > VARP_ZUK_KILLS) player.vars[VARP_ZUK_KILLS] = player.vars[VARP_ZUK_KILLS] + 1
         KetKeh.victory(world, player, WIN_TOKKUL)
@@ -400,6 +410,11 @@ class Inferno(private val world: World) {
     private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) = world.fightCaves.pay(player, tokkul, bankOverflow)
 
     /** Ends [run]: its monsters and supports go, and its Inferno once nobody is in it (the world ends empty instances). */
+    /** Ends [player]'s run, if any, leaving their saved one as it is: `::reset` does this first (exploit review R45B-5). */
+    fun endRun(player: Player) {
+        runs[player.saveKey]?.let(::end)
+    }
+
     internal fun end(run: Run) {
         if (runs[run.owner] === run) runs.remove(run.owner)
         // A shot on its way would land outside after the run is over, where a death is no longer safe.
