@@ -417,6 +417,8 @@ class World(
     fairyRingCodes: osrsps.game.content.FairyRingCodes = osrsps.game.content.FairyRingCodes.NONE,
     /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
     trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
+    /** What reward caskets give, from trail-rewards.json. */
+    val trailRewards: osrsps.game.trail.TrailRewards = osrsps.game.trail.TrailRewards.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */

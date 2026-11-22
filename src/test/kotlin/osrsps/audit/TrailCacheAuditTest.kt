@@ -9,6 +9,7 @@ import osrsps.cache.DbRows
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.TrailLoader
 import osrsps.game.trail.StepType
+import osrsps.game.trail.TrailRewards
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TreasureTrails
 
@@ -57,6 +58,19 @@ class TrailCacheAuditTest {
             if (objs[tier.rewardCasket]?.iop(1) != "Open") problems += "$tier: casket ${tier.rewardCasket} isn't opened"
         }
         assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "OSRSPS_FLATCACHE", matches = ".+")
+    fun `every casket reward is the cache's item of that name, and every tier's casket and scroll cases open`() {
+        val cache = FlatCache(Path(System.getenv("OSRSPS_FLATCACHE")))
+        val objs = ObjTypeLoader.link(cache.group(CONFIG_INDEX, OBJ_GROUP).mapValues { (id, data) -> ObjTypeLoader.decode(id, data) })
+        val rewards = TrailRewards.parse(TrailRewards::class.java.getResource(TrailRewards.RESOURCE)!!.readText(), objs)
+        assertEquals(emptyList(), rewards.warnings)
+        for (tier in TrailTier.entries) {
+            assertTrue(rewards[tier] != null, "$tier")
+            for (case in TreasureTrails.SCROLL_CASES.getValue(tier)) assertEquals("Open", objs[case]?.iop(1), "$tier case $case")
+        }
     }
 
     private companion object {
