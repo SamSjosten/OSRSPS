@@ -245,6 +245,7 @@ class CollectionLogWindow(
             501 to listOf(3762, 1511), // Venenatis and Spindel: Spindel, then Venenatis
             502 to listOf(3763, 1512), // Vet'ion and Calvar'ion: Calvar'ion, then Vet'ion
             541 to listOf(2075), // Hespori
+            6413 to listOf(5407, 5408), // Brutus: total_cowboss_kills, then total_cowboss_hardmode_kills (order guessed)
             1220 to listOf(5894), // The Fractured Archive: completions
         )
 

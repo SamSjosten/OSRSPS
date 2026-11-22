@@ -161,4 +161,21 @@ class FoodsTest {
         assertFailsWith<IllegalArgumentException> { parse("""{"food": "shark", "heals": 20, "message": "gulp"}""") }
         assertEquals(emptyMap(), parse("""{"food": "manta_ray", "heals": 22}"""))
     }
+
+    @Test
+    fun `a cooked t-bone steak heals 9 and boosts Strength by 2, never lowering a higher boost`() {
+        val tbone = food(33109, "tbone_steak", "Cooked t-bone steak")
+        val steaks = Foods(Foods.load(ObjTypes.of(tbone)), message = { _, _ -> })
+        assertEquals(Food(tbone.id, "cooked t-bone steak", 9, boost = 2, boostSkill = Skill.STRENGTH), steaks.all[tbone.id])
+        alice.skills.setLevel(Skill.STRENGTH, 50)
+        alice.inventory[0] = InvObj(tbone.id, 1)
+        alice.inventory[1] = InvObj(tbone.id, 1)
+        assertTrue(steaks.eat(alice, 0, tbone.id, 10))
+        assertEquals(59, alice.hitpoints)
+        assertEquals(52, alice.skills.currentLevel(Skill.STRENGTH))
+        // A bigger boost already up stays.
+        alice.skills.setCurrentLevel(Skill.STRENGTH, 60)
+        assertTrue(steaks.eat(alice, 1, tbone.id, 20))
+        assertEquals(60, alice.skills.currentLevel(Skill.STRENGTH))
+    }
 }
