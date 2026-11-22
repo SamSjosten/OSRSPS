@@ -35,8 +35,14 @@ class ScurriusLoot(private val world: World) {
     /** Damage dealt to each living Scurrius, by save key, in the order they first hit him. */
     private val damage = HashMap<Npc, LinkedHashMap<String, Int>>()
 
-    /** Each dead Scurrius's damagers logged in at the kill, most damage first, kept until his body goes. */
-    private val atKill = HashMap<Npc, List<String>>()
+    /**
+     * Who loots a dead Scurrius: his damagers logged in at the kill, most damage first, and which of them were Ironmen
+     * then (so logging out before the loot doesn't lift the restriction: Codex, PR 868).
+     */
+    private class Looters(val keys: List<String>, val ironmen: Set<String>)
+
+    /** Each dead Scurrius's [Looters], kept until his body goes. */
+    private val atKill = HashMap<Npc, Looters>()
 
     /** [player] dealt [dealt] to [npc]: counted if it is Scurrius. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
@@ -49,7 +55,7 @@ class ScurriusLoot(private val world: World) {
         val online = world.onlinePlayers.filter { !it.loggedOut }.associateBy { it.saveKey }
         // Ties keep the order of first hits: sortedByDescending is stable.
         val keys = damage.remove(npc).orEmpty().entries.filter { it.key in online }.sortedByDescending { it.value }.map { it.key }
-        atKill[npc] = keys
+        atKill[npc] = Looters(keys, keys.filter { ironman(online.getValue(it)) }.toSet())
         for (key in keys) {
             val player = online.getValue(key)
             if (Scurrius.KILL_COUNT_VARP !in 0 until player.vars.types.varpCount) continue
@@ -59,7 +65,7 @@ class ScurriusLoot(private val world: World) {
     }
 
     /** A dead Scurrius just taken out of the world and his looters, held for the [loot] that follows (one at a time). */
-    private var bodyGoing: Pair<Npc, List<String>>? = null
+    private var bodyGoing: Pair<Npc, Looters>? = null
 
     /**
      * [npc] has left the world: his tally goes either way. A dead one's looters wait in [bodyGoing] for his [loot], so a
@@ -79,7 +85,8 @@ class ScurriusLoot(private val world: World) {
         if (npc.type.id !in TYPES) return false
         val going = bodyGoing?.takeIf { it.first === npc }?.second
         bodyGoing = null
-        val keys = going ?: atKill.remove(npc) ?: damage.remove(npc).orEmpty().keys.toList()
+        val looters = going ?: atKill.remove(npc) ?: Looters(damage.remove(npc).orEmpty().keys.toList(), emptySet())
+        val keys = looters.keys
         val private = world.scurriusLairs.runAt(npc.x, npc.z) != null
         val mvpTable = world.npcDrops[npc.type]
         val others = world.npcDrops.chests[NON_MVP_TABLE]
@@ -92,7 +99,7 @@ class ScurriusLoot(private val world: World) {
         val shared = !private && keys.size > 1
         keys.forEachIndexed { i, key ->
             val all = (if (i == 0) mvpTable else others)?.roll(world.random).orEmpty()
-            val ironman = shared && world.onlinePlayers.firstOrNull { it.saveKey == key }?.let(::ironman) == true
+            val ironman = shared && key in looters.ironmen
             val rolled = if (!ironman) all else all.filter { i == 0 && it.type.id == MEDIUM_CLUE }
             for (drop in rolled) {
                 if (drop.type.id == SPINE) {

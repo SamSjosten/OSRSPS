@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import java.lang.ref.WeakReference
+import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.abs
 import osrsps.game.Player
@@ -138,6 +139,9 @@ object ScurriusFight {
     private val leftoversByWorld = WeakHashMap<World, ArrayList<Leftover>>()
 
     internal fun leftovers(world: World) = leftoversByWorld.getOrPut(world) { ArrayList() }
+
+    /** Worlds with a [clearLeftovers] running each tick: one at a time however many kills leave rats (Codex, PR 868). */
+    internal val clearing: MutableSet<World> = Collections.newSetFromMap(WeakHashMap<World, Boolean>())
 
     fun fight(boss: Npc): Fight = fights.getOrPut(boss) { Fight() }
 
@@ -426,9 +430,11 @@ fun registerScurriusFight(world: World) {
             world.npcScripts.onDeath(defs.keys.toList()) { boss ->
                 fight(boss).stage = ScurriusFight.Stage.MELEE
                 leaveRats(world, boss)
-                world.npcScripts.laterUntil(1) {
-                    clearLeftovers(world)
-                    leftovers(world).isEmpty()
+                if (leftovers(world).isNotEmpty() && clearing.add(world)) {
+                    world.npcScripts.laterUntil(1) {
+                        clearLeftovers(world)
+                        leftovers(world).isEmpty().also { done -> if (done) clearing.remove(world) }
+                    }
                 }
             }
         }

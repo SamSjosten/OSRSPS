@@ -133,6 +133,8 @@ class HeadlessScurriusLootTest {
                     bob.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
                     alice.await("her kill count") { alice.messages().firstOrNull { it.text.contains("scurrius.kill_count") } }
                     assertEquals(1, a.vars[Scurrius.KILL_COUNT_VARP])
+                    // Her standing is taken at the kill: no longer an Ironman (as if logged out) by the loot changes nothing.
+                    a.vars.setVarbit(SettingsSide.VARBIT_IRONMAN, 0)
                     val bobs = bob.await("his loot", timeoutMillis = 20_000) {
                         world.groundObjs.visibleAt(b, x + 1, z + 1, 0).filter { it.owner == b.saveKey }.takeIf { it.isNotEmpty() }
                     }
