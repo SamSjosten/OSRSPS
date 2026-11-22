@@ -1,0 +1,27 @@
+{
+  "name": "Random events: the Sandwich lady names a food, her tray's Key and Back work, and a pick ends the event",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
+    {"step": "command", "text": "::randomevent sandwich_lady", "expectMessage": "Started random event sandwich_lady"},
+    {"step": "npcOption", "npc": "Sandwich lady", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Sandwich lady", "contains": "[sandwich_lady.offer food=", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertInterface", "interfaceId": 297},
+    {"comment": "sandwich_tray:sandwich_key_button, then sandwich_back_button", "step": "clickWidget", "interfaceId": 297, "component": 13},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "clickWidget", "interfaceId": 297, "component": 30},
+    {"step": "waitTicks", "ticks": 2},
+    {"comment": "The food is her pick at random, so this is the baguette (sandwich_tray_0) either way: right or wrong, she answers and goes.", "step": "clickWidget", "interfaceId": 297, "component": 6},
+    {"step": "assertDialogue", "speaker": "Sandwich lady", "contains": "[sandwich_lady.", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "assertInterface", "interfaceId": 297, "absent": true}
+  ]
+}

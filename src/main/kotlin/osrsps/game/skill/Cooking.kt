@@ -301,8 +301,12 @@ class Cooking(private val world: World) {
         const val RANGE_ANIM = 896
         const val FIRE_ANIM = 897
 
-        /** The fire Firemaking lights. */
-        val FIRES = setOf(Firemaking.FIRE)
+        /**
+         * The fire Firemaking lights, and Mor Ul Rek's sulphur vents (tzhaar_sulphar_vent, 11851), which the Wiki's
+         * Sulphur vent page calls permanent fires: no options, food used on them.
+         */
+        val FIRES = setOf(Firemaking.FIRE, SULPHUR_VENT)
+        const val SULPHUR_VENT = 11851
 
         /**
          * Permanent fires with a Cook option (`fire_cook`, Draynor Village's south of the bank): a fire for the burn
