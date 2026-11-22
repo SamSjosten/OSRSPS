@@ -13,6 +13,7 @@
     {"step": "assertMessage", "contains": "[mej_jal.in_scenario]"},
     {"step": "assertInventory", "itemId": 6570, "count": 1},
     {"step": "assertInventory", "itemId": 6529, "count": 0, "comment": "no TokKul paid for it"},
+    {"step": "command", "text": "::varbit 5646 0", "comment": "inferno_sacrificed_firecape: not given, as a setup may keep the account's own value; ::reset puts it back"},
     {"step": "command", "text": "::tele 2496 5121 0", "expectMessage": "Teleported to 2496, 5121, 0", "comment": "beside TzHaar-Ket-Keh (2496,5115)"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "npcOption", "npc": "TzHaar-Ket-Keh", "option": "Talk-to"},
