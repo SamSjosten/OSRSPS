@@ -195,6 +195,8 @@ class TrailBoxes(private val world: World) {
 
         const val PUZZLE_BOX = "Puzzle box"
         const val LIGHT_BOX = 20355
+        /** The light box's Destroy, its fifth option. */
+        const val DESTROY = 5
         const val ELITE_BOX = 12161
 
         const val CASTLE = 2749

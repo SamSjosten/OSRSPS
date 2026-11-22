@@ -109,12 +109,13 @@ class HeadlessTreasureTrailsBoxTest {
                 player.bank.remove(player.bank.contents().first { it.second.id == TREE_BOX }.first, 1)
                 player.inventory[box] = osrsps.game.InvObj(TREE_BOX, 1)
 
-                // A slide with the puzzle closed moves nothing.
-                client.ifButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES, 1, 24, 0)
-
                 // One slide from solved: the last piece sits where the gap belongs.
                 val slots = IntArray(25) { TrailBoxes.TREE + it }.also { it[23] = TrailBoxes.GAP; it[24] = TrailBoxes.TREE + 23 }
                 player.trails.puzzles[TREE_BOX] = slots
+                // That slide with the puzzle closed moves nothing (the command after it is answered once it's handled).
+                client.ifButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES, 1, 24, TrailBoxes.TREE + 23)
+                client.commandReply("pos") { it.contains("(region ") }
+                assertEquals(TrailBoxes.GAP, slots[23])
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 2, box, TREE_BOX)
                 client.ifButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES, 1, 24, TrailBoxes.TREE + 23)
                 client.await("the solved puzzle") { if (TrailBoxes.isSolved(player.trails.puzzles.getValue(TREE_BOX))) Unit else null }
@@ -162,6 +163,15 @@ class HeadlessTreasureTrailsBoxTest {
                 client.chat("trail.npc_box_solved")
                 client.objbox("trail.casket")
                 assertNull(player.trails.lightBox)
+
+                // A light box can be destroyed, after the check, and its lights go with it.
+                player.inventory.add(server.world.objTypes[TrailBoxes.LIGHT_BOX]!!, 1)
+                player.trails.lightBox = LightBoxState(IntArray(8) { 1 shl it }, 0)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, DESTROY_BUTTON_OP, client.slotOf(TrailBoxes.LIGHT_BOX), TrailBoxes.LIGHT_BOX)
+                client.await("the destroy check") { client.clientScripts().lastOrNull { it.id == Chatbox.CONFIRM_DESTROY_INIT } }
+                client.resumePause(Chatbox.CONFIRM_DESTROY, Chatbox.CONFIRM_DESTROY_UNIVERSE, 1)
+                client.await("the box gone") { if (player.inventory.count(TrailBoxes.LIGHT_BOX) == 0L) Unit else null }
+                assertNull(player.trails.lightBox)
             }
         }
     }
@@ -170,6 +180,8 @@ class HeadlessTreasureTrailsBoxTest {
         const val BACKPACK = 93
         const val GUIDE = 3_000
         const val HARD_CLUE = 19_886
+        /** The button op of an obj's fifth option, Destroy. */
+        const val DESTROY_BUTTON_OP = 7
         const val OTHER_BOX = 2_795
         const val TREE_BOX = 19_887
     }

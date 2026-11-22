@@ -51,6 +51,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val NPC_BOX = line("npc_box", "a talk step's NPC, handing over a puzzle box or light box to solve first (no source seen)")
     val NPC_BOX_UNSOLVED = line("npc_box_unsolved", "a talk step's NPC, while the player's box isn't solved yet (no source seen)")
     val NPC_BOX_SOLVED = line("npc_box_solved", "a talk step's NPC, taking the solved box, before the next clue (no source seen)")
+    val DESTROY_LIGHT_BOX = line("destroy_light_box", "the light box's destroy check text (the Wiki's infobox)")
 
     fun suspicion(tier: TrailTier) = when (tier) {
         TrailTier.BEGINNER -> SUSPICION_BEGINNER
@@ -671,6 +672,16 @@ fun registerTreasureTrails(world: World) {
     world.handlers.first(trails::intercept)
     for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }
     for (box in TrailBoxes.PUZZLES.keys + TrailBoxes.LIGHT_BOX) world.handlers.onObj(box, 1) { op -> trails.boxes.open(this, op.sub) }
+    world.handlers.onObj(TrailBoxes.LIGHT_BOX, TrailBoxes.DESTROY) { op ->
+        val slot = op.sub
+        world.dialogues.start(this) {
+            if (!confirmDestroy(TrailBoxes.LIGHT_BOX, 1, text(GameLines.DESTROY_TITLE), text(TrailLines.DESTROY_LIGHT_BOX))) return@start
+            // The box may have moved while the check was open: only the one in that slot goes, and its lights with it.
+            if (player.inventory[slot]?.id != TrailBoxes.LIGHT_BOX) return@start
+            player.inventory.remove(slot, 1)
+            if (player.inventory.count(TrailBoxes.LIGHT_BOX) == 0L && player.bank.count(TrailBoxes.LIGHT_BOX) == 0L) trails.boxes.forget(player, TrailBoxes.LIGHT_BOX)
+        }
+    }
     world.handlers.onButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES) { op -> trails.boxes.slide(this, op.sub) }
     for ((index, button) in TrailBoxes.LIGHT_SWITCHES.withIndex()) world.handlers.onButton(TrailBoxes.LIGHT_PUZZLE, button) { trails.boxes.flip(this, index) }
     for (stash in trails.stashes.units.values) {
