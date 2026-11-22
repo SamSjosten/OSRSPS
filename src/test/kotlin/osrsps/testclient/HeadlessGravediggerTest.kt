@@ -14,6 +14,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.bank.Bank
 import osrsps.game.content.XpLamp
 import osrsps.game.content.randomevents.Gravedigger
 import osrsps.game.content.randomevents.RandomEvents
@@ -76,6 +77,9 @@ class HeadlessGravediggerTest {
     }
 
     private fun HeadlessClient.over() = await("the talk over") { if (dialogueView == null) Unit else null }
+
+    /** A reward's pieces: two of shirt, trousers, gloves and boots, or the mask alone. */
+    private fun rewarded(ids: List<Int>) = ids == listOf(Gravedigger.MASK) || (ids.size == 2 && Gravedigger.MASK !in ids)
 
     private fun HeadlessClient.slotOf(id: Int) = inventory(Inventory.INV).indexOfFirst { it?.id == id }
 
@@ -153,7 +157,13 @@ class HeadlessGravediggerTest {
                 client.talkToLeo(1, "[gravedigger.finished]")
                 client.chat("[gravedigger.wonderful]")
                 client.await("back where they came from") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
-                client.await("two zombie pieces") { if (Gravedigger.OUTFIT.count { client.slotOf(it) >= 0 } == 2) Unit else null }
+                // Two pieces, or the mask on its own.
+                client.await("two zombie pieces or the mask") { if (rewarded(Gravedigger.OUTFIT.filter { client.slotOf(it) >= 0 })) Unit else null }
+                // The coffins can't be banked (the mausoleum is a deposit box).
+                assertEquals(Bank.Deposit.NotBankable, server.world.bank.deposit(
+                    Inventory(Inventory.BANK, Inventory.BANK_CAPACITY), server.world.bankScreen.tabs(server.world.playerNamed("alice")!!),
+                    Inventory(Inventory.INV, Inventory.INV_CAPACITY).also { it[0] = osrsps.game.InvObj(Gravedigger.COFFINS[0], 1) }, 0, 1,
+                ))
                 assertTrue(client.inventory(Inventory.INV).none { it?.id in Gravedigger.COFFINS })
 
                 // With the whole outfit, an emote; with both, a lamp.
@@ -187,7 +197,7 @@ class HeadlessGravediggerTest {
     }
 
     @Test
-    fun `with a full backpack the pieces go on the ground back home, not in the graveyard`(@TempDir dir: Path) {
+    fun `with a full backpack the reward goes on the ground back home, not in the graveyard`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.ready()
@@ -198,7 +208,7 @@ class HeadlessGravediggerTest {
                 client.talkToLeo(1, "[gravedigger.finished]")
                 client.chat("[gravedigger.wonderful]")
                 client.await("back") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
-                val pieces = client.await("two pieces on the ground") { client.groundObjs().filter { it.id in Gravedigger.OUTFIT }.takeIf { it.size == 2 } }
+                val pieces = client.await("two pieces or the mask on the ground") { client.groundObjs().filter { it.id in Gravedigger.OUTFIT }.takeIf { rewarded(it.map { o -> o.id }) } }
                 assertTrue(pieces.all { it.coord == Coord(3222, 3218, 0) }, pieces.toString())
             }
         }

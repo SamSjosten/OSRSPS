@@ -561,7 +561,8 @@ class World(
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
-    val bank = Bank(objTypes)
+    // The Gravedigger's coffins can't be banked: the graveyard's mausoleum is a deposit box (Codex review on #890).
+    val bank = Bank(objTypes, notBankable = osrsps.game.content.randomevents.Gravedigger.COFFINS.toSet())
 
     val bankScreen = BankScreen(
         bank, objTypes, scripts, interfaces::openModal,

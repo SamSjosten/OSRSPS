@@ -47,15 +47,18 @@ object GravediggerLines : Lines("gravedigger", "Transcript:Leo") {
  * (macro_digger_coffin_object_1 to _5) and leaves it empty (macro_digger_open_grave_empty_1 to _5); Check on a coffin
  * shows what's inside (interface gravedigger_macro2); Read on a gravestone shows whose grave it is (interface
  * gravedigger_gravestone); a coffin used on an empty grave goes in. With all five right, saying so (FINISHED) sends
- * the player back with two zombie outfit pieces not yet had, or with the whole outfit a zombie emote not yet had
+ * the player back with two zombie outfit pieces not yet had or the zombie mask (the Wiki's Rewards: two pieces, or the
+ * mask), or with the whole outfit a zombie emote not yet had
  * (varbits emote_zombie_dance, emote_zombie_walk), or with both emotes too a lamp. Leaving (LEAVE) leaves with
- * nothing. The mausoleum is a bank deposit box.
+ * nothing. The mausoleum is a bank deposit box, which takes no coffin (none can be banked, or the puzzle couldn't be
+ * finished).
  *
  * The five professions and their gravestone pictures are the cache's macro_digger_stone* objs (axe, cook, mine,
  * spade, vase); the coffins' contents are its macro_digger_* item models. Guessed: which coffin obj holds which body
  * (in the stone objs' order: lumberjack, cook, miner, farmer, potter), which items lie in whose coffin and in which
  * slots; the gravestones shuffled at random and the coffins put in so that none starts right; where the player lands
- * and Leo stands; which zombie pieces come (two of the missing at random) and which emote; that a coffin left in the
+ * and Leo stands; which zombie pieces come (two of the missing shirt, trousers, gloves and boots at random, or the
+ * mask alone, each as likely while both are possible) and which emote; that a coffin left in the
  * backpack goes as the player leaves. Left out: the death in the graveyard, the silly-burial message and axe-on-tree
  * messages, and taking coffins out of a logged-out player's backpack.
  */
@@ -254,9 +257,12 @@ object Gravedigger : RandomEvent("gravedigger", 6746) {
     }
 
     private fun reward(world: World, player: Player) {
-        val missing = shuffled(world, OUTFIT.filter { !owns(player, it) })
-        if (missing.isNotEmpty()) {
-            for (piece in missing.take(PIECES_PER_REWARD)) world.randomEvents.reward(player, piece)
+        // Two of the other pieces, or the mask on its own.
+        val pieces = shuffled(world, OUTFIT.filter { it != MASK && !owns(player, it) })
+        val mask = !owns(player, MASK)
+        if (pieces.isNotEmpty() || mask) {
+            if (mask && (pieces.isEmpty() || world.random.nextInt(2) == 0)) world.randomEvents.reward(player, MASK)
+            else for (piece in pieces.take(PIECES_PER_REWARD)) world.randomEvents.reward(player, piece)
             return
         }
         val emotes = EMOTE_VARBITS.filter { player.vars.types.varbit(it) != null && player.vars.getVarbit(it) == 0 }
