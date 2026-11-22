@@ -55,6 +55,13 @@ object VarrockReadingLines : Lines("varrock_reading", "Transcript:Combat Scroll"
     val VTAM_PLAQUE = line("vtam_plaque", "Read on the VTAM Corporation plaque by the Phoenix Gang's hideout (no source yet: needs a recording)")
 }
 
+/** The Restless Ghost's coffin and altar after the quest (the Wiki's Transcript:The Restless Ghost, read 2026-11-19). */
+object RestlessGhostLines : Lines("restless_ghost", "Transcript:The Restless Ghost") {
+    val OPEN = line("open", "Open on the coffin: the message")
+    val COMPLETE_SKELETON = line("complete_skeleton", "Search on the open coffin after the quest: the box")
+    val ALTAR_EMPTY = line("altar_empty", "Search on the Wizards' Tower basement altar after the quest: the box")
+}
+
 /**
  * Misthalin fixes 3, the first of the review's small option pack (19 Nov 2026): options the 242 cache gives Misthalin's
  * locs that had no handler.
@@ -71,6 +78,10 @@ object VarrockReadingLines : Lines("varrock_reading", "Transcript:Combat Scroll"
  * - **Combat Scroll** and the **VTAM Corporation plaque** show their words in a message box (guessed: how live lays
  *   them out).
  * - **Boxes** (359) in Lumbridge and upstairs in Edgeville: Search finds nothing, as the other boxes do.
+ * - **The Restless Ghost's coffin** (Lumbridge graveyard) opens, with the skull back in it, for three minutes (Wiki,
+ *   Coffin (The Restless Ghost)); Search on it and on the **altar** in the Wizards' Tower basement says the after-quest
+ *   boxes (Transcript:The Restless Ghost). Guessed: the open and shut animations (the furniture's), and Close putting
+ *   the coffin back at once.
  * - **The cabbage and onion field** east of the south-east Varrock mine (`avium_cabbage01/02`, `avium_onion01/02`) picks as the other
  *   fields do ([Crops]).
  */
@@ -153,6 +164,17 @@ object MisthalinOptionPack {
             else -> locs.replaceInStages(loc, bush.stages[2], firstBack, bush.stages[1], BERRY_TICKS)
         }
     }
+    /** The Restless Ghost's coffin in Lumbridge graveyard: shut, and open with the skull back in it after the quest. */
+    const val COFFIN = 2145
+    const val COFFIN_OPEN = 15053
+    const val OPEN = 1
+    const val CLOSE = 2
+
+    /** The Wiki's Coffin (The Restless Ghost): "the coffin will automatically close after three minutes". */
+    const val COFFIN_OPEN_TICKS = 300
+
+    /** restless_ghost_altar, the multiloc in the Wizards' Tower basement, which shows its empty form after the quest. */
+    const val GHOST_ALTAR = 2146
 
     internal suspend fun ScriptContext.pickBerry(world: World, loc: ZoneLoc, bush: Bush) {
         val stage = bush.stages.indexOf(loc.id)
@@ -204,4 +226,19 @@ fun registerMisthalinOptionPack(world: World) = with(MisthalinOptionPack) {
     world.handlers.onLoc(VTAM_PLAQUE, READ) { world.dialogues.start(this) { mesbox(VarrockReadingLines.VTAM_PLAQUE) } }
 
     registerSearch(world, BOXES, SEARCH, SearchLines.BOXES_EMPTY)
+
+    world.handlers.onLoc(COFFIN, OPEN) { op ->
+        val loc = op.loc!!
+        player.anim(Searching.ANIM_OPEN)
+        delay(1)
+        if (world.locs.replace(loc, COFFIN_OPEN, COFFIN_OPEN_TICKS) != null) world.message(player, RestlessGhostLines.OPEN)
+    }
+    world.handlers.onLoc(COFFIN_OPEN, SEARCH) { world.dialogues.start(this) { mesbox(RestlessGhostLines.COMPLETE_SKELETON) } }
+    world.handlers.onLoc(COFFIN_OPEN, CLOSE) { op ->
+        val loc = op.loc!!
+        player.anim(Searching.ANIM_SHUT)
+        delay(1)
+        if (world.locs.exists(loc)) world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
+    }
+    world.handlers.onLoc(GHOST_ALTAR, SEARCH) { world.dialogues.start(this) { mesbox(RestlessGhostLines.ALTAR_EMPTY) } }
 }

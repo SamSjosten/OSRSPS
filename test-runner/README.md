@@ -116,6 +116,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `musa-point.json` (Karamja step K1.2, for test on 215: the banana crate emptied with `::varp banana_crate 0`, Luthas's employment option, Pick on the banana tree at 2930,3155 and `[musa_point.banana_picked]` with the tree then 2074, ten bananas from `::item`, one used on his crate (2072 at 2939,3149) and `[musa_point.pack_one]`, Search and `[musa_point.crate_has count=1 s=]`, Fill and nine more gone, Search's full box, his pay of 30 coins, and Zembo's yes opening his shop (300)) needs 0.15.0 for `useItemOnLoc` (and `assertLoc`, `assertInventory`).
 
+`musa-point-people.json` (Karamja step K1.3, for test on 215: under `::god`, Examine under `::keys on` on the Karamja man by Musa Point's dock (3652) and on a snake west of the general store (2845), each read off its `examine.` key, then Attack on the snake, a hitsplat, `::kill` and its bones on the floor) needs 0.5.0 for `assertHitsplat` (and `assertGroundItem`).
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
