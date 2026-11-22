@@ -162,6 +162,8 @@ class Deaths(
     },
     /** The player has just fallen, before their death animation: a raid counts the death then ([osrsps.game.raid.ArchiveRaids.fell]). */
     private val fell: (Player) -> Unit = {},
+    /** Takes a random event's own items off the player ([EventAreas.takePlaceItems]), before anything is sorted. */
+    private val takePlaceItems: (Player) -> Unit = {},
     /** Who killed the player, by save key, if it is a PvP death ([PvpCombat.killerOf]); null for any other. */
     private val killerOf: (Player) -> String? = { null },
     /**
@@ -248,6 +250,8 @@ class Deaths(
         // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
         if (!player.dead) die(player)
         player.deathTick = -1
+        // A random event's own items stay in its place, out of what is kept or lost, the grave included.
+        takePlaceItems(player)
         if (place?.safe != true) loseHardcore(player)
         val keep = place?.keepItems == true || place?.safe == true
         if (!keep) {

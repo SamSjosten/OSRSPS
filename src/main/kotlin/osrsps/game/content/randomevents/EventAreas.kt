@@ -66,12 +66,17 @@ class EventAreas(private val world: World) {
 
     /**
      * [player] is being moved to [x], [z]: out of their stay, by any way at all (the way back, a teleport spell or tablet,
-     * a death), the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
+     * a death, which takes them first: [takePlaceItems]), the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
      */
     fun moving(player: Player, x: Int, z: Int) {
         val away = awayOf(player) ?: return
         if (awayAt(x, z) === away) return
-        val items = away.event.placeItems
+        takePlaceItems(player)
+    }
+
+    /** Takes the place's own items ([RandomEvent.placeItems]) off [player] if they are on a stay; also run by a death. */
+    fun takePlaceItems(player: Player) {
+        val items = awayOf(player)?.event?.placeItems ?: return
         if (items.isNotEmpty()) for (slot in 0 until player.inventory.capacity) if (player.inventory[slot]?.id in items) player.inventory.remove(slot)
     }
 

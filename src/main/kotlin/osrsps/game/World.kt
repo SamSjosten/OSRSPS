@@ -787,6 +787,7 @@ class World(
         },
         placeOf = ::deathPlace,
         fell = { archiveRaids.fell(it) },
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->

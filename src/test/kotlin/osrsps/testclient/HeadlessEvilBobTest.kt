@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
@@ -39,6 +40,7 @@ class HeadlessEvilBobTest {
         NpcType(EvilBob.npcId, "Evil Bob", ops = listOf("Talk-to", null, null, null, "Dismiss")),
         NpcType(EvilBob.ASLEEP, "Evil Bob", ops = listOf("Talk-to", null, null, null, null)),
         NpcType(EvilBob.SERVANT, "Servant", ops = listOf("Talk-to", null, null, null, null)),
+        NpcType(osrsps.game.combat.Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
     )
 
     private val objs = listOf(
@@ -46,6 +48,9 @@ class HeadlessEvilBobTest {
         ObjType(EvilBob.COOKED_RIGHT, "Fishlike thing", iops = listOf("Eat", null, null, null, "Drop")),
         ObjType(EvilBob.COOKED_WRONG, "Fishlike thing", iops = listOf("Eat", null, null, null, "Drop")),
         ObjType(EvilBob.NET, "Small fishing net"),
+        // Worth more than the net and fish, for the death test.
+        ObjType(1277, "Bronze sword", cost = 26), ObjType(379, "Lobster", cost = 150), ObjType(995, "Coins", cost = 1, stackable = true),
+        ObjType(526, "Bones", cost = 1),
     )
 
     private val locs = listOf(
@@ -302,6 +307,29 @@ class HeadlessEvilBobTest {
                 client.await("off the island") { client.position?.takeIf { it == Coord(3200, 3200, 0) } }
                 client.awaitTicks(2)
                 assertTrue(client.inventory(Inventory.INV).all { it == null }, "the net and fish stay on the island")
+            }
+        }
+    }
+
+    @Test
+    fun `dying on the island leaves the net and fish behind, out of the grave too`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                val (dx, dz) = client.ontoIsland("erin")
+                client.takeNet(dx, dz)
+                val right = EvilBob.islandOf(server.world, server.world.onlinePlayers.single())!!.second.right
+                val cooked = if (right == EvilBob.Spots.NORTH) EvilBob.COOKED_RIGHT else EvilBob.COOKED_WRONG
+                client.fish(EvilBob.Spots.NORTH, cooked, dx, dz)
+                // Three things worth more to keep, so the net and fish would be lost with the bones, into the grave.
+                for (item in listOf("1277", "379", "995 100", "526")) client.commandReply("item $item") { true }.let { assertTrue(it.startsWith("Added"), "item $item given: $it") }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.await("the respawn", timeoutMillis = 10_000) { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.awaitTicks(2)
+                assertTrue(client.inventory(Inventory.INV).none { it?.id in EvilBob.FISH || it?.id == EvilBob.NET }, "the net and fish are not kept")
+                val grave = server.world.deaths.graveOf(server.world.onlinePlayers.single())
+                assertNotNull(grave, "the bones, not kept, make a grave")
+                assertTrue((0 until grave.items.capacity).none { grave.items[it]?.id.let { id -> id in EvilBob.FISH || id == EvilBob.NET } }, "nor put in the grave")
             }
         }
     }
