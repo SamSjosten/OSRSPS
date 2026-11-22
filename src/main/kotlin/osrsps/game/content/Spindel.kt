@@ -134,9 +134,9 @@ class SpiderQueen(val config: Config) {
 
     private fun EncounterContext.callSpiderlings(fight: Fight, target: Player) {
         val type = world.npcTypes[config.spiderling] ?: return
-        val size = boss.type.size
-        // Never east of her (the Wiki's strategy page, Codex review on #832): her west corners, then the middle of her west side.
-        val spots = listOf(Tile(boss.x - 1, boss.z - 1), Tile(boss.x - 1, boss.z + size), Tile(boss.x - 1, boss.z + size / 2))
+        // Never east of her (the Wiki's strategy page, Codex review on #832): her west side, then her south and north sides'
+        // western halves, each a tile one step from under her reaches (exploit review round 47, R47B-2).
+        val spots = world.npcs.openBeside(boss).filter { it.x < boss.x + boss.type.size / 2 }.sortedBy { it.x }
         var called = 0
         for (at in spots) {
             // No more than ten alive at once, the Wiki's cap (Codex review on #832).

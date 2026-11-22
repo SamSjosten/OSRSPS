@@ -80,6 +80,7 @@ import osrsps.game.trade.TradeLines
 import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
 import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.InfernoZukLines
 import osrsps.game.tzhaar.KetKehLines
 import osrsps.game.tzhaar.MejJalLines
 
@@ -141,6 +142,7 @@ object DialogueLines {
         MejJalLines,
         InfernoLines,
         KetKehLines,
+        InfernoZukLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -334,6 +336,9 @@ object DialogueLines {
         JohanhusLines,
         JimmyTheChiselLines,
         KaramjaShipLines,
+        MusaPointLines,
+        MusaShopKeeperLines,
+        MusaShopAssistantLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
