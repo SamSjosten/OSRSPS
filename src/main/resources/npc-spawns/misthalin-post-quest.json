@@ -1,0 +1,7 @@
+{
+  "about": "Misthalin's post-quest content (the post-quest plan's steps, one area a step): people that stay after a quest every account has finished. Step 2, Shield of Arrav as a Phoenix Gang member: Straven by the hideout's door and Katrine in the Black Arm Gang's front room. Tiles from mejrs's live NPC list; neither wanders (guessed).",
+  "spawns": [
+    {"npc": "straven", "x": 3246, "z": 9780, "source": "Straven, by the Phoenix Gang Hideout's door. mejrs NPCList_OSRS; the Wiki's Straven page (3246,9780)"},
+    {"npc": "katrine", "x": 3186, "z": 3385, "source": "Katrine, the Black Arm Gang's front room west of Varrock's south gate. mejrs NPCList_OSRS; the Wiki's Katrine page (3186,3385)"}
+  ]
+}
