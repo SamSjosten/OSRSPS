@@ -185,7 +185,7 @@ class HeadlessFreakyForesterTest {
     }
 
     @Test
-    fun `he never takes away a player who is jailed or in a fight, even one who says yes`(@TempDir dir: Path) {
+    fun `he never takes away a player in a fight, even one who says yes, and a stale jail flag doesn't count`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dan").use { client ->
                 client.ready()
@@ -195,8 +195,9 @@ class HeadlessFreakyForesterTest {
                 client.npcOp(npc.index, RandomEvents.TALK_TO)
                 client.chat("[freaky_forester.help name=dan]")
                 client.awaitDialogue("the options") { it is DialogueView.Menu }
-                // Jailed during the talk: yes keeps them here, and he goes (exploit review R50).
-                player.charges[ShantayPass.JAILED] = 1
+                // In a fight that began during the talk: yes keeps them here, and he goes (exploit review R50). The hit
+                // is dated ahead so the logout timer holds however the ticks fall.
+                player.attackedTick = server.world.tick + 200
                 client.chooseOption(1)
                 client.chat("[freaky_forester.okay]")
                 client.over()
@@ -204,11 +205,12 @@ class HeadlessFreakyForesterTest {
                 assertEquals(Coord(3222, 3218, 0), client.position)
                 assertTrue(server.world.instances.all.isEmpty())
                 assertTrue(!server.world.randomEvents.allowedAt(player, FreakyForester))
-                player.charges[ShantayPass.JAILED] = 0
+                player.attackedTick = -1
                 assertTrue(server.world.randomEvents.allowedAt(player, FreakyForester))
-                // In a fight (hit within the logout timer) too. Tele Block ends outside the Wilderness, which is out anyway.
-                player.attackedTick = server.world.tick
-                assertTrue(!server.world.randomEvents.allowedAt(player, FreakyForester))
+                // Shantay's jail flag counts only in his cell: one who got out some other way isn't held to it.
+                player.charges[ShantayPass.JAILED] = 1
+                assertTrue(server.world.randomEvents.allowedAt(player, FreakyForester))
+                player.charges[ShantayPass.JAILED] = 0
             }
         }
     }

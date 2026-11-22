@@ -233,10 +233,11 @@ class HeadlessRandomEventsTest {
                 client.tele(3222, 3218)
                 val player = server.world.onlinePlayers.single()
                 client.commandReply("randomevent") { it.startsWith("Random events on") }
-                client.command("randomevent now")
-                // A window open over the next 500-tick look holds the due event back.
+                // A window open over the next 500-tick look holds the due event back. Opened first, so the event
+                // can't come between the two commands.
                 client.command("openbank")
                 client.await("the bank") { if (client.openInterfaces().isNotEmpty()) Unit else null }
+                client.command("randomevent now")
                 val look = (player.playedTicks / RandomEvents.CHECK_TICKS + 1) * RandomEvents.CHECK_TICKS
                 client.await("the look", timeoutMillis = 30_000) { if (player.playedTicks > look + 2) Unit else null }
                 assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })

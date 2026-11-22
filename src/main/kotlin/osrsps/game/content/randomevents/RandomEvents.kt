@@ -232,9 +232,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         return true
     }
 
-    /** Whether [player] may be taken away: not in combat, not Tele Blocked and not in Shantay's cell. */
+    /** Whether [player] may be taken away: not in combat, not Tele Blocked and not jailed in Shantay's cell. */
     private fun freeToLeave(player: Player): Boolean =
-        !world.inCombat(player) && player.teleblockTicks <= 0 && player.charges[ShantayPass.JAILED] == 0
+        !world.inCombat(player) && player.teleblockTicks <= 0 && !(player.charges[ShantayPass.JAILED] != 0 && ShantayPass.inCell(player))
 
     /** Ends [player]'s event NPC, if one is out, without a word: a test setup starting or being put back. */
     fun end(player: Player) {
