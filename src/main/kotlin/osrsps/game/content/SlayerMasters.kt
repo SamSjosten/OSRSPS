@@ -62,6 +62,7 @@ object SlayerMasterLines : Lines("slayer_master", "Transcript:Vannaka") {
 object AyaLines : Lines("aya", "Transcript:Aya") {
     val NOT_MINE = line("not_mine", "with another master's task that isn't on her list: she offers a new one")
     val RESET_STREAK = line("reset_streak", "the warning that a new task resets the standard streak but not the Wilderness one", "streak", "wilderness")
+    val RESET_WILDERNESS_STREAK = line("reset_wilderness_streak", "for a Krystilia task instead: the warning that a new task resets the Wilderness streak (not on the Wiki: needs a recording)", "streak", "wilderness")
     val YES_PLEASE = line("yes_please", "that menu, option 1")
     val NO_THANKS = line("no_thanks", "that menu, option 2, which the player then says")
     val ABOUT_TURAEL = line("about_turael", "first menu after While Guthix Sleeps, which the player then says")
@@ -414,7 +415,8 @@ class SlayerMasters(private val world: World) {
      */
     private suspend fun Dialogue.swap(): Unit = with(AyaLines) {
         chatNpc(ChatAnim.NEUTRAL, NOT_MINE)
-        chatNpc(ChatAnim.NEUTRAL, RESET_STREAK, "streak" to slayer.streak(player), "wilderness" to slayer.wildernessStreak(player))
+        val warning = if (slayer.master(player) == SlayerMaster.KRYSTILIA) RESET_WILDERNESS_STREAK else RESET_STREAK
+        chatNpc(ChatAnim.NEUTRAL, warning, "streak" to slayer.streak(player), "wilderness" to slayer.wildernessStreak(player))
         if (choice(YES_PLEASE, NO_THANKS) != 1) {
             chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
             return

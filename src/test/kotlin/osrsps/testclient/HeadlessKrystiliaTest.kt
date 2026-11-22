@@ -35,10 +35,15 @@ class HeadlessKrystiliaTest {
 
     // Cows are hers here, with a combat level no new player has, to show she doesn't check it.
     private val cows = SlayerTask(6219, 6, "cows", "Cows", minCombat = 100)
-    private val data = SlayerData(listOf(cows), listOf(SlayerMasterTask(SlayerMaster.KRYSTILIA.id, cows, 8, 2, 2)))
+    private val aya = NpcType(SlayerMaster.AYA.npc, "Aya", ops = listOf("Talk-to", null, "Assignment", "Trade", "Rewards"), internalName = "slayer_master_1_aya")
+    private val rats = SlayerTask(6220, 7, "rats", "Rats")
+    private val data = SlayerData(
+        listOf(cows, rats),
+        listOf(SlayerMasterTask(SlayerMaster.KRYSTILIA.id, cows, 8, 2, 2), SlayerMasterTask(SlayerMaster.AYA.id, rats, 8, 3, 3)),
+    )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val types = NpcTypes.of(krystilia, cow)
+        val types = NpcTypes.of(krystilia, cow, aya)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(3222 shr 6, WILDY_Z shr 6) }, random = GameRandom(5),
             // The 242 cache's Slayer varbits.
@@ -53,6 +58,7 @@ class HeadlessKrystiliaTest {
             npcTypes = types,
             npcSpawns = listOf(
                 NpcSpawn(krystilia, 3222, 3220, wander = 0, source = "test"),
+                NpcSpawn(aya, 3220, 3220, wander = 0, source = "test"),
                 NpcSpawn(cow, 3224, 3218, wander = 0, source = "test"),
                 NpcSpawn(cow, 3224, WILDY_Z, wander = 0, source = "test"),
             ),
@@ -144,6 +150,28 @@ class HeadlessKrystiliaTest {
                 assertEquals(1, client.wildernessStreak())
                 assertTrue((client.stat(SLAYER)?.xp ?: 0) > 0, "no Slayer XP for the kill")
                 assertEquals("No task; streak 0, 0 points.", client.commandReply("slayer") { it.startsWith("No task") })
+            }
+        }
+    }
+
+    @Test
+    fun `Aya warns that swapping a Krystilia task resets the Wilderness streak, and it does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("slayer task cows 2 krystilia") { it.startsWith("Task") }
+                client.commandReply("varbit ${Slayer.VARBIT_WILDERNESS_STREAK} 4") { it.startsWith("Varbit") }
+                client.await("the streak set") { if (client.wildernessStreak() == 4) Unit else null }
+
+                val npc = client.await("Aya in view") { client.npcs().firstOrNull { it.id == aya.id } }
+                client.npcOp(npc.index, SlayerMasters.ASSIGNMENT)
+                client.says("[slayer_master.still_hunting task=cows amount=2]")
+                client.says("[aya.not_mine]")
+                client.says("[aya.reset_wilderness_streak streak=0 wilderness=4]")
+                client.pick(1)
+                client.says("[slayer_master.new_task amount=3 task=rats]")
+                assertEquals(0, client.wildernessStreak())
+                assertEquals(SlayerMaster.AYA, server.world.slayer.master(server.world.onlinePlayers.single()))
             }
         }
     }
