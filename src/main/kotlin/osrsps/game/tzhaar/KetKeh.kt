@@ -89,6 +89,9 @@ object KetKeh {
     const val TZHAAR_KET_KEH = 7690
     const val BEFORE_ZUK = 11247
     const val AFTER_ZUK = 11248
+    /** How far from him his options reach, his platform between. Guessed: the RS engine's usual approach range. */
+    const val APPROACH_RANGE = 10
+
     const val TALK_TO = 1
     const val EXCHANGE = 3
     const val PET_ODDS = 100
@@ -208,6 +211,9 @@ object KetKeh {
     }
 
     fun register(world: World, inferno: Inferno) {
+        // He stands on a ledged platform by the entrance that no player can step onto or beside (the cache's
+        // morulrek_floor_edge locs block walking, not projectiles): he is talked to from below it. Guessed: the range.
+        for (id in listOf(BEFORE_ZUK, AFTER_ZUK)) world.npcInteractions.reachFromRange(id, APPROACH_RANGE)
         for (id in listOf(TZHAAR_KET_KEH, BEFORE_ZUK, AFTER_ZUK)) {
             world.handlers.onNpc(id, TALK_TO) { op -> world.dialogues.start(this, op.npc) { talk(world, inferno) } }
         }
