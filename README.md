@@ -279,7 +279,7 @@ related ones.
 | `::varp id\|name [value]` / `::varbit id\|name [value]` | Shows or sets a var; our own vars go by name (`::varp lodestones`) |
 | `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Shows or sets your Slayer task, points and streak |
 | `::randomevent [list\|now\|on\|off\|<event>]` | Your random event status; lists, brings on, turns off or sends one |
-| `::look [body a\|b \| kit part id \| colour part n \| reset]` | Shows or sets your body type, kits and colours (and shows your pronouns) |
+| `::look [body a\|b \| kit part id \| colour part n \| reset \| design]` | Shows or sets your body type, kits and colours (and shows your pronouns); `design` opens the Character Creator |
 | `::farmtick [ticks]` / `::farmclock pause\|run` / `::farmdisease patch\|off\|on` | Moves, holds or runs your farming clock; makes a patch diseased or stops disease |
 | `::nest [seeds\|ring\|red\|green\|blue]` | Drops a bird's nest as a tree would |
 

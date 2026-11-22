@@ -20,6 +20,7 @@ import osrsps.game.shop.ShopScreen
 import osrsps.game.social.Clans
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.skill.construction.Furniture
 import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.loc.LocType
@@ -510,6 +511,12 @@ internal class HeadlessGame(
             val setup = client.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
             val quantity = setup?.args?.lastOrNull() as? Int ?: return "the Make-X box's setup script hasn't come"
             client.resumePause(interfaceId, component, quantity)
+            return null
+        }
+        if (interfaceId == Furniture.MENU && component - Furniture.FIRST_SLOT_COMPONENT + 1 in 1..Furniture.MAX_SLOTS) {
+            // Stand-in for the creation menu's own click script (cs2 poh_furniture_creation_op): a slot's Build resumes
+            // the menu's contents with the slot.
+            client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, component - Furniture.FIRST_SLOT_COMPONENT + 1)
             return null
         }
         if (interfaceId == House.ADD_ROOM) {
