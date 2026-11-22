@@ -46,8 +46,9 @@ object TzHaarBankerLines : Lines("tzhaar_banker", "Transcript:TzHaar-Ket-Zuh") {
 /**
  * What the TzHaar call a player, as the Wiki's TzHaar page has it (read 2026-11-18): JalYt (a human), then the caste
  * whose two skills add up highest (Mej: Magic and Prayer; Ket: Strength and Defence; Xil: Attack and Agility; Hur:
- * Crafting and Smithing; a tie goes Mej, Ket, Xil, Hur), then Xo once the inner city is open to them (step K2.3), then
- * the player's name. Left out: Kal (TzKal-Zuk killed), which the Inferno will add.
+ * Crafting and Smithing), then Xo once the inner city is open to them (step K2.3), then
+ * the player's name. Inferred: a tie going to the first of Mej, Ket, Xil, Hur (the Wiki doesn't say; this is the
+ * order its page lists them in). Left out: Kal (TzKal-Zuk killed), which the Inferno will add.
  */
 object TzHaarNames {
     enum class Caste(val word: String, val a: Skill, val b: Skill) {
@@ -57,7 +58,7 @@ object TzHaarNames {
         HUR("Hur", Skill.CRAFTING, Skill.SMITHING),
     }
 
-    /** The first caste in Mej, Ket, Xil, Hur order whose two base levels add up highest. */
+    /** The first caste in Mej, Ket, Xil, Hur order whose two base levels add up highest (the tie order inferred). */
     fun caste(player: Player): Caste {
         var best = Caste.MEJ
         var top = -1
