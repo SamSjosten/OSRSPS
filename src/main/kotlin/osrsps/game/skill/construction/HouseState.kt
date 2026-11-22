@@ -181,7 +181,11 @@ object HouseSaves {
         }
     }
 
-    /** Throws [IllegalArgumentException] for a house no server would have saved: an unknown room, two rooms in a cell. */
+    /**
+     * Throws [IllegalArgumentException] for a house no server would have saved: an unknown room, two rooms in a cell, no
+     * rooms, a room off the ground floor, something built that this server doesn't build on that hotspot, or other than
+     * one exit portal (exploit review R43B-1). Each step that builds something new adds it to [builds].
+     */
     fun fromJson(json: JsonObject): HouseState {
         val locationKey = json["location"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("House has no location")
         val location = HouseLocation.byKey(locationKey) ?: throw IllegalArgumentException("Unknown house location $locationKey")
@@ -199,10 +203,21 @@ object HouseSaves {
                 entry["rotation"]?.jsonPrimitive?.int ?: 0, built,
             )
             require(rooms.none { it.x == room.x && it.z == room.z && it.floor == room.floor }) { "Two rooms in cell ${room.x}, ${room.z}" }
+            require(room.floor == House.GROUND) { "A room on floor ${room.floor}" }
+            for ((hotspot, loc) in built) require(builds(type, hotspot, loc)) { "$loc built on $hotspot in a ${type.key}" }
             rooms += room
         }
+        require(rooms.isNotEmpty()) { "A house with no rooms" }
         require(rooms.size <= House.MAX_ROOMS) { "A house of ${rooms.size} rooms" }
+        val portals = rooms.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } }
+        require(portals == 1) { "A house with $portals exit portals" }
         return HouseState(location, rooms)
+    }
+
+    /** Whether this server builds [loc] on [hotspot] in a [type] room: the garden's exit portal, or CON3's furniture. */
+    private fun builds(type: RoomType, hotspot: Int, loc: Int): Boolean {
+        if (loc == House.EXIT_PORTAL) return type == RoomType.GARDEN && hotspot == House.CENTREPIECE_SPACE
+        return FurnitureBuilds.HOTSPOTS[hotspot]?.room == type && loc in FurnitureBuilds.BUILT_LOCS
     }
 
     private fun JsonObject.int(key: String): Int = this[key]?.jsonPrimitive?.int ?: throw IllegalArgumentException("House room has no $key")

@@ -86,6 +86,8 @@ class AgilityDataTest {
                 "shortcut_lumbridge_swamp_desert_stone" to (66 to 0),
                 "shortcut_swamp_caves_stone_north" to (1 to 30),
                 "shortcut_swamp_caves_stone_south" to (1 to 30),
+                "shortcut_edgeville_dungeon_pipe" to (51 to 100),
+                "shortcut_edgeville_dungeon_south_pipe" to (60 to 100),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
