@@ -27,12 +27,13 @@ import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
- * Construction step CON1 through the headless client: the estate agent sells the starter house, the Rimmington portal
- * takes its owner in with building mode off (walls, doors, the exit portal, no hotspots) or on (the hotspots, the exit
- * portal on its own), the exit portal and a logout put them back outside, and the house is in the save. The house's
- * room templates here are the cache's own zones (garden 232,881, parlour 232,887, yard 233,880), with the hotspots the
- * 242 cache places in them. The rl-client script test-runner/examples/construction-house.json does the same on the
- * real map.
+ * Construction steps CON1 and CON2 through the headless client: the estate agent sells the starter house, the
+ * Rimmington portal takes its owner in with building mode off (walls, doors, the exit portal, no hotspots) or on (the
+ * hotspots, the exit portal on its own), the exit portal and a logout put them back outside, and the house is in the
+ * save; in building mode a door hotspot adds a room, turned to fit, and removes it. The house's room templates here are
+ * the cache's own zones (garden 232,881, parlour 232,887, kitchen 234,887, yard 233,880), with the door hotspots the 242
+ * cache places in them. The rl-client scripts test-runner/examples/construction-house.json and construction-rooms.json
+ * do the same on the real map.
  */
 class HeadlessHouseTest {
     private val agent = NpcType(EstateAgent.ID, "Estate agent", ops = listOf("Talk-to", null, "Relocate", "Redecorate", null), internalName = "poh_estate_agent")
@@ -49,6 +50,7 @@ class HeadlessHouseTest {
         hotspot(House.DOOR_HOTSPOT_LEFT, "Door hotspot"),
         hotspot(House.DOOR_HOTSPOT_RIGHT, "Door hotspot"),
         hotspot(CHAIR_SPACE, "Chair space"),
+        LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
@@ -69,6 +71,7 @@ class HeadlessHouseTest {
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
+        val kitchen = RoomType.KITCHEN
         World(
             crcs,
             CollisionMap().apply {
@@ -86,6 +89,9 @@ class HeadlessHouseTest {
                 doors(garden.templateX, garden.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
                 add(ZoneLoc(CHAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 2, parlour.templateZ + 4, 0))
                 doors(parlour.templateX, parlour.templateZ, listOf(0, 2, 3)).forEach(::add)
+                // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
+                doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
+                add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
             },
             cycleMillis = millis,
         )
@@ -173,14 +179,21 @@ class HeadlessHouseTest {
                 // Building mode off: the exit portal on the centrepiece, the garden's door hotspots and the chair space
                 // gone, the parlour's south door onto the garden a door, its west and east sides walls.
                 val parlourZ = gardenZ + 8
-                client.await("the house's own locs") { if (client.shown(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3)) Unit else null }
-                assertTrue(client.shown(-1, gardenX + 3, gardenZ + 7), "the garden's north door hotspot goes")
-                assertTrue(client.shown(-1, gardenX + 2, parlourZ + 4), "the chair space goes")
+                // Each cell's locs come in their own zone update, so wait for all of them, not just the garden's (a CI
+                // run once saw the parlour's arrive after the portal's).
                 // Its right leaf is on the left hotspot's tile: the double door's leaves go clockwise along the wall.
-                assertTrue(client.shown(House.DOOR_RIGHT, gardenX + 3, parlourZ), "the parlour's south door")
-                assertTrue(client.shown(House.DOOR_LEFT, gardenX + 4, parlourZ), "the parlour's south door")
-                assertTrue(client.shown(House.WALL, gardenX, parlourZ + 4), "the parlour's west wall")
-                assertTrue(client.shown(House.WALL, gardenX + 7, parlourZ + 3), "the parlour's east wall")
+                val expected = listOf(
+                    Triple(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3) to "the exit portal",
+                    Triple(-1, gardenX + 3, gardenZ + 7) to "the garden's north door hotspot goes",
+                    Triple(-1, gardenX + 2, parlourZ + 4) to "the chair space goes",
+                    Triple(House.DOOR_RIGHT, gardenX + 3, parlourZ) to "the parlour's south door",
+                    Triple(House.DOOR_LEFT, gardenX + 4, parlourZ) to "the parlour's south door",
+                    Triple(House.WALL, gardenX, parlourZ + 4) to "the parlour's west wall",
+                    Triple(House.WALL, gardenX + 7, parlourZ + 3) to "the parlour's east wall",
+                )
+                client.await("the house's own locs: ${expected.map { it.second }}") {
+                    if (expected.all { (loc, _) -> client.shown(loc.first, loc.second, loc.third) }) Unit else null
+                }
 
                 // The parlour's door opens as a double door, the house's own.
                 client.locOp(House.DOOR_LEFT, gardenX + 4, parlourZ, 1)
@@ -247,8 +260,95 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `building mode adds a room through a door hotspot, turned to fit, and removes it again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                // The parlour, north of the garden, and its east door hotspot; the kitchen goes in the cell past it.
+                val px = instance.baseX + (House.STARTER_X shl 3)
+                val pz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val kx = px + 8
+                val kitchenZone = Triple(kx shr 3, pz shr 3, House.GROUND)
+                val player = server.world.playerNamed("carol")!!
+
+                // Level 1: the menu opens, but the kitchen wants level 5.
+                client.locOp(House.DOOR_HOTSPOT_LEFT, px + 7, pz + 3, House.BUILD)
+                client.await("the add-room menu") { if (House.ADD_ROOM in client.openInterfaces()) Unit else null }
+                client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, RoomType.KITCHEN.id)
+                client.await("the level refusal") { client.messages().firstOrNull { it.text == "[construction.room_level level=5]" } }
+                assertEquals(2, player.house!!.rooms.size)
+
+                // Level 5 with 5,000 coins: the kitchen's ghost, first turned as it is, its west door on the parlour.
+                client.command("setlevel construction 5")
+                client.command("item ${EstateAgent.COINS} ${RoomType.KITCHEN.cost}")
+                client.await("the coins") { if (client.count(EstateAgent.COINS) == RoomType.KITCHEN.cost) Unit else null }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, px + 7, pz + 3, House.BUILD)
+                client.await("the add-room menu") { if (House.ADD_ROOM in client.openInterfaces()) Unit else null }
+                client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, RoomType.KITCHEN.id)
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+                client.await("the ghost") { client.regionZones()?.get(kitchenZone)?.takeIf { it == CopiedZone(234, 887, 0, 0) } }
+
+                // Turned clockwise: its doors west and north still have one on the parlour. The larder space turns too,
+                // from 1,6 to 6,5, a quarter round.
+                client.chooseOption(1)
+                client.await("the turned ghost") { client.regionZones()?.get(kitchenZone)?.takeIf { it == CopiedZone(234, 887, 0, 1) } }
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+                val larder = server.world.locs.at(kx + 6, pz + 5, House.GROUND).firstOrNull { it.id == LARDER_SPACE }
+                assertEquals(1, assertNotNull(larder, "the larder space at 6,5").angle)
+                // A third turn would put its doors east and north: none on the parlour, so clockwise again comes back.
+                client.chooseOption(1)
+                client.await("back as it is") { client.regionZones()?.get(kitchenZone)?.takeIf { it == CopiedZone(234, 887, 0, 0) } }
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+                client.chooseOption(2)
+                client.await("turned again") { client.regionZones()?.get(kitchenZone)?.takeIf { it == CopiedZone(234, 887, 0, 1) } }
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+
+                // Built: the coins go, and the house has a kitchen turned once.
+                client.chooseOption(3)
+                client.awaitClosed()
+                client.await("the coins gone") { if (client.count(EstateAgent.COINS) == 0) Unit else null }
+                val kitchen = assertNotNull(player.house!!.room(3, 3))
+                assertEquals(RoomType.KITCHEN to 1, kitchen.type to kitchen.rotation)
+
+                // Out of building mode it is drawn turned, and the parlour's east doorway is a door onto it.
+                client.locOp(House.EXIT_PORTAL, px + 3, pz - 8 + 3, House.EXIT_ENTER)
+                client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val home = client.goIn(House.HOME)
+                val again = assertNotNull(server.world.instances.at(home.x, home.z))
+                val hx = again.baseX + (House.STARTER_X shl 3)
+                val hz = again.baseZ + ((House.STARTER_Z + 1) shl 3)
+                client.await("the kitchen drawn") { client.regionZones()?.get(Triple((hx shr 3) + 1, hz shr 3, House.GROUND))?.takeIf { it == CopiedZone(234, 887, 0, 1) } }
+                client.await("the parlour's east door") { if (client.shown(House.DOOR_RIGHT, hx + 7, hz + 3)) Unit else null }
+
+                // In building mode again, Build on that doorway offers to remove the kitchen; yes puts the yard back.
+                client.locOp(House.EXIT_PORTAL, hx + 3, hz - 8 + 3, House.EXIT_ENTER)
+                client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val back = client.goIn(House.BUILD_MODE)
+                val third = assertNotNull(server.world.instances.at(back.x, back.z))
+                val rx = third.baseX + (House.STARTER_X shl 3)
+                val rz = third.baseZ + ((House.STARTER_Z + 1) shl 3)
+                client.locOp(House.DOOR_HOTSPOT_LEFT, rx + 7, rz + 3, House.BUILD)
+                client.menu("construction.remove_yes", "construction.remove_no")
+                client.chooseOption(1)
+                client.await("the yard back") { client.regionZones()?.get(Triple((rx shr 3) + 1, rz shr 3, House.GROUND))?.takeIf { it == CopiedZone(233, 880, 0, 0) } }
+                assertNull(player.house!!.room(3, 3))
+                // The garden with the exit portal can't go.
+                client.locOp(House.DOOR_HOTSPOT_LEFT, rx + 3, rz, House.BUILD)
+                client.await("the refusal") { client.messages().firstOrNull { it.text == "[construction.remove_portal]" } }
+                assertEquals(2, player.house!!.rooms.size)
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
+
+        /** The kitchen's `poh_larder` space; its size here is the test's own. */
+        const val LARDER_SPACE = 15403
         const val PORTAL_X = 2951
         const val PORTAL_Z = 3222
         val OUTSIDE = House.RIMMINGTON_OUTSIDE

@@ -605,7 +605,7 @@ class NpcSpawnFileTest {
             2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
             3254 to "guard1", 4808 to "hundred_dave_mum", 1325 to "canoeing_hari", 13644 to "ikov_lucien2", 4806 to "hundred_evil_dave",
             4809 to "hundred_dave_hellrat", 6793 to "hundred_dave_bigrat",
-            2579 to "monk", 2577 to "abbot_langley", 2578 to "brother_jered", 1397 to "brother_althric",
+            2579 to "monk", 2577 to "abbot_langley", 2578 to "brother_jered", 1397 to "brother_althric", 7663 to "slayer_master_7",
         ) + (4167..4176).associateWith { "surok_outlaw${it - 4166}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
@@ -644,6 +644,8 @@ class NpcSpawnFileTest {
         assertEquals(listOf(0, 0, 0, 0, 1, 1), monastery.filter { it.type.id == 2579 }.map { it.level }.sorted())
         assertEquals(1, monastery.single { it.type.id == 2578 }.level)
         assertTrue(monastery.all { it.x in 3040..3062 && it.z in 3478..3510 })
+        // Krystilia in the jail cell north-east of the bank.
+        assertEquals(listOf(3109 to 3516), spawns.filter { it.type.id == 7663 }.map { it.x to it.z })
         // The rest south of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
         assertTrue((spawns - basement.toSet() - monastery.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }

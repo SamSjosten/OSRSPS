@@ -234,6 +234,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "hunter",
             "inferno",
             "inferno-wave66",
+            "inferno-zuk",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",

@@ -68,6 +68,7 @@ class NpcCombatTest {
             "npc_rat_boss_attack_melee_01" to 10692, "npc_rat_boss_death_01" to 10705,
             "cow_boss_attack" to 13783, "cow_boss_defend" to 13787, "cow_boss_death" to 13784,
             "npc_venenatis_melee_01" to 9991, "npc_venenatis_death_01" to 9992, "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
+            "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929, "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -122,6 +123,7 @@ class NpcCombatTest {
             "jalimkot_attack" to 7597, "jalimkot_defend" to 7598, "jalimkot_death" to 7599, "jalxil_attack_ranged" to 7605, "jalxil_defend" to 7607, "jalxil_death" to 7606,
             "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
             "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
+            "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
         ),
     )
 
@@ -1030,6 +1032,16 @@ class NpcCombatTest {
         assertNotNull(def.aggression)
         assertEquals(1_000, def.xpBonusTenths)
         assertEquals(ElementalWeakness(Element.EARTH, 25), def.weakness)
+    }
+
+    @Test
+    fun `Scurrius's giant rats slash for 4, and a quarter of it comes through Protect from Melee`() {
+        val ratTypes = NpcTypes.of(NpcType(7223, "Giant rat", internalName = "rat_boss_giant_rat", stats = NpcStats(attack = 100, strength = 25, defence = 10, hitpoints = 15)))
+        val def = NpcCombat.load(ratTypes, seqs)[ratTypes.find("rat_boss_giant_rat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 4, 25), listOf(def.attackSpeed, def.maxHit, def.prayerPasses))
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), def.anims)
+        assertNotNull(def.aggression)
     }
 
     @Test

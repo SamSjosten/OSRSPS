@@ -69,7 +69,13 @@ class SpiderQueen(val config: Config) {
 
     fun def(world: World): EncounterDef? {
         val type = world.npcTypes[config.boss] ?: return null
-        return EncounterDef(config.name, type, listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))), scriptedAttacks = true)
+        return EncounterDef(
+            config.name, type,
+            // Unleashed as the other Wilderness bosses are: no leash to her spawn when she moves, and no dropping a
+            // target far from it (exploit review round 46, R46B-1 and R46B-2).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
+            scriptedAttacks = true,
+        )
     }
 
     fun spiderlings(npc: Npc): List<Npc> = fights[npc]?.spiderlings.orEmpty()
@@ -128,14 +134,20 @@ class SpiderQueen(val config: Config) {
 
     private fun EncounterContext.callSpiderlings(fight: Fight, target: Player) {
         val type = world.npcTypes[config.spiderling] ?: return
-        val size = boss.type.size
-        // Never east of her (the Wiki's strategy page, Codex review on #832): her west corners, then the middle of her west side.
-        val spots = listOf(Tile(boss.x - 1, boss.z - 1), Tile(boss.x - 1, boss.z + size), Tile(boss.x - 1, boss.z + size / 2))
+        // Never east of her (the Wiki's strategy page, Codex review on #832): her west side, then her south and north sides'
+        // western halves, each a tile one step from under her reaches (exploit review round 47, R47B-2).
+        val spots = world.npcs.openBeside(boss).filter { it.x < boss.x + boss.type.size / 2 }.sortedBy { it.x }
         var called = 0
         for (at in spots) {
             // No more than ten alive at once, the Wiki's cap (Codex review on #832).
             if (called >= config.spiderlings || fight.spiderlings.size >= MAX_SPIDERLINGS) break
+            if (!config.inArena(at.x, at.z)) continue
             val spiderling = spawnAdd(type, at.x, at.z) ?: continue
+            // Only on open floor in her lair, never in a wall (exploit review round 46, R46B-3).
+            if (!world.npcs.canStand(spiderling, at.x, at.z)) {
+                world.removeNpc(spiderling)
+                continue
+            }
             fight.spiderlings += spiderling
             world.meleeCombat.aggress(spiderling, target, world.tick)
             // Its swings are counted from now: melee runs before the fight's tick, so its first one comes before

@@ -123,6 +123,7 @@ class HeadlessSpindelTest {
                 val npc = server.world.npcs.all.first { it.type.id == Spindel.BOSS }
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Spindel") }
                 val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                assertTrue(npc.unleashed, "unleashed, so no leash or far-off player holds her (R46B-1, R46B-2)")
                 client.await("her spiderlings") { fight.lines.firstOrNull { it.endsWith("calls 2 spiderlings") } }
                 assertEquals(2, Spindel.FIGHT.spiderlings(npc).size)
                 val bo = server.world.playerNamed("bo")!!
@@ -145,6 +146,7 @@ class HeadlessSpindelTest {
             server.login("di").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1") // auto retaliate off: a spiderling's swing mustn't walk them off the tile
                 client.tele(Spindel.SPAWN.x + 1, Spindel.SPAWN.z + 8, Spindel.CHASM_LEVEL)
                 val npc = server.world.npcs.all.first { it.type.id == Spindel.BOSS }
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Spindel") }

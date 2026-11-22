@@ -1,0 +1,462 @@
+{
+ "name": "Post-quest step 2: Shield of Arrav as a Phoenix Gang member: Straven's spare key and talk, the hideout's door, chest and ladder, the weapon store's door, the Weaponsmaster and his crossbows, Katrine and the Black Arm door",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "empty inventory and bank, so Straven hands over a key; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3245 9780 0",
+   "expectMessage": "Teleported to 3245, 9780, 0",
+   "comment": "the Phoenix Gang's hideout, beside Straven"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Straven",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.lost_key"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.lost_key_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.hands_key"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Weapon store key",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Straven",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[straven.treasures]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.treasures_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[straven.thieving]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.thieving"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.thieving_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[straven.go]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[straven.go"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3247 9780 0",
+   "expectMessage": "Teleported to 3247, 9780, 0",
+   "comment": "north of the hideout's door"
+  },
+  {
+   "step": "locOption",
+   "locId": 2397,
+   "option": "Open",
+   "x": 3247,
+   "y": 9779,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3247,
+   "y": 9779,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "through to the chest's side"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the door shuts again"
+  },
+  {
+   "step": "locOption",
+   "locId": 2397,
+   "option": "Open",
+   "x": 3247,
+   "y": 9779,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3247,
+   "y": 9780,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "and back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3238 9762 0",
+   "expectMessage": "Teleported to 3238, 9762, 0",
+   "comment": "beside the chest"
+  },
+  {
+   "step": "locOption",
+   "locId": 2403,
+   "option": "Open",
+   "x": 3238,
+   "y": 9761,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[gang_house.chest_nothing]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3244 9782 0",
+   "expectMessage": "Teleported to 3244, 9782, 0",
+   "comment": "south of the hideout's ladder"
+  },
+  {
+   "step": "locOption",
+   "locId": 2405,
+   "option": "Climb-up",
+   "x": 3244,
+   "y": 9783,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3244,
+   "y": 3382,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "beside the street's ladder, on the side the player stood"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "no key now"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3251 3386 0",
+   "expectMessage": "Teleported to 3251, 3386, 0",
+   "comment": "in the alley, at the weapon store's door"
+  },
+  {
+   "step": "locOption",
+   "locId": 2398,
+   "option": "Open",
+   "x": 3251,
+   "y": 3386,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[gang_house.securely_locked]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::item 759 1",
+   "comment": "the weapon store key"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Weapon store key",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 2398,
+   "option": "Open",
+   "x": 3251,
+   "y": 3386,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3251,
+   "y": 3385,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "inside the store"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 2398,
+   "option": "Open",
+   "x": 3251,
+   "y": 3386,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3251,
+   "y": 3386,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "out again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3246 3385 1",
+   "expectMessage": "Teleported to 3246, 3385, 1",
+   "comment": "upstairs in the store, by the Weaponsmaster"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Weaponsmaster",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[weaponsmaster.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[weaponsmaster.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[weaponsmaster.weapons]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[weaponsmaster.weapons"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[weaponsmaster.weapons_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "takeItem",
+   "item": "Phoenix crossbow",
+   "x": 3243,
+   "y": 3383,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[weaponsmaster.stravens"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Phoenix crossbow",
+   "count": 0,
+   "timeoutMs": 3000,
+   "comment": "Straven's, left on the floor"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3185 3386 0",
+   "expectMessage": "Teleported to 3185, 3386, 0",
+   "comment": "Katrine's front room in the Black Arm Gang's house"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Katrine",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[katrine.phoenix_scum"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3185 3387 0",
+   "expectMessage": "Teleported to 3185, 3387, 0",
+   "comment": "south of the inner door"
+  },
+  {
+   "step": "locOption",
+   "locId": 2399,
+   "option": "Open",
+   "x": 3185,
+   "y": 3388,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[gang_house.securely_locked]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3185,
+   "y": 3387,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "still outside"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

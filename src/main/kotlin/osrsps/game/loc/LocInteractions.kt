@@ -35,6 +35,8 @@ class LocInteraction internal constructor(
     val slot: Int = -1,
     /** Set by [LocInteractions.repeat]: the handler asked to run again, the player didn't click. */
     val repeat: Boolean = false,
+    /** The option's sub-option (a fairy ring's Favourites), -1 for none. */
+    val sub: Int = -1,
 ) : Interaction {
     val usesObj: Boolean get() = obj >= 0
 
@@ -73,8 +75,11 @@ class LocInteractions(
     /** Loc types whose handlers are written for their copies in an instance: the raid's doors and transporters. */
     private val forInstances: (Int) -> Boolean = { false },
 ) {
-    /** The player clicked option [option] (1 to 5) on loc [id] at [x], [z]. [invertRun] is the ctrl key. */
-    fun click(player: Player, id: Int, x: Int, z: Int, option: Int, invertRun: Boolean) {
+    /**
+     * The player clicked option [option] (1 to 5) on loc [id] at [x], [z], sub-option [sub] of it (-1 for none).
+     * [invertRun] is the ctrl key.
+     */
+    fun click(player: Player, id: Int, x: Int, z: Int, option: Int, invertRun: Boolean, sub: Int = -1) {
         // The client only sends what it shows, so a miss is a loc that changed before the click arrived, or a forged packet.
         val loc = locs.find(id, x, z, player.level)
         if (loc == null) {
@@ -87,7 +92,7 @@ class LocInteractions(
             logger.debug { "${player.username} clicked option $option of loc $id, which has no such option" }
             return
         }
-        start(player, LocInteraction(loc, option, this), invertRun)
+        start(player, LocInteraction(loc, option, this, sub = sub), invertRun)
     }
 
     /** The player used the item in inventory slot [slot], which the client showed as [obj], on loc [id] at [x], [z]. */
@@ -186,7 +191,7 @@ class LocInteractions(
             // Guessed: an item that left its slot on the way (dropped, or moved) is used on nothing, with no message.
             if (!holds(player, interaction.slot, interaction.obj)) return true
             val op = Op.objOnLoc(loc.id, interaction.obj, interaction.slot, loc)
-            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
+            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op, player) != null) {
                 scripts.trigger(player, op)
             } else {
                 logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
@@ -194,8 +199,8 @@ class LocInteractions(
             }
             return true
         }
-        val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc, repeat = interaction.repeat)
-        if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
+        val op = Op(OpTarget.LOC, loc.id, interaction.option, interaction.sub, loc = loc, repeat = interaction.repeat)
+        if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op, player) != null) {
             scripts.trigger(player, op)
         } else if (doors.toggle(loc, interaction.option, player.saveKey) == null && gates?.toggle(loc, interaction.option, player.saveKey) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }

@@ -71,6 +71,9 @@ class Locs(
     /** Whether any layer of a tile has a timed change still to run, such as a picked crop waiting to grow back. */
     fun reverting(x: Int, z: Int, level: Int): Boolean = (0 until LAYERS).any { slot(x, z, level, it) in reverts }
 
+    /** The tick [loc]'s tile next changes on its own (its timed change's first step), or null if nothing is timed there. */
+    fun revertDue(loc: ZoneLoc): Long? = reverts[slot(loc.x, loc.z, loc.level, loc.layer)]?.dueTick
+
     /** Whether [loc] is still in the world, exactly as given. */
     fun exists(loc: ZoneLoc): Boolean = get(loc.x, loc.z, loc.level, loc.layer) == loc
 

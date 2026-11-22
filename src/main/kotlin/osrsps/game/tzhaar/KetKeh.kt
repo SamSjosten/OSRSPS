@@ -2,6 +2,7 @@ package osrsps.game.tzhaar
 
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.content.message
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
@@ -53,6 +54,14 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
     val IMPRESSIVE = line("impressive", "TzKal-Zuk defeated: very impressive for a JalYt")
     val TOKEN = line("token", "TzKal-Zuk defeated: please accept this cape")
     val REWARD = line("reward", "TzKal-Zuk defeated: the message box with the infernal cape and TokKul", "tokkul")
+
+    val HAVE_PET = line("have_pet", "Exchange, owning Jal-Nib-Rek: sorry, you already have it")
+    val EXCHANGE_OFFER = line("exchange_offer", "Exchange with an infernal cape: his offer of a chance at Jal-Nib-Rek for it (no transcript yet)")
+    val EXCHANGE_TITLE = line("exchange_title", "Exchange: the menu's title, give up the infernal cape? (no transcript yet)")
+    val LUCKY = line("lucky", "Exchange won: his line giving Jal-Nib-Rek")
+    val UNLUCKY = line("unlucky", "Exchange lost: the cape gone, no pet (no transcript yet)")
+    val IN_SCENARIO = line("in_scenario", "Exchange or the sacrifice in a test setup (::scenario, the Leagues Tutor's kits): ours, as a kit's infernal cape would roll a real pet; ::reset first")
+    val NO_INFERNAL = line("no_infernal", "Exchange with no infernal cape in the backpack (no transcript yet)")
 }
 
 /**
@@ -68,15 +77,48 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
  *   With none: [KetKehLines.NO_CAPE].
  * - TzKal-Zuk's death: his thanks and the infernal cape and TokKul message box ([victory]).
  *
- * Not built yet: Exchange (the infernal cape for a chance at Jal-Nib-Rek, IN4), his lines as wave 69 starts (IN4), the
- * TzKal slayer helmet talk. GUESSED: [KetKehLines.HELP] after the cape is given (the transcript has it only before)
- * says his [KetKehLines.KILL_SOME] line; the caste ([MejJal.caste]); every chathead.
+ * - Exchange (`inferno_master_2op`'s op 3): an infernal cape from the backpack for a 1 in [PET_ODDS] chance at
+ *   Jal-Nib-Rek (the Wiki's Infernal cape page: no exchange once the player owns the pet). The
+ *   transcript has only his line to a player who owns the pet and the winning line; the offer, the menu, the losing line
+ *   and the line with no cape are GUESSED in shape, their keys left without words.
+ *
+ * Not built yet: the TzKal slayer helmet talk. GUESSED: [KetKehLines.HELP] after the cape is given (the transcript has it only
+ * before) says his [KetKehLines.KILL_SOME] line; the caste ([MejJal.caste]); every chathead.
  */
 object KetKeh {
     const val TZHAAR_KET_KEH = 7690
     const val BEFORE_ZUK = 11247
     const val AFTER_ZUK = 11248
+    /** How far from him his options reach, his platform between. Guessed: the RS engine's usual approach range. */
+    const val APPROACH_RANGE = 10
+
     const val TALK_TO = 1
+    const val EXCHANGE = 3
+    const val PET_ODDS = 100
+
+    fun ownsPet(player: Player): Boolean = InfernoZuk.PET.let {
+        player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0
+    }
+
+    /** Exchange: an infernal cape for a chance at Jal-Nib-Rek, unless the player has the pet. */
+    internal suspend fun Dialogue.exchange(world: World) = with(KetKehLines) {
+        // A test setup's kit can hold an infernal cape (tfa-melee): its roll would give a real pet (exploit review R45B-4).
+        if (player.scenario != null) return@with world.message(player, IN_SCENARIO)
+        if (ownsPet(player)) return@with chatNpc(ChatAnim.NEUTRAL, HAVE_PET)
+        if (player.inventory.count(Inferno.INFERNAL_CAPE) == 0L) return@with chatNpc(ChatAnim.NEUTRAL, NO_INFERNAL)
+        chatNpc(ChatAnim.NEUTRAL, EXCHANGE_OFFER)
+        if (choice(YES, NO, title = text(EXCHANGE_TITLE)) != 1) return@with
+        // The pet may have come some other way while the menu was up, or the cape gone: no toss then.
+        if (player.scenario != null || ownsPet(player) || !take(player, Inferno.INFERNAL_CAPE)) return@with
+        if (world.random.chance(1, PET_ODDS)) {
+            world.fightCaves.reward(player, InfernoZuk.PET, 1)
+            world.collectionLog.add(player, InfernoZuk.PET, 1)
+            world.message(player, FightCaveLines.PET)
+            chatNpc(ChatAnim.HAPPY, LUCKY)
+        } else {
+            chatNpc(ChatAnim.NEUTRAL, UNLUCKY)
+        }
+    }
 
     private fun capeIn(player: Player) = player.inventory.count(FightCaves.FIRE_CAPE) > 0
 
@@ -123,12 +165,14 @@ object KetKeh {
     /** The fire cape asked for: the sacrifice with one in the backpack, else why not. */
     private suspend fun Dialogue.offer(world: World, inferno: Inferno, caste: String, name: String) = with(KetKehLines) {
         if (!capeIn(player)) return@with chatPlayer(ChatAnim.NEUTRAL, if (capeWorn(player)) TAKE_OFF else NO_CAPE)
+        // A test setup's sacrifice would open the Inferno for good after ::reset (exploit review R45B-4).
+        if (player.scenario != null) return@with world.message(player, IN_SCENARIO)
         if (choice(YES, NO, title = text(SACRIFICE_TITLE)) != 1) return@with
         chatPlayer(ChatAnim.NEUTRAL, SACRIFICE)
         chatNpc(ChatAnim.NEUTRAL, HAND_OVER)
         if (choice(NO, YES, title = text(REALLY_TITLE)) != 2) return@with chatPlayer(ChatAnim.NEUTRAL, KEEP_IT)
         // The cape may have gone while the menus were up.
-        if (!takeCape(player)) return@with
+        if (player.scenario != null || !takeCape(player)) return@with
         inferno.sacrifice(player)
         mesbox(HANDED)
         chatNpc(ChatAnim.NEUTRAL, ENTER_NOW, "caste" to caste, "name" to name)
@@ -142,9 +186,11 @@ object KetKeh {
         chatNpc(ChatAnim.NEUTRAL, THANK_YOU, "caste" to caste, "name" to name)
     }
 
-    private fun takeCape(player: Player): Boolean {
+    private fun takeCape(player: Player): Boolean = take(player, FightCaves.FIRE_CAPE)
+
+    private fun take(player: Player, id: Int): Boolean {
         for (slot in 0 until player.inventory.capacity) {
-            if (player.inventory[slot]?.id == FightCaves.FIRE_CAPE) {
+            if (player.inventory[slot]?.id == id) {
                 player.inventory.remove(slot, 1)
                 return true
             }
@@ -165,8 +211,12 @@ object KetKeh {
     }
 
     fun register(world: World, inferno: Inferno) {
+        // He stands on a ledged platform by the entrance that no player can step onto or beside (the cache's
+        // morulrek_floor_edge locs block walking, not projectiles): he is talked to from below it. Guessed: the range.
+        for (id in listOf(BEFORE_ZUK, AFTER_ZUK)) world.npcInteractions.reachFromRange(id, APPROACH_RANGE)
         for (id in listOf(TZHAAR_KET_KEH, BEFORE_ZUK, AFTER_ZUK)) {
             world.handlers.onNpc(id, TALK_TO) { op -> world.dialogues.start(this, op.npc) { talk(world, inferno) } }
         }
+        world.handlers.onNpc(AFTER_ZUK, EXCHANGE) { op -> world.dialogues.start(this, op.npc) { exchange(world) } }
     }
 }

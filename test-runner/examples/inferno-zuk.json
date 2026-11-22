@@ -1,0 +1,25 @@
+{
+  "name": "Inferno step IN4: wave 69's TzKal-Zuk with the Ancestral Glyph, hit down past 600, 480 and 240 with ::hit to bring the Jad and the Jal-MejJaks, then killed (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::inferno 69", "expectMessage": "Inferno: wave 69"},
+    {"step": "assertMessage", "contains": "[inferno.wave wave=69]", "timeoutMs": 15000},
+    {"step": "assertDialogue", "contains": "[inferno_zuk.shaking]", "timeoutMs": 15000},
+    {"step": "command", "text": "::inferno status", "expectMessage": "TzKal-Zuk"},
+    {"step": "command", "text": "::hit 601 TzKal-Zuk", "expectMessage": "Hit TzKal-Zuk #"},
+    {"step": "command", "text": "::hit 120 TzKal-Zuk", "expectMessage": "Hit TzKal-Zuk #"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::inferno status", "expectMessage": "JalTok-Jad"},
+    {"step": "command", "text": "::hit 240 TzKal-Zuk", "expectMessage": "Hit TzKal-Zuk #"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::inferno status", "expectMessage": "Jal-MejJak"},
+    {"step": "command", "text": "::kill TzKal-Zuk", "expectMessage": "Killed TzKal-Zuk #"},
+    {"step": "assertDialogue", "contains": "[ket_keh.impressive]", "speaker": "TzHaar-Ket-Keh", "timeoutMs": 15000},
+    {"step": "assertInventory", "itemId": 21295, "count": 1},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
