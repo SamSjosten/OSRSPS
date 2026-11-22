@@ -1,5 +1,6 @@
 package osrsps.game.content.randomevents
 
+import net.rsprot.protocol.game.outgoing.camera.CamReset
 import osrsps.game.InvObj
 import osrsps.game.Player
 import osrsps.game.World
@@ -66,12 +67,16 @@ class EventAreas(private val world: World) {
 
     /**
      * [player] is being moved to [x], [z]: out of their stay, by any way at all (the way back, a teleport spell or tablet,
-     * a death, which takes them first: [takePlaceItems]), the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
+     * a death, which takes them first: [takePlaceItems]), and the camera and any cutscene window are put back, the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
      */
     fun moving(player: Player, x: Int, z: Int) {
         val away = awayOf(player) ?: return
         if (awayAt(x, z) === away) return
         takePlaceItems(player)
+        // A cutscene cut short (a death drops its script, end and all) must not follow them out: the camera comes back
+        // and its window shuts.
+        player.session.queue(CamReset)
+        world.interfaces.closeFloater(player)
     }
 
     /** Takes the place's own items ([RandomEvent.placeItems]) off [player] if they are on a stay; also run by a death. */

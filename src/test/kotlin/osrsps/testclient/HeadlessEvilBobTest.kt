@@ -335,6 +335,30 @@ class HeadlessEvilBobTest {
     }
 
     @Test
+    fun `dying in the cutscene puts the camera back and shuts its window`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.ready()
+                client.ontoIsland("frank")
+                val servant = client.await("the servant") { client.npcs().firstOrNull { it.id == EvilBob.SERVANT } }
+                client.npcOp(servant.index, RandomEvents.TALK_TO)
+                client.chat("[evil_bob_servant.kidnapped]")
+                client.chat("[evil_bob_servant.cant_help]")
+                client.chat("[evil_bob_servant.listen]")
+                client.chat("[evil_bob_servant.fish_he_likes]")
+                client.chat("[evil_bob_servant.over_there]")
+                client.await("the cutscene") { if (EvilBob.CUTSCENE_INTERFACE in client.openInterfaces()) Unit else null }
+                val resetsBefore = client.packets().count { it.prot.name == "CAM_RESET" }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.await("the respawn", timeoutMillis = 10_000) { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.await("the camera back") { client.packets().count { it.prot.name == "CAM_RESET" }.takeIf { it > resetsBefore } }
+                client.awaitTicks(EvilBob.CUTSCENE_TICKS + 2)
+                assertTrue(EvilBob.CUTSCENE_INTERFACE !in client.openInterfaces(), "the cutscene window shut")
+            }
+        }
+    }
+
+    @Test
     fun `logging out on the island leaves the net and fish behind`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
