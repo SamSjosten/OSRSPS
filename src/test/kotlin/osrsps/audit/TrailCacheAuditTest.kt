@@ -12,6 +12,8 @@ import osrsps.cache.TrailLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.game.trail.StashUnits
 import osrsps.game.trail.StepType
+import osrsps.game.trail.TrailBoxes
+import osrsps.game.trail.TrailChallenge
 import osrsps.game.trail.TrailRewards
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TreasureTrails
@@ -42,7 +44,7 @@ class TrailCacheAuditTest {
 
         val built = TrailTier.entries.associateWith { tier -> data.tier(tier).filter { step -> TreasureTrails.built(step) }.map { it.key }.sorted() }
         assertEquals(mapOf(
-            TrailTier.BEGINNER to 18, TrailTier.EASY to 51, TrailTier.MEDIUM to 21, TrailTier.HARD to 20, TrailTier.ELITE to 3, TrailTier.MASTER to 1,
+            TrailTier.BEGINNER to 18, TrailTier.EASY to 51, TrailTier.MEDIUM to 21, TrailTier.HARD to 21, TrailTier.ELITE to 3, TrailTier.MASTER to 1,
         ), built.mapValues { it.value.size }, built.toString())
 
         val problems = ArrayList<String>()
@@ -57,7 +59,17 @@ class TrailCacheAuditTest {
             for (item in step.items) if (objs[item]?.iop(1) != "Read") problems += "$step: item $item isn't read"
             if (step.type == StepType.EMOTE && step.emotes.any { it !in osrsps.game.content.Emotes.EMOTES }) problems += "$step: emotes ${step.emotes}"
             for (outfit in step.outfits) for (item in outfit.items.values.flatten()) if (objs[item] == null) problems += "$step: outfit item $item"
+            // A box step's puzzle box is the item after its clue (trail_hard_anagram_exp9 and _puzzlebox), and opens.
+            if (step.challenge is TrailChallenge.Box && step.items.isNotEmpty()) {
+                val box = step.items.first() + 1
+                if (box !in TrailBoxes.PUZZLES || objs[box]?.name?.startsWith(TrailBoxes.PUZZLE_BOX) != true) problems += "$step: no puzzle box $box"
+            }
         }
+        for ((box, first) in TrailBoxes.PUZZLES) {
+            if (objs[box]?.iop(1) != "Open") problems += "puzzle box $box isn't opened"
+            if ((first until first + 24).any { objs[it] == null }) problems += "puzzle box $box: pieces from $first"
+        }
+        if (objs[TrailBoxes.LIGHT_BOX]?.name != "Light box") problems += "no light box"
         for (tier in TrailTier.entries) {
             if (tier.sharedClue >= 0 && objs[tier.sharedClue]?.intParam(tier.param) != 1) problems += "$tier: shared clue ${tier.sharedClue} lacks param ${tier.param}"
             if (objs[tier.scrollBox]?.iop(1) != "Open") problems += "$tier: scroll box ${tier.scrollBox} isn't opened"

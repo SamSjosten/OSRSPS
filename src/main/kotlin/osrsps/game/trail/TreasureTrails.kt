@@ -48,6 +48,10 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val URI_CLUE = line("uri_clue", "Uri, handing over the next clue to the player who called him (the Wiki's Uri page lists his phrases; which he says when isn't known)")
     val URI_NO_BUSINESS = line("uri_no_business", "Uri, to a player who didn't call him or isn't wearing what the clue asks (no source seen)")
     val URI_NOT_YET = line("uri_not_yet", "Uri, before the clue's second emote is done (no source seen)")
+    val NPC_BOX = line("npc_box", "a talk step's NPC, handing over a puzzle box or light box to solve first (no source seen)")
+    val NPC_BOX_UNSOLVED = line("npc_box_unsolved", "a talk step's NPC, while the player's box isn't solved yet (no source seen)")
+    val NPC_BOX_SOLVED = line("npc_box_solved", "a talk step's NPC, taking the solved box, before the next clue (no source seen)")
+    val DESTROY_LIGHT_BOX = line("destroy_light_box", "the light box's destroy check text (the Wiki's infobox)")
 
     fun suspicion(tier: TrailTier) = when (tier) {
         TrailTier.BEGINNER -> SUSPICION_BEGINNER
@@ -61,7 +65,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 
 /**
  * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
- * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4) and the STASH units ([StashUnits], TT5). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4), the STASH units ([StashUnits], TT5) and the puzzle and light boxes ([TrailBoxes], TT6). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
@@ -82,7 +86,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  *   from the NPC's own talk ([intercept]) and gives the next clue; Search or Open on a search step's loc likewise. An
  *   NPC with a challenge question (the clue helper's challenge column) first hands over its challenge scroll, then
  *   takes the answer as a number when talked to again, any of the cache's answers right and a wrong one free. A
- *   step whose NPC isn't spawned or whose loc isn't on its tile never comes up ([available]).
+ *   step whose NPC isn't spawned or whose loc isn't on its tile never comes up ([available]). An NPC whose step names a
+ *   box hands over a puzzle box or light box first, and the clue once it is solved ([TrailBoxes]).
  * - An emote step's first emote, done within [EMOTE_RANGE] of its spot in one of its outfits (the clue helper's
  *   cluehelper_outfit: items by equipment slot, or item groups by obj param 258), calls that tier's Uri beside the
  *   player (the Wiki's Uri page); a step of two emotes has the second done before he gives the clue. He talks only to
@@ -118,6 +123,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
 
     /** The STASH units of the built regions (TT5). */
     val stashes = StashUnits(world, data)
+
+    /** Puzzle and light boxes (TT6). */
+    val boxes = TrailBoxes(world)
 
     /** The step each challenge scroll belongs to. */
     private val byChallenge: Map<Int, ClueStep> = data.steps.values.filter { it.challengeItem >= 0 }.associateBy { it.challengeItem }
@@ -278,7 +286,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         for ((slot, obj) in player.inventory.contents()) {
             val tier = tierOf(obj.id) ?: continue
             val step = stepOf(player, tier, obj.id) ?: continue
-            if (!isDig(step) || step !in pool(tier)) continue
+            if (!isDig(step) || step !in pool(tier) || !dressed(player, step)) continue
             val spot = step.targets.first().tile
             if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > DIG_RANGE) continue
             solve(context, slot, tier, step)
@@ -374,7 +382,8 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val tier = tierOf(obj.id) ?: continue
             if (obj.id in byChallenge) continue
             val step = stepOf(player, tier, obj.id) ?: continue
-            if (step !in pool(tier)) continue
+            // Undressed for a step that names an outfit, the NPC or loc does what it always does.
+            if (step !in pool(tier) || !dressed(player, step)) continue
             when (val goal = step.targets.first()) {
                 is TrailTarget.Npc -> if (target.target == OpTarget.NPC && (op.id == goal.npc || op.id == goal.fallbackNpc || target.npc?.type?.id == goal.npc)) {
                     val npc = target.npc ?: continue
@@ -399,6 +408,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
      */
     suspend fun talk(context: ScriptContext, npc: osrsps.game.npc.Npc, tier: TrailTier, step: ClueStep) {
         val player = context.player
+        (step.challenge as? TrailChallenge.Box)?.let { box -> return talkBox(context, npc, tier, step, box) }
         val question = step.challenge as? TrailChallenge.Question
         if (question == null || step.challengeItem < 0) {
             world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_CLUE) }
@@ -420,9 +430,42 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         // Only once the step goes on is the challenge scroll used up, from the backpack or else the bank, so leaving the
         // dialogue above keeps it. Guessed: live takes it back as well.
         val slot = clueSlot(player, tier) ?: return
-        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem)) return
+        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem) || !dressed(player, step)) return
         val held = player.inventory.contents().firstOrNull { it.second.id == step.challengeItem }
         if (held != null) player.inventory.remove(held.first, 1) else removeFromBank(player, step.challengeItem)
+        solve(context, slot, tier, step)
+    }
+
+    /**
+     * A talk step whose NPC wants a box solved first: the box if the player has none of its kind, the next clue for a
+     * solved one (the NPC taking the box), or a word to keep at it.
+     */
+    private suspend fun talkBox(context: ScriptContext, npc: osrsps.game.npc.Npc, tier: TrailTier, step: ClueStep, box: TrailChallenge.Box) {
+        val player = context.player
+        // Only a box this step takes counts: another step's box neither blocks this one nor answers it.
+        val accepted = boxes.accepts(step, box)
+        val held = player.inventory.contents().map { it.second.id }.filter { it in accepted }.let { ids -> ids.firstOrNull { boxes.solved(player, it) } ?: ids.firstOrNull() }
+        if (held == null) {
+            // A banked box of this step's is kept as it is, not replaced by a fresh one that would scramble its saved
+            // state. Guessed: the NPC says to keep at it, as for an unsolved box.
+            if (accepted.any { player.bank.count(it) > 0 }) {
+                world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX_UNSOLVED) }
+                return
+            }
+            val item = boxes.boxFor(step, box) ?: return
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX) }
+            boxes.give(player, item)
+            return
+        }
+        if (!boxes.solved(player, held)) {
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX_UNSOLVED) }
+            return
+        }
+        world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_BOX_SOLVED) }
+        // Only once the dialogue is through is the box taken, so leaving it keeps the solved box; checked again first.
+        val slot = clueSlot(player, tier) ?: return
+        if (player.trails[tier]?.step != step.key || player.inventory.count(held) == 0L || !boxes.solved(player, held) || !dressed(player, step)) return
+        boxes.take(player, held)
         solve(context, slot, tier, step)
     }
 
@@ -435,6 +478,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         val player = context.player
         val trail = player.trails[tier] ?: return
         if (trail.step != step.key) return
+        // A dig, talk or search step that names an outfit (a cryptic's "Equip three Zamorak related items.") wants it
+        // worn, as an emote step does (exploit review 49, R49A-2). Guessed: nothing happens without it, no message.
+        if (step.type != StepType.EMOTE && !dressed(player, step)) return
         trail.done += step.key
         val next = ready(tier).filter { it.key !in trail.done }
         if (trail.done.size >= trail.length || next.isEmpty()) {
@@ -588,12 +634,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         /**
          * Whether [step] can come up yet: inside the regions built so far and of a kind built so far. TT1 builds the
          * dig steps (a map, a coordinate without a fight, a cryptic dig) in Misthalin; TT3 the talk steps (an NPC,
-         * with or without a challenge scroll's question) and the search steps (a loc that needs no key).
+         * with or without a challenge scroll's question, or with a puzzle or light box from TT6) and the search steps
+         * (a loc that needs no key).
          */
         fun built(step: ClueStep): Boolean {
             val target = step.targets.firstOrNull() ?: return false
             if (!inBuiltRegion(target.tile) || step.combat || step.targets.size != 1) return false
-            if (step.challenge is TrailChallenge.Box) return false
             if (step.type == StepType.EMOTE) return step.emotes.isNotEmpty()
             return isDig(step) || (step.type in TALK_TYPES && (target is TrailTarget.Npc || target is TrailTarget.Loc))
         }
@@ -629,6 +675,19 @@ fun registerTreasureTrails(world: World) {
     // Talk and search steps take their NPC's or loc's click ahead of its own handler.
     world.handlers.first(trails::intercept)
     for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }
+    for (box in TrailBoxes.PUZZLES.keys + TrailBoxes.LIGHT_BOX) world.handlers.onObj(box, 1) { op -> trails.boxes.open(this, op.sub) }
+    world.handlers.onObj(TrailBoxes.LIGHT_BOX, TrailBoxes.DESTROY) { op ->
+        val slot = op.sub
+        world.dialogues.start(this) {
+            if (!confirmDestroy(TrailBoxes.LIGHT_BOX, 1, text(GameLines.DESTROY_TITLE), text(TrailLines.DESTROY_LIGHT_BOX))) return@start
+            // The box may have moved while the check was open: only the one in that slot goes, and its lights with it.
+            if (player.inventory[slot]?.id != TrailBoxes.LIGHT_BOX) return@start
+            player.inventory.remove(slot, 1)
+            if (player.inventory.count(TrailBoxes.LIGHT_BOX) == 0L && player.bank.count(TrailBoxes.LIGHT_BOX) == 0L) trails.boxes.forget(player, TrailBoxes.LIGHT_BOX)
+        }
+    }
+    world.handlers.onButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES) { op -> trails.boxes.slide(this, op.sub) }
+    for ((index, button) in TrailBoxes.LIGHT_SWITCHES.withIndex()) world.handlers.onButton(TrailBoxes.LIGHT_PUZZLE, button) { trails.boxes.flip(this, index) }
     for (stash in trails.stashes.units.values) {
         world.handlers.onLoc(stash.loc, StashUnits.BUILD) { trails.stashes.build(this, stash) }
         world.handlers.onLoc(stash.loc, StashUnits.SEARCH) { trails.stashes.search(this, stash) }

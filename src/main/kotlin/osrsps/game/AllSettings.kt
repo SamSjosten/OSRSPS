@@ -45,6 +45,8 @@ class AllSettings(
     private val scripts: ScriptRunner? = null,
     /** The words of [SettingsLines] for a player, as the dialogue file has them. */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Runs after the Pronouns dropdown sets its varbit, with the option (0 he/him, 1 she/her, 2 they/them, enum 5500). */
+    private val pronounsPicked: (Player, Int) -> Unit = { _, _ -> },
 ) {
     init {
         // Walking or another interface drops the picker's wait for a colour; the picker goes with it.
@@ -281,6 +283,11 @@ class AllSettings(
             LEVEL_UP_DROPDOWN -> {
                 setVarbit(player, VARBIT_LEVEL_UP_MESSAGE_DISABLED, if (option == 0) 1 else 0)
                 if (option != 0) setVarbit(player, VARBIT_LEVEL_UP_POPUP_LIST, if (option == 2) 1 else 0)
+            }
+            // settings_pronouns sets settings_transmit_pronouns; the pronoun is also part of the player's look, which
+            // the appearance block carries and the makeover screens set.
+            PRONOUNS_DROPDOWN -> {
+                if (catalog.dropdowns[id]?.set(player.vars, option) == true && option in 0 until PlayerLook.PRONOUNS) pronounsPicked(player, option)
             }
             else -> if (catalog.dropdowns[id]?.set(player.vars, option) != true) {
                 logger.info { "${player.username} picked option $option of dropdown $id, which the client keeps to itself" }
@@ -553,6 +560,12 @@ class AllSettings(
     }
 
     companion object {
+        /** Pronouns (struct 994, setting 387). */
+        const val PRONOUNS_DROPDOWN = 387
+
+        /** settings_transmit_pronouns, which settings_get_dropdown reads for Pronouns. */
+        const val VARBIT_PRONOUNS = 10988
+
         const val INTERFACE = 134
 
         const val CLOSE = 4

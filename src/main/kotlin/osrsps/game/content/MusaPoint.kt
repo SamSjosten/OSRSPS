@@ -265,8 +265,11 @@ private suspend fun ScriptContext.pickBanana(world: World, loc: ZoneLoc) = with(
     delay(1)
     // Someone else may have picked it this tick.
     if (!world.locs.exists(loc)) return@with
+    val banana = world.objTypes[BANANA] ?: return@with
+    // The pack may have filled during the pick: then the banana stays on the tree (as crops do, exploit review R47C-2).
+    if (player.inventory.freeSlots == 0) return@with world.message(player, MusaPointLines.BANANA_NO_ROOM)
     world.locs.replace(loc, loc.id + 1) ?: return@with
     world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, REGROW_TICKS)
-    world.objTypes[BANANA]?.let { player.inventory.add(it, 1) }
+    player.inventory.add(banana, 1)
     world.message(player, MusaPointLines.BANANA_PICKED)
 }
