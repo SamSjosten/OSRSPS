@@ -60,7 +60,7 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
     val EXCHANGE_TITLE = line("exchange_title", "Exchange: the menu's title, give up the infernal cape? (no transcript yet)")
     val LUCKY = line("lucky", "Exchange won: his line giving Jal-Nib-Rek")
     val UNLUCKY = line("unlucky", "Exchange lost: the cape gone, no pet (no transcript yet)")
-    val IN_SCENARIO = line("in_scenario", "Exchange in a test setup (::scenario, the Leagues Tutor's kits): ours, as a kit's infernal cape would roll a real pet; ::reset first")
+    val IN_SCENARIO = line("in_scenario", "Exchange or the sacrifice in a test setup (::scenario, the Leagues Tutor's kits): ours, as a kit's infernal cape would roll a real pet; ::reset first")
     val NO_INFERNAL = line("no_infernal", "Exchange with no infernal cape in the backpack (no transcript yet)")
 }
 
@@ -108,7 +108,7 @@ object KetKeh {
         // The pet may have come some other way while the menu was up, or the cape gone: no toss then.
         if (player.scenario != null || ownsPet(player) || !take(player, Inferno.INFERNAL_CAPE)) return@with
         if (world.random.chance(1, PET_ODDS)) {
-            world.objTypes[InfernoZuk.PET]?.let { world.groundObjs.give(player, it, 1) }
+            world.fightCaves.reward(player, InfernoZuk.PET, 1)
             world.collectionLog.add(player, InfernoZuk.PET, 1)
             world.message(player, FightCaveLines.PET)
             chatNpc(ChatAnim.HAPPY, LUCKY)
@@ -162,12 +162,14 @@ object KetKeh {
     /** The fire cape asked for: the sacrifice with one in the backpack, else why not. */
     private suspend fun Dialogue.offer(world: World, inferno: Inferno, caste: String, name: String) = with(KetKehLines) {
         if (!capeIn(player)) return@with chatPlayer(ChatAnim.NEUTRAL, if (capeWorn(player)) TAKE_OFF else NO_CAPE)
+        // A test setup's sacrifice would open the Inferno for good after ::reset (exploit review R45B-4).
+        if (player.scenario != null) return@with world.message(player, IN_SCENARIO)
         if (choice(YES, NO, title = text(SACRIFICE_TITLE)) != 1) return@with
         chatPlayer(ChatAnim.NEUTRAL, SACRIFICE)
         chatNpc(ChatAnim.NEUTRAL, HAND_OVER)
         if (choice(NO, YES, title = text(REALLY_TITLE)) != 2) return@with chatPlayer(ChatAnim.NEUTRAL, KEEP_IT)
         // The cape may have gone while the menus were up.
-        if (!takeCape(player)) return@with
+        if (player.scenario != null || !takeCape(player)) return@with
         inferno.sacrifice(player)
         mesbox(HANDED)
         chatNpc(ChatAnim.NEUTRAL, ENTER_NOW, "caste" to caste, "name" to name)
