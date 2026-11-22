@@ -173,6 +173,7 @@ import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
+import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -482,6 +483,7 @@ class World(
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
+    val escapeCaves = osrsps.game.content.EscapeCaves()
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
@@ -1173,6 +1175,7 @@ class World(
         registerArtio(this)
         registerCalvarion(this)
         registerSpindel(this)
+        registerEscapeCaves(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1683,6 +1686,7 @@ class World(
     private fun sendWilderness(player: Player) {
         val inside = Wilderness.inside(player.x, player.z)
         WildernessLairFee.update(player)
+        escapeCaves.tick(this, player)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
