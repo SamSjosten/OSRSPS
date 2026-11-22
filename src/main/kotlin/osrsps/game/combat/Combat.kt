@@ -444,7 +444,8 @@ class Combat(
         return MagicMatchup(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = maxHit + maxHitAdded(player, npc),
+            // A spell with no damage (Bind) stays harmless: no bonus to make it roll damage XP (Codex, PR 878).
+            maxHit = if (spell.maxHit == 0) 0 else maxHit + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }

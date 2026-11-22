@@ -198,6 +198,8 @@ class HeadlessRatBoneWeaponsTest {
                 val spell = world.magicCombat.poweredSpell(erin)
                 assertEquals(0, spell?.splashXpTenths, "no splash XP")
                 assertTrue(spell!!.maxHit > 0, "a damaging spell even at low Magic, not one that only splashes")
+                // A spell with no damage (as Bind) gets no +10: it stays harmless, earning no damage XP.
+                assertEquals(0, world.combat.magicMatchup(erin, giant, spell.copy(maxHit = 0, staff = null))!!.maxHit)
                 erin.skills.setLevel(Skill.MAGIC, 99)
                 assertEquals(38, world.combat.magicMatchup(erin, giant, world.magicCombat.poweredSpell(erin)!!)!!.maxHit, "the Wiki's 38 at 99 Magic")
                 erin.equipment[WearPos.WEAPON] = null
