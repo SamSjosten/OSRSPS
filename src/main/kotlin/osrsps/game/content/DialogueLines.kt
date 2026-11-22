@@ -455,6 +455,7 @@ object DialogueLines {
         SlayerHelmetLines,
         KuradalLines,
         KrystiliaLines,
+        KrystiliaRespawnLines,
         MazchnaLines,
         SteveLines,
         SmithingLines,

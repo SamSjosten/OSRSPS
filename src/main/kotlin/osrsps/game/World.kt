@@ -125,6 +125,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerMisthalinOptionPack
@@ -794,7 +795,8 @@ class World(
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
      * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
-     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
+     * ([KingBlackDragon.graveTile]); elsewhere, Edgeville for a player who bought
+     * Krystilia's respawn there ([EdgevilleRespawn]), else null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
@@ -802,7 +804,7 @@ class World(
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
         inferno.deathPlace(player)?.let { return it }
-        val instance = instances.at(player.x, player.z) ?: return null
+        val instance = instances.at(player.x, player.z) ?: return EdgevilleRespawn.deathPlace(this, player)
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }

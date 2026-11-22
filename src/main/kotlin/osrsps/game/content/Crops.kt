@@ -84,7 +84,9 @@ internal suspend fun ScriptContext.pick(world: World, loc: ZoneLoc, crop: Crops.
     delay(1)
     // Someone else may have picked it this tick.
     if (!world.locs.exists(loc)) return
+    val item = world.objTypes[crop.item] ?: return
+    // The pack may have filled during the pick: then the crop stays in the field.
+    if (player.inventory.add(item, 1) == 0) return world.message(player, crop.noRoom)
     world.locs.remove(loc, crop.respawnTicks)
-    world.objTypes[crop.item]?.let { player.inventory.add(it, 1) }
     world.message(player, crop.picked)
 }
