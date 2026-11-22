@@ -932,6 +932,9 @@ class World(
     /** The fairy rings; see [osrsps.game.content.FairyRings]. */
     val fairyRings = osrsps.game.content.FairyRings(this, fairyRingCodes)
 
+    /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
+    val spiritTrees = osrsps.game.content.SpiritTrees(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1211,6 +1214,7 @@ class World(
         farming.register()
         canoes.register()
         fairyRings.register()
+        spiritTrees.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
