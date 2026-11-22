@@ -101,6 +101,8 @@ deploy/staging.sh auto                    # what osrsps-staging.timer runs: stag
   `.deploy/git.lock`, waiting up to 5 minutes for the other's, so two fetches never race for `origin/main` and the
   deploy's clearing of a crashed git's stale `.git/*.lock` (older than ten minutes) isn't put off forever by staging's
   minutely fetch. A git of `sam`'s running in another folder doesn't stop the clearing; one in this checkout does.
+  A staging run that gives up waiting for either lock exits 75, and `auto` tries the same commit again the next minute
+  rather than counting it as failed.
   The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
   kernel kills a build first (the Dockerfile raises its OOM score), the staging server next (the default score), and
   the live server last (-500). `down` when staging isn't needed, as it keeps running across reboots like the live one.

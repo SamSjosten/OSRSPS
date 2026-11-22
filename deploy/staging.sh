@@ -30,6 +30,9 @@
 set -euo pipefail
 
 AUTO_BRANCH=staging
+# What a run returns when a lock another run holds kept it from going on (EX_TEMPFAIL): `auto` tries that commit again
+# the next minute rather than counting it as failed.
+BUSY=75
 
 main() {
 	local repo
@@ -69,7 +72,7 @@ locked() {
 # fail on "cannot lock ref refs/remotes/origin/main", and auto-deploy.sh counts a git lock as stale only when neither
 # script runs git here (2026-11-22: this script's minutely fetch, in the same second as the deploy's, kept a crashed
 # git's .git/HEAD.lock from ever being cleared, and nothing deployed for three days). Held only around git commands, never
-# while waiting for another lock. Waits up to OSRSPS_GIT_LOCK_WAIT seconds, 5 minutes.
+# while waiting for another lock. Waits up to OSRSPS_GIT_LOCK_WAIT seconds, 5 minutes, then returns $BUSY.
 with_git_lock() {
 	local status=0 wait=${OSRSPS_GIT_LOCK_WAIT:-300}
 	mkdir -p .deploy
@@ -77,7 +80,7 @@ with_git_lock() {
 	if ! flock -w "$wait" 7; then
 		exec 7>&-
 		echo "Another git command in this checkout has held .deploy/git.lock for $wait s; try again when it is done"
-		return 1
+		return "$BUSY"
 	fi
 	"$@" || status=$?
 	exec 7>&-
@@ -109,7 +112,11 @@ up() {
 	fi
 	# Each step says when it fails, so `auto` (which runs up inside an if, where bash's errexit doesn't reach) stops
 	# too: a worktree still at the old commit would otherwise be built and recorded as the new one.
-	if ! with_git_lock checkout "$commit"; then
+	local status=0
+	with_git_lock checkout "$commit" || status=$?
+	if ((status == BUSY)); then
+		return "$BUSY"
+	elif ((status)); then
 		echo "Checking out $ref ($commit) in .staging/src FAILED"
 		return 1
 	fi
@@ -119,7 +126,7 @@ up() {
 	exec 9>.deploy/lock
 	if ! flock -w "${STAGING_LOCK_WAIT:-900}" 9; then
 		echo "A live deploy has been building for a while; try again when it is done"
-		return 1
+		return "$BUSY"
 	fi
 	prepare_data || return 1
 
@@ -169,7 +176,12 @@ auto() {
 		if [[ $target == "$(cat .staging/failed 2>/dev/null || true)" ]]; then
 			return 0
 		fi
-		if ! up "$AUTO_BRANCH"; then
+		local status=0
+		up "$AUTO_BRANCH" || status=$?
+		if ((status == BUSY)); then
+			echo "Staging of $AUTO_BRANCH ($target) waits for a lock another run holds; the next run tries again"
+			return 1
+		elif ((status)); then
 			printf '%s\n' "$target" >.staging/failed
 			echo "Staging of $AUTO_BRANCH ($target) FAILED; it is tried again when the branch moves on"
 			return 1
