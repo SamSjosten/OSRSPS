@@ -151,6 +151,7 @@ class TrailBoxes(private val world: World) {
     fun slide(context: ScriptContext, slot: Int) {
         val player = context.player
         if (slot !in 0 until SLOTS) return
+        if (player.modals[FrameSlot.MAINMODAL] != SLIDE_PUZZLE) return
         // The box that was opened, still in the backpack: with two boxes held, clicks go to the one on screen.
         val item = opened[player]?.takeIf { player.inventory.count(it) > 0 } ?: return
         val slots = player.trails.puzzles[item] ?: return
@@ -165,7 +166,7 @@ class TrailBoxes(private val world: World) {
     fun flip(context: ScriptContext, index: Int) {
         val player = context.player
         val state = player.trails.lightBox ?: return
-        if (player.inventory.count(LIGHT_BOX) == 0L || index !in 0 until SWITCHES) return
+        if (player.modals[FrameSlot.MAINMODAL] != LIGHT_PUZZLE || player.inventory.count(LIGHT_BOX) == 0L || index !in 0 until SWITCHES) return
         state.lit = state.lit xor state.switches[index]
         player.vars[LIGHTS_VARP] = state.lit
     }

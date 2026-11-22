@@ -64,8 +64,10 @@ class HeadlessTreasureTrailsBoxTest {
     private fun HeadlessClient.talkTo(server: TestServer) = npcOp(server.world.npcs.all.first { it.type.id == GUIDE }.index, 1)
 
     private fun HeadlessClient.chat(key: String) {
-        await(key) { (dialogueView as? DialogueView.Chat)?.takeIf { it.text == "[$key]" } }
+        val view = await(key) { (dialogueView as? DialogueView.Chat)?.takeIf { it.text == "[$key]" } }
         continueDialogue()
+        // Gone before the next await, so a second line with the same key isn't matched by this one.
+        await("$key closed") { if (dialogueView !== view) Unit else null }
     }
 
     private fun HeadlessClient.objbox(key: String) {
@@ -95,6 +97,20 @@ class HeadlessTreasureTrailsBoxTest {
 
                 client.talkTo(server)
                 client.chat("trail.npc_box_unsolved")
+
+                // Banked, the box keeps its scramble: the NPC hands over no fresh one.
+                val scramble = player.trails.puzzles.getValue(TREE_BOX).copyOf()
+                player.inventory.remove(box, 1)
+                player.bank.add(server.world.objTypes[TREE_BOX]!!, 1)
+                client.talkTo(server)
+                client.chat("trail.npc_box_unsolved")
+                assertEquals(0L, player.inventory.count(TREE_BOX))
+                assertTrue(player.trails.puzzles.getValue(TREE_BOX).contentEquals(scramble))
+                player.bank.remove(player.bank.contents().first { it.second.id == TREE_BOX }.first, 1)
+                player.inventory[box] = osrsps.game.InvObj(TREE_BOX, 1)
+
+                // A slide with the puzzle closed moves nothing.
+                client.ifButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES, 1, 24, 0)
 
                 // One slide from solved: the last piece sits where the gap belongs.
                 val slots = IntArray(25) { TrailBoxes.TREE + it }.also { it[23] = TrailBoxes.GAP; it[24] = TrailBoxes.TREE + 23 }
@@ -131,6 +147,8 @@ class HeadlessTreasureTrailsBoxTest {
                 // Switch 1 lights the top row, switch 2 everything else; the box starts with switch 2 off.
                 player.trails.lightBox = LightBoxState(intArrayOf(0x1F, TrailBoxes.ALL_LIT xor 0x1F, 1, 2, 4, 8, 16, 32), 0x1F)
 
+                // A switch with the box closed flips nothing: the box opens with the lights it had.
+                client.ifButton(TrailBoxes.LIGHT_PUZZLE, TrailBoxes.LIGHT_SWITCHES.first, 1)
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 2, box, TrailBoxes.LIGHT_BOX)
                 client.await("the lights") { if (client.varp(TrailBoxes.LIGHTS_VARP) == 0x1F) Unit else null }
                 client.ifButton(TrailBoxes.LIGHT_PUZZLE, TrailBoxes.LIGHT_SWITCHES.first, 1)

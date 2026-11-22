@@ -444,6 +444,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         val accepted = boxes.accepts(step, box)
         val held = player.inventory.contents().map { it.second.id }.filter { it in accepted }.let { ids -> ids.firstOrNull { boxes.solved(player, it) } ?: ids.firstOrNull() }
         if (held == null) {
+            // A banked box of this step's is kept as it is, not replaced by a fresh one that would scramble its saved
+            // state. Guessed: the NPC says to keep at it, as for an unsolved box.
+            if (accepted.any { player.bank.count(it) > 0 }) {
+                world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX_UNSOLVED) }
+                return
+            }
             val item = boxes.boxFor(step, box) ?: return
             world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX) }
             boxes.give(player, item)
