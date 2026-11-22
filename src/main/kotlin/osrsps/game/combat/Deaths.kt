@@ -45,6 +45,11 @@ data class DeathPlace(
     val toLevel: Int,
     val coord: Int = -1,
     val safe: Boolean = false,
+    /**
+     * Only where they come back is changed, as by Krystilia's Edgeville respawn: the death is otherwise as anywhere, so
+     * a Wilderness one still counts as PvP, its items going to the killer (exploit review round 49, R49C-1).
+     */
+    val respawnOnly: Boolean = false,
 )
 
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
@@ -212,11 +217,11 @@ class Deaths(
     /**
      * Whether [player]'s death can be a PvP one, its loot for a killer: only on a tile where players may fight
      * ([osrsps.game.Wilderness.pvpLevel] above 0, so not the safe rows or Ferox Enclave), outside any instance or raid
-     * ([placeOf] null), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
+     * ([placeOf] null, or one that only moves the respawn), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
      * with the death somewhere else is a death like any other (exploit review round 36, R36A-1 and R36A-2).
      */
     private fun pvpDeath(player: Player): Boolean =
-        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player) == null && player.scenario == null
+        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player).let { it == null || it.respawnOnly } && player.scenario == null
 
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */
     fun process() {
