@@ -145,7 +145,7 @@ object Weapons {
     }
 
     /** The powered staves that are in ([osrsps.game.combat.PoweredStaves]), charged and not, by their cache names. */
-    private val POWERED_STAVES = setOf("tumekens_shadow", "tumekens_shadow_uncharged")
+    private val POWERED_STAVES = setOf("tumekens_shadow", "tumekens_shadow_uncharged", "rat_bone_staff")
 
     /** human_ready, human_turnonspot, human_walk_f, human_walk_b, human_walk_l, human_walk_r, human_running. */
     val HUMAN = Stance(808, 823, 819, 820, 821, 822, 824)
