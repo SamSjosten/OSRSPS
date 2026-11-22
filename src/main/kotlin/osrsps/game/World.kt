@@ -571,7 +571,10 @@ class World(
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(
         settings, interfaces, scripts, words = ::textFor,
-        pronounsPicked = { player, pronoun -> if (pronoun != player.look.pronoun) setLook(player, player.look.copy(pronoun = pronoun)) },
+        pronounsPicked = { player, pronoun ->
+            if (pronoun != player.look.pronoun) setLook(player, player.look.copy(pronoun = pronoun))
+            makeoverScreen.pronounPicked(player, pronoun)
+        },
     )
     private val worldMap = WorldMapScreen(interfaces)
 

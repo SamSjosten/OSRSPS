@@ -70,6 +70,16 @@ class MakeoverScreen(
         open.remove(player)
     }
 
+    /**
+     * [pronoun] picked somewhere else (the All Settings window, a floater the screen stays open under) and already kept:
+     * the preview takes it too, so an Apply or Confirm after it doesn't put the old pronoun back.
+     */
+    fun pronounPicked(player: Player, pronoun: Int) {
+        val state = open[player] ?: return
+        preview(player, state, state.preview.copy(pronoun = pronoun))
+        if (state.page == null) setVarp(player, VARP_IF3, pronoun)
+    }
+
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL].let { it == INTERFACE || it == BODY_TYPES } && player in open
 
     /** Opens the body types page (205) for [player]. */
