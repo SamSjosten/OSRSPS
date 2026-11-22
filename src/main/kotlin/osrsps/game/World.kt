@@ -179,6 +179,7 @@ import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
+import osrsps.game.content.registerMusaPoint
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
@@ -1188,6 +1189,7 @@ class World(
         registerHaystacks(this)
         registerLodestones(this)
         registerKaramjaShips(this)
+        registerMusaPoint(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
