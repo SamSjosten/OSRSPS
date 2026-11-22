@@ -20,7 +20,6 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
-import osrsps.game.command.Admins
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcCombat
 import osrsps.game.loc.LocType
@@ -33,6 +32,7 @@ import osrsps.game.tzhaar.InfernoMonster
 import osrsps.game.tzhaar.InfernoMonsters
 import osrsps.game.tzhaar.InfernoPillars
 import osrsps.game.tzhaar.InfernoWaves
+import osrsps.game.tzhaar.InfernoZuk
 import osrsps.game.tzhaar.KetKeh
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -65,6 +65,13 @@ class HeadlessInfernoTest {
         monster(7700, "JalTok-Jad", 5, "inferno_jad", 350),
         monster(7701, "Yt-HurKot", 1, "inferno_jad_healer", 90),
         monster(7706, "TzKal-Zuk", 7, "inferno_tzkalzuk_placeholder", 1200),
+        monster(7702, "Jal-Xil", 3, "inferno_ranger_finalwave", 125),
+        monster(7703, "Jal-Zek", 4, "inferno_mager_finalwave", 220),
+        monster(7704, "JalTok-Jad", 5, "inferno_jad_finalwave", 350),
+        monster(7705, "Yt-HurKot", 1, "inferno_jad_healer_finalwave", 90),
+        monster(InfernoZuk.GLYPH, "Ancestral Glyph", 3, "inferno_moving_safespot", 600, ops = listOf(null, null, null, null, null)),
+        monster(InfernoZuk.MEJJAK, "Jal-MejJak", 1, "inferno_zuk_healer", 75),
+        NpcType(KetKeh.AFTER_ZUK, "TzHaar-Ket-Keh", size = 2, ops = listOf("Talk-to", null, "Exchange", null, null), internalName = "inferno_master_2op"),
         monster(InfernoPillars.SUPPORT, "Rocky support", 3, "inferno_invisible_3x3", 1, ops = listOf(null, null, null, null, null)),
         monster(InfernoPillars.COLLAPSING, "Rocky support", 3, "inferno_safespot_dying", 1, ops = listOf(null, null, null, null, null)),
         NpcType(KetKeh.TZHAAR_KET_KEH, "TzHaar-Ket-Keh", size = 2, ops = listOf("Talk-to", null, null, null, null), internalName = "inferno_master"),
@@ -82,19 +89,24 @@ class HeadlessInfernoTest {
         20_000,
     )
 
-    private fun server(dir: Path, admins: Admins = Admins.EVERYONE) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val objTypes = ObjTypes.of(
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
             ObjType(Inferno.INFERNAL_CAPE, "Infernal cape"),
+            ObjType(InfernoZuk.PET, "Jal-nib-rek"),
             ObjType(995, "Coins", stackable = true),
         )
         val loc = { id: Int, name: String, ops: List<String?>, w: Int, l: Int -> LocType(id, name, ops, LocCollisionType(width = w, length = l)) }
         World(
             crcs, CollisionMap().apply { markLoaded(35, 83); markLoaded(38, 80); markLoaded(39, 79); markLoaded(39, 80) }, varTypes,
-            objTypes = objTypes, npcTypes = types, admins = admins,
+            objTypes = objTypes, npcTypes = types,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE),
-            npcSpawns = listOf(NpcSpawn(types[KetKeh.TZHAAR_KET_KEH]!!, 2496, 5115, source = "test")),
+            npcSpawns = listOf(
+                NpcSpawn(types[KetKeh.TZHAAR_KET_KEH]!!, 2496, 5115, source = "test"),
+                // His form after a Zuk kill, beside him, for Exchange (the test world has no multinpcs).
+                NpcSpawn(types[KetKeh.AFTER_ZUK]!!, 2500, 5115, source = "test"),
+            ),
             locTypes = LocTypes(
                 (
                     listOf(
@@ -374,21 +386,6 @@ class HeadlessInfernoTest {
     }
 
     @Test
-    fun `until Zuk fights the entrance lets in admins only`(@TempDir dir: Path) {
-        assertFalse(Inferno.OPEN_TO_ALL, "IN4 opens it")
-        server(dir, Admins.parse("someone-else")).use { server ->
-            server.login("ivy").use { client ->
-                client.await("the login rebuild") { client.position }
-                val player = server.world.playerNamed("ivy")!!
-                server.world.inferno.sacrifice(player)
-                server.world.inferno.enter(player)
-                assertNull(server.run("ivy"), "no Inferno")
-                client.await("the line") { client.messages().firstOrNull { "inferno.not_ready" in it.text } }
-            }
-        }
-    }
-
-    @Test
     fun `the entrance turns away a player in a test setup`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ivy").use { client ->
@@ -422,6 +419,7 @@ class HeadlessInfernoTest {
         assertEquals(Scenario.ScenarioMinigame.INFERNO, scenarios["inferno"]!!.minigame!!.name)
         assertEquals(1, scenarios["inferno"]!!.minigame!!.wave)
         assertEquals(66, scenarios["inferno-wave66"]!!.minigame!!.wave)
+        assertEquals(69, scenarios["inferno-zuk"]!!.minigame!!.wave)
     }
 
     // Inferno step IN2: the monsters' own mechanics.
@@ -674,6 +672,159 @@ class HeadlessInfernoTest {
                 client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
                 client.await("the healers gone") { healers.takeIf { h -> h.none { server.world.npcs[it.index] === it } } }
                 client.await("wave 68 coming") { server.run("lee")?.takeIf { it.wave == 68 } }
+            }
+        }
+    }
+
+    // Inferno step IN4: TzKal-Zuk's fight and TzHaar-Ket-Keh's Exchange.
+
+    @Test
+    fun `wave 69 shakes the cavern, the Ancestral Glyph walks its track, and Zuk's shots hit a player out of its cover`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("max").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                client.waveIn(server, "max", 69)
+                client.awaitDialogue("the cavern shaking") { it is DialogueView.Message && "inferno_zuk.shaking" in it.text }
+                client.next("TzHaar-Ket-Keh") { it is DialogueView.Chat && "inferno_zuk.breaking" in it.text }
+                val run = server.run("max")!!
+                val fight = server.world.inferno.zuk.fightOf(run)!!
+                val glyph = fight.glyph!!
+                assertEquals(InfernoZuk.GLYPH, glyph.type.id)
+                assertTrue(glyph !in run.monsters, "the glyph is no monster of the wave")
+                val start = glyph.x
+                client.await("the glyph moving") { glyph.takeIf { it.x != start } }
+                val player = server.world.playerNamed("max")!!
+                assertFalse(server.world.inferno.zuk.covered(run, player), "the arena's south end has no cover")
+                assertTrue(server.world.combat.shutOut(player, glyph), "no player attack reaches the glyph, an area one neither")
+                client.commandReply("god") { it.startsWith("You can be hurt") }
+                client.await("a hit from Zuk", timeoutMillis = 20_000) { player.takeIf { it.hitpoints < 99 } }
+            }
+        }
+    }
+
+    @Test
+    fun `the sets go for the glyph until attacked, 600 pauses their timer, 480 brings the Jad and 240 the MejJaks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                val zuk = client.waveIn(server, "ned", 69).single()
+                val run = server.run("ned")!!
+                val fight = server.world.inferno.zuk.fightOf(run)!!
+                val zukFight = server.world.inferno.zuk
+                // The first set, as the glyph gets back to where it set off.
+                val set = client.await("the first set", timeoutMillis = 20_000) {
+                    run.monsters.filter { it.type.id == InfernoZuk.FINAL_RANGER || it.type.id == InfernoZuk.FINAL_MAGER }.takeIf { it.size == 2 }
+                }
+                assertTrue(set.all { zukFight.onGlyph(run, it) })
+                client.await("the glyph hit") { fight.glyph!!.takeIf { it.hitpoints < 600 } }
+                val ranger = set.first { it.type.id == InfernoZuk.FINAL_RANGER }
+                client.commandReply("hit 1 ${ranger.index}") { it.startsWith("Hit") }
+                client.await("the ranger off the glyph") { ranger.takeIf { !zukFight.onGlyph(run, it) } }
+                assertTrue(fight.nextSet > server.world.tick)
+
+                client.commandReply("hit 601 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("the timer paused") { fight.takeIf { it.setPausedLeft > InfernoZuk.INTERLUDE_TICKS } }
+                client.commandReply("hit 120 ${zuk.index}") { it.startsWith("Hit") }
+                val jad = client.await("the Jad") { run.monsters.firstOrNull { it.type.id == InfernoZuk.FINAL_JAD } }
+                assertTrue(zukFight.onGlyph(run, jad))
+                assertEquals(-1L, fight.setPausedLeft, "the timer runs again")
+
+                client.commandReply("hit 240 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("four MejJaks") { fight.takeIf { it.enraged && it.mejJaks.size == 4 } }
+                client.await("a heal") { zuk.takeIf { it.hitpoints > 239 } }
+                client.commandReply("kill ${zuk.index}") { it.startsWith("Killed") }
+                client.await("everything gone with him", timeoutMillis = 20_000) {
+                    (fight.mejJaks + jad + set).takeIf { all -> all.none { server.world.npcs[it.index] === it } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `600 reached before the first set holds that set back until 480, with the 1-45 added`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ora").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                val zuk = client.waveIn(server, "ora", 69).single()
+                val fight = server.world.inferno.zuk.fightOf(server.run("ora")!!)!!
+                client.commandReply("hit 601 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("the pause") { fight.takeIf { it.setPausedLeft == InfernoZuk.INTERLUDE_TICKS } }
+                client.await("the glyph round", timeoutMillis = 20_000) { fight.takeIf { it.glyphTurns >= 2 } }
+                client.awaitTicks(2)
+                assertEquals(-1L, fight.nextSet, "no set while paused")
+                client.commandReply("hit 120 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("the timer running") { fight.takeIf { it.setPausedLeft < 0 && it.nextSet >= 0 } }
+                assertTrue(fight.nextSet > server.world.tick + InfernoZuk.INTERLUDE_TICKS - 10, "the 1:45 added")
+            }
+        }
+    }
+
+    @Test
+    fun `a set member owed for want of room comes in later, to the glyph`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("pip").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                client.waveIn(server, "pip", 69)
+                val run = server.run("pip")!!
+                val zukFight = server.world.inferno.zuk
+                val fight = zukFight.fightOf(run)!!
+                // As if the ranger of a set couldn't come in: owed, it comes in with the next free tick.
+                fight.setOwed += InfernoZuk.FINAL_RANGER to InfernoZuk.RANGER_TILE
+                val ranger = client.await("the owed ranger") { run.monsters.firstOrNull { it.type.id == InfernoZuk.FINAL_RANGER && !it.dead } }
+                assertTrue(fight.setOwed.isEmpty())
+                assertTrue(zukFight.onGlyph(run, ranger))
+            }
+        }
+    }
+
+    @Test
+    fun `TzHaar-Ket-Keh's Exchange takes an infernal cape for a chance at Jal-Nib-Rek, never with the pet owned`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("oz").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2500, 5112)
+                val keh = client.await("TzHaar-Ket-Keh in view") { client.npcs().firstOrNull { it.id == KetKeh.AFTER_ZUK } }
+                client.npcOp(keh.index, KetKeh.EXCHANGE)
+                client.awaitDialogue("no cape") { it is DialogueView.Chat && "ket_keh.no_infernal" in it.text }
+                client.continueDialogue()
+
+                client.commandReply("item ${Inferno.INFERNAL_CAPE} 1") { true }
+                client.await("the cape") { client.inventory(INV).firstOrNull { it?.id == Inferno.INFERNAL_CAPE } }
+                client.npcOp(keh.index, KetKeh.EXCHANGE)
+                client.awaitDialogue("the offer") { it is DialogueView.Chat && "ket_keh.exchange_offer" in it.text }
+                client.next("give it up?") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                val outcome = client.awaitDialogue("the toss") { it is DialogueView.Chat && ("ket_keh.lucky" in it.text || "ket_keh.unlucky" in it.text) }
+                assertTrue(client.inventory(INV).none { it?.id == Inferno.INFERNAL_CAPE }, "the cape is gone")
+                val won = "ket_keh.lucky" in (outcome as DialogueView.Chat).text
+                assertEquals(won, client.inventory(INV).any { it?.id == InfernoZuk.PET })
+                client.continueDialogue()
+
+                if (!won) client.commandReply("item ${InfernoZuk.PET} 1") { true }
+                client.commandReply("item ${Inferno.INFERNAL_CAPE} 1") { true }
+                client.await("the pet") { client.inventory(INV).firstOrNull { it?.id == InfernoZuk.PET } }
+                client.npcOp(keh.index, KetKeh.EXCHANGE)
+                client.awaitDialogue("the pet owned") { it is DialogueView.Chat && "ket_keh.have_pet" in it.text }
+                assertNotNull(client.inventory(INV).firstOrNull { it?.id == Inferno.INFERNAL_CAPE }, "the cape kept")
+                client.continueDialogue()
+
+                // In a test setup (whose kit can hold an infernal cape) he takes none, pet or not.
+                client.command("empty")
+                client.commandReply("item ${Inferno.INFERNAL_CAPE} 1") { true }
+                client.await("only the cape") { client.inventory(INV).takeIf { inv -> inv.none { it?.id == InfernoZuk.PET } && inv.any { it?.id == Inferno.INFERNAL_CAPE } } }
+                server.world.playerNamed("oz")!!.scenario = "raid-tester"
+                client.npcOp(keh.index, KetKeh.EXCHANGE)
+                client.await("the line") { client.messages().firstOrNull { "ket_keh.in_scenario" in it.text } }
+                assertNotNull(client.inventory(INV).firstOrNull { it?.id == Inferno.INFERNAL_CAPE }, "the cape kept in a setup")
             }
         }
     }

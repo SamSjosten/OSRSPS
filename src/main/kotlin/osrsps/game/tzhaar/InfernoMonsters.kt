@@ -83,7 +83,8 @@ class InfernoMonsters(private val world: World) {
             if (world.tick < still) return world.npcs.stopFollowing(npc)
             revivingUntil.remove(npc)
         }
-        val id = npc.type.id
+        // The Zuk wave's Jal-Xil and Jal-Zek fight as the others do.
+        val id = FINAL_WAVE[npc.type.id] ?: npc.type.id
         // The Jal-Xil's and Jal-Zek's melee reaches diagonals too, but not round a corner (Codex review on #833).
         val inReach = if (id == InfernoMonster.RANGER.type || id == InfernoMonster.MAGE.type) besideAny(npc, player) && world.meleeCombat.sees(npc, player) else world.meleeCombat.reaches(npc, player)
         val shoots = id != InfernoMonster.MELEE.type
@@ -281,7 +282,11 @@ class InfernoMonsters(private val world: World) {
     companion object {
         val SCRIPTED: Set<Int> = setOf(
             InfernoMonster.BAT.type, InfernoMonster.BLOB.type, InfernoMonster.MELEE.type, InfernoMonster.RANGER.type, InfernoMonster.MAGE.type,
+            InfernoZuk.FINAL_RANGER, InfernoZuk.FINAL_MAGER,
         )
+
+        /** The Zuk wave's sets, by the monster each fights as. */
+        private val FINAL_WAVE = mapOf(InfernoZuk.FINAL_RANGER to InfernoMonster.RANGER.type, InfernoZuk.FINAL_MAGER to InfernoMonster.MAGE.type)
 
         /** What a Jal-Zek can bring back: the wave's monsters but the Nibblers and Jal-Zeks (guessed). */
         val REVIVABLE: List<Int> = listOf(
