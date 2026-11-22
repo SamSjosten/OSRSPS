@@ -60,7 +60,9 @@ class Dialogues(
     fun resume(player: Player, interfaceId: Int, componentId: Int, sub: Int): Boolean {
         val opens = player.chatModalOpens
         if (!scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)) return false
-        if (player.chatModalOpens == opens) interfaces.closeChatModal(player)
+        // A script that went on to wait on something outside the chatbox (a menu in the main view, as the spirit trees'
+        // Talk-to opens) keeps waiting: only the old dialogue closes.
+        if (player.chatModalOpens == opens) interfaces.closeChatModal(player, dropScript = false)
         return true
     }
 
