@@ -44,7 +44,8 @@
     "NPCs and locs: random events step 5 (2026-11-19): Sergeant Damien (6743 out in the world, 337 in his camp), from his infobox; the four exercise mats (9313, 16508, 20801, 20810), from the Exercise mat page.",
     "NPCs and locs: random events step 6 (2026-11-19): Leo (6746 out in the world, 6745 in his graveyard), and the graveyard's gravestones (9359 to 9363), graves with a coffin (9364 to 9367, 10049), empty graves (10050 to 10054) and mausoleum (10055), from each page's infobox.",
     "NPCs: random events step 7 (2026-11-19): the mime (321), from the Mime page's infobox; the Mysterious Old Man's mime show form (6753) shares his examine.",
-    "NPCs: random events step 8 (2026-11-19): the Bee keeper (6747 out in the world, 3235 in his field), from his infobox."
+    "NPCs: random events step 8 (2026-11-19): the Bee keeper (6747 out in the world, 3235 in his field), from his infobox.",
+    "NPCs: random events step 9 (2026-11-19): Capt' Arnav (5426), from his infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -659,6 +660,7 @@
     {"npc": 5300, "name": "Mawrth"},
     {"npc": 5418, "name": "Guard"},
     {"npc": 5420, "name": "Watchman"},
+    {"npc": 5426, "name": "Capt' Arnav"},
     {"npc": 5436, "name": "Niles"},
     {"npc": 5437, "name": "Miles"},
     {"npc": 5438, "name": "Giles"},

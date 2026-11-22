@@ -758,6 +758,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   field and opens the beehive window; Confirm with the slots empty is wrong, Close and talking to him reopen it, and six
   wrong builds send the player back to 3222,3218 with nothing. Dragging the parts right is the headless test's part
   (and worth one try by hand while watching).
+- `random-events-capt-arnav.json`: random events step 9 (with `::keys on`): Capt' Arnav's lock opens, its arrows roll
+  the columns, and two Unlocks that are wrong (by chance; rerun if the first is right) bring his explanation, then send
+  him off with nothing. Matching the words is the headless test's part; the words themselves are still held empty.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
