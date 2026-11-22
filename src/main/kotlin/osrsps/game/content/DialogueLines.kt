@@ -46,6 +46,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
+import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
@@ -79,6 +80,7 @@ import osrsps.game.trade.TradeLines
 import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
 import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.InfernoZukLines
 import osrsps.game.tzhaar.KetKehLines
 import osrsps.game.tzhaar.MejJalLines
 
@@ -126,6 +128,7 @@ object DialogueLines {
         BlueMoonBarbarianLines,
         BoltEnchantLines,
         AlchemyLines,
+        SuperheatLines,
         BorkLines,
         DagonhaiLines,
         DreadnothLines,
@@ -139,6 +142,7 @@ object DialogueLines {
         MejJalLines,
         InfernoLines,
         KetKehLines,
+        InfernoZukLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -229,6 +233,7 @@ object DialogueLines {
         EvilDaveLines,
         Examines,
         FairyRingLines,
+        SpiritTreeLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
@@ -241,11 +246,13 @@ object DialogueLines {
         FriendsChatLines,
         FronkLines,
         GameLines,
+        GangHouseLines,
         GeClerkLines,
         GeeLines,
         GemTraderLines,
         GeneralMontoyaLines,
         GertrudeLines,
+        FluffsLines,
         GillieLines,
         GrandExchangeLines,
         GrayzagLines,
@@ -257,6 +264,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
+        MartinLines,
         MatthiasLines,
         MikasiLines,
         HaystackLines,
@@ -278,6 +286,7 @@ object DialogueLines {
         JonnyTheBeardLines,
         JulietLines,
         KarimLines,
+        KatrineLines,
         KebabLines,
         KingRoaldLines,
         LeelaLines,
@@ -328,6 +337,9 @@ object DialogueLines {
         JohanhusLines,
         JimmyTheChiselLines,
         KaramjaShipLines,
+        MusaPointLines,
+        MusaShopKeeperLines,
+        MusaShopAssistantLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
@@ -429,6 +441,7 @@ object DialogueLines {
         ShopLines,
         ShootingStarLines,
         SigurdLines,
+        SignpostLines,
         SilkTraderLines,
         SlayerLines,
         SlayerMasterLines,
@@ -438,10 +451,12 @@ object DialogueLines {
         XpLampLines,
         SlayerHelmetLines,
         KuradalLines,
+        KrystiliaLines,
         MazchnaLines,
         SteveLines,
         SmithingLines,
         SocialLines,
+        StravenLines,
         StrayDogLines,
         TanningLines,
         TassieSlipcastLines,
@@ -457,12 +472,15 @@ object DialogueLines {
         TrampLines,
         UrhneyLines,
         ValaineLines,
+        VarrockReadingLines,
         VarrockSearchLines,
         VarrockShopKeeperLines,
         VarrockSwordshopLines,
         VeronicaLines,
         WaterLines,
+        WeaponsmasterLines,
         WestBankDoorLines,
+        WildBushLines,
         WildernessDitchLines,
         WilfredLines,
         WiloughLines,

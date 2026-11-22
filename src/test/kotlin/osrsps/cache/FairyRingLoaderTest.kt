@@ -10,11 +10,16 @@ class FairyRingLoaderTest {
     private fun coord(x: Int, z: Int, level: Int) = (level shl 28) or (x shl 14) or z
 
     @Test
-    fun `a row reads as its code, state, landing and flags`() {
+    fun `a row reads as its code, state, landing, log entry and flags`() {
         // fairyrings_dlr: id 112, multiloc_state 22, 0_34_48_37_27, "D L R", badger2, no_staff_return.
         val row = DbRow(
             FairyRingLoader.TABLE,
-            mapOf(0 to listOf(112), 1 to listOf(22), 2 to listOf(coord(2213, 3099, 0)), 3 to listOf("D L R"), 9 to listOf(1234), 11 to listOf(1)),
+            mapOf(
+                0 to listOf(112), 1 to listOf(22), 2 to listOf(coord(2213, 3099, 0)), 3 to listOf("D L R"),
+                // The log's entry and its star as packed components; the line is a stand-in for the cache's words.
+                4 to listOf((381 shl 16) or 100), 5 to listOf((381 shl 16) or 101), 8 to listOf("<br>line"),
+                9 to listOf(1234), 11 to listOf(1),
+            ),
         )
         val code = FairyRingLoader.code(row)!!
         assertEquals(112, code.id)
@@ -23,6 +28,10 @@ class FairyRingLoaderTest {
         assertEquals(Destination(2213, 3099, 0), code.destination)
         assertEquals(1234, code.apparition)
         assertEquals(true, code.noStaffReturn)
+        assertEquals(100, code.textComponent)
+        assertEquals(101, code.faveIconComponent)
+        assertEquals("<br>line", code.description)
+        assertEquals("D L R", code.spaced)
     }
 
     @Test
@@ -35,5 +44,7 @@ class FairyRingLoaderTest {
         assertNull(aip.destination)
         assertEquals(false, aip.noStaffReturn)
         assertNull(aip.apparition)
+        assertEquals("", aip.description)
+        assertEquals(-1, aip.textComponent)
     }
 }

@@ -131,6 +131,10 @@ class Quests(val all: List<Quest>) {
             // Demon Slayer: Sir Prysin's sword case (qip_ds_silverlight_case) stands empty once he has handed over
             // Silverlight (inferred from its two forms, full and empty).
             2567 to 1,
+            // bolren_got_orbs: Tree Gnome Village ends with the orbs back with King Bolren, and his village's spirit tree
+            // (ent) shows Travel, Talk-to and Last-destination from 2, the lowest value whose form has them (inferred;
+            // [osrsps.game.content.SpiritTrees]).
+            598 to 2,
         )
 
         val NONE = Quests(emptyList())

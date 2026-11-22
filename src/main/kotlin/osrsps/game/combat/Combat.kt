@@ -483,7 +483,7 @@ class Combat(
             type == def.attackType -> def.attackBonus
             type == AttackType.MAGIC -> def.magicAttack
             type == AttackType.RANGED -> def.rangedAttack
-            else -> 0
+            else -> def.meleeAttack
         }
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, type), bonus),

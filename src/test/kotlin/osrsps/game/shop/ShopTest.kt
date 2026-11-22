@@ -83,6 +83,8 @@ class ShopTest {
         1917 to 2, 5763 to 2, 2142 to 4,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
+        // Zembo's beer and Karamjan rum (the 242 cache's values).
+        1917 to 2, 431 to 30,
     )
 
     /**
@@ -157,6 +159,7 @@ class ShopTest {
             NpcType(404, "Chaeldar", internalName = "slayer_master_4"),
             NpcType(6798, "Steve", internalName = "slayer_master_steve"),
             NpcType(13623, "Kuradal", internalName = "slayer_master_5_kuradal"),
+            NpcType(7663, "Krystilia", internalName = "slayer_master_7"),
             NpcType(2674, "Dreven", internalName = "farming_gardener_bush_1"),
             NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
             NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
@@ -165,6 +168,9 @@ class ShopTest {
             NpcType(1350, "Artimeus", internalName = "hunting_shop_owner_nardah"),
             NpcType(14832, "Elder Strom", internalName = "tortugan_strom_2ops"),
             NpcType(3218, "Bea", internalName = "baw_bea_3ops"),
+            NpcType(2825, "Shop keeper", internalName = "generalshopkeeper7"),
+            NpcType(2826, "Shop assistant", internalName = "generalassistant7"),
+            NpcType(13655, "Zembo", internalName = "zembo"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -249,6 +255,9 @@ class ShopTest {
         "beas_hunting_gear" to listOf(1, 780, 5, 6, 41, 65, 5, 19, 41, 656, 4160, 78000),
         // Lundail's Arena-side Rune Shop., read 2026-11-15.
         "lundails_arena_side_rune_shop" to listOf(4, 4, 4, 4, 3, 3, 180, 90, 240, 50, 180, 430, 430, 430, 430, 330, 9950),
+        // Musa Point's shops, read 2026-11-17.
+        "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
+        "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
     )
 
     @Test
@@ -287,14 +296,14 @@ class ShopTest {
         assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key }.all { it.currency == ShopScreen.COINS })
         // Her sales alone go in the collection log (its Rooftop Agility page).
         assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
-        // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies and the Sheared Ram buy nothing; no other
-        // shop refuses anything.
+        // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies and the Sheared
+        // Ram buy nothing; no other shop refuses anything.
         val farmingSupplies = shops["farming_supplies"]!!
         assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
         val shearedRam = shops["sheared_ram"]!!
         assertEquals(shearedRam, shops.ofNpc(7546))
         assertEquals(
-            mapOf("al_kharid_general_store" to setOf(950), "sheared_ram" to setOf(1917, 5763, 2142), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()),
+            mapOf("al_kharid_general_store" to setOf(950), "karamja_wines_spirits_and_beers" to setOf(431), "sheared_ram" to setOf(1917, 5763, 2142), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()),
             shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses },
         )
         // Slayer Equipment buys back its witchwood icon, which no one can trade, at 60% (no buy=N/A on the Wiki's line).

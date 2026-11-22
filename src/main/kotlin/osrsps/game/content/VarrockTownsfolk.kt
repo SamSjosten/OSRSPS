@@ -185,6 +185,12 @@ object VarrockTownsfolk {
     const val JONNY_THE_BEARD = 14138
     const val IFFIE = 2899
     const val TOWN_CRIER = 276
+
+    /**
+     * pmod_town_crier_draynor, in Draynor's market (Wiki, Town Crier). Inferred: he talks as the Varrock one does, as the
+     * Wiki has one Town Crier page and one transcript for them all.
+     */
+    const val TOWN_CRIER_DRAYNOR = 277
     const val TALK_TO = 1
     const val KITTEN_OP = 3
 
@@ -407,5 +413,6 @@ fun registerVarrockTownsfolk(world: World) {
         line(JONNY_THE_BEARD, ChatAnim.ANGRY, JonnyTheBeardLines.NOT_INTERESTED)
         talk(IFFIE) { iffie() }
         talk(TOWN_CRIER) { townCrier() }
+        talk(TOWN_CRIER_DRAYNOR) { townCrier() }
     }
 }

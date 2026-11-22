@@ -61,6 +61,10 @@ internal fun resetScenario(world: World, player: Player): String {
     // A stopped Hunter run's traps come down too, so none stands for the next script.
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
+    // A Fight Cave or Inferno run of the setup's ends first, keeping the run saved from before: ended later, by the
+    // process seeing them leave, it would forget the run restoreTo just put back (exploit review R45B-5).
+    world.fightCaves.endRun(player)
+    world.inferno.endRun(player)
     before.restoreTo(player)
     // A trail being followed ends, and the restored varbits show none of its footprints.
     world.hunter.tracking.forget(player)
