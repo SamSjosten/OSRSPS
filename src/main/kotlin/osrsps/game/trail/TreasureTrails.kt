@@ -61,7 +61,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 
 /**
  * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
- * caskets (TT2), the talk and search steps (TT3), and the emote steps with Uri (TT4). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4) and the STASH units ([StashUnits], TT5). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
@@ -115,6 +115,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     private val pools: Map<TrailTier, List<ClueStep>> = TrailTier.entries.associateWith { tier -> data.tier(tier).filter(::built) }
 
     fun pool(tier: TrailTier): List<ClueStep> = pools.getValue(tier)
+
+    /** The STASH units of the built regions (TT5). */
+    val stashes = StashUnits(world, data)
 
     /** The step each challenge scroll belongs to. */
     private val byChallenge: Map<Int, ClueStep> = data.steps.values.filter { it.challengeItem >= 0 }.associateBy { it.challengeItem }
@@ -606,7 +609,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     }
 }
 
-/** Scroll boxes, clue scrolls, reward caskets, scroll cases and the spade. */
+/** Scroll boxes, clue scrolls, reward caskets, scroll cases, the spade, Uri and the STASH units. */
 fun registerTreasureTrails(world: World) {
     val trails = world.trails
     for (tier in TrailTier.entries) {
@@ -626,6 +629,10 @@ fun registerTreasureTrails(world: World) {
     // Talk and search steps take their NPC's or loc's click ahead of its own handler.
     world.handlers.first(trails::intercept)
     for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }
+    for (stash in trails.stashes.units.values) {
+        world.handlers.onLoc(stash.loc, StashUnits.BUILD) { trails.stashes.build(this, stash) }
+        world.handlers.onLoc(stash.loc, StashUnits.SEARCH) { trails.stashes.search(this, stash) }
+    }
     for (scroll in trails.data.steps.values.map { it.challengeItem }.filter { it >= 0 }.distinct()) {
         world.handlers.onObj(scroll, 1) { op -> trails.read(this, op.sub) }
     }

@@ -20,13 +20,15 @@ class Trail(var step: String, val length: Int, val done: MutableList<String> = A
 
 /**
  * A player's trails under way, one per tier at most, the caskets they have opened of each tier, and the scroll cases
- * they have opened (each raising the tier's cap by one). Saved.
+ * they have opened (each raising the tier's cap by one), and what their STASH units hold. Saved.
  */
 class TrailProgress {
     private val trails = HashMap<TrailTier, Trail>()
     private val completed = HashMap<TrailTier, Int>()
     /** The scroll cases opened, by item id. */
     val cases: MutableSet<Int> = HashSet()
+    /** What each filled STASH unit holds, by the unit's loc id. Which units are built is the units' own varbits. */
+    val stashes: MutableMap<Int, List<Int>> = HashMap()
 
     /** Caskets of [tier] opened: the Wiki's completed count. */
     fun completed(tier: TrailTier): Int = completed[tier] ?: 0
@@ -41,7 +43,7 @@ class TrailProgress {
         if (trail == null) trails.remove(tier) else trails[tier] = trail
     }
 
-    val isEmpty: Boolean get() = trails.isEmpty() && completed.isEmpty() && cases.isEmpty()
+    val isEmpty: Boolean get() = trails.isEmpty() && completed.isEmpty() && cases.isEmpty() && stashes.isEmpty()
 
     fun all(): Map<TrailTier, Trail> = trails.toSortedMap()
 
@@ -52,6 +54,8 @@ class TrailProgress {
         completed.putAll(other.completed)
         cases.clear()
         cases.addAll(other.cases)
+        stashes.clear()
+        stashes.putAll(other.stashes)
     }
 
     fun copy(): TrailProgress = TrailProgress().also { it.replaceWith(this) }
@@ -59,11 +63,14 @@ class TrailProgress {
 
 /**
  * A save's `trails`: `{"easy": {"step": "map:107", "length": 3, "done": ["cryptic:52"]}, "completed": {"easy": 12},
- * "cases": [30906]}`.
+ * "cases": [30906], "stashes": {"34737": [1635, 1654]}}`.
  */
 object TrailSaves {
     /** The most steps any trail has: a save claiming more is cut to this. */
     private const val MAX_LENGTH = 8
+
+    /** The most items a STASH unit holds: one per equipment slot. */
+    private const val MAX_STASH = TrailOutfit.EQUIPMENT_SLOTS
 
     fun toJson(progress: TrailProgress): JsonObject = buildJsonObject {
         for ((tier, trail) in progress.all()) {
@@ -76,10 +83,14 @@ object TrailSaves {
         val counts = TrailTier.entries.filter { progress.completed(it) > 0 }
         if (counts.isNotEmpty()) putJsonObject(COMPLETED) { for (tier in counts) put(tier.key, progress.completed(tier)) }
         if (progress.cases.isNotEmpty()) putJsonArray(CASES) { progress.cases.sorted().forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } }
+        if (progress.stashes.isNotEmpty()) putJsonObject(STASHES) {
+            for ((loc, items) in progress.stashes.toSortedMap()) putJsonArray(loc.toString()) { items.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } }
+        }
     }
 
     private const val COMPLETED = "completed"
     private const val CASES = "cases"
+    private const val STASHES = "stashes"
 
     fun fromJson(json: JsonObject): TrailProgress {
         val progress = TrailProgress()
@@ -87,6 +98,10 @@ object TrailSaves {
             TrailTier.byKey(key)?.let { progress.setCompleted(it, value.jsonPrimitive.int) }
         }
         json[CASES]?.jsonArray?.forEach { progress.cases += it.jsonPrimitive.int }
+        json[STASHES]?.jsonObject?.forEach { (loc, items) ->
+            val id = loc.toIntOrNull() ?: return@forEach
+            progress.stashes[id] = items.jsonArray.map { it.jsonPrimitive.int }.take(MAX_STASH)
+        }
         for ((key, value) in json) {
             val tier = TrailTier.byKey(key) ?: continue
             val entry = value.jsonObject

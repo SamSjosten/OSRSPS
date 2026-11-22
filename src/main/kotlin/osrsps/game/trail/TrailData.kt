@@ -141,6 +141,8 @@ data class ClueStep(
     val emotes: List<Int> = emptyList(),
     /** What an emote step has the player wear: any one of these, none for no rule. */
     val outfits: List<TrailOutfit> = emptyList(),
+    /** The STASH unit for the step's items (the clue helper's hidey_hole_loc), -1 for none. */
+    val stash: Int = -1,
 ) {
     /** How a save and `::clue` name the step: `map:107`. */
     val key: String get() = "${type.key}:$id"

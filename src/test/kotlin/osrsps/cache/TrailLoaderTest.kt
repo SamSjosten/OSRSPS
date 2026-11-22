@@ -33,7 +33,7 @@ class TrailLoaderTest {
         // A medium anagram whose NPC asks a question with two right answers, on a challenge scroll of its own.
         26 to DbRow(StepType.ANAGRAM.table, mapOf(0 to listOf(55), 1 to listOf(2), 2 to listOf("A NAGRAM"), 3 to listOf(11), 4 to listOf(30), 5 to listOf(1))),
         // A beginner emote (raspberry, emote 19) in a gold necklace and gold ring, or any ring of dueling (group 18) on the ring slot.
-        27 to DbRow(StepType.EMOTE.table, mapOf(0 to listOf(273), 1 to listOf(0), 2 to listOf("Blow a raspberry."), 3 to listOf(10), 4 to listOf(19), 6 to listOf(31, 32), 11 to listOf(1))),
+        27 to DbRow(StepType.EMOTE.table, mapOf(0 to listOf(273), 1 to listOf(0), 2 to listOf("Blow a raspberry."), 3 to listOf(10), 4 to listOf(19), 6 to listOf(31, 32), 7 to listOf(34736), 11 to listOf(1))),
         31 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a necklace and ring"), 3 to listOf(1654), 10 to listOf(1635))),
         32 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a dueling ring"), 21 to listOf(18))),
         30 to DbRow(TrailLoader.CHALLENGE_QUESTION, mapOf(0 to listOf("How many?", 19, "How many?", 20))),
@@ -63,9 +63,10 @@ class TrailLoaderTest {
     }
 
     @Test
-    fun `an emote step has its emotes and outfits, by equipment slot and item group`() {
+    fun `an emote step has its emotes, outfits by equipment slot and item group, and STASH unit`() {
         val emote = data["emote:273"]!!
         assertEquals(listOf(19), emote.emotes)
+        assertEquals(34736, emote.stash)
         assertEquals(listOf(TrailOutfit("a necklace and ring", items = mapOf(2 to setOf(1654), 12 to setOf(1635))), TrailOutfit("a dueling ring", groups = mapOf(12 to 18))), emote.outfits)
         val necklace = emote.outfits[0]
         assertTrue(necklace.fits({ mapOf(2 to 1654, 12 to 1635, 0 to 1137)[it] }) { null })
@@ -84,12 +85,13 @@ class TrailLoaderTest {
     }
 
     @Test
-    fun `a trail under way, the caskets opened and the scroll cases opened survive a save`() {
+    fun `a trail under way, the caskets opened, the scroll cases opened and the STASH units' items survive a save`() {
         val progress = TrailProgress()
         progress[TrailTier.EASY] = Trail("map:107", 3, mutableListOf("cryptic:636"))
         progress[TrailTier.BEGINNER] = Trail("map:101", 1)
         progress.setCompleted(TrailTier.HARD, 51)
         progress.cases += 30914
+        progress.stashes[34736] = listOf(1654, 1635)
         val back = TrailSaves.fromJson(TrailSaves.toJson(progress))
         assertEquals("map:107", back[TrailTier.EASY]!!.step)
         assertEquals(3, back[TrailTier.EASY]!!.length)
@@ -99,5 +101,6 @@ class TrailLoaderTest {
         assertEquals(51, back.completed(TrailTier.HARD))
         assertEquals(0, back.completed(TrailTier.EASY))
         assertEquals(setOf(30914), back.cases)
+        assertEquals(mapOf(34736 to listOf(1654, 1635)), back.stashes)
     }
 }
