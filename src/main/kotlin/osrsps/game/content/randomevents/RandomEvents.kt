@@ -339,7 +339,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
             // An NPC can't change level in place: a fresh one takes its place beside the player.
             val type = it.npc.type
             val npc = world.spawnNpc(NpcSpawn(type, x, z, owner.level, source = it.npc.spawn.source, respawns = false)) ?: return null
-            val moved = Out(it.owner, it.ownerName, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag }
+            val moved = Out(it.owner, it.ownerName, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag; m.state = it.state }
             out.remove(it.npc)
             world.removeNpc(it.npc)
             out[npc] = moved

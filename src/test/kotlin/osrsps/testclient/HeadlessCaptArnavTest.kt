@@ -187,4 +187,36 @@ class HeadlessCaptArnavTest {
             }
         }
     }
+
+    @Test
+    fun `climbing to another level after a wrong try keeps the lock and the try`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                client.start("carol")
+                val words = client.wanted()
+                client.wrong()
+                val turned = (0 until 3).map { client.column(it) }
+                client.awaitDialogue("his explanation") { it is DialogueView.Chat && it.text == "[capt_arnav.nowhere_near]" }
+                client.closeModal()
+                client.over()
+                client.command("tele 3222 3218 1")
+                client.await("upstairs") { client.position?.takeIf { it == Coord(3222, 3218, 1) } }
+                val again = client.await("Capt' Arnav upstairs") { client.npcs().firstOrNull { it.id == CaptArnav.npcId } }
+                client.npcOp(again.index, RandomEvents.TALK_TO)
+                client.chat("[capt_arnav.dug_up]")
+                client.chat("[capt_arnav.fiddly]")
+                client.awaitDialogue("the options") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.chat("[capt_arnav.yes]")
+                client.chat("[capt_arnav.columns]")
+                client.lock()
+                assertEquals(words, client.wanted())
+                assertEquals(turned, (0 until 3).map { client.column(it) })
+                client.wrong()
+                client.awaitDialogue("his last line") { it is DialogueView.Chat && it.text == "[capt_arnav.someone_else]" }
+                assertEquals(0, client.items())
+            }
+        }
+    }
 }
