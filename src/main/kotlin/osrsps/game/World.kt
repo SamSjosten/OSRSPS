@@ -423,6 +423,8 @@ class World(
     private val cycleMillis: Long = TICK_MILLIS,
     /** The cache's identity kits, which ::look and the makeover screens check kits against. */
     val idkTypes: IdkTypes = IdkTypes.NONE,
+    /** The makeover screen's pages, from the cache; tests that open it pass their own. */
+    val makeoverCatalog: osrsps.game.look.MakeoverCatalog = osrsps.game.look.MakeoverCatalog.NONE,
 ) : GameConnectionHandler<Player> {
     /**
      * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
@@ -2389,10 +2391,12 @@ class World(
         sendLook(player)
     }
 
-    /** Puts [player]'s look in their appearance block; RSProt sends it only when something in it changed. */
-    private fun sendLook(player: Player) {
+    /**
+     * Puts [look] (the player's own by default) in [player]'s appearance block without keeping it, as a makeover's
+     * preview does; RSProt sends it only when something in it changed.
+     */
+    fun sendLook(player: Player, look: PlayerLook = player.look) {
         val appearance = player.infos.playerInfo.avatar.extendedInfo
-        val look = player.look
         appearance.setBodyType(look.bodyType)
         appearance.setPronoun(look.pronoun)
         look.kits.forEachIndexed { part, kit -> appearance.setIdentKit(part, kit) }
@@ -2810,6 +2814,7 @@ class World(
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
+        if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -3048,6 +3053,12 @@ class World(
             // -1 is the script's null colour, which it draws in its default orange.
             interfaces.runClientScript(player, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY_INIT, listOf(title, text, -1))
         },
+    )
+
+    /** The makeover screen; see [osrsps.game.look.MakeoverScreen]. Thessalia's line after a Confirm is hers. */
+    val makeoverScreen = osrsps.game.look.MakeoverScreen(
+        { makeoverCatalog }, interfaces, show = { player, look -> sendLook(player, look) }, keep = ::setLook,
+        confirmed = { player, _, by -> (by as? Npc)?.let { osrsps.game.content.VarrockStores.compliment(this, player, it) } },
     )
 
     /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
@@ -3599,6 +3610,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)

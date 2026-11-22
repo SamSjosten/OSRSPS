@@ -24,8 +24,15 @@ data class PlayerLook(val bodyType: Int, val kits: List<Int>, val colours: List<
 
     /** The seven body parts' order in the appearance block's identity kits. */
     object BodyPart {
+        const val HAIR = 0
+
         /** The jaw, the one part a look can leave empty (kit -1). */
         const val JAW = 1
+        const val TORSO = 2
+        const val ARMS = 3
+        const val HANDS = 4
+        const val LEGS = 5
+        const val FEET = 6
         const val COUNT = 7
 
         val NAMES = listOf("hair", "jaw", "torso", "arms", "hands", "legs", "feet")
