@@ -179,14 +179,21 @@ class HeadlessHouseTest {
                 // Building mode off: the exit portal on the centrepiece, the garden's door hotspots and the chair space
                 // gone, the parlour's south door onto the garden a door, its west and east sides walls.
                 val parlourZ = gardenZ + 8
-                client.await("the house's own locs") { if (client.shown(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3)) Unit else null }
-                assertTrue(client.shown(-1, gardenX + 3, gardenZ + 7), "the garden's north door hotspot goes")
-                assertTrue(client.shown(-1, gardenX + 2, parlourZ + 4), "the chair space goes")
+                // Each cell's locs come in their own zone update, so wait for all of them, not just the garden's (a CI
+                // run once saw the parlour's arrive after the portal's).
                 // Its right leaf is on the left hotspot's tile: the double door's leaves go clockwise along the wall.
-                assertTrue(client.shown(House.DOOR_RIGHT, gardenX + 3, parlourZ), "the parlour's south door")
-                assertTrue(client.shown(House.DOOR_LEFT, gardenX + 4, parlourZ), "the parlour's south door")
-                assertTrue(client.shown(House.WALL, gardenX, parlourZ + 4), "the parlour's west wall")
-                assertTrue(client.shown(House.WALL, gardenX + 7, parlourZ + 3), "the parlour's east wall")
+                val expected = listOf(
+                    Triple(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3) to "the exit portal",
+                    Triple(-1, gardenX + 3, gardenZ + 7) to "the garden's north door hotspot goes",
+                    Triple(-1, gardenX + 2, parlourZ + 4) to "the chair space goes",
+                    Triple(House.DOOR_RIGHT, gardenX + 3, parlourZ) to "the parlour's south door",
+                    Triple(House.DOOR_LEFT, gardenX + 4, parlourZ) to "the parlour's south door",
+                    Triple(House.WALL, gardenX, parlourZ + 4) to "the parlour's west wall",
+                    Triple(House.WALL, gardenX + 7, parlourZ + 3) to "the parlour's east wall",
+                )
+                client.await("the house's own locs: ${expected.map { it.second }}") {
+                    if (expected.all { (loc, _) -> client.shown(loc.first, loc.second, loc.third) }) Unit else null
+                }
 
                 // The parlour's door opens as a double door, the house's own.
                 client.locOp(House.DOOR_LEFT, gardenX + 4, parlourZ, 1)
