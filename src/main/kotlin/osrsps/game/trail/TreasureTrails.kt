@@ -13,6 +13,10 @@ import osrsps.game.FrameSlot
 import osrsps.game.GroundObjs
 import osrsps.game.combat.Drop
 import osrsps.game.sendInventory
+import osrsps.game.dialogue.ChatAnim
+import osrsps.game.script.Handler
+import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
 
 /** Treasure Trails' messages and item boxes. The clue words themselves come from the cache ([TrailLoader]). */
 object TrailLines : Lines("trail", "Treasure Trails") {
@@ -36,6 +40,11 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val COMPLETED = line("completed", "after well_done, in red: the caskets of the tier opened so far (tier is easy, medium and so on)", "count", "tier")
     val WORTH = line("worth", "after completed, in red: the reward's Grand Exchange value, with commas", "value")
     val CASE_OPENED = line("case_opened", "opening a scroll case: the tier's cap is one higher (no source seen)")
+    val NPC_CLUE = line("npc_clue", "a talk step's NPC, handing over the next clue (no source seen)")
+    val NPC_CHALLENGE = line("npc_challenge", "a talk step's NPC, handing over a challenge scroll with a question to answer (no source seen)")
+    val CHALLENGE_PROMPT = line("challenge_prompt", "the number prompt for a challenge scroll's answer (no source seen)")
+    val NPC_WRONG = line("npc_wrong", "a talk step's NPC, after a wrong answer to the challenge scroll (no source seen)")
+    val NPC_RIGHT = line("npc_right", "a talk step's NPC, after the right answer, before the next clue (no source seen)")
 
     fun suspicion(tier: TrailTier) = when (tier) {
         TrailTier.BEGINNER -> SUSPICION_BEGINNER
@@ -48,8 +57,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 }
 
 /**
- * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), and the reward
- * caskets (TT2). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
+ * caskets (TT2), and the talk and search steps (TT3). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
@@ -66,6 +75,11 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  * - Dig (a spade's op1) plays human_dig and, within a tile of a dig step's spot (2004Scape's spade script, after
  *   videos of the live game), solves it; elsewhere nothing interesting happens. A solved step swaps the scroll for the
  *   next one, shown in an item box; the last gives the tier's reward casket instead.
+ * - Talk-to on a talk step's NPC (an anagram's, a cipher's, a cryptic's) with its clue in the backpack takes the click
+ *   from the NPC's own talk ([intercept]) and gives the next clue; Search or Open on a search step's loc likewise. An
+ *   NPC with a challenge question (the clue helper's challenge column) first hands over its challenge scroll, then
+ *   takes the answer as a number when talked to again, any of the cache's answers right and a wrong one free. A
+ *   step whose NPC isn't spawned or whose loc isn't on its tile never comes up ([available]).
  * - Open on a reward casket counts the trail done and rolls its rewards ([TrailRewards]: the Wiki's tables, its
  *   1/50 to 1/5 master clue as a master scroll box); the reward screen shows them and the chat says "Well done", the
  *   count and the value. The tier's minor and major scroll cases come with every casket from their count on until
@@ -79,7 +93,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  * Guessed: the trail length and a casket's roll count are uniform in their ranges and every built step equally likely
  * (the Wiki gives only ranges and averages); rewards go straight into the backpack, what doesn't fit on the floor, the
  * reward screen only showing them; a scroll case held but not opened isn't given again; the value is the guide prices'
- * sum; no
+ * sum; Search and Open both search a step's loc; the NPC's chathead moods; the challenge scroll used up on the right
+ * answer; no
  * message on opening a box; one item box per solved step; a box that would pass the cap being kept from the drop (the
  * Wiki's warning setting on); the first item of a step with several. Left out until their steps: a second clue picked
  * up past the cap, the clue box's death rule, the Mimic and its scroll case, the emote milestones (Explore, Uri
@@ -91,6 +106,26 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     private val pools: Map<TrailTier, List<ClueStep>> = TrailTier.entries.associateWith { tier -> data.tier(tier).filter(::built) }
 
     fun pool(tier: TrailTier): List<ClueStep> = pools.getValue(tier)
+
+    /** The step each challenge scroll belongs to. */
+    private val byChallenge: Map<Int, ClueStep> = data.steps.values.filter { it.challengeItem >= 0 }.associateBy { it.challengeItem }
+
+    private val availability = HashMap<String, Boolean>()
+
+    /**
+     * Whether [step]'s target is in the world: a talk step's NPC spawned somewhere, a search step's loc on its tile.
+     * Checked once a step, the first time it could come up, so a step whose NPC or loc isn't built never does.
+     */
+    fun available(step: ClueStep): Boolean = availability.getOrPut(step.key) {
+        when (val target = step.targets.first()) {
+            is TrailTarget.Npc -> world.npcs.all.any { it.type.id == target.npc || it.type.id == target.fallbackNpc }
+            is TrailTarget.Loc -> world.locs.at(target.tile.x, target.tile.z, target.tile.level).any { it.id == target.loc || it.id == target.fallbackLoc }
+            else -> true
+        }
+    }
+
+    /** The steps of [tier] that can come up now: built and [available]. */
+    fun ready(tier: TrailTier): List<ClueStep> = pool(tier).filter(::available)
 
     /**
      * The tier of clue scroll [obj] is, null if it isn't one: a step's own item, a shared scroll, or any other item
@@ -136,7 +171,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
 
     /** Starts a new trail of [tier] for [player] at [first] (a random built step when null), returning its clue item. */
     fun start(player: Player, tier: TrailTier, first: ClueStep? = null): Int? {
-        val pool = pool(tier)
+        val pool = ready(tier)
         val step = first ?: pool.randomOrNull() ?: return null
         // Temporary (Sam, 19 Nov 2026): no longer than the steps built, so a trail never repeats a step.
         val length = world.random.between(tier.minSteps, tier.maxSteps).coerceAtMost(maxOf(pool.size, 1))
@@ -180,6 +215,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     fun read(context: ScriptContext, slot: Int) {
         val player = context.player
         val obj = player.inventory[slot]?.id ?: return
+        byChallenge[obj]?.let { step ->
+            val question = step.challenge as? TrailChallenge.Question ?: return
+            world.interfaces.openModal(player, FrameSlot.MAINMODAL, CLUE_TEXT)
+            world.interfaces.setText(player, CLUE_TEXT, CLUE_TEXT_WORDS, question.text)
+            return
+        }
         val tier = tierOf(obj) ?: return
         val step = stepOf(player, tier, obj) ?: return
         val map = mapInterface(step)
@@ -229,13 +270,84 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         world.message(player, GameLines.NOTHING_INTERESTING)
     }
 
+    /**
+     * The clue step [player]'s click takes, if any: Talk-to on a talk step's NPC, or Search or Open on a search step's
+     * loc, while the step's clue scroll is in the backpack. Registered as a first check, so it comes before the NPC's or
+     * loc's own handler.
+     */
+    fun intercept(player: Player, op: Op): Handler? {
+        val target = when (op.target) {
+            OpTarget.NPC -> if (world.npcTypes[op.id]?.op(op.option) == TALK) op else return null
+            OpTarget.LOC -> if (world.locs.types[op.id]?.ops?.getOrNull(op.option - 1) in SEARCH_OPS) op else return null
+            else -> return null
+        }
+        for ((slot, obj) in player.inventory.contents()) {
+            val tier = tierOf(obj.id) ?: continue
+            if (obj.id in byChallenge) continue
+            val step = stepOf(player, tier, obj.id) ?: continue
+            if (step !in pool(tier)) continue
+            when (val goal = step.targets.first()) {
+                is TrailTarget.Npc -> if (target.target == OpTarget.NPC && (op.id == goal.npc || op.id == goal.fallbackNpc || target.npc?.type?.id == goal.npc)) {
+                    val npc = target.npc ?: continue
+                    return { talk(this, npc, tier, step) }
+                }
+                is TrailTarget.Loc -> {
+                    val loc = target.loc ?: continue
+                    if (target.target == OpTarget.LOC && loc.x == goal.tile.x && loc.z == goal.tile.z && loc.level == goal.tile.level) {
+                        return { solve(this, slot, tier, step) }
+                    }
+                }
+                else -> {}
+            }
+        }
+        return null
+    }
+
+    /**
+     * A talk step's NPC, spoken to with its clue: the next clue, or first a challenge scroll whose question the player
+     * answers when they talk again (the Wiki's Challenge scroll page: "talk to the NPC again after receiving the scroll
+     * to answer", no penalty for a wrong answer).
+     */
+    suspend fun talk(context: ScriptContext, npc: osrsps.game.npc.Npc, tier: TrailTier, step: ClueStep) {
+        val player = context.player
+        val question = step.challenge as? TrailChallenge.Question
+        if (question == null || step.challengeItem < 0) {
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_CLUE) }
+            solve(context, clueSlot(player, tier) ?: return, tier, step)
+            return
+        }
+        if (!holds(player, step.challengeItem)) {
+            val scroll = world.objTypes[step.challengeItem] ?: return
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_CHALLENGE) }
+            if (player.inventory.add(scroll, 1) == 0) world.message(player, GameLines.NO_SPACE)
+            return
+        }
+        val answer = context.countDialog(world.textFor(player)[TrailLines.CHALLENGE_PROMPT])
+        if (answer !in question.answers) {
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.CONFUSED, TrailLines.NPC_WRONG) }
+            return
+        }
+        world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_RIGHT) }
+        // Only once the step goes on is the challenge scroll used up, from the backpack or else the bank, so leaving the
+        // dialogue above keeps it. Guessed: live takes it back as well.
+        val slot = clueSlot(player, tier) ?: return
+        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem)) return
+        val held = player.inventory.contents().firstOrNull { it.second.id == step.challengeItem }
+        if (held != null) player.inventory.remove(held.first, 1) else removeFromBank(player, step.challengeItem)
+        solve(context, slot, tier, step)
+    }
+
+    /** Where [tier]'s clue scroll is in the backpack now: it may have moved while a dialogue was open. */
+    private fun clueSlot(player: Player, tier: TrailTier): Int? =
+        player.inventory.contents().firstOrNull { (_, obj) -> obj.id !in byChallenge && tierOf(obj.id) == tier }?.first
+
     /** [step] of the clue in [slot] is done: the next clue, or the reward casket after the last. */
     suspend fun solve(context: ScriptContext, slot: Int, tier: TrailTier, step: ClueStep) {
         val player = context.player
         val trail = player.trails[tier] ?: return
         if (trail.step != step.key) return
         trail.done += step.key
-        val next = pool(tier).filter { it.key !in trail.done }
+        val next = ready(tier).filter { it.key !in trail.done }
         if (trail.done.size >= trail.length || next.isEmpty()) {
             player.trails[tier] = null
             player.inventory.remove(slot)
@@ -282,6 +394,11 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         // Coins count at face value: they have no guide price.
         val value = drops.sumOf { (if (it.type.id == COINS) 1L else world.itemPrices.price(it.type) ?: 0L) * it.count }
         world.message(player, TrailLines.WORTH, "value" to "%,d".format(value))
+    }
+
+    private fun removeFromBank(player: Player, id: Int) {
+        val slot = player.bank.contents().firstOrNull { it.second.id == id }?.first ?: return
+        player.bank.remove(slot, 1)
     }
 
     private fun holds(player: Player, id: Int) = player.inventory.count(id) > 0 || player.bank.count(id) > 0
@@ -336,6 +453,13 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         const val SPADE = 952
         const val DIG_RANGE = 1
 
+        /** The NPC option a talk step takes, and the loc options a search step takes (guessed: either works). */
+        const val TALK = "Talk-to"
+        val SEARCH_OPS = setOf("Search", "Open")
+
+        /** The kinds of step whose NPC or loc TT3 builds; Charlie's, Falo's, emotes and the rest come in their own steps. */
+        val TALK_TYPES = setOf(StepType.ANAGRAM, StepType.CIPHER, StepType.CRYPTIC, StepType.MAP)
+
         /** Every clue scroll's op1. */
         private const val READ = "Read"
 
@@ -345,10 +469,11 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         private val COORDINATE = Regex("""(\d+)\.(\d+)([NS]) (\d+)\.(\d+)([EW])""")
 
         /**
-         * Map clue items and the interface each shows. 2713, 2716, 2827: 2004Scape's trail scripts (trail_map01, 02,
-         * 03). 3518 (Wizards' Tower): inferred, trail_map11 being the beginner map RuneLite places there.
+         * Map clue items and the interface each shows. 2713, 2716, 2827, 2722: 2004Scape's trail scripts (trail_map01,
+         * 02, 03, 05; map05 is 350 in RuneLite's InterfaceID). 3518 (Wizards' Tower): inferred, trail_map11 being the
+         * beginner map RuneLite places there.
          */
-        val MAPS: Map<Int, Int> = mapOf(2713 to 346, 2716 to 347, 2827 to 348, 3518 to 356)
+        val MAPS: Map<Int, Int> = mapOf(2713 to 346, 2716 to 347, 2827 to 348, 2722 to 350, 3518 to 356)
 
         /**
          * Beginner map steps (the clue helper's id) and their interfaces, from RuneLite's BeginnerMapClue: Champions'
@@ -362,12 +487,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
          */
         /**
          * Whether [step] can come up yet: inside the regions built so far and of a kind built so far. TT1 builds the
-         * dig steps (a map, a coordinate without a fight, a cryptic dig) in Misthalin.
+         * dig steps (a map, a coordinate without a fight, a cryptic dig) in Misthalin; TT3 the talk steps (an NPC,
+         * with or without a challenge scroll's question) and the search steps (a loc that needs no key).
          */
         fun built(step: ClueStep): Boolean {
             val target = step.targets.firstOrNull() ?: return false
-            if (!inBuiltRegion(target.tile)) return false
-            return isDig(step) && !step.combat
+            if (!inBuiltRegion(target.tile) || step.combat || step.targets.size != 1) return false
+            if (step.challenge is TrailChallenge.Box) return false
+            return isDig(step) || (step.type in TALK_TYPES && (target is TrailTarget.Npc || target is TrailTarget.Loc))
         }
 
         fun isDig(step: ClueStep): Boolean =
@@ -398,4 +525,9 @@ fun registerTreasureTrails(world: World) {
         world.handlers.onObj(item, 2) { op -> trails.checkSteps(this, op.sub) }
     }
     world.handlers.onObj(TreasureTrails.SPADE, 1) { trails.dig(this) }
+    // Talk and search steps take their NPC's or loc's click ahead of its own handler.
+    world.handlers.first(trails::intercept)
+    for (scroll in trails.data.steps.values.map { it.challengeItem }.filter { it >= 0 }.distinct()) {
+        world.handlers.onObj(scroll, 1) { op -> trails.read(this, op.sub) }
+    }
 }

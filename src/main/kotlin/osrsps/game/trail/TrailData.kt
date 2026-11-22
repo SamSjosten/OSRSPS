@@ -84,11 +84,21 @@ sealed interface TrailTarget {
     data class Kill(val npcs: List<Int>, override val tile: TrailTile) : TrailTarget
 }
 
+/** What a step's target asks before it gives the next clue (the clue helper's challenge column). */
+sealed interface TrailChallenge {
+    /** A question to answer with a number, any of [answers] right (cluehelper_challenge_question). */
+    data class Question(val text: String, val answers: Set<Int>) : TrailChallenge
+
+    /** A puzzle box or light box to solve (cluehelper_challenge_box). */
+    data class Box(val description: String) : TrailChallenge
+}
+
 /**
  * One clue step, as Jagex's own clue helper lists it in the cache: [id] is the row's own id column (stable across
  * caches, unlike the row's number), [text] the clue's words (null for maps and hot-cold steps, which show no text),
  * [items] the step's own clue scroll items (empty for beginner and master steps, which share one), [combat] whether a
- * fight comes with it (a coordinate's wizard, an emote's double agent).
+ * fight comes with it (a coordinate's wizard, an emote's double agent), [challenge] what the target asks first and
+ * [challengeItem] the challenge scroll that carries a question (-1 for none).
  */
 data class ClueStep(
     val type: StepType,
@@ -98,6 +108,8 @@ data class ClueStep(
     val targets: List<TrailTarget>,
     val items: List<Int> = emptyList(),
     val combat: Boolean = false,
+    val challenge: TrailChallenge? = null,
+    val challengeItem: Int = -1,
 ) {
     /** How a save and `::clue` name the step: `map:107`. */
     val key: String get() = "${type.key}:$id"

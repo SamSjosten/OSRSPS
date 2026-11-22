@@ -50,6 +50,8 @@
   {"step": "waitTicks", "ticks": 3},
   {"step": "itemOption", "itemId": 952, "option": "Dig"},
   {"step": "assertInventory", "itemId": 19814, "count": 0},
+  {"step": "assertWidgetText", "interfaceId": 193, "component": 2, "contains": "trail.another_clue", "comment": "the item box"},
+  {"step": "continueDialogue", "comment": "close the item box, or ::empty waits behind it"},
   {"step": "command", "text": "::empty"},
   {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
 

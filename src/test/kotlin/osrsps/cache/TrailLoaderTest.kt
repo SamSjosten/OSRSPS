@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.trail.StepType
+import osrsps.game.trail.TrailChallenge
 import osrsps.game.trail.TrailProgress
 import osrsps.game.trail.Trail
 import osrsps.game.trail.TrailSaves
@@ -28,13 +29,16 @@ class TrailLoaderTest {
         24 to DbRow(StepType.MAP.table, mapOf(0 to listOf(140), 1 to listOf(1), 2 to listOf(10), 4 to listOf(1))),
         // X Marks the Spot's own clue (difficulty 6).
         25 to DbRow(StepType.CIPHER.table, mapOf(0 to listOf(900), 1 to listOf(6), 2 to listOf("ESBZ"), 3 to listOf(11), 6 to listOf(1))),
+        // A medium anagram whose NPC asks a question with two right answers, on a challenge scroll of its own.
+        26 to DbRow(StepType.ANAGRAM.table, mapOf(0 to listOf(55), 1 to listOf(2), 2 to listOf("A NAGRAM"), 3 to listOf(11), 4 to listOf(30), 5 to listOf(1))),
+        30 to DbRow(TrailLoader.CHALLENGE_QUESTION, mapOf(0 to listOf("How many?", 19, "How many?", 20))),
     )
 
-    private val data = TrailLoader.build(rows, mapOf(20 to listOf(2713), 21 to listOf(19814), 22 to listOf(12554, 12555)))
+    private val data = TrailLoader.build(rows, mapOf(20 to listOf(2713), 21 to listOf(19814), 22 to listOf(12554, 12555), 26 to listOf(2842, 2843)), challengeItems = setOf(2842))
 
     @Test
     fun `steps take their tier, words, targets, items and fight from the clue helper rows`() {
-        assertEquals(setOf("map:107", "cryptic:636", "coordinate:432", "map:101"), data.steps.keys)
+        assertEquals(setOf("map:107", "cryptic:636", "coordinate:432", "map:101", "anagram:55"), data.steps.keys)
         val map = data["map:107"]!!
         assertEquals(TrailTier.EASY, map.tier)
         assertNull(map.text)
@@ -50,6 +54,17 @@ class TrailLoaderTest {
         assertTrue(coordinate.combat)
         assertEquals(listOf(12554, 12555), coordinate.items)
         assertEquals(TrailTier.BEGINNER, data["map:101"]!!.tier)
+        assertNull(cryptic.challenge)
+    }
+
+    @Test
+    fun `a challenge scroll is kept apart from the step's clue scroll, with its question and every answer`() {
+        val anagram = data["anagram:55"]!!
+        assertEquals(TrailChallenge.Question("How many?", setOf(19, 20)), anagram.challenge)
+        assertEquals(2842, anagram.challengeItem)
+        assertEquals(listOf(2843), anagram.items)
+        assertEquals(anagram, data.byItem[2843])
+        assertNull(data.byItem[2842])
     }
 
     @Test

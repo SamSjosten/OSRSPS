@@ -191,7 +191,7 @@ class LocInteractions(
             // Guessed: an item that left its slot on the way (dropped, or moved) is used on nothing, with no message.
             if (!holds(player, interaction.slot, interaction.obj)) return true
             val op = Op.objOnLoc(loc.id, interaction.obj, interaction.slot, loc)
-            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
+            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op, player) != null) {
                 scripts.trigger(player, op)
             } else {
                 logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
@@ -200,7 +200,7 @@ class LocInteractions(
             return true
         }
         val op = Op(OpTarget.LOC, loc.id, interaction.option, interaction.sub, loc = loc, repeat = interaction.repeat)
-        if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
+        if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op, player) != null) {
             scripts.trigger(player, op)
         } else if (doors.toggle(loc, interaction.option, player.saveKey) == null && gates?.toggle(loc, interaction.option, player.saveKey) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
