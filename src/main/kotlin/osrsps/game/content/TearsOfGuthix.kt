@@ -93,16 +93,17 @@ class TearsOfGuthix(private val world: World) {
 
     /**
      * The six streams in the order they move, three blue and three green in the world's own order (the Wiki: each
-     * world has its own sequence), and their walls' current stream locs.
+     * world has its own sequence), and their walls' current stream locs. Drawn when the first game starts, so building
+     * the world takes nothing from [World.random].
      */
-    private val streams: List<Stream> = (List(3) { true } + List(3) { false }).let { colours ->
+    private val streams: List<Stream> by lazy { (List(3) { true } + List(3) { false }).let { colours ->
         val order = colours.toMutableList()
         for (i in order.indices.reversed()) {
             val j = world.random.nextInt(i + 1)
             order[i] = order[j].also { order[j] = order[i] }
         }
         order.map { Stream(it) }
-    }
+    } }
     private var running = false
 
     /** A player's game: the ticks left and the tears in the bowl, shown in varbits 5099 and 455. */
@@ -231,9 +232,11 @@ class TearsOfGuthix(private val world: World) {
 
     /**
      * A player who logged out in the walls' room is back by Juna a tick after logging in, the game lost with the
-     * logout (guessed: live puts them outside; the room has no way out but the game's end).
+     * logout (guessed: live puts them outside; the room has no way out but the game's end). The game goes at login too,
+     * so one logged back into within the tick of the logout doesn't go on.
      */
     fun login(player: Player) {
+        playing.remove(player.saveKey)
         if (!inRoom(player.x, player.z, player.level)) return
         val key = player.saveKey
         world.npcScripts.later(1) {
