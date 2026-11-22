@@ -117,7 +117,11 @@ sealed interface TrailChallenge {
     data class Question(val text: String, val answers: Set<Int>) : TrailChallenge
 
     /** A puzzle box or light box to solve (cluehelper_challenge_box). */
-    data class Box(val description: String) : TrailChallenge
+    data class Box(val description: String) : TrailChallenge {
+        /** Which boxes the row takes, from its description: "A puzzle box.", "A light box." or "A puzzle or a light box.". */
+        val puzzle: Boolean get() = "puzzle" in description.lowercase()
+        val light: Boolean get() = "light" in description.lowercase()
+    }
 }
 
 /**
