@@ -2,8 +2,10 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
+import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
@@ -30,6 +32,8 @@ class HeadlessTzHaarShopsTest {
     private val mejRoh = NpcType(TzHaarShops.MEJ_ROH, "TzHaar-Mej-Roh", ops = ops, internalName = "tzhaar_merchant_rune")
     private val tokkul = ObjType(TOKKUL, "Tokkul", stackable = true)
     private val ring = ObjType(XIL_UL, "Toktz-xil-ul", cost = 250, stackable = true, tradeable = true)
+    private val airPack = ObjType(AIR_PACK, "Tzhaar air rune pack", iops = listOf("Open", null, null, null, "Drop"))
+    private val airRune = ObjType(AIR_RUNE, "Air rune", stackable = true)
     private val equipment = ShopType(
         "tzhaar_hur_tels_equipment_store", "TzHaar-Hur-Tel's Equipment Store", invId = EQUIPMENT_INV, size = 8, general = false,
         sellAt = 1500, buyAt = 150, changePer = 20, stock = listOf(ShopStock(ring, 500, 10)), npcs = listOf(TzHaarShops.HUR_TEL),
@@ -38,7 +42,7 @@ class HeadlessTzHaarShopsTest {
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(2470 shr 6, 5140 shr 6) }, objTypes = ObjTypes.of(tokkul, ring),
+            crcs, CollisionMap().apply { markLoaded(2470 shr 6, 5140 shr 6) }, objTypes = ObjTypes.of(tokkul, ring, airPack, airRune),
             npcTypes = NpcTypes.of(hurTel, mejRoh),
             npcSpawns = listOf(NpcSpawn(hurTel, 2478, 5146, wander = 0, source = "test"), NpcSpawn(mejRoh, 2474, 5146, wander = 0, source = "test")),
             shopTypes = ShopTypes(listOf(equipment)), varTypes = VARS, cycleMillis = millis,
@@ -109,7 +113,28 @@ class HeadlessTzHaarShopsTest {
         }
     }
 
+    @Test
+    fun `a Tzhaar air rune pack opens into 100 air runes`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $AIR_RUNE 5")
+                client.await("the runes") { if (client.held(AIR_RUNE) == 5L) Unit else null }
+                client.command("item $AIR_PACK 2")
+                client.await("the packs") { if (client.held(AIR_PACK) == 2L) Unit else null }
+                val slot = client.inventory(Inventory.INV).indexOfFirst { it?.id == AIR_PACK }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, OPEN_BUTTON_OP, slot, AIR_PACK)
+                client.await("100 more runes") { if (client.held(AIR_RUNE) == 105L) Unit else null }
+                assertEquals(1L, client.held(AIR_PACK))
+            }
+        }
+    }
+
     private companion object {
+        const val AIR_PACK = 21698
+        const val AIR_RUNE = 556
+        /** The button op for an item's first option, Open. */
+        const val OPEN_BUTTON_OP = 2
         const val TOKKUL = 6529
         const val XIL_UL = 6522
         const val EQUIPMENT_INV = 325

@@ -1,5 +1,5 @@
 {
-  "name": "Karamja step K2.2: TzHaar-Hur-Tel's Trade and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's talk into his Ore and Gem Store, and TzHaar-Mej-Roh's talk naming the player and telling the castes (::keys on)",
+  "name": "Karamja step K2.2: TzHaar-Hur-Tel's Trade and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's talk into his Ore and Gem Store, and TzHaar-Mej-Roh's talk naming the player and telling the castes, and a Tzhaar air rune pack opened into 100 air runes (::keys on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -15,7 +15,7 @@
     {"step": "assertInventory", "item": "Toktz-xil-ul", "count": 1},
     {"step": "assertInventory", "item": "Tokkul", "count": 625},
     {"step": "waitTicks", "ticks": 1, "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"},
-    {"step": "clickWidget", "interfaceId": 301, "component": 0, "slot": 2, "op": 2, "comment": "Sell 1 back (slot 2, after the Tokkul)"},
+    {"step": "clickWidget", "interfaceId": 301, "component": 0, "slot": 1, "op": 2, "comment": "Sell 1 back (slot 1, after the Tokkul)"},
     {"step": "assertInventory", "item": "Toktz-xil-ul", "count": 0},
 
     {"step": "command", "text": "::tele 2465 5148 0", "expectMessage": "Teleported to 2465, 5148, 0", "comment": "by TzHaar-Hur-Lek (the teleport closes the open shop)"},
@@ -49,6 +49,10 @@
     {"step": "continueDialogue", "comment": "the player asks"},
     {"step": "assertDialogue", "contains": "[tzhaar_shop.castes_mej]"},
     {"step": "continueDialogue"},
+    {"step": "command", "text": "::item 21698 1", "comment": "a Tzhaar air rune pack, as TzHaar-Mej-Roh sells"},
+    {"step": "itemOption", "item": "Tzhaar air rune pack", "option": "Open"},
+    {"step": "assertInventory", "item": "Air rune", "count": 100},
+    {"step": "assertInventory", "item": "Tzhaar air rune pack", "count": 0},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }
