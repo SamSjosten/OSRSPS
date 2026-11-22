@@ -196,6 +196,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     /** Each tick, in the scripts phase: is [player]'s event due, and are they free for it? */
     fun process(player: Player) {
         if (player.loggedOut || player.dead || isOff(player)) return
+        // None during a test setup, one held back included: it waits, due, till the setup is put back (R50A-1).
+        if (player.beforeScenario != null) return
         val key = player.saveKey
         if (key !in held) {
             if (player.playedTicks % CHECK_TICKS != 0L) return
@@ -204,8 +206,6 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
                 return
             }
             if (player.charges[DUE] > nowMinutes()) return
-            // None during a test setup: putting it back restores the timer, so one could be had per setup (R50A-1).
-            if (player.beforeScenario != null) return
             held += key
         }
         if (busy(player)) return

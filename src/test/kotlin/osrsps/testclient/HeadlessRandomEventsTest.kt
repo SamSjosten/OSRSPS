@@ -225,6 +225,34 @@ class HeadlessRandomEventsTest {
         }
     }
 
+    @Test
+    fun `an event held back by an open window still waits through a setup, and comes once it is put back`(@TempDir dir: Path) {
+        server(dir, cycleMillis = 20).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3222, 3218)
+                val player = server.world.onlinePlayers.single()
+                client.commandReply("randomevent") { it.startsWith("Random events on") }
+                client.command("randomevent now")
+                // A window open over the next 500-tick look holds the due event back.
+                client.command("openbank")
+                client.await("the bank") { if (client.openInterfaces().isNotEmpty()) Unit else null }
+                val look = (player.playedTicks / RandomEvents.CHECK_TICKS + 1) * RandomEvents.CHECK_TICKS
+                client.await("the look", timeoutMillis = 30_000) { if (player.playedTicks > look + 2) Unit else null }
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                // A setup shuts the window; the held event still doesn't come during it (Codex review on #889).
+                client.command("scenario bare")
+                client.await("the scenario") { player.scenario?.takeIf { it == "bare" } }
+                client.awaitTicks(20)
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                client.command("reset")
+                client.await("the setup put back") { if (player.scenario == null) Unit else null }
+                client.tele(3222, 3218)
+                client.await("the held event") { client.npcs().firstOrNull { it.id == Genie.npcId || it.id == TESTER } }
+            }
+        }
+    }
+
     private companion object {
         const val TESTER = 9001
         const val BOOTH = 10355
