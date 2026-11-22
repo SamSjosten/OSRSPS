@@ -340,14 +340,25 @@ expect_status 0
 [[ ! -e $tmp/vm/.git/logs/HEAD.lock ]] || fail "the stale .git/logs lock is still there"
 expect_checkout "$head"
 
-# A process named git that only sleeps, to stand for a git running in some folder.
+# A process named git that only waits, to stand for a git running in some folder: a script, whose process takes the
+# script's name (a copy of sleep can't stand in: on a multi-call coreutils it answers "unknown program 'git'"). The loop
+# keeps the shell from handing its process over to sleep.
 mkdir -p "$tmp/fakegit" "$tmp/elsewhere"
-cp "$(command -v sleep)" "$tmp/fakegit/git"
+printf '#!/bin/sh\nwhile :; do sleep 1; done\n' >"$tmp/fakegit/git"
+chmod +x "$tmp/fakegit/git"
+
+step="the stand-in git runs under the name git"
+(cd "$tmp/elsewhere" && exec "$tmp/fakegit/git") &
+sleeper=$!
+sleep 0.3
+[[ $(ps -o comm= -p "$sleeper") == git ]] || fail "the stand-in runs as '$(ps -o comm= -p "$sleeper")', not git"
+kill "$sleeper" 2>/dev/null || true
+wait "$sleeper" 2>/dev/null || true
 
 step="a stale lock is cleared while a git runs in another folder"
 merge src/main/Elsewhere.kt=16
 touch -d '-20 minutes' "$tmp/vm/.git/HEAD.lock"
-(cd "$tmp/elsewhere" && exec "$tmp/fakegit/git" 30) &
+(cd "$tmp/elsewhere" && exec "$tmp/fakegit/git") &
 sleeper=$!
 sleep 0.3
 deploy
@@ -360,7 +371,7 @@ expect_checkout "$head"
 step="a stale lock is left while a git runs in this checkout"
 merge src/main/Here.kt=17
 touch -d '-20 minutes' "$tmp/vm/.git/HEAD.lock"
-(cd "$tmp/vm" && exec "$tmp/fakegit/git" 30) &
+(cd "$tmp/vm" && exec "$tmp/fakegit/git") &
 sleeper=$!
 sleep 0.3
 deploy
