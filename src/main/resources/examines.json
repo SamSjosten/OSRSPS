@@ -39,7 +39,8 @@
     "Construction step CON3 (2026-11-19): the seven chairs built on the parlour's chair spaces (poh_chair1 to 7), one per id, each from the Wiki page of the chair it is.",
     "NPCs: random events step 3 (2026-11-19): the certer brothers Niles, Miles and Giles (5436 to 5438) and the Sandwich lady (5510), from each page's infobox.",
     "Locs and NPCs: Karamja (step K1.4): the ways into and out of the Crandor and Karamja Dungeon, and the level 45 skeleton's second id (83). None yet for the volcano's climbing rope below (18969), which has no Wiki page.",
-    "NPCs: random events step 4 (2026-11-19): the Freaky Forester (6748 out in the world, 372 in his forest) and the pheasants (373, 5500, 374, 5502), from each page's infobox."
+    "NPCs: random events step 4 (2026-11-19): the Freaky Forester (6748 out in the world, 372 in his forest) and the pheasants (373, 5500, 374, 5502), from each page's infobox.",
+    "Locs and NPCs: Karamja (step K2.1): Mor Ul Rek's cave entrance and exit, TzHaar-Ket-Zuh, and the city's TzHaar-Hur, -Mej, -Xil and level 149 -Ket, one examine for each kind, all its looks sharing it (the Wiki's infoboxes give one)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -287,6 +288,10 @@
     {"npc": 2123, "name": "Bank guard"},
     {"npc": 2148, "name": "Grand Exchange Clerk", "also": [2149, 2150, 2151]},
     {"npc": 2152, "name": "Brugsen Bursen"},
+    {"npc": 2154, "name": "TzHaar-Mej", "also": [2155, 2156, 2157, 2158, 2159, 2160], "wiki": "TzHaar-Mej page, infobox"},
+    {"npc": 2161, "name": "TzHaar-Hur", "also": [2162, 2163, 2164, 2165, 2166], "wiki": "TzHaar-Hur page, infobox"},
+    {"npc": 2167, "name": "TzHaar-Xil", "also": [2168, 2169, 2170, 2171, 2172], "wiki": "TzHaar-Xil page, infobox"},
+    {"npc": 2173, "name": "TzHaar-Ket", "also": [2174, 2175, 2176, 2177, 2178, 2179], "wiki": "TzHaar-Ket page, infobox (Level 149)"},
     {"npc": 2180, "name": "TzHaar-Mej-Jal"},
     {"npc": 2200, "name": "Richard"},
     {"npc": 2268, "name": "Cave goblin", "wiki": "Cave goblin (Dorgesh-Kaan) page, infobox"},
@@ -750,6 +755,7 @@
     {"npc": 7546, "name": "Bartender", "wiki": "Bartender (The Sheared Ram) page, infobox"},
     {"npc": 7663, "name": "Krystilia"},
     {"npc": 7673, "name": "Solztun"},
+    {"npc": 7677, "name": "TzHaar-Ket-Zuh", "wiki": "TzHaar-Ket-Zuh page, infobox"},
     {"npc": 7682, "name": "TzHaar-Hur"},
     {"npc": 7683, "name": "TzHaar-Hur"},
     {"npc": 7684, "name": "TzHaar-Hur"},
@@ -2083,6 +2089,8 @@
     {"loc": 11807, "name": "Staircase"},
     {"loc": 11833, "name": "Cave entrance", "wiki": "Cave entrance (TzHaar Fight Cave) page, infobox"},
     {"loc": 11834, "name": "Cave entrance", "wiki": "Cave entrance (TzHaar Fight Cave) page, infobox (exit)"},
+    {"loc": 11835, "name": "Cave entrance", "wiki": "Cave entrance (to Mor Ul Rek) page, infobox"},
+    {"loc": 11836, "name": "Cave exit", "wiki": "Cave exit (Mor Ul Rek) page, infobox"},
     {"loc": 11851, "name": "Sulphur vent"},
     {"loc": 11867, "name": "Trapdoor", "wiki": "Trapdoor (Dwarven Mine) page, infobox"},
     {"loc": 11875, "name": "Canary"},
