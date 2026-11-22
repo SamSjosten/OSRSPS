@@ -77,6 +77,7 @@
     {"npc": 2579, "x": 3056, "z": 3497, "level": 1, "wander": 3, "source": "Monk (monk), the monastery upstairs (step 4). mejrs NPCList_OSRS; the Wiki's Edgeville Monastery page"},
     {"npc": 2577, "x": 3058, "z": 3484, "wander": 2, "source": "Abbot Langley (abbot_langley), the monastery ground floor (step 4). mejrs NPCList_OSRS; the Wiki's Edgeville Monastery page"},
     {"npc": 1397, "x": 3049, "z": 3507, "wander": 2, "source": "Brother Althric (brother_althric), the monastery rose garden (step 4). mejrs NPCList_OSRS; the Wiki's Edgeville Monastery page"},
-    {"npc": 2578, "x": 3046, "z": 3488, "level": 1, "wander": 2, "source": "Brother Jered (brother_jered), the monastery upstairs (step 4). mejrs NPCList_OSRS; the Wiki's Edgeville Monastery page"}
+    {"npc": 2578, "x": 3046, "z": 3488, "level": 1, "wander": 2, "source": "Brother Jered (brother_jered), the monastery upstairs (step 4). mejrs NPCList_OSRS; the Wiki's Edgeville Monastery page"},
+    {"npc": "slayer_master_7", "x": 3109, "z": 3516, "wander": 1, "source": "Krystilia (slayer_master_7), in the jail cell north-east of the bank. mejrs NPCList_OSRS; Wiki, Krystilia (3109,3516). Wander 1 guessed (she is in a cell)"}
   ]
 }
