@@ -98,6 +98,7 @@ class HeadlessScurriusLootTest {
                     assertTrue(ScurriusLoot.RAW_RAT_MEAT !in alices, "but no rat meat, which only the MVP table has: $alices")
                     assertTrue(alices.none { it == ScurriusLoot.PET }, "no pet off the non-MVP table")
                     assertTrue(world.groundObjs.visibleAt(b, x, z, 0).none { it.id == ScurriusLoot.BIG_BONES }, "nothing but bones, clues on his corner")
+                    assertEquals(0, world.scurriusLoot.held, "no tally or looter list left once his loot is down")
                 }
             }
         }

@@ -54,12 +54,17 @@ class ScurriusLoot(private val world: World) {
         }
     }
 
-    /** [npc] has left the world: a Scurrius taken out alive loses his tally. */
+    /** A dead Scurrius just taken out of the world and his looters, held for the [loot] that follows (one at a time). */
+    private var bodyGoing: Pair<Npc, List<String>>? = null
+
+    /**
+     * [npc] has left the world: his tally goes either way. A dead one's looters wait in [bodyGoing] for his [loot], so a
+     * body taken away with its instance (no loot after) holds nothing beyond the next removal.
+     */
     fun removed(npc: Npc) {
-        if (npc.hitpoints > 0) {
-            damage.remove(npc)
-            atKill.remove(npc)
-        }
+        damage.remove(npc)
+        val keys = atKill.remove(npc)
+        bodyGoing = if (keys != null && npc.hitpoints <= 0) npc to keys else null
     }
 
     /**
@@ -68,7 +73,9 @@ class ScurriusLoot(private val world: World) {
      */
     fun loot(npc: Npc): Boolean {
         if (npc.type.id !in TYPES) return false
-        val keys = atKill.remove(npc) ?: damage.remove(npc).orEmpty().keys.toList()
+        val going = bodyGoing?.takeIf { it.first === npc }?.second
+        bodyGoing = null
+        val keys = going ?: atKill.remove(npc) ?: damage.remove(npc).orEmpty().keys.toList()
         val private = world.scurriusLairs.runAt(npc.x, npc.z) != null
         val mvpTable = world.npcDrops[npc.type]
         val others = world.npcDrops.chests[NON_MVP_TABLE]
@@ -90,8 +97,14 @@ class ScurriusLoot(private val world: World) {
         return true
     }
 
+    /** Tallies and looter lists still held, for tests: none once each Scurrius has gone and dropped. */
+    internal val held: Int get() = damage.size + atKill.size + (if (bodyGoing != null) 1 else 0)
+
     private fun put(npc: Npc, drop: Drop, owner: String?, private: Boolean) {
         val corner = drop.type.id in ON_CORNER
+        // A clue becomes its scroll box, or nothing for a player at their cap, as any NPC's drop does.
+        val recipient = owner?.let { key -> world.onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut } }
+        val type = world.trails.dropFor(recipient, drop.type) ?: return
         val x = if (corner) npc.x else npc.x + npc.type.size / 2
         val z = if (corner) npc.z else npc.z + npc.type.size / 2
         val despawn = when {
@@ -100,11 +113,11 @@ class ScurriusLoot(private val world: World) {
             else -> PRIVATE_DESPAWN_TICKS
         }
         if (owner == null) {
-            world.groundObjs.addPublic(drop.type, drop.count, x, z, npc.level, despawn)
+            world.groundObjs.addPublic(type, drop.count, x, z, npc.level, despawn)
             return
         }
-        world.groundObjs.addPrivate(drop.type, drop.count, x, z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn, neverPublic = private || !drop.type.tradeable)
-        world.onlinePlayers.firstOrNull { it.saveKey == owner }?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
+        world.groundObjs.addPrivate(type, drop.count, x, z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn, neverPublic = private || !type.tradeable)
+        world.lootDroppedFor(owner, type, drop.count)
     }
 
     companion object {
