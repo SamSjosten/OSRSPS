@@ -63,6 +63,8 @@ class StashUnits(private val world: World, data: TrailData) {
         player.anim(ANIM_BUILD)
         context.delay(BUILD_TICKS)
         // Checked again after the wait, as the backpack may have changed.
+        if (HAMMERS.none { player.inventory.count(it) > 0 } || SAWS.none { player.inventory.count(it) > 0 }) return
+        if (built(player, stash.loc)) return
         if (player.inventory.count(cost.plank) < PLANKS_EACH || player.inventory.count(nails) < NAILS_EACH || (cost.goldLeaf && player.inventory.count(GOLD_LEAF) < 1)) return
         removeId(player, cost.plank, PLANKS_EACH)
         removeId(player, nails, NAILS_EACH)
