@@ -37,7 +37,7 @@ class HeadlessFreakyForesterTest {
     private val objs = listOf(
         ObjType(FreakyForester.RAW_PHEASANT, "Raw pheasant"),
         ObjType(FreakyForester.HAT, "Lederhosen hat"), ObjType(FreakyForester.TOP, "Lederhosen top"), ObjType(FreakyForester.SHORTS, "Lederhosen shorts"),
-        ObjType(XpLamp.LAMP, "Lamp"),
+        ObjType(XpLamp.LAMP, "Lamp"), ObjType(BEER, "Beer"),
     )
 
     private val portal = LocType(FreakyForester.PORTAL, "Exit portal", ops = listOf("Use", null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
@@ -85,7 +85,7 @@ class HeadlessFreakyForesterTest {
         return at.x - FreakyForester.ARRIVE.x to at.z - FreakyForester.ARRIVE.z
     }
 
-    private fun HeadlessClient.killAndHandIn(name: String, dx: Int, dz: Int) {
+    private fun HeadlessClient.killAndHandIn(name: String, dx: Int, dz: Int, beforePortal: () -> Unit = {}) {
         val pheasant = await("a pheasant") { npcs().firstOrNull { it.id in FreakyForester.PHEASANTS } }
         npcOp(pheasant.index, FreakyForester.KILL)
         val carcass = await("the carcass") { groundObjs().firstOrNull { it.id == FreakyForester.RAW_PHEASANT } }
@@ -100,6 +100,7 @@ class HeadlessFreakyForesterTest {
         chat("[freaky_forester.thanks name=$name]")
         over()
         assertEquals(0, has(FreakyForester.RAW_PHEASANT))
+        beforePortal()
         locOp(FreakyForester.PORTAL, PORTAL_X + dx, PORTAL_Z + dz, 1)
     }
 
@@ -125,15 +126,32 @@ class HeadlessFreakyForesterTest {
                 val (dx2, dz2) = client.intoForest("alice")
                 client.killAndHandIn("alice", dx2, dz2)
                 client.awaitDialogue("the lamp line") { it is DialogueView.Chat && it.text == "[freaky_forester.reward_lamp]" }
-                // Given before his line: shut there, the player is still in the forest, and the portal again only sends
-                // them out, with no second reward.
+                // Back, and the lamp given, before his line: shutting it loses nothing.
+                client.await("back again") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
                 client.await("the lamp") { if (client.has(XpLamp.LAMP) == 1) Unit else null }
                 client.closeModal()
                 client.over()
-                client.locOp(FreakyForester.PORTAL, PORTAL_X + dx2, PORTAL_Z + dz2, 1)
-                client.await("back again") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
                 client.awaitTicks(2)
                 assertEquals(1, client.has(XpLamp.LAMP))
+            }
+        }
+    }
+
+    @Test
+    fun `with a full backpack the piece goes on the ground back home, not in the forest`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                val (dx, dz) = client.intoForest("carol")
+                client.killAndHandIn("carol", dx, dz) {
+                    client.command("item $BEER 28")
+                    client.await("a full backpack") { if (client.inventory(Inventory.INV).count { it != null } == 28) Unit else null }
+                }
+                client.awaitDialogue("the reward") { it is DialogueView.Chat && it.text.startsWith("[freaky_forester.reward piece=") }
+                client.await("back") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                val pieces = setOf(FreakyForester.HAT, FreakyForester.TOP, FreakyForester.SHORTS)
+                val obj = client.await("the piece on the ground") { client.groundObjs().firstOrNull { it.id in pieces } }
+                assertEquals(Coord(3222, 3218, 0), obj.coord)
             }
         }
     }
@@ -167,6 +185,7 @@ class HeadlessFreakyForesterTest {
 
     private companion object {
         const val PORTAL_X = 2593
+        const val BEER = 1917
         const val PORTAL_Z = 4775
         const val TAKE = 3
     }

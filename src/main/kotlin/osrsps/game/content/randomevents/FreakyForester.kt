@@ -185,10 +185,12 @@ object FreakyForester : RandomEvent("freaky_forester", 6748) {
         forest.killed = true
         val spawnAt = away.outside(npc.spawn.x, npc.spawn.z)
         world.npcScripts.later(DEATH_TICKS) {
+            forest.dying -= npc
+            world.removeNpc(npc)
+            // Gone with its forest (the player left or logged out first): no carcass where another copy may now be.
+            if (world.instances.all.none { it === away.instance }) return@later
             val type = world.objTypes[RAW_PHEASANT]
             if (type != null) world.groundObjs.addPrivate(type, 1, npc.x, npc.z, npc.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
-            world.removeNpc(npc)
-            forest.dying -= npc
         }
         world.npcScripts.later(DEATH_TICKS + RESPAWN_TICKS) {
             if (world.instances.all.none { it === away.instance }) return@later
@@ -200,22 +202,23 @@ object FreakyForester : RandomEvent("freaky_forester", 6748) {
     suspend fun ScriptContext.leave(world: World) {
         val (away, forest) = forestOf(world, player) ?: return
         for (slot in 0 until player.inventory.capacity) if (player.inventory[slot]?.id == RAW_PHEASANT) player.inventory.remove(slot)
-        if (forest.handedIn && !forest.rewarded) {
-            // The reward is given and the hand-in spent before his line, so shutting it neither loses nor repeats the
-            // reward; the portal then simply sends the player out.
-            val missing = listOf(HAT to "hat", TOP to "top", SHORTS to "shorts").filter { (id, _) -> !owns(player, id) }
-            val forester = forest.forester
-            val piece = missing.takeIf { it.isNotEmpty() }?.let { it[world.random.nextInt(it.size)] }
-            world.randomEvents.reward(player, piece?.first ?: XpLamp.LAMP)
-            forest.rewarded = true
-            if (forester != null && !forester.dead) {
-                world.dialogues.start(this, forester) {
-                    if (piece != null) chatNpc(ChatAnim.HAPPY, FreakyForesterLines.REWARD, "piece" to piece.second)
-                    else chatNpc(ChatAnim.HAPPY, FreakyForesterLines.REWARD_LAMP)
-                }
+        val reward = forest.handedIn && !forest.rewarded
+        forest.rewarded = true
+        val missing = listOf(HAT to "hat", TOP to "top", SHORTS to "shorts").filter { (id, _) -> !owns(player, id) }
+        val piece = missing.takeIf { it.isNotEmpty() }?.let { it[world.random.nextInt(it.size)] }
+        val forester = forest.forester
+        world.randomEvents.areas.bringBack(player, away)
+        if (!reward) return
+        // Given once back (what doesn't fit goes on the ground there, not in the forest that is about to end) and
+        // before his line, so shutting it neither loses nor repeats the reward. Guessed: his line comes after the
+        // teleport.
+        world.randomEvents.reward(player, piece?.first ?: XpLamp.LAMP)
+        if (forester != null) {
+            world.dialogues.start(this, forester) {
+                if (piece != null) chatNpc(ChatAnim.HAPPY, FreakyForesterLines.REWARD, "piece" to piece.second)
+                else chatNpc(ChatAnim.HAPPY, FreakyForesterLines.REWARD_LAMP)
             }
         }
-        world.randomEvents.areas.bringBack(player, away)
     }
 
     private fun owns(player: Player, id: Int) = player.inventory.count(id) > 0 || player.equipment.count(id) > 0 || player.bank.count(id) > 0
