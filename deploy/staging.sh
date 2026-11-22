@@ -65,6 +65,25 @@ locked() {
 	"$@"
 }
 
+# Runs "$@" holding .deploy/git.lock, as auto-deploy.sh does for its git commands in this checkout: two fetches at once
+# fail on "cannot lock ref refs/remotes/origin/main", and auto-deploy.sh counts a git lock as stale only when neither
+# script runs git here (2026-11-22: this script's minutely fetch, in the same second as the deploy's, kept a crashed
+# git's .git/HEAD.lock from ever being cleared, and nothing deployed for three days). Held only around git commands, never
+# while waiting for another lock. Waits up to OSRSPS_GIT_LOCK_WAIT seconds, 5 minutes.
+with_git_lock() {
+	local status=0 wait=${OSRSPS_GIT_LOCK_WAIT:-300}
+	mkdir -p .deploy
+	exec 7>.deploy/git.lock
+	if ! flock -w "$wait" 7; then
+		exec 7>&-
+		echo "Another git command in this checkout has held .deploy/git.lock for $wait s; try again when it is done"
+		return 1
+	fi
+	"$@" || status=$?
+	exec 7>&-
+	return "$status"
+}
+
 compose() {
 	docker compose -p osrsps-staging --project-directory .staging -f deploy/compose.staging.yaml "$@"
 }
@@ -76,7 +95,7 @@ up() {
 		return 64
 	fi
 	[[ ${2:-} == --force ]] && force=1
-	git fetch --quiet origin
+	with_git_lock git fetch --quiet origin
 	local commit
 	if ! commit=$(resolve "$ref"); then
 		echo "No branch or commit named $ref on origin"
@@ -90,7 +109,7 @@ up() {
 	fi
 	# Each step says when it fails, so `auto` (which runs up inside an if, where bash's errexit doesn't reach) stops
 	# too: a worktree still at the old commit would otherwise be built and recorded as the new one.
-	if ! checkout "$commit"; then
+	if ! with_git_lock checkout "$commit"; then
 		echo "Checking out $ref ($commit) in .staging/src FAILED"
 		return 1
 	fi
@@ -134,7 +153,7 @@ up() {
 # Staging on origin's `staging` branch: up on its head when that isn't up (or the commit that failed last), down when
 # the branch is gone and staging was up on it; nothing, said quietly, otherwise.
 auto() {
-	git fetch --quiet --prune origin
+	with_git_lock git fetch --quiet --prune origin
 	local target running
 	target=$(git rev-parse --verify --quiet "origin/$AUTO_BRANCH^{commit}" || true)
 	running=$(cat .staging/deployed 2>/dev/null || true)

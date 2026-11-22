@@ -383,6 +383,18 @@ expect_status 0
 expect_output "Another staging run is going"
 expect_no_calls
 
+step="auto while a deploy's git command holds .deploy/git.lock"
+mkdir -p "$tmp/vm/.deploy"
+flock -x "$tmp/vm/.deploy/git.lock" sleep 3 &
+sleep 0.5
+OSRSPS_GIT_LOCK_WAIT=1 staging auto
+wait
+expect_status 1
+expect_output "held .deploy/git.lock for 1 s"
+expect_no_calls
+staging auto
+expect_status 0
+
 step="the timer's units"
 units=$(dirname "$script")
 grep -q '^ExecStart=/srv/rsps/OSRSPS/deploy/staging.sh auto$' "$units/osrsps-staging.service" \
