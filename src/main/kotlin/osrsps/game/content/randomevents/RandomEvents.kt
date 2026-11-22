@@ -7,6 +7,8 @@ import osrsps.game.Player
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.content.KingBlackDragon
+import osrsps.game.content.Scurrius
+import osrsps.game.content.ShantayPass
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Line
@@ -73,7 +75,10 @@ abstract class RandomEvent(
  * Inferred: the 5-minute look counts the player's own logged-in ticks ([Player.playedTicks]); a player found offline
  * gets one 10 to 70 minute move from the moment they log back in; the times are whole minutes, kept in
  * [Player.charges]. Guessed: what counts as a bank (a loc whose name starts "Bank" with a Bank or Use option within
- * [BANK_RANGE] tiles), a boss area (the King Black Dragon's lair) and a minigame (any instance); the NPC's tile (the
+ * [BANK_RANGE] tiles), a boss area (the King Black Dragon's lair and Scurrius's lair) and a minigame (any instance,
+ * and the Archive raid's lobby); that an event that takes the player away doesn't come, and its NPC goes, while they are
+ * in combat, Tele Blocked or in Shantay's cell, so it is never a way out (exploit review R50); that none come during a
+ * test setup (the Leagues Tutor's or `::scenario`), whose snapshot would otherwise wind the timer back; the NPC's tile (the
  * first free tile west, east, south or north of the player, then the corners); a nag every [NAG_TICKS] ticks (the
  * pre-2014 Genie's 12 seconds); the NPC catching up by stepping beside its player when they get more than
  * [CATCH_UP] tiles away or change level; its leaving line shown for [LEAVE_TICKS] ticks before it goes; Dismiss
@@ -199,6 +204,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
                 return
             }
             if (player.charges[DUE] > nowMinutes()) return
+            // None during a test setup: putting it back restores the timer, so one could be had per setup (R50A-1).
+            if (player.beforeScenario != null) return
             held += key
         }
         if (busy(player)) return
@@ -218,9 +225,20 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val (x, z, level) = Triple(player.x, player.z, player.level)
         if (world.instances.inDynamicArea(x, z)) return false
         if (KingBlackDragon.inLair(x, z)) return false
-        if (event.teleports && Wilderness.inside(x, z)) return false
+        if (Scurrius.inPublicLair(x, z) && level == 0) return false
+        if (world.archiveRaids.inLobby(player)) return false
+        if (event.teleports && (Wilderness.inside(x, z) || !freeToLeave(player))) return false
         if (!event.entersBanks && inBank(x, z, level)) return false
         return true
+    }
+
+    /** Whether [player] may be taken away: not in combat, not Tele Blocked and not in Shantay's cell. */
+    private fun freeToLeave(player: Player): Boolean =
+        !world.inCombat(player) && player.teleblockTicks <= 0 && player.charges[ShantayPass.JAILED] == 0
+
+    /** Ends [player]'s event NPC, if one is out, without a word: a test setup starting or being put back. */
+    fun end(player: Player) {
+        for (it in out.values.filter { it.owner == player.saveKey }) remove(it)
     }
 
     /** Whether a bank booth, chest or deposit box is within [BANK_RANGE] tiles of [x], [z]. Guessed; see the class. */

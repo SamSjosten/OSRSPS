@@ -166,7 +166,7 @@ class HeadlessRandomEventsTest {
     }
 
     @Test
-    fun `the timer brings an event once due, not while off, and not in a bank for one that stays out of banks`(@TempDir dir: Path) {
+    fun `the timer brings an event once due, not while off or in a setup, and not in a bank for one that stays out of banks`(@TempDir dir: Path) {
         server(dir, cycleMillis = 20).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -190,8 +190,20 @@ class HeadlessRandomEventsTest {
                 client.await("500 ticks", timeoutMillis = 30_000) { if (player.playedTicks > 520) Unit else null }
                 assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
 
-                // On, it comes at the next 500-tick look, and the next is set 60 to 120 minutes on.
+                // On, none comes during the setup either (exploit review R50A-1), and putting it back keeps the timer
+                // as it is now, not the snapshot's from before the setup.
                 client.commandReply("randomevent on") { it == "Random events on" }
+                val dueNow = player.charges[RandomEvents.DUE]
+                assertTrue(dueNow != due)
+                client.await("another 500 ticks", timeoutMillis = 30_000) { if (player.playedTicks > 1_020) Unit else null }
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                client.command("reset")
+                client.await("the setup put back") { if (player.scenario == null) Unit else null }
+                assertEquals(dueNow, player.charges[RandomEvents.DUE])
+                assertTrue(!server.world.randomEvents.isOff(player))
+                client.tele(3222, 3218)
+
+                // Out of it, it comes at the next 500-tick look, and the next is set 60 to 120 minutes on.
                 client.await("an event NPC", timeoutMillis = 30_000) { client.npcs().firstOrNull { it.id == Genie.npcId || it.id == TESTER } }
                 val next = player.charges[RandomEvents.DUE] - (clock.get() / 60_000).toInt()
                 assertTrue(next in RandomEvents.DUE_MIN_MINUTES..RandomEvents.DUE_MAX_MINUTES, "next in $next")

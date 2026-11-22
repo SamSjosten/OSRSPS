@@ -41,10 +41,12 @@ class EventAreas(private val world: World) {
     /**
      * Takes [player] to [event]'s place: the [widthZones] by [heightZones] zones from [fromX], [fromZ] (zone-aligned),
      * landing on [arrive] (real-map coordinates). Returns the stay, or null, leaving them where they are, when the
-     * dynamic area has no room.
+     * dynamic area has no room or the event isn't allowed where they stand now ([RandomEvents.allowedAt]).
      */
     fun takeAway(player: Player, event: RandomEvent, fromX: Int, fromZ: Int, widthZones: Int, heightZones: Int, arrive: Tile): Away? {
         require(fromX % 8 == 0 && fromZ % 8 == 0) { "${event.key}'s place isn't zone-aligned" }
+        // Checked again as they say yes: a fight or Tele Block that began during the talk keeps them here (R50).
+        if (!world.randomEvents.allowedAt(player, event)) return null
         // Ended stays are let go of here, as nothing else tells this when an instance ends.
         stays.values.removeAll { world.instances.all.none { instance -> instance === it.instance } }
         val instance = world.instances.create(fromX, fromZ, widthZones, heightZones, player.x, player.z, player.level) ?: return null
