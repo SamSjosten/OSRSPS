@@ -288,6 +288,25 @@ class HeadlessEvilBobTest {
     }
 
     @Test
+    fun `teleporting off the island leaves the net and fish behind`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready()
+                val (dx, dz) = client.ontoIsland("dave")
+                client.takeNet(dx, dz)
+                val right = EvilBob.islandOf(server.world, server.world.onlinePlayers.single())!!.second.right
+                val cooked = if (right == EvilBob.Spots.NORTH) EvilBob.COOKED_RIGHT else EvilBob.COOKED_WRONG
+                client.fish(EvilBob.Spots.NORTH, cooked, dx, dz)
+                // Any way off counts, a spell or tablet as much as the portal: the teleport command stands in for one.
+                client.command("tele 3200 3200 0")
+                client.await("off the island") { client.position?.takeIf { it == Coord(3200, 3200, 0) } }
+                client.awaitTicks(2)
+                assertTrue(client.inventory(Inventory.INV).all { it == null }, "the net and fish stay on the island")
+            }
+        }
+    }
+
+    @Test
     fun `logging out on the island leaves the net and fish behind`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

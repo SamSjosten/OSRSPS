@@ -65,12 +65,21 @@ class EventAreas(private val world: World) {
     }
 
     /**
-     * Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now, without the
-     * place's own items ([RandomEvent.placeItems]).
+     * [player] is being moved to [x], [z]: out of their stay, by any way at all (the way back, a teleport spell or tablet,
+     * a death), the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
      */
-    fun bringBack(player: Player, away: Away) {
+    fun moving(player: Player, x: Int, z: Int) {
+        val away = awayOf(player) ?: return
+        if (awayAt(x, z) === away) return
         val items = away.event.placeItems
         if (items.isNotEmpty()) for (slot in 0 until player.inventory.capacity) if (player.inventory[slot]?.id in items) player.inventory.remove(slot)
+    }
+
+    /**
+     * Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now; the place's
+     * own items stay there ([moving]).
+     */
+    fun bringBack(player: Player, away: Away) {
         val (x, z, level) = if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
         else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
         world.teleport(player, x, z, level)

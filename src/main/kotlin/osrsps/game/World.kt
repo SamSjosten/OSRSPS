@@ -2760,6 +2760,8 @@ class World(
         player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
+        // Out of a random event's place by any way, its own items stay there.
+        randomEvents.areas.moving(player, x, z)
         player.x = x
         player.z = z
         player.level = level
