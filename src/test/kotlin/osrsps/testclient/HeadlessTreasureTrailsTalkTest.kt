@@ -56,6 +56,12 @@ class HeadlessTreasureTrailsTalkTest {
     )
     private val cheerThenDance = ClueStep(StepType.EMOTE, 6, TrailTier.ELITE, "Cheer, then dance.", listOf(TrailTarget.Dig(TrailTile(3222, 3222, 0))), items = listOf(ELITE_ITEM), emotes = listOf(CHEER, DANCE))
 
+    // A hard cryptic search that names an outfit, as master cryptic:724's three Zamorak items (R49A-2).
+    private val dressedSearch = ClueStep(
+        StepType.CRYPTIC, 7, TrailTier.HARD, "Search a made-up crate in a made-up hat.", listOf(TrailTarget.Loc(CRATE, -1, TrailTile(CRATE_X, CRATE_Z, 0))),
+        items = listOf(HARD_ITEM), outfits = listOf(TrailOutfit("a made-up hat", items = mapOf(HEAD_SLOT to setOf(HAT)))),
+    )
+
     private val crate = ZoneLoc(CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, CRATE_X, CRATE_Z, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -64,6 +70,7 @@ class HeadlessTreasureTrailsTalkTest {
         objs[HAT] = ObjType(HAT, "Made-up hat")
         objs[TrailTier.BEGINNER.sharedClue] = ObjType(TrailTier.BEGINNER.sharedClue, "Clue scroll (beginner)", iops = read, params = mapOf(TrailTier.BEGINNER.param to 1))
         for ((id, tier) in listOf(TALK_ITEM to 347, SEARCH_ITEM to 347, ANAGRAM_ITEM to 348, FAR_ITEM to 348, ELITE_ITEM to 350)) objs[id] = ObjType(id, "Clue scroll", iops = read, params = mapOf(tier to 1))
+        objs[HARD_ITEM] = ObjType(HARD_ITEM, "Clue scroll (hard)", iops = read, params = mapOf(TrailTier.HARD.param to 1))
         objs[CHALLENGE] = ObjType(CHALLENGE, "Challenge scroll (medium)", iops = listOf("Read", null, null, null, "Drop"))
         for (tier in TrailTier.entries) objs[tier.rewardCasket] = ObjType(tier.rewardCasket, "Reward casket (${tier.key})", stackable = true, iops = listOf("Open", null, null, null, "Drop"))
         val talkTo = listOf("Talk-to", null, null, null, null)
@@ -74,7 +81,7 @@ class HeadlessTreasureTrailsTalkTest {
             locTypes = LocTypes(mapOf(CRATE to LocType(CRATE, "Crates", ops = listOf("Search", null, null, null, null), collision = LocCollisionType(width = 1, length = 1)))),
             staticLocs = StaticLocs().apply { add(crate) },
             npcTypes = types, npcSpawns = listOf(NpcSpawn(types[TALKER]!!, 3224, 3220, wander = 0, source = "test"), NpcSpawn(types[ASKER]!!, 3220, 3220, wander = 0, source = "test")),
-            trailData = TrailData(listOf(talk, search, anagram, far, bow, cheerThenDance)), cycleMillis = millis,
+            trailData = TrailData(listOf(talk, search, anagram, far, bow, cheerThenDance, dressedSearch)), cycleMillis = millis,
         )
     }
 
@@ -111,6 +118,25 @@ class HeadlessTreasureTrailsTalkTest {
                 client.objbox("trail.casket")
                 client.slotOf(TrailTier.EASY.rewardCasket)
                 assertEquals("No trail.", client.commandReply("clue") { it.startsWith("No") })
+            }
+        }
+    }
+
+    @Test
+    fun `a search step that names an outfit gives nothing undressed and the casket in it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("clue hard cryptic:7") { it.startsWith("Clue") }
+                client.locOp(CRATE, CRATE_X, CRATE_Z, 1)
+                client.awaitTicks(4)
+                client.slotOf(HARD_ITEM)
+                assertTrue(client.backpack().none { it?.id == TrailTier.HARD.rewardCasket }, "no casket without the hat")
+
+                server.world.playerNamed("ivy")!!.equipment[HEAD_SLOT] = InvObj(HAT, 1)
+                client.locOp(CRATE, CRATE_X, CRATE_Z, 1)
+                client.objbox("trail.casket")
+                client.slotOf(TrailTier.HARD.rewardCasket)
             }
         }
     }
@@ -245,5 +271,6 @@ class HeadlessTreasureTrailsTalkTest {
         const val ANAGRAM_ITEM = 2843
         const val CHALLENGE = 2842
         const val FAR_ITEM = 2844
+        const val HARD_ITEM = 2722
     }
 }

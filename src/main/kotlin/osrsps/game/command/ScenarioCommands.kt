@@ -125,6 +125,9 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
     // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
     player.archiveChest.clear()
+    // Nor Treasure Trails: STASH contents, casket counts, scroll cases and trails are in the snapshot, which puts them
+    // back, so a STASH emptied during the scenario would come back full (exploit review 49, R49A-1 and R49A-3).
+    player.trails.replaceWith(osrsps.game.trail.TrailProgress())
     // The lobby's Loot Wheelbarrow reads its varbit, which goes with the chest (Codex review on #783).
     world.archiveChestWindow.showClaimable(player)
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
