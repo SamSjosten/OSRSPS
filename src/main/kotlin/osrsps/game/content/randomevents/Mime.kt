@@ -31,7 +31,8 @@ object MimeLines : Lines("mime", "Transcript:Mysterious Old Man, the Mime Show v
  *
  * Guessed: where the mime and player stand (under the two spotlights and ropes); the stage as a private copy (the Wiki
  * says live's room is shared); how long the mime's emote plays before the window opens ([PERFORM_TICKS]) and how long
- * the player has ([ANSWER_TICKS]); that the mime's emotes are the player's animations; one piece or two at random, and
+ * the player has ([ANSWER_TICKS]); that the show starts by itself [COPY_TICKS] after the mime's
+ * opening line if that line isn't continued; that the mime's emotes are the player's animations; one piece or two at random, and
  * which; that a wrong copy doesn't start the four again. Left out: the teleport refusal during the show and
  * the spell message.
  */
@@ -43,6 +44,7 @@ object Mime : RandomEvent("mime", 6753) {
     const val PERFORM_TICKS = 4
     const val ANSWER_TICKS = 20
     const val REACT_TICKS = 3
+    const val COPY_TICKS = 10
     const val CHEER = 862
     const val CRY = 860
 
@@ -95,9 +97,15 @@ object Mime : RandomEvent("mime", 6753) {
         val away = events.areas.takeAway(player, this@Mime, FROM_X, FROM_Z, WIDTH_ZONES, HEIGHT_ZONES, ARRIVE) ?: return true
         val show = Show(spawnMime(world, away))
         away.state = show
+        // The show also starts on its own, so walking off or shutting the line below can't leave the player stuck on stage.
+        world.npcScripts.later(2 + COPY_TICKS) {
+            if (showOf(world, player)?.second !== show || show.turn != 0) return@later
+            world.scripts.interrupt(player)
+            perform(world, player, show)
+        }
         delay(2)
         if (type != null) chatNpc(type, type.name, ChatAnim.NEUTRAL, COPY)
-        perform(world, player, show)
+        if (showOf(world, player)?.second === show && show.turn == 0) perform(world, player, show)
         true
     }
 

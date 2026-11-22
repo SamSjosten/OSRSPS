@@ -176,6 +176,30 @@ class HeadlessMimeTest {
         }
     }
 
+    @Test
+    fun `walking off the opening line still starts the show`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready()
+                client.command("randomevent ${Mime.key}")
+                val npc = client.await("the old man") { client.npcs().firstOrNull { it.id == Mime.npcId } }
+                client.npcOp(npc.index, RandomEvents.TALK_TO)
+                client.chat("[mime.invite name=dave]")
+                client.awaitDialogue("the options") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.chat("[mime.yes]")
+                client.awaitDialogue("the opening line") { it is DialogueView.Chat && it.text == "[mime.copy]" }
+                val stage = client.position!!
+                client.walk(stage.x - 1, stage.z)
+                client.over()
+                val mime = client.await("the mime") { client.npcs().firstOrNull { it.id == Mime.MIME_NPC } }.index
+                client.perform(mime, wrongFirst = false)
+                client.await("back") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.await("a piece or two") { if (Mime.OUTFIT.count { client.slotOf(it) >= 0 } in 1..2) Unit else null }
+            }
+        }
+    }
+
     private companion object {
         const val EMOTE_ACCESS = 313
         const val BEER = 1917
