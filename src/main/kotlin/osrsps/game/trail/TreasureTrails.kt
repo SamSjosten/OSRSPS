@@ -292,7 +292,8 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     fun emoted(player: Player, index: Int) {
         uris[player]?.let { visit ->
             val step = data[visit.step] ?: return
-            if (step.emotes.getOrNull(1) == index) visit.ready = true
+            // The second emote counts only at the spot and dressed as the step asks, as the first.
+            if (step.emotes.getOrNull(1) == index && atSpot(player, step) && dressed(player, step)) visit.ready = true
             return
         }
         for ((_, obj) in player.inventory.contents()) {
@@ -300,12 +301,16 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             if (obj.id in byChallenge) continue
             val step = stepOf(player, tier, obj.id) ?: continue
             if (step.type != StepType.EMOTE || step !in pool(tier) || step.emotes.firstOrNull() != index) continue
-            val spot = step.targets.first().tile
-            if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > EMOTE_RANGE) continue
-            if (!dressed(player, step)) continue
+            if (!atSpot(player, step) || !dressed(player, step)) continue
             callUri(player, tier, step)
             return
         }
+    }
+
+    /** Whether [player] is within [EMOTE_RANGE] of [step]'s spot, on its level. */
+    private fun atSpot(player: Player, step: ClueStep): Boolean {
+        val spot = step.targets.first().tile
+        return spot.level == player.level && maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) <= EMOTE_RANGE
     }
 
     /** Whether [player] wears what [step] asks: any one of its outfits, or anything when it asks nothing. */
@@ -344,6 +349,8 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             return
         }
         world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.URI_CLUE) }
+        // The line waits on the player: he may have left, or the outfit come off, meanwhile.
+        if (uris[player] !== visit || player.trails[visit.tier]?.step != step.key || !dressed(player, step)) return
         uris.remove(player)
         world.removeNpc(npc)
         solve(context, clueSlot(player, visit.tier) ?: return, visit.tier, step)

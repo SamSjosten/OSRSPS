@@ -173,9 +173,20 @@ class HeadlessTreasureTrailsTalkTest {
                 client.awaitTicks(3)
                 assertNull(uri(server, TrailTier.BEGINNER), "no hat, no Uri")
 
-                server.world.playerNamed("hal")!!.equipment[HEAD_SLOT] = InvObj(HAT, 1)
+                val hal = server.world.playerNamed("hal")!!
+                hal.equipment[HEAD_SLOT] = InvObj(HAT, 1)
                 client.emote(BOW)
                 val uri = client.await("Uri") { uri(server, TrailTier.BEGINNER) }
+                // Taking the hat off while his line is open: continuing gives nothing (Codex review on #864).
+                client.npcOp(uri.index, 1)
+                client.await("trail.uri_clue") { (client.dialogueView as? DialogueView.Chat)?.takeIf { it.text == "[trail.uri_clue]" } }
+                hal.equipment[HEAD_SLOT] = null
+                client.continueDialogue()
+                client.awaitTicks(2)
+                client.slotOf(TrailTier.BEGINNER.sharedClue)
+                assertTrue(client.backpack().none { it?.id == TrailTier.BEGINNER.rewardCasket }, "no casket without the hat")
+
+                hal.equipment[HEAD_SLOT] = InvObj(HAT, 1)
                 client.npcOp(uri.index, 1)
                 client.chat("trail.uri_clue")
                 client.objbox("trail.casket")
@@ -195,6 +206,15 @@ class HeadlessTreasureTrailsTalkTest {
                 client.awaitTicks(2)
                 client.emote(CHEER)
                 val uri = client.await("Uri") { uri(server, TrailTier.ELITE) }
+                client.npcOp(uri.index, 1)
+                client.chat("trail.uri_not_yet")
+                // The second emote away from the spot doesn't count (Codex review on #864).
+                client.commandReply("tele 3232 3221") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                client.emote(DANCE)
+                client.awaitTicks(2)
+                client.commandReply("tele 3222 3221") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
                 client.npcOp(uri.index, 1)
                 client.chat("trail.uri_not_yet")
                 client.emote(DANCE)
