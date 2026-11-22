@@ -1,5 +1,5 @@
 {
- "name": "Treasure Trails step TT6: the Lumbridge Guide's hard anagram hands over its puzzle box, which opens on the sliding puzzle and must be solved first (::keys on)",
+ "name": "Treasure Trails step TT6: the Lumbridge Guide's hard anagram hands over its puzzle box, which opens on the sliding puzzle and must be solved first; a light box opens and its switches click (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -21,6 +21,16 @@
   {"step": "npcOption", "npc": "Lumbridge Guide", "option": "Talk-to"},
   {"step": "assertDialogue", "contains": "[trail.npc_box_unsolved]", "timeoutMs": 15000},
   {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::item 20355 1", "comment": "a light box, as a master step hands over; scrambled when first opened"},
+  {"step": "itemOption", "item": "Light box", "option": "Open"},
+  {"step": "assertInterface", "interfaceId": 322, "comment": "light_puzzle: watch the lights match varp 1356"},
+  {"step": "clickWidget", "interfaceId": 322, "component": 8, "comment": "BUTTON1 flips its lights"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 322, "component": 15, "comment": "BUTTON8"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertInterface", "interfaceId": 322},
   {"step": "command", "text": "::empty"},
 
   {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},

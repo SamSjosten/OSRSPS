@@ -440,7 +440,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
      */
     private suspend fun talkBox(context: ScriptContext, npc: osrsps.game.npc.Npc, tier: TrailTier, step: ClueStep, box: TrailChallenge.Box) {
         val player = context.player
-        val held = player.inventory.contents().map { it.second.id }.firstOrNull { it in TrailBoxes.PUZZLES || it == TrailBoxes.LIGHT_BOX }
+        // Only a box this step takes counts: another step's box neither blocks this one nor answers it.
+        val accepted = boxes.accepts(step, box)
+        val held = player.inventory.contents().map { it.second.id }.filter { it in accepted }.let { ids -> ids.firstOrNull { boxes.solved(player, it) } ?: ids.firstOrNull() }
         if (held == null) {
             val item = boxes.boxFor(step, box) ?: return
             world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX) }
@@ -451,9 +453,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.NPC_BOX_UNSOLVED) }
             return
         }
-        boxes.take(player, held)
         world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_BOX_SOLVED) }
-        solve(context, clueSlot(player, tier) ?: return, tier, step)
+        // Only once the dialogue is through is the box taken, so leaving it keeps the solved box; checked again first.
+        val slot = clueSlot(player, tier) ?: return
+        if (player.trails[tier]?.step != step.key || player.inventory.count(held) == 0L || !boxes.solved(player, held)) return
+        boxes.take(player, held)
+        solve(context, slot, tier, step)
     }
 
     /** Where [tier]'s clue scroll is in the backpack now: it may have moved while a dialogue was open. */

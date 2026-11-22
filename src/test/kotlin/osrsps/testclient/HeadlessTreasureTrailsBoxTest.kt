@@ -47,6 +47,7 @@ class HeadlessTreasureTrailsBoxTest {
         objs[HARD_CLUE] = ObjType(HARD_CLUE, "Clue scroll (hard)", iops = read, params = mapOf(TrailTier.HARD.param to 1))
         objs[TrailTier.MASTER.sharedClue] = ObjType(TrailTier.MASTER.sharedClue, "Clue scroll (master)", iops = read, params = mapOf(TrailTier.MASTER.param to 1))
         objs[TREE_BOX] = ObjType(TREE_BOX, "Puzzle box (hard)", iops = listOf("Open", null, null, null, "Drop"))
+        objs[OTHER_BOX] = ObjType(OTHER_BOX, "Puzzle box (hard)", iops = listOf("Open", null, null, null, "Drop"))
         objs[TrailBoxes.LIGHT_BOX] = ObjType(TrailBoxes.LIGHT_BOX, "Light box", iops = listOf("Open", null, null, null, "Destroy"))
         for (piece in TrailBoxes.TREE until TrailBoxes.TREE + 24) objs[piece] = ObjType(piece, "null")
         for (tier in TrailTier.entries) objs[tier.rewardCasket] = ObjType(tier.rewardCasket, "Reward casket (${tier.key})", stackable = true, iops = listOf("Open", null, null, null, "Drop"))
@@ -78,10 +79,14 @@ class HeadlessTreasureTrailsBoxTest {
             server.login("kit").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("clue hard anagram:1") { it.startsWith("Clue") }
+                val player = server.world.playerNamed("kit")!!
+                // Another step's box, solved, neither answers this step nor stops the NPC handing over its own.
+                val solvedCastle = IntArray(25) { TrailBoxes.CASTLE + it }.also { it[24] = TrailBoxes.GAP }
+                player.inventory.add(server.world.objTypes[OTHER_BOX]!!, 1)
+                player.trails.puzzles[OTHER_BOX] = solvedCastle
                 client.talkTo(server)
                 client.chat("trail.npc_box")
                 val box = client.slotOf(TREE_BOX)
-                val player = server.world.playerNamed("kit")!!
 
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 2, box, TREE_BOX)
                 val pieces = client.await("the scrambled pieces") { client.inventory(TrailBoxes.PUZZLE_INV).takeIf { inv -> inv.count { it != null } == 24 } }
@@ -106,6 +111,9 @@ class HeadlessTreasureTrailsBoxTest {
                 assertTrue(client.inventory(BACKPACK).none { it?.id == TREE_BOX || it?.id == HARD_CLUE })
                 assertNull(player.trails.puzzles[TREE_BOX])
                 client.slotOf(TrailTier.HARD.rewardCasket)
+                // The slides went to the box on screen, not the other one held.
+                assertEquals(1L, player.inventory.count(OTHER_BOX))
+                assertTrue(player.trails.puzzles.getValue(OTHER_BOX).contentEquals(solvedCastle))
             }
         }
     }
@@ -144,6 +152,7 @@ class HeadlessTreasureTrailsBoxTest {
         const val BACKPACK = 93
         const val GUIDE = 3_000
         const val HARD_CLUE = 19_886
+        const val OTHER_BOX = 2_795
         const val TREE_BOX = 19_887
     }
 }

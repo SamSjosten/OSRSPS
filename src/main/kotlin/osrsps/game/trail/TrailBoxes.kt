@@ -38,19 +38,37 @@ class LightBoxState(val switches: IntArray, var lit: Int) {
  * lit; no message on solving; a box with no state (from `::item`) is scrambled when first opened.
  */
 class TrailBoxes(private val world: World) {
+    /** The puzzle box each player last opened, which the slide puzzle's clicks move. Not saved: reopening sets it. */
+    private val opened = java.util.WeakHashMap<Player, Int>()
+
     /** The box [step]'s NPC hands over for [box]: the step's own puzzle box, or for a shared clue one of its tier's. */
     fun boxFor(step: ClueStep, box: TrailChallenge.Box): Int? {
         if (box.light && !box.puzzle) return LIGHT_BOX
-        if (step.tier == TrailTier.ELITE && step.items.isEmpty()) return ELITE_BOX
-        val own = step.items.firstNotNullOfOrNull { clue ->
-            val name = world.objTypes[clue]?.internalName
-            name?.let { world.objTypes.find("${it}_puzzlebox")?.id } ?: (clue + 1).takeIf { world.objTypes[it]?.name?.startsWith(PUZZLE_BOX) == true }
-        }
-        if (own != null) return own
+        ownBox(step)?.let { return it }
         if (step.tier == TrailTier.ELITE) return ELITE_BOX
         if (step.tier != TrailTier.MASTER) return null
         val choices = MASTER_BOXES + if (box.light) listOf(LIGHT_BOX) else emptyList()
         return choices[world.random.nextInt(choices.size)]
+    }
+
+    /** Every box [step]'s NPC takes back for [box]: the one it hands over, or any of the master ones it picks from. */
+    fun accepts(step: ClueStep, box: TrailChallenge.Box): Set<Int> {
+        if (box.light && !box.puzzle) return setOf(LIGHT_BOX)
+        val puzzles = ownBox(step)?.let(::setOf) ?: when (step.tier) {
+            TrailTier.ELITE -> setOf(ELITE_BOX)
+            TrailTier.MASTER -> MASTER_BOXES.toSet()
+            else -> emptySet()
+        }
+        return if (box.light) puzzles + LIGHT_BOX else puzzles
+    }
+
+    /** [step]'s own puzzle box: the clue's `_puzzlebox` obj, or the obj after it named as one. Not for elite shared clues. */
+    private fun ownBox(step: ClueStep): Int? {
+        if (step.tier == TrailTier.ELITE && step.items.isEmpty()) return ELITE_BOX
+        return step.items.firstNotNullOfOrNull { clue ->
+            val name = world.objTypes[clue]?.internalName
+            name?.let { world.objTypes.find("${it}_puzzlebox")?.id } ?: (clue + 1).takeIf { world.objTypes[it]?.name?.startsWith(PUZZLE_BOX) == true }
+        }
     }
 
     /** Whether [player] has solved box [item], the puzzle or the lights. */
@@ -124,6 +142,7 @@ class TrailBoxes(private val world: World) {
         }
         val first = PUZZLES[item] ?: return
         val slots = player.trails.puzzles.getOrPut(item) { newPuzzle(first) }
+        opened[player] = item
         sendPuzzle(player, slots)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, SLIDE_PUZZLE)
     }
@@ -132,7 +151,9 @@ class TrailBoxes(private val world: World) {
     fun slide(context: ScriptContext, slot: Int) {
         val player = context.player
         if (slot !in 0 until SLOTS) return
-        val slots = player.trails.puzzles.entries.firstOrNull { (item, _) -> player.inventory.count(item) > 0 }?.value ?: return
+        // The box that was opened, still in the backpack: with two boxes held, clicks go to the one on screen.
+        val item = opened[player]?.takeIf { player.inventory.count(it) > 0 } ?: return
+        val slots = player.trails.puzzles[item] ?: return
         if (slots[slot] == GAP) return
         val gap = neighbours(slot).firstOrNull { slots[it] == GAP } ?: return
         slots[gap] = slots[slot]
