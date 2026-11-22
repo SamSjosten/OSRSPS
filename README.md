@@ -337,7 +337,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
 | `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away, `superior` puts the task's superior out beside you |
 | `::randomevent [list\|now\|on\|off\|<event>]` | Alone, whether random events are on for you and when your next is due. `list` names the events built, `now` makes yours due so it comes the next tick you are free, `off` and `on` hold events back or let them come again (saved with the account), and an event's name (`::randomevent genie`) sends it to you at once, wherever you are. Not live's: for testing |
-| `::look [body a\|b \| kit part id \| colour part n \| reset]` | Alone, your look: body type, the identity kit of each part (hair, jaw, torso, arms, hands, legs, feet) and the five colours (hair, torso, legs, feet, skin). `body` switches body type, starting from its first kit of each part (none for body type B's jaw); `kit` sets one part to a kit of your body type from the cache (`::look kit hair 5`; `-1` for no jaw); `colour` sets one colour (`::look colour skin 7`); `reset` goes back to the default look. It shows the pronouns too. Saved with the account, kept by `::reset`; everyone around sees the change |
+| `::look [body a\|b \| kit part id \| colour part n \| reset \| design]` | Alone, your look: body type, the identity kit of each part (hair, jaw, torso, arms, hands, legs, feet) and the five colours (hair, torso, legs, feet, skin). `body` switches body type, starting from its first kit of each part (none for body type B's jaw); `kit` sets one part to a kit of your body type from the cache (`::look kit hair 5`; `-1` for no jaw); `colour` sets one colour (`::look colour skin 7`); `reset` goes back to the default look; `design` opens the Character Creator a new account gets at its first login. It shows the pronouns too. Saved with the account, kept by `::reset`; everyone around sees the change |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -3517,6 +3517,14 @@ game login, typed where a made-up name belongs. Any other name must keep to live
 letters, numbers, spaces, hyphens and underscores (refused the same way, and not logged either), so no name can carry
 look-alike letters or a line break into the log. A name listed in `OSRSPS_ADMINS` with no account yet can't be claimed;
 claim it first, then list it.
+
+A new account's first login opens the Character Creator (`player_design`, 679), where live's Tutorial Island starts:
+arrows for each body part step through the styles the makeover screen's page for that part lists, colour arrows step
+through each colour (skin through the nine every account has), body type A or B keeps each part's style as the other
+body type's kit, the Pronouns dropdown sets the pronoun, and Confirm closes it. Each change is kept at once, so a
+creator closed some other way keeps what was picked, and it doesn't open again (`::look design` opens it on any
+account). The components and what they send are read from the rev 242 client scripts (osrs-dumps); the arrows' order
+and wrapping, the kept-at-once changes and the skin colours offered are guessed, not seen on live.
 
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
