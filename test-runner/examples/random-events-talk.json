@@ -1,5 +1,5 @@
 {
-  "name": "Random events: Dr Jekyll takes a herb for a potion, the Drunken Dwarf gives a kebab and a beer, and the Strange plant gives a fruit",
+  "name": "Random events: Dr Jekyll takes a herb for a potion, the Drunken Dwarf gives a kebab and a beer, the Strange plant gives a fruit, Count Check a lamp, and Rick Turpentine and the Mysterious Old Man a gift",
   "account": "test",
   "runOnLogin": false,
   "steps": [
@@ -39,6 +39,29 @@
     {"step": "assertInventory", "item": "Strange fruit", "count": 1},
     {"step": "itemOption", "item": "Strange fruit", "option": "Eat"},
     {"step": "assertMessage", "contains": "[strange_plant.eaten]"},
-    {"step": "assertInventory", "item": "Strange fruit", "count": 0}
+    {"step": "assertInventory", "item": "Strange fruit", "count": 0},
+    {"step": "waitTicks", "ticks": 2},
+    {"comment": "The Lumbridge church's own Count Check is out of view from here.", "step": "command", "text": "::randomevent count_check", "expectMessage": "Started random event count_check"},
+    {"step": "npcOption", "npc": "Count Check", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Count Check", "contains": "[count_check_event.pass]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "assertInventory", "item": "Lamp", "count": 1},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::randomevent rick_turpentine", "expectMessage": "Started random event rick_turpentine"},
+    {"step": "npcOption", "npc": "Rick Turpentine", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Rick Turpentine", "contains": "[rick_turpentine.lucky_day]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"comment": "His gift is one of the gift table's, so the backpack is filled next to see the old man's go on the ground.", "step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::item 1917 28", "expectMessage": "Added"},
+    {"step": "command", "text": "::randomevent mysterious_old_man", "expectMessage": "Started random event mysterious_old_man"},
+    {"step": "npcOption", "npc": "Mysterious Old Man", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Mysterious Old Man", "contains": "[mysterious_old_man.present]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "assertMessage", "contains": "[mysterious_old_man.on_ground item="},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"}
   ]
 }

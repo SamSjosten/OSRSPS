@@ -149,9 +149,11 @@ class HeadlessRandomEventsTalkTest {
                     client.awaitDialogue("the options") { it is DialogueView.Menu }
                     client.chooseOption(1)
                     client.chat("[dr_jekyll.here_you_are]")
-                    client.chat("[dr_jekyll.thank_you]")
-                    client.over()
+                    // The potion is given with the herb taken, before his thanks is continued.
+                    client.awaitDialogue("his thanks") { it is DialogueView.Chat && it.text == "[dr_jekyll.thank_you]" }
                     client.has(STAMINA)
+                    client.continueDialogue()
+                    client.over()
                     assertEquals(0, client.count(TORSTOL))
                     assertEquals(1, client.count(GUAM))
 
@@ -198,13 +200,17 @@ class HeadlessRandomEventsTalkTest {
                 client.awaitTicks(StrangePlant.GROW_TICKS)
                 assertEquals(at, client.npcs().first { it.id == StrangePlant.npcId }.coord)
                 client.npcOp(plant.index, RandomEvents.TALK_TO)
-                client.gone(StrangePlant.npcId)
                 client.has(StrangePlant.FRUIT)
+                // It stays a moment for its pick animation; another Pick then gives nothing.
+                client.npcOp(plant.index, RandomEvents.TALK_TO)
+                client.gone(StrangePlant.npcId)
+                client.awaitTicks(1)
+                assertEquals(1, client.count(StrangePlant.FRUIT))
 
                 val slot = client.inventory(Inventory.INV).indexOfFirst { it?.id == StrangePlant.FRUIT }
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, slot, StrangePlant.FRUIT)
                 client.await("the message") { client.messages().firstOrNull { it.text == "[strange_plant.eaten]" } }
-                assertEquals(0, client.count(StrangePlant.FRUIT))
+                client.await("the fruit eaten") { if (client.count(StrangePlant.FRUIT) == 0) Unit else null }
             }
         }
     }

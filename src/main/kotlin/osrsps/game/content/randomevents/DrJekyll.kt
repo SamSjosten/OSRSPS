@@ -77,9 +77,10 @@ object DrJekyll : RandomEvent("dr_jekyll", 307) {
             chatPlayer(ChatAnim.NEUTRAL, HERE_YOU_ARE)
             val slot = (0 until player.inventory.capacity).firstOrNull { player.inventory[it]?.id == herb.id }
             if (slot != null) {
+                // Herb out and potion in on the same tick, before his thanks: shutting the chat can't lose the herb.
                 player.inventory.remove(slot, 1)
-                chatNpc(ChatAnim.HAPPY, THANK_YOU)
                 events.reward(player, herb.potion)
+                chatNpc(ChatAnim.HAPPY, THANK_YOU)
                 return true
             }
             // Guessed: the herb went in the meantime, so it is as if the player kept it.
