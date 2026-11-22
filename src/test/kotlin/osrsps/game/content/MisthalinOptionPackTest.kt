@@ -61,6 +61,26 @@ class MisthalinOptionPackTest {
     }
 
     @Test
+    fun `a bush that starts with one berry gives no extra on the regrowth tick`() {
+        val one = full.copy(id = bush.stages[1], x = 3222)
+        static.add(one)
+        fun at() = locs.at(3222, 3220, 0).single()
+        tick = 1000
+        MisthalinOptionPack.takeBerry(locs, at(), bush, tick)
+        assertEquals(bush.stages[2], at().id)
+        runTo(1200)
+        assertEquals(bush.stages[1], at().id)
+        // Picked on the tick its timer would put it back as the cache has it.
+        val due = locs.revertDue(at())
+        if (due != null) tick = due
+        MisthalinOptionPack.takeBerry(locs, at(), bush, tick)
+        locs.process()
+        assertEquals(bush.stages[2], at().id, "picked bare, not left with a berry")
+        runTo(tick + MisthalinOptionPack.BERRY_TICKS)
+        assertEquals(bush.stages[1], at().id, "back to its one berry")
+    }
+
+    @Test
     fun `the ticks until the first berry is back`() {
         assertEquals(1, MisthalinOptionPack.ticksUntilFirstBack(due = 1200, now = 1199))
         assertNull(MisthalinOptionPack.ticksUntilFirstBack(due = 1200, now = 1200))

@@ -217,14 +217,14 @@ class SlayerMasters(private val world: World) {
         }
     }
 
-    /** The master's own option in Talk-to's menu, before "Er... Nothing...", if they have one. */
-    private fun Dialogue.ownOption(master: SlayerMaster): Line? = when (master) {
-        SlayerMaster.AYA -> AyaLines.ABOUT_TURAEL
-        SlayerMaster.MAZCHNA -> MazchnaLines.ABOUT_LUCIEN
-        SlayerMaster.STEVE -> SteveLines.NEW_MASTER
-        SlayerMaster.KURADAL -> KuradalLines.SKILLCAPE.takeIf { player.skills.baseLevel(Skill.SLAYER) < 99 }
-        SlayerMaster.KRYSTILIA -> KrystiliaLines.HAT
-        else -> null
+    /** The master's own options in Talk-to's menu, before the Nothing option (`NOTHING`), if they have any. */
+    private fun Dialogue.ownOptions(master: SlayerMaster): List<Line> = when (master) {
+        SlayerMaster.AYA -> listOf(AyaLines.ABOUT_TURAEL)
+        SlayerMaster.MAZCHNA -> listOf(MazchnaLines.ABOUT_LUCIEN)
+        SlayerMaster.STEVE -> listOf(SteveLines.NEW_MASTER)
+        SlayerMaster.KURADAL -> listOfNotNull(KuradalLines.SKILLCAPE.takeIf { player.skills.baseLevel(Skill.SLAYER) < 99 })
+        SlayerMaster.KRYSTILIA -> listOf(KrystiliaRespawnLines.APART, KrystiliaLines.HAT)
+        else -> emptyList()
     }
 
     /** The Slayer Equipment shop, which every master runs (OSRS Wiki, Slayer Equipment); Trade opens it through [registerShops]. */
@@ -238,7 +238,9 @@ class SlayerMasters(private val world: World) {
      */
     private suspend fun Dialogue.talk(master: SlayerMaster): Int = with(SlayerMasterLines) {
         chatNpc(ChatAnim.NEUTRAL, if (master == SlayerMaster.KRYSTILIA) KrystiliaLines.GREETING else GREETING)
-        val options = listOfNotNull(NEED_TASK, REWARDS, DIFFICULTY, ownOption(master), NOTHING)
+        // Krystilia's six options don't fit a chat menu's five: hers leaves out the Nothing option (guessed: live's
+        // layout isn't on the Wiki; Escape closes the menu all the same).
+        val options = (listOf(NEED_TASK, REWARDS, DIFFICULTY) + ownOptions(master) + NOTHING).let { if (it.size > 5) it - NOTHING else it }
         when (options[choice(*options.toTypedArray()) - 1]) {
             NEED_TASK -> {
                 chatPlayer(ChatAnim.NEUTRAL, NEED_TASK)
@@ -262,6 +264,7 @@ class SlayerMasters(private val world: World) {
             SteveLines.NEW_MASTER -> aboutNieve()
             KuradalLines.SKILLCAPE -> aboutSkillcape()
             KrystiliaLines.HAT -> aboutHat()
+            KrystiliaRespawnLines.APART -> with(EdgevilleRespawn) { talk(world) }
             else -> chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         }
         0
