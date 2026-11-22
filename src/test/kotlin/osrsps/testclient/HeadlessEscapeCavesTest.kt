@@ -18,6 +18,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.Prayers
 import osrsps.game.content.EscapeCaves
 import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.WildernessLairFeeLines
@@ -25,6 +26,7 @@ import osrsps.game.content.WildernessLairLines
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -57,6 +59,58 @@ class HeadlessEscapeCavesTest {
             },
             cycleMillis = millis,
         )
+    }
+
+    private val bear = NpcType(11989, "Grizzly bear", size = 2, internalName = "wbr_bear", stats = NpcStats(attack = 72, strength = 72, defence = 72, hitpoints = 75))
+    private val spider = NpcType(11990, "Poison spider", internalName = "wbr_cave_poisonspider", stats = NpcStats(defence = 35, hitpoints = 73, ranged = 45))
+
+    // The two protection prayers' objs, shaped like the cache's (HeadlessFightCaveTest).
+    private val prayerObjs = listOf(
+        ObjType(
+            PROTECT_FROM_MISSILES_OBJ, "Null", internalName = "xmas16_marionette_blue",
+            params = mapOf(630 to 13, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MISSILES), 1752 to "Protect from Missiles", 1753 to 40, 1755 to 2677),
+        ),
+        ObjType(
+            PROTECT_FROM_MELEE_OBJ, "Null", internalName = "placeholder_xmas16_marionette_blue",
+            params = mapOf(630 to 14, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MELEE), 1752 to "Protect from Melee", 1753 to 43, 1755 to 2676),
+        ),
+    )
+
+    /** One of the caves' monsters beside the south way out's arrival tile, with the protection prayers loaded. */
+    private fun fightServer(dir: Path, monster: NpcType) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+        val types = NpcTypes.of(bear, spider)
+        val objTypes = ObjTypes.of(*prayerObjs.toTypedArray())
+        World(
+            crcs, CollisionMap().apply { markLoaded(52, 160) }, objTypes = objTypes, npcTypes = types,
+            random = GameRandom(1), varTypes = varTypes,
+            npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes),
+            npcSpawns = listOf(NpcSpawn(monster, 3361, 10248, source = "test")),
+            cycleMillis = millis,
+        )
+    }
+
+    /** [monster]'s attacks land through the protection prayer [prayer] that would block their style. */
+    private fun hitsThrough(dir: Path, monster: NpcType, prayer: String) {
+        fightServer(dir, monster).use { server ->
+            server.login("cy").use { client ->
+                client.await("the login rebuild") { client.position }
+                val cy = server.world.playerNamed("cy")!!
+                for (skill in listOf("prayer", "hitpoints")) client.commandReply("setlevel $skill 99") { true }
+                client.commandReply("setlevel defence 1") { true }
+                client.await("the levels") { Unit.takeIf { cy.skills.currentLevel(Skill.HITPOINTS) == 99 && cy.skills.currentLevel(Skill.PRAYER) == 99 } }
+                client.command("tele 3359 10246 0")
+                client.await("in the caves") { client.position?.takeIf { it == Coord(3359, 10246, 0) } }
+                // Immune to the spider's poison, which comes through a prayer anyway: only a hit takes hitpoints.
+                server.world.poison.cure(cy, 1_000)
+                val protection = server.world.prayers.find(prayer)!!
+                server.world.prayers.activate(cy, protection)
+                client.await("$prayer in effect") { Unit.takeIf { server.world.prayers.inEffect(cy, protection) } }
+                client.await("a hit through $prayer", timeoutMillis = 20_000) {
+                    Unit.takeIf { cy.skills.currentLevel(Skill.HITPOINTS) < 99 }
+                }
+                assertTrue(server.world.prayers.isActive(cy, protection), "$prayer still on when the hit landed")
+            }
+        }
     }
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
@@ -130,9 +184,13 @@ class HeadlessEscapeCavesTest {
     }
 
     @Test
+    fun `a bear's swings land through Protect from Melee`(@TempDir dir: Path) = hitsThrough(dir, bear, "Protect from Melee")
+
+    @Test
+    fun `a spider's shots land through Protect from Missiles`(@TempDir dir: Path) = hitsThrough(dir, spider, "Protect from Missiles")
+
+    @Test
     fun `the caves' bears and spiders are typeless`() {
-        val bear = NpcType(11989, "Grizzly bear", size = 2, internalName = "wbr_bear", stats = NpcStats(attack = 72, strength = 72, defence = 72, hitpoints = 75))
-        val spider = NpcType(11990, "Poison spider", internalName = "wbr_cave_poisonspider", stats = NpcStats(defence = 35, hitpoints = 73, ranged = 45))
         val combat = NpcCombat.load(NpcTypes.of(bear, spider), SeqNames.NONE)
         assertTrue(combat[bear]!!.typeless)
         assertTrue(combat[spider]!!.typeless)
@@ -140,5 +198,9 @@ class HeadlessEscapeCavesTest {
 
     private companion object {
         const val WBR_PERM_INT_1 = 3755
+        const val PROTECT_FROM_MISSILES = 22
+        const val PROTECT_FROM_MISSILES_OBJ = 20816
+        const val PROTECT_FROM_MELEE = 23
+        const val PROTECT_FROM_MELEE_OBJ = 20817
     }
 }

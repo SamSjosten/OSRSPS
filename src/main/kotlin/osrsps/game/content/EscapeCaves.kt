@@ -123,7 +123,7 @@ fun registerEscapeCaves(world: World) {
     }
     world.handlers.onLoc(EscapeCaves.SURFACE_CAVE, EscapeCaves.CHECK_FEE) {
         arriveDelay()
-        if (WildernessLairFee.paid(player)) world.message(player, WildernessLairLines.FEE_PAID)
+        if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
         else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
     }
     for (id in listOf(EscapeCaves.EXIT_SOUTH, EscapeCaves.EXIT_NORTH, EscapeCaves.EXIT_LADDER)) {
