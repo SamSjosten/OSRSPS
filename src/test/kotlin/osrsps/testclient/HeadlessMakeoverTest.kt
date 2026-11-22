@@ -43,21 +43,21 @@ class HeadlessMakeoverTest {
         ),
     )
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, settings: osrsps.game.SettingsCatalog? = null) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, npcTypes = NpcTypes.of(thessalia),
             npcSpawns = listOf(NpcSpawn(thessalia, 3222, 3220, source = "test")),
             // makeover_interface_type and makeover_bodytype are bits 0-4 and 5 of makeover_temp (3787) in the 242 cache.
             varTypes = VarTypes(
                 6_000,
-                mapOf(
+                osrsps.game.SettingsSide.VARBITS + osrsps.game.AllSettings.VARBITS + mapOf(
                     MakeoverScreen.VARBIT_INTERFACE_TYPE to VarbitType(MAKEOVER_TEMP, 0, 4),
                     MakeoverScreen.VARBIT_BODYTYPE to VarbitType(MAKEOVER_TEMP, 5, 5),
                     // settings_transmit_pronouns, bits 24-25 of settings_tracking (2855).
                     osrsps.game.AllSettings.VARBIT_PRONOUNS to VarbitType(SETTINGS_TRACKING, 24, 25),
                 ),
             ),
-            makeoverCatalog = catalog, cycleMillis = millis,
+            makeoverCatalog = catalog, settings = settings ?: osrsps.game.SettingsCatalog.NONE, cycleMillis = millis,
         )
     }
 
@@ -271,6 +271,40 @@ class HeadlessMakeoverTest {
                 client.await("the login rebuild") { client.position }
                 assertEquals(PlayerLook.DEFAULT.kits, client.await("the saved look") { client.appearance() }.kits)
                 assertTrue(MakeoverScreen.INTERFACE !in client.openInterfaces())
+            }
+        }
+    }
+
+    @Test
+    fun `picking pronouns in the All Settings window changes the look's pronoun, kept over a relog`(@TempDir dir: Path) {
+        // One tab holding only Pronouns (setting 387, a dropdown of enum 5500's three options), read from settings_transmit_pronouns.
+        val pronouns = osrsps.game.SettingRow(
+            994, mapOf(osrsps.game.SettingRow.PARAM_ID to osrsps.game.AllSettings.PRONOUNS_DROPDOWN, osrsps.game.SettingRow.PARAM_KIND to osrsps.game.SettingRow.KIND_DROPDOWN), options = 3,
+        )
+        val settings = osrsps.game.SettingsCatalog(
+            listOf(osrsps.game.SettingsCategory(923, 0, emptyMap(), listOf(pronouns))), mapOf(994 to pronouns), emptyMap(),
+            mapOf(osrsps.game.AllSettings.PRONOUNS_DROPDOWN to osrsps.game.SettingVar.Varbit(osrsps.game.AllSettings.VARBIT_PRONOUNS)), emptyMap(),
+        )
+        server(dir, settings).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.ifButton(osrsps.game.SettingsSide.INTERFACE, osrsps.game.SettingsSide.SETTINGS_OPEN, 1)
+                client.await("the window's dropdown options") {
+                    Unit.takeIf { osrsps.game.AllSettings.INTERFACE in client.openInterfaces() && client.opEnabled(osrsps.game.AllSettings.INTERFACE, osrsps.game.AllSettings.DROPDOWN_BUTTONS, 3 * 2 + 2, 1) }
+                }
+                // Row 0's Select, then They/them: option 2, whose third child (3 * 2 + 2) has the op.
+                client.ifButton(osrsps.game.AllSettings.INTERFACE, osrsps.game.AllSettings.SETTINGS_CLICKZONE, 1, sub = 0)
+                client.ifButton(osrsps.game.AllSettings.INTERFACE, osrsps.game.AllSettings.DROPDOWN_BUTTONS, 1, sub = 3 * 2 + 2)
+                client.await("settings_transmit_pronouns 2") { if (client.varp(SETTINGS_TRACKING) shr 24 and 3 == 2) Unit else null }
+                client.await("the look's pronoun") { client.commandReply("look") { it.startsWith("Look:") }.takeIf { "pronouns they/them" in it } }
+                assertTrue("body type A" in client.commandReply("look") { it.startsWith("Look:") }, "the body type stays")
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.loginAgain("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertTrue("pronouns they/them" in client.commandReply("look") { it.startsWith("Look:") })
+                client.await("settings_transmit_pronouns 2 at login") { if (client.varp(SETTINGS_TRACKING) shr 24 and 3 == 2) Unit else null }
             }
         }
     }

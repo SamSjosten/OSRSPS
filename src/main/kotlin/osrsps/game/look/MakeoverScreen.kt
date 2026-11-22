@@ -160,7 +160,7 @@ class MakeoverScreen(
                     BT_SHE_HER -> PRONOUN_SHE
                     else -> PRONOUN_THEY
                 }
-                state.preview = look.copy(pronoun = pronoun)
+                preview(player, state, look.copy(pronoun = pronoun))
                 setVarp(player, VARP_IF3, pronoun)
             }
             BT_APPLY -> keep(player, state.preview)
