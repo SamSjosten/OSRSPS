@@ -124,6 +124,17 @@ class HeadlessTreasureTrailsTalkTest {
                 client.talkTo(server, ASKER)
                 client.await("the answer prompt again") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it >= 2 } }
                 client.resumeCount(20)
+                client.await("trail.npc_right") { (client.dialogueView as? DialogueView.Chat)?.takeIf { it.text == "[trail.npc_right]" } }
+                // Walking off before the step goes on keeps the challenge scroll and the step (Codex review on #863).
+                val at = client.position!!
+                client.walk(at.x + 2, at.z)
+                client.awaitTicks(3)
+                client.slotOf(CHALLENGE)
+                client.slotOf(ANAGRAM_ITEM)
+
+                client.talkTo(server, ASKER)
+                client.await("the answer prompt a third time") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it >= 3 } }
+                client.resumeCount(20)
                 client.chat("trail.npc_right")
                 // The medium pool is this one step (the other is outside Misthalin), so the trail ends here.
                 client.objbox("trail.casket")

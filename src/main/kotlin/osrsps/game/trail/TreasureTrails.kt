@@ -327,11 +327,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             world.dialogues.start(context, npc) { chatNpc(ChatAnim.CONFUSED, TrailLines.NPC_WRONG) }
             return
         }
-        // The challenge scroll is used up, from the backpack or else the bank. Guessed: live takes it back as well.
+        world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_RIGHT) }
+        // Only once the step goes on is the challenge scroll used up, from the backpack or else the bank, so leaving the
+        // dialogue above keeps it. Guessed: live takes it back as well.
+        val slot = clueSlot(player, tier) ?: return
+        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem)) return
         val held = player.inventory.contents().firstOrNull { it.second.id == step.challengeItem }
         if (held != null) player.inventory.remove(held.first, 1) else removeFromBank(player, step.challengeItem)
-        world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_RIGHT) }
-        solve(context, clueSlot(player, tier) ?: return, tier, step)
+        solve(context, slot, tier, step)
     }
 
     /** Where [tier]'s clue scroll is in the backpack now: it may have moved while a dialogue was open. */
