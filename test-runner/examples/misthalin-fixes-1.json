@@ -22,10 +22,20 @@
    "expectMessage": "Teleported to 3222, 3218"
   },
   {
+   "step": "command",
+   "text": "::npc hans 0",
+   "expectMessage": "Spawned Hans",
+   "comment": "a Hans of our own that stays put: the castle's walks the courtyard and can be out of reach for over a minute (nightly 2026-11-22)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "npcOption",
    "npc": "Hans",
    "option": "Age",
-   "timeoutMs": 70000
+   "timeoutMs": 20000
   },
   {
    "step": "assertDialogue",
@@ -47,6 +57,11 @@
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "you put in."
   },
   {
    "step": "command",

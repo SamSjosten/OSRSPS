@@ -479,6 +479,10 @@ class Pickpocketing(private val world: World) {
          */
         const val MARTIN = 5832
 
+        /** Curator Haig Halen in the Varrock Museum, and the storeroom key he holds since Ethically Acquired Antiquities. */
+        const val CURATOR = 5214
+        const val STOREROOM_KEY = 29906
+
         /** favour_male_ham_civilian and favour_female_ham_civilian: Pickpocket is their op1, not op3. */
         val HAM_MEMBERS = listOf(2540, 2541)
         const val HAM_PICKPOCKET = 1
@@ -632,6 +636,9 @@ class Pickpocketing(private val world: World) {
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
             Pocket(listOf(MARTIN), "Martin the Master Gardener", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
+            // OSRS Wiki, Curator Haig Halen (Pickpocketing): level 25, no XP, the storeroom key always. Guessed: the chances
+            // (a warrior's) and the catch's damage.
+            Pocket(listOf(CURATOR), "Curator Haig Halen", 25, 0, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, loot = listOf(PocketLoot(STOREROOM_KEY, 1, 1) { 1 })),
             Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD + ARDOUGNE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN) + WARRIORS_2022, "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
