@@ -106,14 +106,22 @@ class Making(private val world: World) {
 
     /**
      * [recipes] (what one pair of items can make, in the box's order), offered in the Make-X box under [title], then
-     * made. With [alwaysAsk] off, the box is skipped when there is only one recipe and only one can be made.
+     * made. With [alwaysAsk] off, the box is skipped when there is only one recipe and only one can be made; then
+     * [fromMovement] (an item used on a loc) starts it with the movement phase's timing, as [start] says.
      */
-    suspend fun choose(context: ScriptContext, recipes: List<MakeRecipe>, title: Line = MakeLines.TITLE, alwaysAsk: Boolean = true) {
+    suspend fun choose(
+        context: ScriptContext,
+        recipes: List<MakeRecipe>,
+        title: Line = MakeLines.TITLE,
+        alwaysAsk: Boolean = true,
+        fromMovement: Boolean = false,
+    ) {
         require(recipes.size in 1..Chatbox.SKILLMULTI_MAX_ITEMS) { "The Make-X box shows 1 to ${Chatbox.SKILLMULTI_MAX_ITEMS} items, not ${recipes.size}" }
         val player = context.player
         val most = recipes.maxOf { it.times(player.inventory) }
         if (most <= 0) return
-        val (index, quantity) = if (!alwaysAsk && recipes.size == 1 && most == 1) {
+        val skipped = !alwaysAsk && recipes.size == 1 && most == 1
+        val (index, quantity) = if (skipped) {
             0 to 1
         } else {
             var picked = 0 to 1
@@ -121,7 +129,8 @@ class Making(private val world: World) {
             picked
         }
         val recipe = recipes.getOrNull(index) ?: return
-        start(context, recipe, quantity)
+        // A box answered resumes in the input phase, whatever started it.
+        start(context, recipe, quantity, fromMovement = skipped && fromMovement)
     }
 
     /**
