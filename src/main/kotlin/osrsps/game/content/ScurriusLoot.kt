@@ -37,9 +37,10 @@ class ScurriusLoot(private val world: World) {
 
     /**
      * Who loots a dead Scurrius: his damagers logged in at the kill, most damage first, and which of them were Ironmen
-     * then (so logging out before the loot doesn't lift the restriction: Codex, PR 868).
+     * then (so logging out before the loot doesn't lift the restriction: Codex, PR 868), and whether more than one
+     * account damaged him, logged in or not (so a helper logging out doesn't make it a solo kill).
      */
-    private class Looters(val keys: List<String>, val ironmen: Set<String>)
+    private class Looters(val keys: List<String>, val ironmen: Set<String>, val shared: Boolean)
 
     /** Each dead Scurrius's [Looters], kept until his body goes. */
     private val atKill = HashMap<Npc, Looters>()
@@ -54,8 +55,9 @@ class ScurriusLoot(private val world: World) {
     fun died(npc: Npc) {
         val online = world.onlinePlayers.filter { !it.loggedOut }.associateBy { it.saveKey }
         // Ties keep the order of first hits: sortedByDescending is stable.
-        val keys = damage.remove(npc).orEmpty().entries.filter { it.key in online }.sortedByDescending { it.value }.map { it.key }
-        atKill[npc] = Looters(keys, keys.filter { ironman(online.getValue(it)) }.toSet())
+        val tally = damage.remove(npc).orEmpty()
+        val keys = tally.entries.filter { it.key in online }.sortedByDescending { it.value }.map { it.key }
+        atKill[npc] = Looters(keys, keys.filter { ironman(online.getValue(it)) }.toSet(), tally.size > 1)
         for (key in keys) {
             val player = online.getValue(key)
             if (Scurrius.KILL_COUNT_VARP !in 0 until player.vars.types.varpCount) continue
@@ -85,7 +87,7 @@ class ScurriusLoot(private val world: World) {
         if (npc.type.id !in TYPES) return false
         val going = bodyGoing?.takeIf { it.first === npc }?.second
         bodyGoing = null
-        val looters = going ?: atKill.remove(npc) ?: Looters(damage.remove(npc).orEmpty().keys.toList(), emptySet())
+        val looters = going ?: atKill.remove(npc) ?: damage.remove(npc).orEmpty().keys.toList().let { Looters(it, emptySet(), it.size > 1) }
         val keys = looters.keys
         val private = world.scurriusLairs.runAt(npc.x, npc.z) != null
         val mvpTable = world.npcDrops[npc.type]
@@ -96,7 +98,7 @@ class ScurriusLoot(private val world: World) {
         }
         var spine = false
         // Ironmen in a public kill with others get the kill count but no drops, save a medium clue as the MVP.
-        val shared = !private && keys.size > 1
+        val shared = !private && looters.shared
         keys.forEachIndexed { i, key ->
             val all = (if (i == 0) mvpTable else others)?.roll(world.random).orEmpty()
             val ironman = shared && key in looters.ironmen

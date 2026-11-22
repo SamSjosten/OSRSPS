@@ -112,6 +112,35 @@ class HeadlessScurriusLootTest {
     }
 
     @Test
+    fun `a helper logging out before the kill still makes it a shared kill for the Ironman`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                val world = server.world
+                val a = world.playerNamed("alice")!!
+                a.vars.setVarbit(SettingsSide.VARBIT_IRONMAN, 1)
+                alice.command("tele ${Scurrius.SPAWN.x} ${Scurrius.SPAWN.z} 0")
+                alice.await("in the public lair") { alice.position?.takeIf { it == Coord(Scurrius.SPAWN.x, Scurrius.SPAWN.z, 0) } }
+                alice.commandReply("npc ${Scurrius.BOSS_PUBLIC}") { it.isNotEmpty() }
+                val boss: Npc = alice.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PUBLIC && !it.dead } }
+                // Bob deals most of it, then logs out before the kill.
+                val b = server.login("bob").use { bob ->
+                    bob.await("the login rebuild") { bob.position }
+                    world.playerNamed("bob")!!.also { world.scurriusLoot.damaged(boss, it, 80) }
+                }
+                alice.await("bob gone", timeoutMillis = 30_000) { if (b.loggedOut || b !in world.onlinePlayers) Unit else null }
+                world.scurriusLoot.damaged(boss, a, 20)
+                val (x, z) = boss.x to boss.z
+                alice.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                alice.await("her kill count") { alice.messages().firstOrNull { it.text.contains("scurrius.kill_count") } }
+                alice.awaitTicks(12)
+                val hers = (world.groundObjs.visibleAt(a, x + 1, z + 1, 0) + world.groundObjs.visibleAt(a, x, z, 0)).filter { it.owner == a.saveKey }
+                assertTrue(hers.all { it.id == ScurriusLoot.MEDIUM_CLUE }, "still a shared kill: ${hers.map { it.id }}")
+            }
+        }
+    }
+
+    @Test
     fun `an Ironman in a public kill with others counts it but gets no drops, save a medium clue as the MVP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
