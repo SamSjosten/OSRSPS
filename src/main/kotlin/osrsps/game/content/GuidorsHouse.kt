@@ -110,7 +110,9 @@ fun registerGuidorsHouse(world: World) = with(GuidorsHouse) {
         // The tile on the player's side of the door's edge, then the one across it.
         val east = Tile(DOOR_TILE.x + 1, DOOR_TILE.z)
         val (from, to) = if (inside) east to DOOR_TILE else DOOR_TILE to east
-        world.doors.openAs(door, DOOR_OPEN, shutAfter = MemberGates.OPEN_TICKS)
+        // Another player may have opened it during the arrival delay: then it is already open, and the player just walks.
+        val closed = world.locs[door.x, door.z, door.level, door.layer]?.takeIf { it.id == DOOR }
+        if (closed != null) world.doors.openAs(closed, DOOR_OPEN, shutAfter = MemberGates.OPEN_TICKS)
         player.waypoints.clear()
         if (player.x != from.x || player.z != from.z) player.waypoints.add(from)
         player.waypoints.add(to)

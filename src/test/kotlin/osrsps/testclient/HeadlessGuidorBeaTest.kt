@@ -14,6 +14,7 @@ import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.content.FarmerBea
 import osrsps.game.content.GuidorsHouse
+import osrsps.game.content.MemberGates
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -149,6 +150,32 @@ class HeadlessGuidorBeaTest {
                 // Out again from Guidor's side.
                 client.locOp(door.id, door.x, door.z, GuidorsHouse.OPEN)
                 client.awaitAt(3282, 3382)
+            }
+        }
+    }
+
+    @Test
+    fun `two gowned players opening the bedroom door together leave one door, shut again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { a ->
+                server.login("bob").use { b ->
+                    for (client in listOf(a, b)) {
+                        client.await("the login rebuild") { client.position }
+                        client.wear(GuidorsHouse.PRIEST_GOWN_TOP, WearPos.BODY)
+                        client.wear(GuidorsHouse.PRIEST_GOWN_BOTTOM, WearPos.LEGS)
+                        client.tele(3281, 3382)
+                    }
+                    a.locOp(door.id, door.x, door.z, GuidorsHouse.OPEN)
+                    b.locOp(door.id, door.x, door.z, GuidorsHouse.OPEN)
+                    a.awaitAt(3283, 3382)
+                    b.awaitAt(3283, 3382)
+                    val world = server.world
+                    a.await("the door shut") { world.locs[3282, 3382, 0, 0]?.takeIf { it.id == GuidorsHouse.DOOR } }
+                    a.awaitTicks(MemberGates.OPEN_TICKS + 2)
+                    val open = (3281..3283).flatMap { x -> (3381..3383).mapNotNull { z -> world.locs[x, z, 0, 0]?.takeIf { it.id == GuidorsHouse.DOOR_OPEN } } }
+                    assertEquals(emptyList(), open, "no swung-open door left behind")
+                    assertEquals(GuidorsHouse.DOOR, world.locs[3282, 3382, 0, 0]?.id)
+                }
             }
         }
     }
