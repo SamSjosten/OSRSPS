@@ -104,6 +104,40 @@ class HeadlessBelladonnaTest {
         }
     }
 
+    @Test
+    fun `a full pack still takes the pick onto a nightshade stack it holds`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele ${X - 1} $Z")
+                client.await("by the patch") { client.position?.takeIf { it.x == X - 1 && it.z == Z } }
+                client.command("setlevel farming 63")
+                client.await("Farming 63") { client.stat(FARMING)?.takeIf { it.level == 63 } }
+                client.give(RAKE)
+                client.give(DIBBER)
+                client.locOp(PATCH, X, Z, 1)
+                client.awaitPatch(3)
+                client.give(SEED)
+                val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == SEED }
+                client.locTarget(PATCH, X, Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, SEED)
+                client.awaitPatch(4)
+                client.command("farmtick 64")
+                client.awaitPatch(8)
+                client.give(GLOVES)
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, WEAR_BUTTON, client.inventory(BACKPACK).indexOfFirst { it?.id == GLOVES }, GLOVES)
+                client.await("the gloves on") { client.inventory(WORN).firstOrNull { it?.id == GLOVES } }
+                client.give(NIGHTSHADE)
+                val free = 28 - client.inventory(BACKPACK).count { it != null }
+                client.command("item $WEEDS $free")
+                client.await("a full pack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
+
+                client.locOp(PATCH, X, Z, 1)
+                client.awaitPatch(3)
+                assertTrue(client.count(NIGHTSHADE) >= 7, "1 held and 6 or more picked, not ${client.count(NIGHTSHADE)}")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94

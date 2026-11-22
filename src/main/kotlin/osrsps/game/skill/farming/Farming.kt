@@ -557,7 +557,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
      */
     private suspend fun ScriptContext.pick(patch: FarmingPatch, state: PatchState) {
         val crop = state.crop ?: return
-        if (player.inventory.freeSlots == 0) return world.message(player, FarmingLines.INVENTORY_FULL)
+        // A stackable crop (belladonna's nightshade) also goes onto a stack already in the pack.
+        val stacks = world.objTypes[crop.produce]?.stackable == true && player.inventory.count(crop.produce) > 0
+        if (player.inventory.freeSlots == 0 && !stacks) return world.message(player, FarmingLines.INVENTORY_FULL)
         player.anim(ANIM_PICK_LOW)
         delay(PICK_DELAY)
         if (state.crop !== crop || !state.grown) return
