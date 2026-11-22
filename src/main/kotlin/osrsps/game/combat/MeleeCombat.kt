@@ -747,7 +747,7 @@ class MeleeCombat(
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        hitPlayer(player, npc, if (protects(player, swingType)) blocked * prayerPasses / 100 else blocked, tick)
+        hitPlayer(player, npc, if (!def.typeless && protects(player, swingType)) blocked * prayerPasses / 100 else blocked, tick)
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
@@ -829,7 +829,7 @@ class MeleeCombat(
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = shot.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val prayed = protects(player, shotType)
+        val prayed = !def.typeless && protects(player, shotType)
         val blocked = prayed && prayerPasses == 0
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
         val bulwarked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
