@@ -45,6 +45,9 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val CHALLENGE_PROMPT = line("challenge_prompt", "the number prompt for a challenge scroll's answer (no source seen)")
     val NPC_WRONG = line("npc_wrong", "a talk step's NPC, after a wrong answer to the challenge scroll (no source seen)")
     val NPC_RIGHT = line("npc_right", "a talk step's NPC, after the right answer, before the next clue (no source seen)")
+    val URI_CLUE = line("uri_clue", "Uri, handing over the next clue to the player who called him (the Wiki's Uri page lists his phrases; which he says when isn't known)")
+    val URI_NO_BUSINESS = line("uri_no_business", "Uri, to a player who didn't call him or isn't wearing what the clue asks (no source seen)")
+    val URI_NOT_YET = line("uri_not_yet", "Uri, before the clue's second emote is done (no source seen)")
 
     fun suspicion(tier: TrailTier) = when (tier) {
         TrailTier.BEGINNER -> SUSPICION_BEGINNER
@@ -58,7 +61,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 
 /**
  * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
- * caskets (TT2), and the talk and search steps (TT3). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * caskets (TT2), the talk and search steps (TT3), and the emote steps with Uri (TT4). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
@@ -80,6 +83,11 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  *   NPC with a challenge question (the clue helper's challenge column) first hands over its challenge scroll, then
  *   takes the answer as a number when talked to again, any of the cache's answers right and a wrong one free. A
  *   step whose NPC isn't spawned or whose loc isn't on its tile never comes up ([available]).
+ * - An emote step's first emote, done within [EMOTE_RANGE] of its spot in one of its outfits (the clue helper's
+ *   cluehelper_outfit: items by equipment slot, or item groups by obj param 258), calls that tier's Uri beside the
+ *   player (the Wiki's Uri page); a step of two emotes has the second done before he gives the clue. He talks only to
+ *   the player who called him, dressed as asked, and leaves after [URI_TICKS]. Steps with a double agent wait for the
+ *   fights (TT7).
  * - Open on a reward casket counts the trail done and rolls its rewards ([TrailRewards]: the Wiki's tables, its
  *   1/50 to 1/5 master clue as a master scroll box); the reward screen shows them and the chat says "Well done", the
  *   count and the value. The tier's minor and major scroll cases come with every casket from their count on until
@@ -93,7 +101,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  * Guessed: the trail length and a casket's roll count are uniform in their ranges and every built step equally likely
  * (the Wiki gives only ranges and averages); rewards go straight into the backpack, what doesn't fit on the floor, the
  * reward screen only showing them; a scroll case held but not opened isn't given again; the value is the guide prices'
- * sum; Search and Open both search a step's loc; the NPC's chathead moods; the challenge scroll used up on the right
+ * sum; how near the spot an emote counts and how long Uri waits; Uri appearing with no spotanim, on a free tile beside
+ * the player, seen by everyone; Search and Open both search a step's loc; the NPC's chathead moods; the challenge scroll used up on the right
  * answer; no
  * message on opening a box; one item box per solved step; a box that would pass the cap being kept from the drop (the
  * Wiki's warning setting on); the first item of a step with several. Left out until their steps: a second clue picked
@@ -123,6 +132,11 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             else -> true
         }
     }
+
+    /** Uri, called by an emote step: whose he is, for which step, until when, and whether the second emote is done. */
+    private class UriVisit(val npc: osrsps.game.npc.Npc, val tier: TrailTier, val step: String, val until: Long, var ready: Boolean)
+
+    private val uris = HashMap<Player, UriVisit>()
 
     /** The steps of [tier] that can come up now: built and [available]. */
     fun ready(tier: TrailTier): List<ClueStep> = pool(tier).filter(::available)
@@ -268,6 +282,78 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             return
         }
         world.message(player, GameLines.NOTHING_INTERESTING)
+    }
+
+    /**
+     * [player] did emote [index] (the emote tab's index). An emote step held whose first emote it is, done near the
+     * step's spot in the step's outfit, calls Uri beside the player; a step's second emote, done while he is there,
+     * lets him hand over the clue.
+     */
+    fun emoted(player: Player, index: Int) {
+        uris[player]?.let { visit ->
+            val step = data[visit.step] ?: return
+            // The second emote counts only at the spot and dressed as the step asks, as the first.
+            if (step.emotes.getOrNull(1) == index && atSpot(player, step) && dressed(player, step)) visit.ready = true
+            return
+        }
+        for ((_, obj) in player.inventory.contents()) {
+            val tier = tierOf(obj.id) ?: continue
+            if (obj.id in byChallenge) continue
+            val step = stepOf(player, tier, obj.id) ?: continue
+            if (step.type != StepType.EMOTE || step !in pool(tier) || step.emotes.firstOrNull() != index) continue
+            if (!atSpot(player, step) || !dressed(player, step)) continue
+            callUri(player, tier, step)
+            return
+        }
+    }
+
+    /** Whether [player] is within [EMOTE_RANGE] of [step]'s spot, on its level. */
+    private fun atSpot(player: Player, step: ClueStep): Boolean {
+        val spot = step.targets.first().tile
+        return spot.level == player.level && maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) <= EMOTE_RANGE
+    }
+
+    /** Whether [player] wears what [step] asks: any one of its outfits, or anything when it asks nothing. */
+    fun dressed(player: Player, step: ClueStep): Boolean = step.outfits.isEmpty() || step.outfits.any { outfit ->
+        outfit.fits({ slot -> player.equipment[slot]?.id }) { id -> world.objTypes[id]?.intParam(TrailOutfit.PARAM_ITEM_GROUP) }
+    }
+
+    private fun callUri(player: Player, tier: TrailTier, step: ClueStep) {
+        val type = world.npcTypes[URI.getValue(tier)] ?: return
+        val tile = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1).map { (dx, dz) -> player.x + dx to player.z + dz }
+            .firstOrNull { (x, z) -> world.canStand(x, z, player.level) } ?: (player.x to player.z)
+        val npc = world.spawnNpc(osrsps.game.npc.NpcSpawn(type, tile.first, tile.second, player.level, source = "trail uri", respawns = false)) ?: return
+        uris[player] = UriVisit(npc, tier, step.key, world.tick + URI_TICKS, ready = step.emotes.size < 2)
+    }
+
+    /** Uri leaves when his time is up or the player who called him has gone. Run once a tick. */
+    fun process() {
+        val gone = uris.filter { (player, visit) -> player.loggedOut || world.tick >= visit.until }
+        for ((player, visit) in gone) {
+            uris.remove(player)
+            world.removeNpc(visit.npc)
+        }
+    }
+
+    /** Talk-to on Uri: the next clue for the player who called him, dressed and with every emote done. */
+    suspend fun talkToUri(context: ScriptContext, npc: osrsps.game.npc.Npc) {
+        val player = context.player
+        val visit = uris[player]?.takeIf { it.npc === npc }
+        val step = visit?.let { data[it.step] }
+        if (visit == null || step == null || player.trails[visit.tier]?.step != step.key || !dressed(player, step)) {
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.URI_NO_BUSINESS) }
+            return
+        }
+        if (!visit.ready) {
+            world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.URI_NOT_YET) }
+            return
+        }
+        world.dialogues.start(context, npc) { chatNpc(ChatAnim.NEUTRAL, TrailLines.URI_CLUE) }
+        // The line waits on the player: he may have left, or the outfit come off, meanwhile.
+        if (uris[player] !== visit || player.trails[visit.tier]?.step != step.key || !dressed(player, step)) return
+        uris.remove(player)
+        world.removeNpc(npc)
+        solve(context, clueSlot(player, visit.tier) ?: return, visit.tier, step)
     }
 
     /**
@@ -460,6 +546,17 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         /** The kinds of step whose NPC or loc TT3 builds; Charlie's, Falo's, emotes and the rest come in their own steps. */
         val TALK_TYPES = setOf(StepType.ANAGRAM, StepType.CIPHER, StepType.CRYPTIC, StepType.MAP)
 
+        /** How near an emote step's spot its emote counts, in tiles. Guessed: the clue helper gives one tile. */
+        const val EMOTE_RANGE = 4
+
+        /** How long Uri stays if no one talks to him, in ticks. Guessed. */
+        const val URI_TICKS = 200
+
+        /** Uri of each tier: trail_beginner_uri to trail_master_uri. */
+        val URI: Map<TrailTier, Int> = mapOf(
+            TrailTier.BEGINNER to 8638, TrailTier.EASY to 1774, TrailTier.MEDIUM to 1775, TrailTier.HARD to 1776, TrailTier.ELITE to 6584, TrailTier.MASTER to 7311,
+        )
+
         /** Every clue scroll's op1. */
         private const val READ = "Read"
 
@@ -494,6 +591,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val target = step.targets.firstOrNull() ?: return false
             if (!inBuiltRegion(target.tile) || step.combat || step.targets.size != 1) return false
             if (step.challenge is TrailChallenge.Box) return false
+            if (step.type == StepType.EMOTE) return step.emotes.isNotEmpty()
             return isDig(step) || (step.type in TALK_TYPES && (target is TrailTarget.Npc || target is TrailTarget.Loc))
         }
 
@@ -527,6 +625,7 @@ fun registerTreasureTrails(world: World) {
     world.handlers.onObj(TreasureTrails.SPADE, 1) { trails.dig(this) }
     // Talk and search steps take their NPC's or loc's click ahead of its own handler.
     world.handlers.first(trails::intercept)
+    for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }
     for (scroll in trails.data.steps.values.map { it.challengeItem }.filter { it >= 0 }.distinct()) {
         world.handlers.onObj(scroll, 1) { op -> trails.read(this, op.sub) }
     }
