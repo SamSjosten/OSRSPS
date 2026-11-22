@@ -18,6 +18,7 @@ object RatBoneLines : Lines("rat_bone", "Rat bone weapons") {
     val MADE = line("made", "a rat bone weapon made (no transcript)", "item")
     val TOO_LOW = line("too_low", "making one below the level (no transcript)", "level", "item")
     val STAFF_RUNES = line("staff_runes", "a bone staff without 1,000 chaos runes (no transcript)")
+    val STAFF_FULL = line("staff_full", "another bone staff while the charges held can't take its 1,000 more (no transcript)")
     val LAMP_MORE = line("lamp_more", "the combat lamp's skill menu: its option to the rest of the skills (guessed menu)")
     val LAMP_RUBBED = line("lamp_rubbed", "the combat lamp rubbed (no transcript)", "skill", "xp")
 }
@@ -69,8 +70,12 @@ object RatBoneWeapons {
 
     private val RAT_WORD = Regex("""\brats?\b""", RegexOption.IGNORE_CASE)
 
-    /** Whether [npc] is a rat: one named so, or Scurrius. */
-    fun isRat(npc: Npc): Boolean = npc.type.id in ScurriusLoot.TYPES || RAT_WORD.containsMatchIn(npc.type.name)
+    /** Rat-like by name but not rats to these weapons (OSRS Wiki, Rat (attribute), excluded monsters). */
+    private val NOT_RATS = setOf("angry giant rat", "experiment no.2", "mouse")
+
+    /** Whether [npc] is a rat: one named so, bar [NOT_RATS], or Scurrius. */
+    fun isRat(npc: Npc): Boolean =
+        npc.type.id in ScurriusLoot.TYPES || (RAT_WORD.containsMatchIn(npc.type.name) && npc.type.name.lowercase() !in NOT_RATS)
 
     fun wields(player: Player): Boolean = player.equipment[WearPos.WEAPON]?.id in WEAPONS
 
@@ -91,8 +96,14 @@ object RatBoneWeapons {
         return buildList {
             if (inv.count(RUNE_MACE) >= 1) add(BONE_MACE)
             if (inv.count(YEW_SHORTBOW) >= 1) add(BONE_SHORTBOW)
-            if (inv.count(BATTLESTAFF) >= 1 && inv.count(CHAOS_RUNE) >= STAFF_RUNES) add(BONE_STAFF)
+            if (inv.count(BATTLESTAFF) >= 1 && inv.count(CHAOS_RUNE) >= STAFF_RUNES && staffRoom(player)) add(BONE_STAFF)
         }
+    }
+
+    /** Whether [player]'s bone staff charges can take a new staff's 1,000 without going over the cap (Codex, PR 878). */
+    fun staffRoom(player: Player): Boolean {
+        val staff = PoweredStaves.BONE_STAFF
+        return player.charges[staff.charge] + STAFF_RUNES <= staff.maxCharges
     }
 
     /**
@@ -110,7 +121,7 @@ object RatBoneWeapons {
                 take(player, BATTLESTAFF, 1)
                 take(player, CHAOS_RUNE, STAFF_RUNES)
                 val staff = PoweredStaves.BONE_STAFF
-                player.charges[staff.charge] = minOf(staff.maxCharges, player.charges[staff.charge] + STAFF_RUNES)
+                player.charges[staff.charge] += STAFF_RUNES
             }
         }
         world.objTypes[weapon]?.let { inv.add(it, 1) }
@@ -136,6 +147,10 @@ object RatBoneWeapons {
         }
         if (player.inventory.count(CHAOS_RUNE) < STAFF_RUNES) {
             world.message(player, RatBoneLines.STAFF_RUNES)
+            return
+        }
+        if (!staffRoom(player)) {
+            world.message(player, RatBoneLines.STAFF_FULL)
             return
         }
         if (!make(world, player, BONE_STAFF)) return
@@ -167,7 +182,7 @@ object RatBoneWeapons {
 
 fun registerRatBoneWeapons(world: World) = with(RatBoneWeapons) {
     for (anvil in Smithing.ANVILS) {
-        for (obj in listOf(SPINE, RUNE_MACE)) world.handlers.onObjOnLoc(anvil, obj) { world.making.choose(this, listOf(MACE), alwaysAsk = false) }
+        for (obj in listOf(SPINE, RUNE_MACE)) world.handlers.onObjOnLoc(anvil, obj) { world.making.choose(this, listOf(MACE), alwaysAsk = false, fromMovement = true) }
     }
     world.handlers.onObjOnObj(KNIFE, SPINE) { world.making.choose(this, listOf(SHORTBOW), alwaysAsk = false) }
     world.handlers.onObjOnObj(SPINE, YEW_SHORTBOW) { world.making.choose(this, listOf(SHORTBOW), alwaysAsk = false) }

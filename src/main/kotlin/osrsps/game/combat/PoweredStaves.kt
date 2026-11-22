@@ -232,7 +232,9 @@ class PoweredStaves(
             travel = 2647,
             impact = 2646,
             bonusMultiplier = 1,
-            maxHit = { magic -> magic / 3 + 5 },
+            // Without its +10 against rats (added with the rest, after the damage bonuses), so a rat takes the Wiki's
+            // max hit. INFERRED: the Wiki's formula is that whole max hit, as the staff hits nothing but rats.
+            maxHit = { magic -> maxOf(0, magic / 3 + 5 - 10) },
             xpTenths = 350,
         )
 

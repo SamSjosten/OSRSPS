@@ -173,12 +173,14 @@ class MagicCombat(
      * The built-in spell of the powered staff [player] fights with, or null: no base XP and no runes (the staff's
      * charges pay), its max hit from the visible (boosted) Magic level (OSRS Wiki, Powered staff, Tumeken's shadow).
      */
-    private fun poweredSpell(player: Player): CombatSpell? {
+    internal fun poweredSpell(player: Player): CombatSpell? {
         if (combat.style(player).type != AttackType.MAGIC) return null
         val staff = poweredStaves.wielded(player) ?: return null
         return CombatSpell(
             obj = -1, name = objTypes[staff.charged]?.name ?: "staff", component = -1, level = 0,
             maxHit = staff.maxHit(player.skills.currentLevel(Skill.MAGIC)), runes = emptyList(), xpTenths = staff.xpTenths,
+            // No XP for a splash: the bone staff's was taken away on live (OSRS Wiki, Bone staff, changes).
+            splashXpTenths = 0,
             anim = staff.anim, staffAnim = staff.anim, casting = staff.casting, travel = staff.travel, impact = staff.impact,
             spellbook = Spellbook.of(player), staff = staff,
         )

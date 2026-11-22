@@ -37,6 +37,7 @@ class HeadlessRatBoneWeaponsTest {
         ScurriusFight.GIANT_RAT, "Giant rat", size = 2, ops = listOf(null, "Attack", null, null, null), combatLevel = 46, internalName = "rat_boss_giant_rat",
         stats = NpcStats(attack = 100, defence = 10, strength = 25, hitpoints = 15, ranged = 1, magic = 1),
     )
+    private val angry = NpcType(7860, "Angry giant rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 45, internalName = "soulbane_rat", stats = NpcStats(hitpoints = 40))
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", null, null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
 
     private val objs = listOf(
@@ -54,13 +55,24 @@ class HeadlessRatBoneWeaponsTest {
         ObjType(RatBoneWeapons.BONE_STAFF, "Bone staff", iops = listOf(null, "Wield", "Check", "Uncharge", null), wearpos1 = WearPos.WEAPON, internalName = "rat_bone_staff"),
     )
 
+    // The powered staff row of dbtable 78, as the 241 cache has it (HeadlessShadowTest's).
+    private val styles = osrsps.game.combat.AttackStyles.fromRows(
+        listOf(
+            listOf<Any>(24) to listOf<Any>(
+                0, "Accurate", "(Accurate)<br>(Magic XP)", 0,
+                1, "Accurate", "(Accurate)<br>(Magic XP)", 0,
+                3, "Longrange", "(Longrange)<br>(Magic XP)<br>(Defence XP)", 0,
+            ),
+        ),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val array = arrayOfNulls<ObjType>(objs.maxOf { it.id } + 1)
         for (type in objs) array[type.id] = type
-        val npcTypes = NpcTypes.of(aldo, rat, man)
+        val npcTypes = NpcTypes.of(aldo, rat, man, angry)
         World(
             crcs, CollisionMap().apply { markLoaded(3276 shr 6, 9870 shr 6) }, random = GameRandom(3), objTypes = ObjTypes(array),
-            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), cycleMillis = millis,
+            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), attackStyles = styles, cycleMillis = millis,
         )
     }
 
@@ -175,8 +187,27 @@ class HeadlessRatBoneWeaponsTest {
                 assertEquals(before + RatBoneWeapons.MAX_HIT_BONUS, world.combat.matchup(erin, giant)!!.maxHit, "+10 on a rat")
                 assertTrue(world.combat.noCooldown(erin, giant))
                 assertTrue(!world.combat.noCooldown(erin, human))
+                // Rat-like by name, but not a rat to these weapons (the Wiki's excluded monsters).
+                val angryRat = world.spawnNpc(osrsps.game.npc.NpcSpawn(angry, 3228, 3218, 0, source = "test"))!!
+                assertEquals(RatBoneLines.ONLY_RATS, world.combat.barred(erin, angryRat), "not an Angry giant rat")
+                // The bone staff: its built-in spell, its max hit on a rat the Wiki's floor(Magic / 3) + 5 with the +10
+                // counted once, and no XP for a splash.
+                erin.equipment[WearPos.WEAPON] = InvObj(RatBoneWeapons.BONE_STAFF, 1)
+                assertEquals(osrsps.game.Weapons.POWERED_STAFF, osrsps.game.Weapons.category(world.objTypes[RatBoneWeapons.BONE_STAFF]))
+                val spell = world.magicCombat.poweredSpell(erin)
+                assertEquals(0, spell?.splashXpTenths, "no splash XP")
+                erin.skills.setLevel(Skill.MAGIC, 99)
+                assertEquals(38, world.combat.magicMatchup(erin, giant, world.magicCombat.poweredSpell(erin)!!)!!.maxHit, "the Wiki's 38 at 99 Magic")
                 erin.equipment[WearPos.WEAPON] = null
                 assertNull(world.combat.barred(erin, human), "anything goes without one")
+                // Another staff while the charges can't take its 1,000: nothing taken (Codex, PR 878).
+                for ((id, count) in listOf(RatBoneWeapons.SPINE to 1, RatBoneWeapons.BATTLESTAFF to 1, RatBoneWeapons.CHAOS_RUNE to 1_000)) {
+                    erin.inventory.add(world.objTypes[id]!!, count)
+                }
+                erin.charges[osrsps.game.combat.PoweredStaves.BONE_STAFF.charge] = 19_500
+                assertTrue(!RatBoneWeapons.make(world, erin, RatBoneWeapons.BONE_STAFF))
+                assertEquals(1_000, erin.inventory.count(RatBoneWeapons.CHAOS_RUNE))
+                assertEquals(19_500, erin.charges[osrsps.game.combat.PoweredStaves.BONE_STAFF.charge])
             }
         }
     }
