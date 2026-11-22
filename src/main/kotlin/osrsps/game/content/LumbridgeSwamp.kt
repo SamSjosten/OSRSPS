@@ -15,7 +15,6 @@ import osrsps.map.Tile
 
 /** What the rest of Lumbridge Swamp says; keys only, the words are in the dialogue file. */
 object LumbridgeSwampLines : Lines("lumbridge_swamp", "Lumbridge Swamp") {
-    val ZANARIS_CLOSED = line("zanaris_closed", "the shed's door opened wielding a dramen or lunar staff: our own line, as Zanaris isn't built (piece 8)")
     val TOOLS_WHICH = line("tools_which", "the shed's tools taken holding neither a rake nor a spade: the menu's title; words guessed")
     val TOOLS_RAKE = line("tools_rake", "that menu, option 1: the rake; words guessed")
     val TOOLS_SPADE = line("tools_spade", "that menu, option 2: the spade; words guessed")
@@ -32,9 +31,9 @@ object LumbridgeSwampLines : Lines("lumbridge_swamp", "Lumbridge Swamp") {
  *
  * - The shed in the swamp's middle (`zanarisdoor` 2406 at 3202,3169, on the west edge of the shed's doorway tile):
  *   Open lets the player through, as the Champions' Guild's door does, since its open type (`zanarisdoor_open` 10363)
- *   has no Close; unless the player wields a dramen or lunar staff, which on live takes them to Zanaris. Zanaris is
- *   piece 8's, so that says so instead. The Elite Lumbridge Diary does the same on live; there are no diaries, so it
- *   doesn't here. Guessed: the door stands open 3 ticks, as the guild's does.
+ *   has no Close; unless the player wields a dramen or lunar staff, which takes them to Zanaris
+ *   ([FairyRings.enterZanaris]). The Elite Lumbridge Diary does the same on live; there are no diaries, so it doesn't
+ *   here. Guessed: the door stands open 3 ticks, as the guild's does.
  * - The tools inside (`farming_shed_tools` 10375 at 3203,3170): Take gives a rake or a spade, whichever the player
  *   doesn't hold, and a choice of the two when they hold neither. Guessed: nothing at all with both held, and no
  *   animation.
@@ -111,7 +110,7 @@ object LumbridgeSwamp {
         arriveDelay()
         if (!isShedDoor(door) || !world.locs.exists(door)) return world.message(player, GameLines.NOTHING_INTERESTING)
         val staff = player.equipment[WearPos.WEAPON]?.id
-        if (staff == DRAMEN_STAFF || staff == LUNAR_STAFF) return world.message(player, LumbridgeSwampLines.ZANARIS_CLOSED)
+        if (staff == DRAMEN_STAFF || staff == LUNAR_STAFF) return with(world.fairyRings) { enterZanaris() }
         val inside = insideShed(player.x)
         val front = Tile(if (inside) SHED_DOOR_TILE_X else SHED_DOOR_TILE_X - 1, SHED_DOOR_TILE_Z)
         // A player beside the doorway (it is reached from the tiles either side too) steps in front of it first.
