@@ -90,7 +90,13 @@ class SkeletalLord(val config: Config) {
         val type = world.npcTypes[config.normal] ?: return null
         return EncounterDef(
             config.name, type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.holdsAtZero = true; holdForHounds() })),
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = {
+                // Unleashed as the other Wilderness bosses are, so a player far from his spawn can't hold him off (exploit
+                // review round 45, R45C-1).
+                boss.unleashed = true
+                boss.holdsAtZero = true
+                holdForHounds()
+            })),
             scriptedAttacks = true,
         )
     }
@@ -137,7 +143,12 @@ class SkeletalLord(val config: Config) {
             centres += near(Tile(target.x, target.z))
             repeat(SOLO_RANDOM_BOLTS) { randomTile()?.let(centres::add) }
         } else {
-            for (player in here.take(MAX_GROUP_BOLTS)) centres += near(Tile(player.x, player.z))
+            // Seven picked at random from those here, not the first seven to log in (exploit review round 45, R45C-4).
+            val pool = here.toMutableList()
+            repeat(minOf(MAX_GROUP_BOLTS, pool.size)) {
+                val player = pool.removeAt(roll(0, pool.size - 1))
+                centres += near(Tile(player.x, player.z))
+            }
         }
         strike(fight, centres)
         log("lightning on ${centres.joinToString(" ") { "${it.x},${it.z}" }}")

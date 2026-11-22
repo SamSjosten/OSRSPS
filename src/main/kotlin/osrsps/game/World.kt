@@ -123,7 +123,9 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -170,6 +172,7 @@ import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
+import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -189,6 +192,7 @@ import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
+import osrsps.game.content.registerMartinTheMasterGardener
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
@@ -1003,6 +1007,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
+    val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -1100,6 +1107,7 @@ class World(
         registerDraynorVillage(this)
         registerAxeLogs(this)
         registerDraynorMarket(this)
+        registerMartinTheMasterGardener(this)
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
@@ -1131,6 +1139,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerGertrudesCat(this)
         registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
@@ -1165,6 +1174,7 @@ class World(
         registerKingBlackDragon(this)
         registerArtio(this)
         registerCalvarion(this)
+        registerSpindel(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1190,6 +1200,7 @@ class World(
         registerRoguesDen(this)
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
+        registerMisthalinOptionPack(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -1224,6 +1235,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         alchemy.register()
+        superheat.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1607,6 +1619,7 @@ class World(
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
             perPlayer(player, "farming") { farming.process(player) }
+            perPlayer(player, "White Tree") { osrsps.game.content.PalaceGarden.process(this, player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -2582,13 +2595,16 @@ class World(
         }
     }
 
-    /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
-    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+    /**
+     * A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]; [sub] is the sub-option, -1 for
+     * none. [ctrl] flips walk and run.
+     */
+    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean, sub: Int = -1) = act(player) {
         trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return@act
         npcInteractions.leave(player)
-        locInteractions.click(player, id, x, z, option, ctrl)
+        locInteractions.click(player, id, x, z, option, ctrl, sub)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
         follows.clickedElsewhere(player)
     }
@@ -3044,6 +3060,7 @@ class World(
                 interfaces.sendVarpNow(player, id)
             }
         },
+        now = { tick },
     )
 
     /**
@@ -3582,6 +3599,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            fairyRings.forget(player)
             hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)
