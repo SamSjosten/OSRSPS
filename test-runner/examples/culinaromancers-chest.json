@@ -133,9 +133,12 @@
    "timeoutMs": 20000
   },
   {
-   "step": "assertMessage",
-   "contains": "[game.nothing_interesting]",
-   "timeoutMs": 10000
+   "step": "assertDialogue",
+   "contains": "[restless_ghost.altar_empty]",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "command",

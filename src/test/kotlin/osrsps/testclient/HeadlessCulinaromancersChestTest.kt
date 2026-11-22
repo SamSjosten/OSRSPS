@@ -2,7 +2,6 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -11,7 +10,9 @@ import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
 import osrsps.game.content.CulinaromancersChest
-import osrsps.game.content.WizardsTower
+import osrsps.game.content.MisthalinOptionPack
+import osrsps.game.content.RestlessGhostLines
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -41,7 +42,7 @@ class HeadlessCulinaromancersChestTest {
     )
 
     private val chest = ZoneLoc(CulinaromancersChest.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3219, 9623, 0)
-    private val altar = ZoneLoc(WizardsTower.RESTLESS_GHOST_ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, 3120, 9566, 0)
+    private val altar = ZoneLoc(MisthalinOptionPack.GHOST_ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, 3120, 9566, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -57,7 +58,7 @@ class HeadlessCulinaromancersChestTest {
                     ),
                     LocType(CHEST_BASE, "Chest", listOf("Bank", null, "Collect", "Buy-food", "Buy-items"), LocCollisionType(width = 1, length = 1)),
                     LocType(
-                        WizardsTower.RESTLESS_GHOST_ALTAR, "null", List(5) { null }, LocCollisionType(width = 1, length = 1), multiloc = true,
+                        MisthalinOptionPack.GHOST_ALTAR, "null", List(5) { null }, LocCollisionType(width = 1, length = 1), multiloc = true,
                         multiVarbit = ALTAR_VARBIT, multiLocs = listOf(ALTAR_SKULL, ALTAR_BARE, -1),
                     ),
                     LocType(ALTAR_SKULL, "Altar", listOf("Search", null, null, null, null), LocCollisionType(width = 1, length = 1)),
@@ -107,15 +108,15 @@ class HeadlessCulinaromancersChestTest {
     }
 
     @Test
-    fun `the Restless Ghost's altar stands bare and searches to nothing`(@TempDir dir: Path) {
+    fun `the Restless Ghost's altar stands bare and searches to its empty box`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.await("the altar bare at login") { if (client.varp(ALTAR_VARP) and 1 == 1) Unit else null }
                 client.tele(3120, 9565)
-                val from = client.messages().size
-                client.locOp(altar.id, altar.x, altar.z, WizardsTower.SEARCH)
-                assertEquals("[game.nothing_interesting]", client.await("the search") { client.messages().drop(from).firstOrNull()?.text })
+                client.locOp(altar.id, altar.x, altar.z, MisthalinOptionPack.SEARCH)
+                val empty = DialogueText.NONE[RestlessGhostLines.ALTAR_EMPTY]
+                client.awaitDialogue(empty) { it is DialogueView.Message && it.text == empty }
             }
         }
     }
