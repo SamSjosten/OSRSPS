@@ -161,7 +161,8 @@ object ScurriusFight {
     private fun EncounterContext.tick() {
         val fight = fight(boss)
         when (fight.stage) {
-            Stage.MELEE -> if (atOrBelow(FEED_AT_PERCENT)) toPile(fight)
+            // Hits that take him past both at once go straight to the centre.
+            Stage.MELEE -> if (atOrBelow(CENTRE_AT_PERCENT)) toCentre(fight) else if (atOrBelow(FEED_AT_PERCENT)) toPile(fight)
             Stage.TO_PILE, Stage.FEEDING, Stage.FIGHT -> if (atOrBelow(CENTRE_AT_PERCENT)) toCentre(fight)
             Stage.TO_CENTRE, Stage.CENTRE -> if (!atOrBelow(CENTRE_AT_PERCENT)) toPile(fight)
         }
