@@ -122,6 +122,7 @@ class NpcCombatTest {
             "jalimkot_attack" to 7597, "jalimkot_defend" to 7598, "jalimkot_death" to 7599, "jalxil_attack_ranged" to 7605, "jalxil_defend" to 7607, "jalxil_death" to 7606,
             "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
             "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
+            "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
         ),
     )
 
