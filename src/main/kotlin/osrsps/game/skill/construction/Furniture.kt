@@ -111,13 +111,12 @@ object FurnitureBuilds {
         5521 to Build(6756, 180),
         5522 to Build(6757, 180),
         5523 to Build(6758, 280),
-        // Brown rug, rug, opulent rug (poh_rug*1 to 3), the Deadman rug (poh_deadman_rug*) and the Raging Echoes rug
-        // (poh_league5_rug*).
+        // Brown rug, rug, opulent rug (poh_rug*1 to 3).
         5524 to rug(6759, 6760, 6761, 30),
         5525 to rug(6762, 6763, 6764, 60),
         5526 to rug(6765, 6766, 6767, 360),
-        5527 to rug(54114, 54115, 54116, 283),
-        5528 to rug(56076, 56077, 56078, 82),
+        // Left out (exploit review R52B-2): the Deadman rug (5527, poh_deadman_rug*, 54114-54116) and the Raging Echoes
+        // rug (5528, poh_league5_rug*, 56076-56078) and curtains (5538, 56079), which live unlocks in Deadman and Leagues.
         // Wooden, oak and mahogany bookcases, each a scroll rack on the scroll space (poh_bookcase_scrolls1 to 3).
         5529 to bookcase(6768, 6771, 115),
         5530 to bookcase(6769, 6772, 180),
@@ -126,11 +125,10 @@ object FurnitureBuilds {
         5532 to Build(6780, 30),
         5533 to Build(6782, 40),
         5534 to Build(6784, 500),
-        // Torn curtains, curtains, opulent curtains (poh_curtains_1 to 3) and the Raging Echoes curtains.
+        // Torn curtains, curtains, opulent curtains (poh_curtains_1 to 3).
         5535 to Build(6774, 132),
         5536 to Build(6775, 225),
         5537 to Build(6776, 315),
-        5538 to Build(56079, 487),
         // The kitchen (the Kitchen page's XP). Stoves: firepit, with hook, with pot, small and large ovens, steel and
         // fancy ranges (poh_stove_1 to 7, without their kettle or pot).
         5539 to Build(13528, 40),
@@ -275,6 +273,8 @@ class Furniture(private val world: World, private val houses: Houses, private va
         world.interfaces.closeModals(player)
         val piece = options.getOrNull(slot - 1) ?: return
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
+        // Only a piece the save check knows for this place (R52B-1): what is built must always load again.
+        if (!FurnitureBuilds.buildsOn(hotspot.id, build.locFor(FurnitureBuilds.HOTSPOTS[hotspot.id]?.variant))) return world.message(player, GameLines.NOTHING_INTERESTING)
         if (!houses.stillHere(house, player) || world.locs[hotspot.x, hotspot.z, hotspot.level, hotspot.layer] != hotspot) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
