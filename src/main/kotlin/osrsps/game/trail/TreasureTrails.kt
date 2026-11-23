@@ -356,7 +356,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val step = stepOf(player, tier, obj.id) ?: continue
             if (!isDig(step) || step !in pool(tier) || !dressed(player, step)) continue
             val spot = step.targets.first().tile
-            val range = if (step.type == StepType.HOT_COLD) HotCold.digRange(tier) else DIG_RANGE
+            val range = if (step.type == StepType.HOT_COLD) HotCold.DIG_RANGE else DIG_RANGE
             if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > range) continue
             if (mustFight(player, tier, step)) return
             solve(context, slot, tier, step)
