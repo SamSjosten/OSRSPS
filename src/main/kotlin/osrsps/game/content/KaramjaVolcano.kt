@@ -1,7 +1,9 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.World
 import osrsps.game.script.ScriptContext
+import osrsps.game.zone.ZoneLoc
 
 /**
  * The Karamja Volcano and Crandor (Karamja step K1.4): the ways in and out of the Crandor and Karamja Dungeon, as the
@@ -24,6 +26,9 @@ import osrsps.game.script.ScriptContext
  * quest kills for good; the Crandor rock-climb shortcut (53234, 53236, 84 Agility); Dallas Jones and the lab (Dragon
  * Slayer II); the unreachable fire giants; the monkeys (no combat data yet). The cave entrance to Mor Ul Rek (11835) is
  * step K2.1.
+ *
+ * Each climb works only on its own tile ([PLACED]): the 242 map has one of each, and a copy of the type anywhere else
+ * says "Nothing interesting happens." rather than teleporting (exploit review R50B-1).
  */
 object KaramjaVolcano {
     const val VOLCANO_ROCKS = 11441
@@ -49,26 +54,46 @@ object KaramjaVolcano {
     const val WALL_X = 2836
     const val WALL_Z = 9600
 
+    /** The one tile each climb stands on, on the 242 map (KaramjaClimbsAuditTest checks there are no others). */
+    val PLACED = mapOf(
+        VOLCANO_ROCKS to Destination(2856, 3168, 0),
+        VOLCANO_ROPE to Destination(2856, 9569, 0),
+        WALL to Destination(WALL_X, WALL_Z, 0),
+        CRANDOR_HOLE to Destination(2833, 3255, 0),
+        CRANDOR_ROPE to Destination(2833, 9657, 0),
+    )
+
     /** The tile through the wall from a player at [z]: north of the wall to its south side, and the other way. */
     fun throughWall(z: Int): Destination = if (z >= WALL_Z) Destination(WALL_X, WALL_Z - 1, 0) else Destination(WALL_X, WALL_Z, 0)
 }
 
 /** A climb with [anim] to [to], after the wait a ladder has. */
-private suspend fun ScriptContext.climbTo(world: World, to: Destination, anim: Int) {
+private suspend fun ScriptContext.climbTo(world: World, loc: ZoneLoc?, at: Destination?, to: Destination, anim: Int) {
     arriveDelay()
+    if (!placedAt(world, loc, at)) return
     player.anim(anim)
     delay(1)
     world.teleport(player, to.x, to.z, to.level)
 }
 
+/** True when [loc] stands on [at]; anywhere else the player is told nothing happens. */
+internal fun ScriptContext.placedAt(world: World, loc: ZoneLoc?, at: Destination?): Boolean {
+    if (loc != null && at != null && loc.x == at.x && loc.z == at.z && loc.level == at.level) return true
+    world.message(player, GameLines.NOTHING_INTERESTING)
+    return false
+}
+
 fun registerKaramjaVolcano(world: World) {
     with(KaramjaVolcano) {
-        world.handlers.onLoc(VOLCANO_ROCKS, CLIMB_DOWN) { climbTo(world, VOLCANO_BELOW, Climbing.ANIM_PICKUP_FLOOR) }
-        world.handlers.onLoc(VOLCANO_ROPE, CLIMB) { climbTo(world, VOLCANO_ABOVE, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(CRANDOR_HOLE, ENTER) { climbTo(world, CRANDOR_BELOW, Climbing.ANIM_PICKUP_FLOOR) }
-        world.handlers.onLoc(CRANDOR_ROPE, CLIMB) { climbTo(world, CRANDOR_ABOVE, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(WALL, OPEN) {
+        fun climb(id: Int, option: Int, to: Destination, anim: Int) =
+            world.handlers.onLoc(id, option) { op -> climbTo(world, op.loc, PLACED[id], to, anim) }
+        climb(VOLCANO_ROCKS, CLIMB_DOWN, VOLCANO_BELOW, Climbing.ANIM_PICKUP_FLOOR)
+        climb(VOLCANO_ROPE, CLIMB, VOLCANO_ABOVE, Climbing.ANIM_REACH_FOR_LADDER)
+        climb(CRANDOR_HOLE, ENTER, CRANDOR_BELOW, Climbing.ANIM_PICKUP_FLOOR)
+        climb(CRANDOR_ROPE, CLIMB, CRANDOR_ABOVE, Climbing.ANIM_REACH_FOR_LADDER)
+        world.handlers.onLoc(WALL, OPEN) { op ->
             arriveDelay()
+            if (!placedAt(world, op.loc, PLACED[WALL])) return@onLoc
             val to = throughWall(player.z)
             world.teleport(player, to.x, to.z, to.level)
         }

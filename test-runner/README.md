@@ -124,6 +124,10 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `mor-ul-rek.json` (Karamja step K2.1, for test on 215: two Karamjan rums (431) from `::item` under `::god`, Enter on the cave entrance (11835 at 2863,9571) to 2480,5175 with `[mor_ul_rek.rum_explodes]` and the rum gone, TzHaar-Ket-Zuh's greeting naming the player `JalYt-...`, his what-did-you-call-me option, Bank opening the bank (12), Smelt on the lava forge (11978 at 2446,5152) opening the Make-X box and making a bronze bar, a raw shrimp used on a sulphur vent (11851 at 2451,5171) cooking, and Enter on the cave exit (11836 at 2479,5176) back to 2862,9572) needs nothing newer than `assertDialogue`.
 
+`tzhaar-shops.json` (Karamja step K2.2, for test on 215: 1,000 Tokkul (6529) from `::item`, Trade on TzHaar-Hur-Tel (2183) and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's (2184) talk into his shop, and TzHaar-Mej-Roh's (2185) talk through the castes) needs nothing newer than `assertDialogue`.
+
+`mor-ul-rek-inner.json` (Karamja step K2.3, for test on 215: `::varp mor_ul_rek_access 0`, Pass on the west hot vent door (30266 at 2436,5120) refused with `[tzhaar_guard.no_pass]`, a fire cape (6570) from `::item` shown to the barrier guard through his talk, his next greeting naming the player `...-Xo-...`, the door both ways (2436,5119 and 2436,5121), TzHaar-Ket-Yil's Bank, TzHaar-Hur-Zal's Trade and TzHaar-Mej-Dir's talk) needs nothing newer than `assertDialogue`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
@@ -451,6 +455,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
   again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
   Bea's supplies for 35, and the bag opened, with `::reset` at the end.
+- `culinaromancers-chest.json`: post-quest step 5 (with `::keys on`): the Culinaromancer's Chest's Bank (interface 12),
+  Collect (402), Buy-food and Buy-items (300) in Lumbridge Castle's cellar, then the Wizards' Tower basement's altar bare
+  (varbit 2130 at 1) and its Search's `[game.nothing_interesting]`.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
