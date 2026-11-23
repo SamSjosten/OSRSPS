@@ -81,7 +81,13 @@ class HeadlessRandomEventsTrayTest {
                     client.await("his greeting") { client.npcSaid().firstOrNull { it.index == npc.index && it.text == "[certer.greeting name=alice]" } }
                     client.npcOp(npc.index, RandomEvents.TALK_TO)
                     client.await("the window") { if (Certers.INTERFACE in client.openInterfaces()) Unit else null }
-                    val shown = Certers.TEXTS.map { client.await("answer $it") { client.text(Certers.INTERFACE, it) } }
+                    // The window's texts arrive one by one and the last show's can still be there for a moment: wait
+                    // for a whole set of three, then check it.
+                    val shown = runCatching {
+                        client.await("the three answers") {
+                            Certers.TEXTS.map { t -> client.text(Certers.INTERFACE, t) }.takeIf { s -> s.all { it in answers } && s.toSet().size == 3 }
+                        }
+                    }.getOrElse { Certers.TEXTS.map { t -> client.text(Certers.INTERFACE, t) } }
                     assertTrue(shown.all { it in answers } && shown.toSet().size == 3, "three different answers: $shown")
                     val before = client.items()
                     client.ifButton(Certers.INTERFACE, Certers.BUTTONS[0], 1)

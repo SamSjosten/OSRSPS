@@ -159,6 +159,10 @@ class HeadlessPrisonPeteTest {
                 assertEquals(0, client.inventory(Inventory.INV).count { it?.id == PrisonPete.KEY })
                 assertTrue(PrisonPete.DOOR_TILES.all { t -> server.world.locs.at(t.x + dx, t.z + dz, 0).none { it.id in PrisonPete.DOORS } }, "the barriers are gone")
 
+                // A balloon popped at the far west end can leave the player out of view of Pete (more than 15 tiles):
+                // back to the arrival tile first.
+                client.walk(PrisonPete.ARRIVE.x + dx, PrisonPete.ARRIVE.z + dz)
+                client.await("the arrival tile") { client.position?.takeIf { it.x == PrisonPete.ARRIVE.x + dx && it.z == PrisonPete.ARRIVE.z + dz } }
                 val pete = client.await("Pete") { client.npcs().firstOrNull { it.id == PrisonPete.PETE } }
                 client.npcOp(pete.index, RandomEvents.TALK_TO)
                 client.chat("[prison_pete.come_on]")
