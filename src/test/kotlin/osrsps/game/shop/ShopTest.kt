@@ -81,6 +81,12 @@ class ShopTest {
         12740 to 505, 12742 to 3200, 12744 to 60000,
         // The Sheared Ram, which sells at its own prices and buys nothing back: the values only stand in.
         1917 to 2, 5763 to 2, 2142 to 4,
+        // The Culinaromancer's Chest's food and items stores (the 242 cache; the Wiki's prices at 130% agree).
+        1973 to 10, 1985 to 4, 1982 to 4, 1955 to 1, 1987 to 1, 1933 to 10, 2283 to 4, 1944 to 4, 1927 to 6, 2130 to 2, 6697 to 4,
+        2007 to 230, 2313 to 3, 1980 to 2,
+        7453 to 50, 7454 to 100, 7455 to 250, 7456 to 500, 7457 to 1000, 7458 to 1500, 7459 to 2500, 7460 to 5000, 7461 to 100000,
+        7462 to 100000, 7433 to 35, 7435 to 50, 7437 to 325, 7439 to 1920, 7441 to 1660, 7443 to 3200, 7445 to 14400, 7447 to 8000,
+        7449 to 41500, 7451 to 25600,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
         // Zembo's beer and Karamjan rum (the 242 cache's values).
@@ -96,6 +102,8 @@ class ShopTest {
      * the cabbage cape to the rainbow scarf, and the Oculus orb.
      */
     private val untradeable = setOf(
+        // The Culinaromancer's Chest's gloves.
+        7453, 7454, 7455, 7456, 7457, 7458, 7459, 7460, 7461, 7462,
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
         // Dusuri's stock.
         25539, 25547, 25537, 25533,
@@ -267,6 +275,9 @@ class ShopTest {
         // Musa Point's shops, read 2026-11-17.
         "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
         "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
+        // The Culinaromancer's Chest with Recipe for Disaster finished, read 2026-11-19.
+        "culinaromancers_chest_food" to listOf(13, 5, 5, 1, 1, 13, 5, 5, 7, 2, 5, 299, 3, 13, 5, 1, 182, 1, 2, 2, 650),
+        "culinaromancers_chest_items" to listOf(65, 130, 325, 650, 1300, 1950, 3250, 6500, 130000, 130000, 45, 65, 422, 2496, 2158, 4160, 18720, 10400, 53950, 33280),
         // Mor Ul Rek's Tokkul shops, read 2026-11-18: 150% of each value, in Tokkul.
         "tzhaar_hur_tels_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500),
         "tzhaar_hur_leks_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
