@@ -684,7 +684,9 @@ class World(
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS
         },
     )
 
@@ -1244,6 +1246,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerScurriusFight(this)
+        osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
         registerEmotes(this)
         registerGiantBones(this)
