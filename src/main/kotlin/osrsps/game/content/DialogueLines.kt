@@ -367,6 +367,7 @@ object DialogueLines {
         MusaShopAssistantLines,
         MorUlRekLines,
         TzHaarBankerLines,
+        TzHaarShopLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
