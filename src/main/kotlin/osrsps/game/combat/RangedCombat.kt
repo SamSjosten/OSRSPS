@@ -309,6 +309,7 @@ class RangedCombat(
         val style = matchup.style
         val ammo = spent.ammo
         val travel = launch(player, weapon, spent, tick)
+        if (combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)

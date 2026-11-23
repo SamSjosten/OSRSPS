@@ -87,6 +87,10 @@ class HeadlessScurriusLootTest {
                     val a = world.playerNamed("alice")!!
                     val run = bob.await("in a lair of his own") { world.scurriusLairs.runOf(b) }
                     val boss: Npc = bob.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PRIVATE && run.instance.contains(it.x, it.z) } }
+                    // Alice joins him in the lair: only those in it at the kill loot it.
+                    val inside = run.inside(Scurrius.SPAWN.x + 4, Scurrius.SPAWN.z)
+                    alice.command("tele ${inside.x} ${inside.z} 0")
+                    alice.await("in Bob's lair") { alice.position?.takeIf { it == Coord(inside.x, inside.z, 0) } }
                     // Alice's share is the smaller: as if both had hit him (the tally is what decides, not where they stand).
                     world.scurriusLoot.damaged(boss, a, 20)
                     world.scurriusLoot.damaged(boss, b, 80)
@@ -112,6 +116,34 @@ class HeadlessScurriusLootTest {
     }
 
     @Test
+    fun `a damager gone from the lair at the kill gets nothing, and a kill with no one there drops nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                val world = server.world
+                val a = world.playerNamed("alice")!!
+                alice.command("tele ${Scurrius.SPAWN.x} ${Scurrius.SPAWN.z} 0")
+                alice.await("in the public lair") { alice.position?.takeIf { it == Coord(Scurrius.SPAWN.x, Scurrius.SPAWN.z, 0) } }
+                alice.commandReply("god") { it.startsWith("You can") }
+                alice.commandReply("npc ${Scurrius.BOSS_PUBLIC}") { it.isNotEmpty() }
+                val boss: Npc = alice.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PUBLIC && !it.dead } }
+                world.scurriusLoot.damaged(boss, a, 100)
+                // She leaves before he dies (as a venom kill after walking off would).
+                alice.command("tele ${Scurrius.OUTSIDE.x} ${Scurrius.OUTSIDE.z} 0")
+                alice.await("outside") { alice.position?.takeIf { it == Coord(Scurrius.OUTSIDE.x, Scurrius.OUTSIDE.z, 0) } }
+                val (x, z) = boss.x to boss.z
+                alice.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                alice.await("his death") { if (boss.dead) Unit else null }
+                alice.awaitTicks(12)
+                assertEquals(0, a.vars[Scurrius.KILL_COUNT_VARP], "no kill count from outside")
+                val dropped = (x - 1..x + 3).flatMap { gx -> (z - 1..z + 3).flatMap { gz -> world.groundObjs.visibleAt(a, gx, gz, 0) } }
+                assertTrue(dropped.isEmpty(), "nothing on the ground: ${dropped.map { it.id }}")
+                assertEquals(0, world.scurriusLoot.held)
+            }
+        }
+    }
+
+    @Test
     fun `a helper logging out before the kill still makes it a shared kill for the Ironman`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -121,6 +153,7 @@ class HeadlessScurriusLootTest {
                 a.vars.setVarbit(SettingsSide.VARBIT_IRONMAN, 1)
                 alice.command("tele ${Scurrius.SPAWN.x} ${Scurrius.SPAWN.z} 0")
                 alice.await("in the public lair") { alice.position?.takeIf { it == Coord(Scurrius.SPAWN.x, Scurrius.SPAWN.z, 0) } }
+                alice.commandReply("god") { it.startsWith("You can") }
                 alice.commandReply("npc ${Scurrius.BOSS_PUBLIC}") { it.isNotEmpty() }
                 val boss: Npc = alice.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PUBLIC && !it.dead } }
                 // Bob deals most of it, then logs out before the kill.
@@ -153,6 +186,10 @@ class HeadlessScurriusLootTest {
                     a.vars.setVarbit(SettingsSide.VARBIT_IRONMAN, 1)
                     bob.command("tele ${Scurrius.SPAWN.x} ${Scurrius.SPAWN.z} 0")
                     bob.await("in the public lair") { bob.position?.takeIf { it == Coord(Scurrius.SPAWN.x, Scurrius.SPAWN.z, 0) } }
+                    bob.commandReply("god") { it.startsWith("You can") }
+                    alice.command("tele ${Scurrius.SPAWN.x - 4} ${Scurrius.SPAWN.z} 0")
+                    alice.await("in the public lair too") { alice.position?.takeIf { it == Coord(Scurrius.SPAWN.x - 4, Scurrius.SPAWN.z, 0) } }
+                    alice.commandReply("god") { it.startsWith("You can") }
                     bob.commandReply("npc ${Scurrius.BOSS_PUBLIC}") { it.isNotEmpty() }
                     val boss: Npc = bob.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PUBLIC && !it.dead } }
                     // Alice, the Ironman, deals the most: the MVP, as the tally decides.

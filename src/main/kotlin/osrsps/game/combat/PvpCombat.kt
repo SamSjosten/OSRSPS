@@ -186,6 +186,11 @@ class PvpCombat(
             message(player, words(player)[PvpLines.SKULL_PREVENTED])
             return true
         }
+        // A weapon for rats alone (Codex, PR 878), asked each attempt as the weapon can change mid-fight.
+        combat.weaponBarredOnPlayer(player)?.let {
+            message(player, words(player)[it])
+            return true
+        }
         // The style can change on the way (the combat tab is open while walking).
         val mode = mode(player, fight.spell) ?: run {
             cantFight(player)

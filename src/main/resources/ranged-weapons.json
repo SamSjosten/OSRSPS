@@ -11,6 +11,7 @@
     { "items": ["yew_shortbow"], "ammo": "arrows", "tier": 5, "range": 7, "anim": "human_bow", "source": "OSRS Wiki, Yew shortbow" },
     { "items": ["yew_longbow"], "ammo": "arrows", "tier": 5, "range": 10, "anim": "human_bow", "source": "OSRS Wiki, Yew longbow" },
     { "items": ["magic_shortbow", "magic_shortbow_i"], "ammo": "arrows", "tier": 6, "range": 7, "anim": "human_bow", "source": "OSRS Wiki, Magic shortbow" },
+    { "items": ["rat_bone_bow"], "ammo": "arrows", "tier": 6, "range": 7, "anim": "human_bow", "source": "OSRS Wiki, Bone shortbow (read 2026-11-19): fires up to amethyst arrows, as the magic shortbow, 7 tiles; GUESSED: the magic shortbow's animation" },
     { "items": ["magic_longbow"], "ammo": "arrows", "tier": 6, "range": 10, "anim": "human_bow", "source": "OSRS Wiki, Magic longbow" },
     { "items": ["darkbow"], "ammo": "arrows", "tier": 7, "range": 10, "shots": 2, "anim": "human_bow", "source": "OSRS Wiki, Dark bow" },
     { "items": ["twisted_bow"], "ammo": "arrows", "tier": 7, "range": 10, "anim": "human_bow", "scaling": "twisted_bow", "source": "OSRS Wiki, Twisted bow" },
