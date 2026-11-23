@@ -642,6 +642,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         val count = player.trails.completed(tier) + 1
         player.trails.setCompleted(tier, count)
         val drops = ArrayList(rewards.roll(world.random))
+        masterBox(player, tier)?.let { drops += Drop(it, 1) }
         for (milestone in rewards.milestones) {
             val id = milestone.type.id
             // A scroll case comes with every casket from its count on until it is opened (the Wiki's Scroll case page).
@@ -662,6 +663,19 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         // Coins count at face value: they have no guide price.
         val value = drops.sumOf { (if (it.type.id == COINS) 1L else world.itemPrices.price(it.type) ?: 0L) * it.count }
         world.message(player, TrailLines.WORTH, "value" to "%,d".format(value))
+    }
+
+    /**
+     * The master scroll box an easy, medium, hard or elite casket can hold (TT10; the Wiki's Clue scroll (master) page:
+     * 1/50, 1/30, 1/15 and 1/5), unless the player holds as many master boxes and clues as they may. Every roll hits
+     * for a player on `::clue lucky`. Left out: Watson, who swaps one clue of each lower tier for a master (Hosidius,
+     * outside the built regions).
+     */
+    private fun masterBox(player: Player, tier: TrailTier): ObjType? {
+        val chance = MASTER_CHANCES[tier] ?: return null
+        if (held(player, TrailTier.MASTER) >= cap(player, TrailTier.MASTER)) return null
+        if (player.saveKey !in skilling.lucky && world.random.nextInt(chance) != 0) return null
+        return world.objTypes[TrailTier.MASTER.scrollBox]
     }
 
     private fun removeFromBank(player: Player, id: Int) {
@@ -696,6 +710,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     companion object {
         /** The scroll boxes and clue scrolls of a tier a player may hold together, before scroll cases. */
         const val BOX_CAP = 2
+
+        /** The 1-in chance of a master scroll box in each tier's casket (the Wiki's Clue scroll (master) page). */
+        val MASTER_CHANCES: Map<TrailTier, Int> = mapOf(TrailTier.EASY to 50, TrailTier.MEDIUM to 30, TrailTier.HARD to 15, TrailTier.ELITE to 5)
 
         /** Coins, worth one each in a casket's value. */
         const val COINS = 995
