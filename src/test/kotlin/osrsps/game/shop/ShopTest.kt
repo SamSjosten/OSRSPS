@@ -87,6 +87,8 @@ class ShopTest {
         7453 to 50, 7454 to 100, 7455 to 250, 7456 to 500, 7457 to 1000, 7458 to 1500, 7459 to 2500, 7460 to 5000, 7461 to 100000,
         7462 to 100000, 7433 to 35, 7435 to 50, 7437 to 325, 7439 to 1920, 7441 to 1660, 7443 to 3200, 7445 to 14400, 7447 to 8000,
         7449 to 41500, 7451 to 25600,
+        // Nardok's Bone Weapons (the 242 cache's values; the Wiki's prices at 100% agree).
+        5018 to 600, 5016 to 600, 8872 to 2000, 8880 to 2000, 8882 to 3, 13193 to 350,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
         // Zembo's beer and Karamjan rum (the 242 cache's values).
@@ -188,6 +190,7 @@ class ShopTest {
             NpcType(2185, "TzHaar-Mej-Roh", internalName = "tzhaar_merchant_rune"),
             NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
             NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
+            NpcType(996, "Nardok", internalName = "dttd_bone_dealer"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -284,6 +287,8 @@ class ShopTest {
         "tzhaar_mej_rohs_rune_store" to listOf(6, 6, 6, 6, 4, 4, 135, 270, 645, 645, 645, 645),
         "tzhaar_hur_zals_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500, 84480, 126000, 100500),
         "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        // Nardok's Bone Weapons, read 2026-11-19.
+        "nardoks_bone_weapons" to listOf(600, 600, 2000, 2000, 3, 350),
     )
 
     @Test

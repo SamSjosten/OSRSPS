@@ -111,7 +111,12 @@ object MisthalinSweep {
     const val EGG = 1944
     const val SEARCH = 1
 
-    val EMPTY_CRATES = listOf(9534, 4300, 4301, 6911)
+    /**
+     * The last four: Death to the Dorgeshuun's machine-part crates at Groats' farm and in the water mill cellar
+     * (15701 the farm's multiloc, showing 15695 after the quest), searched empty once the quest is done (guessed; post-quest
+     * step 6, [DorgeshuunTunnels]).
+     */
+    val EMPTY_CRATES = listOf(9534, 4300, 4301, 6911, 15695, 15696, 15701, 15704)
     val EMPTY_BOXES = listOf(3685, 3686, 3687)
     const val DUNGEON_SACKS = 2355
 
