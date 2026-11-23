@@ -368,6 +368,8 @@ object DialogueLines {
         MorUlRekLines,
         TzHaarBankerLines,
         TzHaarShopLines,
+        TzHaarGuardLines,
+        TzHaarElderLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,

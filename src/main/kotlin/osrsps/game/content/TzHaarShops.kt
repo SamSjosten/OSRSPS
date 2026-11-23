@@ -43,12 +43,17 @@ object TzHaarShopLines : Lines("tzhaar_shop", "Transcript:TzHaar-Hur-Tel; Transc
  * Equipment Store (2183), TzHaar-Hur-Lek's Ore and Gem Store (2184) and TzHaar-Mej-Roh's Rune Store (2185), all paid in
  * Tokkul (shops.json), selling at 150% of an item's value and buying at 15% with a change of 2% an item (the stock
  * tables' sellmultiplier 1500, buymultiplier 150, delta 20). Their talk opens the shop or explains the player's TzHaar
- * name. Left out: Karamja gloves' better prices (no Karamja Diary yet), the ironman stocks. Guessed: the chathead faces.
+ * name. The inner city's TzHaar-Hur-Zal's Equipment Store (7688) and TzHaar-Hur-Rin's Ore and Gem Store (7689) came with
+ * step K2.3, on the same terms and with TzHaar-Hur-Tel's talk. Left out: Karamja gloves' better prices (no Karamja Diary yet), the ironman stocks. Guessed: the chathead faces.
  */
 object TzHaarShops {
     const val HUR_TEL = 2183
     const val HUR_LEK = 2184
     const val MEJ_ROH = 2185
+
+    /** The inner city's shopkeepers (step K2.3), whose transcripts are TzHaar-Hur-Tel's. */
+    const val HUR_ZAL = 7688
+    const val HUR_RIN = 7689
     const val TALK_TO = 1
 
     /** The talk; true when the player asked to trade. [mej] for TzHaar-Mej-Roh, the rest are TzHaar-Hur. */
@@ -104,7 +109,7 @@ object TzHaarShops {
 
 fun registerTzHaarShops(world: World) {
     with(TzHaarShops) {
-        for (keeper in listOf(HUR_TEL, HUR_LEK, MEJ_ROH)) {
+        for (keeper in listOf(HUR_TEL, HUR_LEK, MEJ_ROH, HUR_ZAL, HUR_RIN)) {
             world.handlers.onNpc(keeper, TALK_TO) { op ->
                 var trade = false
                 world.dialogues.start(this, op.npc) { trade = shopkeeper(player, mej = keeper == MEJ_ROH) }
