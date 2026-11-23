@@ -109,8 +109,10 @@ object DigsiteCamp {
         swapFurniture(world, chest, CHEST_OPEN, Searching.ANIM_OPEN)
     }
 
-    internal suspend fun ScriptContext.searchChest(world: World) {
+    /** Search on the open [chest]: it is looked up again after the arrival, so one shut meanwhile gives nothing. */
+    internal suspend fun ScriptContext.searchChest(world: World, chest: ZoneLoc) {
         arriveDelay()
+        if (!world.locs.exists(chest)) return
         if (player.inventory.count(CHEMICAL_POWDER) > 0) return world.message(player, DigsiteCampLines.CHEST_EMPTY)
         val powder = world.objTypes[CHEMICAL_POWDER] ?: return
         if (player.inventory.add(powder, 1) == 0) return world.message(player, GameLines.NO_SPACE)
@@ -150,7 +152,7 @@ fun registerDigsiteCamp(world: World) = with(DigsiteCamp) {
     world.handlers.onLoc(TEDDY_BUSH, SEARCH) { searchTeddyBush(world) }
 
     world.handlers.onLoc(CHEST, OPEN) { op -> openChest(world, op.loc!!) }
-    world.handlers.onLoc(CHEST_OPEN, CHEST_SEARCH) { searchChest(world) }
+    world.handlers.onLoc(CHEST_OPEN, CHEST_SEARCH) { op -> searchChest(world, op.loc!!) }
     world.handlers.onLoc(CHEST_OPEN, CHEST_CLOSE) { op -> swapFurniture(world, op.loc!!, CHEST, Searching.ANIM_SHUT) }
 
     world.handlers.onLoc(BARREL, BARREL_OPEN) { if (!barrelOpen(player)) barrelLine(world, DigsiteCampLines.BARREL_SHUT) }

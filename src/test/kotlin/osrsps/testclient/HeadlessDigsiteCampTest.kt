@@ -133,6 +133,33 @@ class HeadlessDigsiteCampTest {
     }
 
     @Test
+    fun `a chest shut while a player walks over to search it gives no powder`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.await("the login rebuild") { alice.position }
+                    bob.await("the login rebuild") { bob.position }
+                    alice.tele(3373, 3378)
+                    alice.command("item ${DigsiteCamp.CHEST_KEY} 1")
+                    alice.slot(DigsiteCamp.CHEST_KEY)
+                    alice.locOp(chest.id, chest.x, chest.z, DigsiteCamp.OPEN)
+                    alice.await("the chest open") { if (server.world.locs.at(chest.x, chest.z, 0).any { it.id == DigsiteCamp.CHEST_OPEN }) Unit else null }
+                    bob.tele(3374, 3380)
+                    // Bob sets off to search it from two tiles away as Alice, beside it, shuts it.
+                    bob.locOp(DigsiteCamp.CHEST_OPEN, chest.x, chest.z, DigsiteCamp.CHEST_SEARCH)
+                    alice.locOp(DigsiteCamp.CHEST_OPEN, chest.x, chest.z, DigsiteCamp.CHEST_CLOSE)
+                    alice.await("the chest shut") { if (server.world.locs.at(chest.x, chest.z, 0).any { it.id == DigsiteCamp.CHEST }) Unit else null }
+                    val start = server.world.tick
+                    bob.await("bob at the chest and a few ticks gone", timeoutMillis = 15_000) {
+                        if (server.world.tick >= start + 8) Unit else null
+                    }
+                    assertEquals(0, bob.count(DigsiteCamp.CHEMICAL_POWDER), "no powder from a shut chest")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `the barrel opens with a trowel and fills a vial, and the tablet is taken once`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
