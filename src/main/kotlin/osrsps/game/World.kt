@@ -975,6 +975,9 @@ class World(
     /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
     val spiritTrees = osrsps.game.content.SpiritTrees(this)
 
+    /** The balloon transport system; see [osrsps.game.content.Balloons]. */
+    val balloons = osrsps.game.content.Balloons(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1274,6 +1277,7 @@ class World(
         canoes.register()
         fairyRings.register()
         spiritTrees.register()
+        balloons.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -3696,6 +3700,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            balloons.forget(player)
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
