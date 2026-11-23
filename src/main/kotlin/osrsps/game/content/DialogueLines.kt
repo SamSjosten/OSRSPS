@@ -213,6 +213,7 @@ object DialogueLines {
         BryophytaLines,
         ScurriusLairLines,
         HistorianAldoLines,
+        RatBoneLines,
         EmoteLines,
         EstateAgentLines,
         GiantBonesLines,
