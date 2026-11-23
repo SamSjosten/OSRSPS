@@ -1,5 +1,5 @@
 {
-  "about": "Mor Ul Rek (Karamja steps K2.1 to K2.3): TzHaar-Ket-Zuh at the north bank, the three outer shopkeepers (K2.2), the barrier guards, inner bank, shops, elders and level 221 TzHaar-Ket (K2.3), and the city's attackable TzHaar-Hur, -Mej, -Xil and level 149 -Ket at the Wiki's spawn points (the pickpocketable TzHaar-Hur, 7682 to 7687, are thieving-far.json's) (its TzHaar-Hur, TzHaar-Mej, TzHaar-Xil and TzHaar-Ket pages' maps, read 2026-11-18), each with the look of the nearest one in mejrs's NPCList_OSRS. The shopkeepers are step K2.2; the inner city's level 221 TzHaar-Ket, banker and guards K2.3; the Fight Cave's and Inferno's TzHaar the Fight Caves thread's.",
+  "about": "Mor Ul Rek (Karamja steps K2.1 to K2.3): TzHaar-Ket-Zuh at the north bank, the three outer shopkeepers (K2.2), the barrier guards, inner bank, shops, elders and level 221 TzHaar-Ket (K2.3), the infernal eel spots (K2.4), and the city's attackable TzHaar-Hur, -Mej, -Xil and level 149 -Ket at the Wiki's spawn points (the pickpocketable TzHaar-Hur, 7682 to 7687, are thieving-far.json's) (its TzHaar-Hur, TzHaar-Mej, TzHaar-Xil and TzHaar-Ket pages' maps, read 2026-11-18), each with the look of the nearest one in mejrs's NPCList_OSRS. The shopkeepers are step K2.2; the inner city's level 221 TzHaar-Ket, banker and guards K2.3; the Fight Cave's and Inferno's TzHaar the Fight Caves thread's.",
   "spawns": [
     {"npc": "tzhaar_banker1", "x": 2445, "z": 5180, "wander": 0, "source": "TzHaar-Ket-Zuh, the north bank. mejrs NPCList_OSRS; standing still guessed"},
     {"npc": "tzhaar_merchant_equipment", "x": 2478, "z": 5146, "wander": 2, "source": "TzHaar-Hur-Tel, his Equipment Store. mejrs NPCList_OSRS; wander 2 guessed"},
@@ -237,6 +237,11 @@
     {"npc": "tzhaar_ket_strong", "x": 2533, "z": 5138, "wander": 5, "source": "TzHaar-Ket (level 221), the inner city (K2.3). mejrs NPCList_OSRS, as the Wiki's level 221 spawn map; wander 5 guessed"},
     {"npc": "tzhaar_ket_strong", "x": 2535, "z": 5104, "wander": 5, "source": "TzHaar-Ket (level 221), the inner city (K2.3). mejrs NPCList_OSRS, as the Wiki's level 221 spawn map; wander 5 guessed"},
     {"npc": "tzhaar_ket_strong", "x": 2536, "z": 5115, "wander": 5, "source": "TzHaar-Ket (level 221), the inner city (K2.3). mejrs NPCList_OSRS, as the Wiki's level 221 spawn map; wander 5 guessed"},
-    {"npc": "tzhaar_ket_strong", "x": 2538, "z": 5129, "wander": 5, "source": "TzHaar-Ket (level 221), the inner city (K2.3). mejrs NPCList_OSRS, as the Wiki's level 221 spawn map; wander 5 guessed"}
+    {"npc": "tzhaar_ket_strong", "x": 2538, "z": 5129, "wander": 5, "source": "TzHaar-Ket (level 221), the inner city (K2.3). mejrs NPCList_OSRS, as the Wiki's level 221 spawn map; wander 5 guessed"},
+    {"npc": "morulrek_eels_fishingspot", "x": 2446, "z": 5104, "wander": 0, "source": "Rod Fishing spot (infernal eel), the inner city (K2.4). The OSRS Wiki's spot page and mejrs NPCList_OSRS agree"},
+    {"npc": "morulrek_eels_fishingspot", "x": 2477, "z": 5078, "wander": 0, "source": "Rod Fishing spot (infernal eel), the inner city (K2.4). The OSRS Wiki's spot page and mejrs NPCList_OSRS agree"},
+    {"npc": "morulrek_eels_fishingspot", "x": 2479, "z": 5078, "wander": 0, "source": "Rod Fishing spot (infernal eel), the inner city (K2.4). The OSRS Wiki's spot page and mejrs NPCList_OSRS agree"},
+    {"npc": "morulrek_eels_fishingspot", "x": 2536, "z": 5086, "wander": 0, "source": "Rod Fishing spot (infernal eel), the inner city (K2.4). The OSRS Wiki's spot page and mejrs NPCList_OSRS agree"},
+    {"npc": "morulrek_eels_fishingspot", "x": 2541, "z": 5088, "wander": 0, "source": "Rod Fishing spot (infernal eel), the inner city (K2.4). The OSRS Wiki's spot page and mejrs NPCList_OSRS agree"}
   ]
 }

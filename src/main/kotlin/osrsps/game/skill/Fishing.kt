@@ -72,6 +72,10 @@ object FishingLines : Lines("fishing", "Fishing") {
     val LEVEL_DARK_CRAB = line("level_dark_crab", "the message when caging dark crabs needs a higher level (85)", "level")
     val NO_DARK_BAIT = line("no_dark_bait", "Dark fishing bait: the message on Cage at a dark crab spot with none left")
     val NO_KARAMBWANJI = line("no_karambwanji", "Raw karambwanji: the message on Fish with an empty vessel and none left")
+    val CATCH_INFERNAL_EEL = line("catch_infernal_eel", "Infernal eel: the message for each catch (keys only: the Wiki gives no words)")
+    val LEVEL_INFERNAL_EEL = line("level_infernal_eel", "the message when the infernal eels need a higher level (80) (keys only)", "level")
+    val NO_OILY_ROD = line("no_oily_rod", "Oily fishing rod: the message on Bait at an infernal eel spot without one (keys only)")
+    val NO_ICE_GLOVES = line("no_ice_gloves", "the message on Bait at an infernal eel spot without ice gloves worn (keys only)")
 }
 
 /**
@@ -134,6 +138,9 @@ class FishingMethod(
     val rollsEach: Boolean = false,
     /** The karambwan vessel's bait and emptying; [tool] is then the baited vessel. */
     val vessel: Vessel? = null,
+    /** Gloves one of which must be worn to fish this way, and what the player is told without (the infernal eels' heat). */
+    val gloves: Set<Int> = emptySet(),
+    val noGloves: Line? = null,
 ) {
     val level: Int get() = fish.minOf { it.level }
 
@@ -235,6 +242,10 @@ class Fishing(private val world: World) {
         val level = player.skills.currentLevel(Skill.FISHING)
         if (level < method.level) {
             method.levelLine?.let { player.message(text[it, "level" to method.level]) }
+            return stop()
+        }
+        if (method.gloves.isNotEmpty() && player.equipment[WearPos.HANDS]?.id !in method.gloves) {
+            method.noGloves?.let { player.message(text[it]) }
             return stop()
         }
         method.vessel?.let { vessel ->
@@ -552,6 +563,22 @@ class Fishing(private val world: World) {
             CAGE_ANIM, CAGE_ANIM, listOf(DARK_CRAB), FishingLines.LEVEL_DARK_CRAB,
         )
 
+        /**
+         * Infernal eels (Karamja step K2.4), from the Wiki's Infernal eel, Oily fishing rod and Rod Fishing spot (infernal
+         * eel) pages (read 2026-11-18): an oily fishing rod and fishing bait, with ice gloves or smiths gloves (i) worn,
+         * from 80 for 95 XP (the Wiki's chart, 30/93). Their spots are in Mor Ul Rek's inner city ([MorUlRekInner]); the
+         * eel is cracked with a hammer ([InfernalEels]). Out: the oily pearl rod and clue bottles. Guessed: the gloves are
+         * checked before the rod, the messages (keys only).
+         */
+        const val OILY_FISHING_ROD = 1585 // oily_fishing_rod
+        const val ICE_GLOVES = 1580
+        const val SMITHS_GLOVES_I = 27031
+        val INFERNAL_EEL = Fish(21293, 80, 950, 30, 93, FishingLines.CATCH_INFERNAL_EEL)
+        val INFERNAL_EEL_BAIT = FishingMethod(
+            "Bait", OILY_FISHING_ROD, FishingLines.NO_OILY_ROD, BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(INFERNAL_EEL),
+            FishingLines.LEVEL_INFERNAL_EEL, gloves = setOf(ICE_GLOVES, SMITHS_GLOVES_I), noGloves = FishingLines.NO_ICE_GLOVES,
+        )
+
         val CAGE = FishingMethod(
             "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
             FishingLines.LEVEL_CAGE,
@@ -630,6 +657,9 @@ class Fishing(private val world: World) {
          */
         const val RESOURCE_AREA_SPOT = 1536
 
+        /** Mor Ul Rek's Rod Fishing spots (`morulrek_eels_fishingspot`), in the lava; they stay put (no area, guessed). */
+        const val INFERNAL_EEL_SPOT = 7676
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
@@ -649,6 +679,7 @@ class Fishing(private val world: World) {
             SpotType(PISCATORIS_SPOT, listOf(MONKFISH_NET, HARPOON_TUNA)),
             SpotType(PISCARILIUS_SPOT, listOf(ANGLERFISH_BAIT)),
             SpotType(RESOURCE_AREA_SPOT, listOf(DARK_CRAB_CAGE)),
+            SpotType(INFERNAL_EEL_SPOT, listOf(INFERNAL_EEL_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 

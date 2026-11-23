@@ -1,0 +1,32 @@
+{
+  "name": "Karamja step K2.4: infernal eels in Mor Ul Rek's inner city, refused without ice gloves, caught with an oily rod and bait at 80 Fishing with them worn, then cracked open with a hammer, and TzHaar-Hur-Rin's ore counter stolen from at 82 Thieving (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and the levels as they were; ::reset at the end puts them back"},
+    {"step": "command", "text": "::setlevel fishing 80", "expectMessage": "Fishing set to level 80"},
+    {"step": "command", "text": "::item 1585 1", "comment": "an oily fishing rod"},
+    {"step": "command", "text": "::item 313 100", "comment": "fishing bait"},
+    {"step": "command", "text": "::item 2347 1", "comment": "a hammer"},
+    {"step": "command", "text": "::item 1580 1", "comment": "ice gloves"},
+    {"step": "command", "text": "::tele 2446 5105 0", "expectMessage": "Teleported to 2446, 5105, 0", "comment": "beside the west eel spot (2446,5104)"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Rod Fishing spot", "option": "Bait", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[fishing.no_ice_gloves]", "timeoutMs": 5000},
+    {"step": "itemOption", "item": "Ice gloves", "option": "Wear"},
+    {"step": "waitTicks", "ticks": 1},
+    {"step": "npcOption", "npc": "Rod Fishing spot", "option": "Bait", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[fishing.catch_infernal_eel]", "timeoutMs": 120000},
+    {"step": "command", "text": "::tele 2447 5107 0", "expectMessage": "Teleported to 2447, 5107, 0", "comment": "away from the spot, to stop fishing"},
+    {"step": "useItemOnItem", "item": "Hammer", "onItem": "Infernal eel"},
+    {"step": "assertMessage", "contains": "[infernal_eel.cracked item=", "timeoutMs": 10000},
+    {"step": "assertInventory", "item": "Infernal eel", "count": 0, "timeoutMs": 20000},
+    {"step": "command", "text": "::setlevel thieving 82", "expectMessage": "Thieving set to level 82"},
+    {"step": "command", "text": "::tele 2521 5073 0", "expectMessage": "Teleported to 2521, 5073, 0", "comment": "between TzHaar-Hur-Rin's two counters"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 30279, "option": "Steal-from", "x": 2522, "y": 5075, "timeoutMs": 20000, "comment": "the ore counter (82 Thieving)"},
+    {"step": "assertLoc", "locId": 30278, "x": 2522, "y": 5075, "timeoutMs": 10000, "comment": "emptied, so an ore was taken"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
