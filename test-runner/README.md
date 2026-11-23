@@ -126,6 +126,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `tzhaar-shops.json` (Karamja step K2.2, for test on 215: 1,000 Tokkul (6529) from `::item`, Trade on TzHaar-Hur-Tel (2183) and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's (2184) talk into his shop, and TzHaar-Mej-Roh's (2185) talk through the castes) needs nothing newer than `assertDialogue`.
 
+`mor-ul-rek-inner.json` (Karamja step K2.3, for test on 215: `::varp mor_ul_rek_access 0`, Pass on the west hot vent door (30266 at 2436,5120) refused with `[tzhaar_guard.no_pass]`, a fire cape (6570) from `::item` shown to the barrier guard through his talk, his next greeting naming the player `...-Xo-...`, the door both ways (2436,5119 and 2436,5121), TzHaar-Ket-Yil's Bank, TzHaar-Hur-Zal's Trade and TzHaar-Mej-Dir's talk) needs nothing newer than `assertDialogue`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 

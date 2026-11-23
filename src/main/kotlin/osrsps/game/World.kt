@@ -184,6 +184,7 @@ import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
 import osrsps.game.content.registerKaramjaVolcano
 import osrsps.game.content.registerMorUlRek
+import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
 import osrsps.game.content.registerMusaPoint
@@ -1239,6 +1240,7 @@ class World(
         registerMorUlRek(this)
         registerTzHaarShops(this)
         RunePacks.register(this)
+        registerMorUlRekInner(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
