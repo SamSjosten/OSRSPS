@@ -9,6 +9,7 @@
   {"step": "command", "text": "::god on", "comment": "the wizards fight back"},
 
   {"step": "command", "text": "::clue medium cryptic:741", "expectMessage": "Clue (medium): cryptic:741", "comment": "the drawers in the Wizards' Tower basement (3116, 9562), key 7302 from a wizard"},
+  {"step": "command", "text": "::clue medium steps", "expectMessage": "cryptic:741", "comment": "the step must be one the trails offer, or the drawers just open (nightly Nov 23 had no [trail.locked])"},
   {"step": "command", "text": "::tele 3117 9562 0", "comment": "east of the drawers, where they are opened from"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3116, "y": 9562},
