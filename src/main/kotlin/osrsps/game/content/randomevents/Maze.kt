@@ -71,6 +71,8 @@ object Maze : RandomEvent("maze", 6752) {
     class Run {
         var potential = FULL
         var done = false
+        /** Ticks since the start, for [DRAIN_TICKS]. */
+        var ticks = 0
     }
 
     override val teleports = true
@@ -104,10 +106,11 @@ object Maze : RandomEvent("maze", 6752) {
 
     /**
      * Every [DRAIN_TICKS] the potential drops by 1, unless a dialogue is open; at 0 the player goes back with nothing.
-     * Inferred: a player who leaves the maze another way loses the timer too.
+     * Checked each tick, so the timer comes back as soon as another window that shares its floater (All Settings, the
+     * world map) is shut. Inferred: a player who leaves the maze another way loses the timer too.
      */
     private fun drain(world: World, player: Player, away: EventAreas.Away, run: Run) {
-        world.npcScripts.later(DRAIN_TICKS) {
+        world.npcScripts.later(1) {
             if (run.done) return@later
             // Gone some other way (a teleport, logging out): the timer goes with them.
             if (world.randomEvents.areas.awayOf(player) !== away) {
@@ -115,7 +118,12 @@ object Maze : RandomEvent("maze", 6752) {
                 if (player.floater == TIMER_INTERFACE) world.interfaces.closeFloater(player)
                 return@later
             }
-            if (!world.scripts.busy(player)) {
+            if (player.floater < 0) {
+                world.interfaces.openFloater(player, TIMER_INTERFACE)
+                showPotential(player, run.potential)
+            }
+            run.ticks++
+            if (run.ticks % DRAIN_TICKS == 0 && !world.scripts.busy(player)) {
                 run.potential--
                 showPotential(player, run.potential)
                 if (run.potential <= 0) return@later out(world, player, away, run)

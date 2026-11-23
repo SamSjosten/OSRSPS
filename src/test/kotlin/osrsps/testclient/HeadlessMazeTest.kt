@@ -5,13 +5,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameFrame
 import osrsps.game.Inventory
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.WorldMapScreen
 import osrsps.game.content.randomevents.Maze
 import osrsps.game.content.randomevents.RandomEvents
 import osrsps.game.loc.LocType
@@ -105,6 +108,12 @@ class HeadlessMazeTest {
                 client.await("the potential shown") { client.varp(Maze.POTENTIAL_VARP).takeIf { it in 1..Maze.FULL } }
                 client.await("a point gone") { if (run.potential < Maze.FULL) Unit else null }
 
+                // The world map takes the floater; shut, the timer comes back.
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_WORLDMAP, 1)
+                client.await("the world map") { if (WorldMapScreen.INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(WorldMapScreen.INTERFACE, WorldMapScreen.CLOSE, 1)
+                client.await("the timer back") { if (Maze.TIMER_INTERFACE in client.openInterfaces()) Unit else null }
+
                 val (away, _) = Maze.runOf(server.world, server.world.onlinePlayers.single())!!
                 val at = client.position!!
                 val chest = chests.minBy { c -> away.inside(c.x, c.z).let { Math.abs(it.x - at.x) + Math.abs(it.z - at.z) } }
@@ -116,15 +125,29 @@ class HeadlessMazeTest {
                 val fromChest = client.await("the chest's reward") { client.inventory(Inventory.INV).filterNotNull().singleOrNull() }
                 assertTrue(Maze.CHEST_TABLE.any { (id, count) -> id == fromChest.id && count == fromChest.count }, "chest reward $fromChest")
 
+                // High enough levels that every roll of the shrine's table comes to something.
+                client.commandReply("setlevel all 99") { it.startsWith("Every skill") }
+                val player = server.world.onlinePlayers.single()
                 val shrineAt = away.inside(shrine.x, shrine.z)
                 client.locOp(Maze.SHRINE, shrineAt.x, shrineAt.z, Maze.TOUCH)
                 client.await("home") { client.position?.takeIf { it == home } }
                 client.await("the timer closed") { if (Maze.TIMER_INTERFACE !in client.openInterfaces()) Unit else null }
                 client.awaitTicks(1)
-                val shrineIds = Maze.SHRINE_TABLE.map { it.first }.toSet()
-                val got = client.inventory(Inventory.INV).filterNotNull()
-                assertTrue(got.all { it.id in shrineIds || it.id == fromChest.id }, "rewards $got")
                 assertTrue(run.done)
+                // Three rolls, each the formula's amount of one item for the potential the shrine was touched at.
+                val total = Skill.entries.sumOf { player.skills.baseLevel(it) }
+                val amounts = Maze.SHRINE_TABLE.associate { (id, divisor) -> id to Maze.shrineAmount(total, run.potential, divisor) }
+                assertTrue(amounts.values.all { it > 0 }, "every roll comes to something: $amounts")
+                val got = client.inventory(Inventory.INV).filterNotNull().groupBy { it.id }.mapValues { (_, objs) -> objs.sumOf { it.count } }
+                    .toMutableMap()
+                got.computeIfPresent(fromChest.id) { _, count -> (count - fromChest.count).takeIf { it > 0 } }
+                var rolls = 0
+                for ((id, count) in got) {
+                    val each = amounts[id] ?: error("not the shrine's: $id x $count")
+                    assertEquals(0, count % each, "$id x $count is whole rolls of $each")
+                    rolls += count / each
+                }
+                assertEquals(Maze.SHRINE_ROLLS, rolls, "the shrine's rolls in $got")
                 client.await("the maze ended") { if (server.world.instances.all.isEmpty()) Unit else null }
             }
         }
