@@ -3279,6 +3279,273 @@
         }
       ]
     },
+    {
+      "key": "tzhaar_hur_tels_equipment_store",
+      "title": "TzHaar-Hur-Tel's Equipment Store",
+      "inv": 325,
+      "size": 8,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_equipment"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Tel's Equipment Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_equipment (325) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 6522,
+          "name": "Toktz-xil-ul",
+          "count": 500,
+          "restock": 10
+        },
+        {
+          "item": 6523,
+          "name": "Toktz-xil-ak",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6525,
+          "name": "Toktz-xil-ek",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6528,
+          "name": "Tzhaar-ket-om",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6526,
+          "name": "Toktz-mej-tal",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6527,
+          "name": "Tzhaar-ket-em",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6568,
+          "name": "Obsidian cape",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6524,
+          "name": "Toktz-ket-xil",
+          "count": 1,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "tzhaar_hur_leks_ore_and_gem_store",
+      "title": "TzHaar-Hur-Lek's Ore and Gem Store",
+      "inv": 326,
+      "size": 16,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_oreandgem"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Lek's Ore and Gem Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_oreandgem (326) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 438,
+          "name": "Tin ore",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 436,
+          "name": "Copper ore",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 440,
+          "name": "Iron ore",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 442,
+          "name": "Silver ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 453,
+          "name": "Coal",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 444,
+          "name": "Gold ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 447,
+          "name": "Mithril ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 449,
+          "name": "Adamantite ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 451,
+          "name": "Runite ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1623,
+          "name": "Uncut sapphire",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1621,
+          "name": "Uncut emerald",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1619,
+          "name": "Uncut ruby",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1617,
+          "name": "Uncut diamond",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1631,
+          "name": "Uncut dragonstone",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 6571,
+          "name": "Uncut onyx",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 9194,
+          "name": "Onyx bolt tips",
+          "count": 50,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "tzhaar_mej_rohs_rune_store",
+      "title": "TzHaar-Mej-Roh's Rune Store",
+      "inv": 327,
+      "size": 12,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_rune"
+      ],
+      "source": "OSRS Wiki, TzHaar-Mej-Roh's Rune Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_rune (327) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 554,
+          "name": "Fire rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 555,
+          "name": "Water rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 556,
+          "name": "Air rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 557,
+          "name": "Earth rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 558,
+          "name": "Mind rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 559,
+          "name": "Body rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 562,
+          "name": "Chaos rune",
+          "count": 2500,
+          "restock": 95
+        },
+        {
+          "item": 560,
+          "name": "Death rune",
+          "count": 2500,
+          "restock": 105
+        },
+        {
+          "item": 21707,
+          "name": "Tzhaar fire rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21701,
+          "name": "Tzhaar water rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21698,
+          "name": "Tzhaar air rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21704,
+          "name": "Tzhaar earth rune pack",
+          "count": 50,
+          "restock": 40
+        }
+      ]
+    },
     {"key": "culinaromancers_chest_food", "title": "Culinaromancer's Chest", "inv": 365, "size": 21, "general": false, "sellAt": 1300, "buyAt": 400, "changePer": 20, "npcs": [], "source": "OSRS Wiki, Culinaromancer's Chest, read 2026-11-19: the food store with Recipe for Disaster finished (its first table), sells at 130%, buys at 40%, change per 2%; inv 365 is the cache's hundred_foodchest10. Opened by the chest's Buy-food (RfdChest)", "stock": [{"item": 1973, "name": "Chocolate bar", "count": 50, "restock": 100}, {"item": 1985, "name": "Cheese", "count": 50, "restock": 100}, {"item": 1982, "name": "Tomato", "count": 50, "restock": 100}, {"item": 1955, "name": "Cooking apple", "count": 50, "restock": 100}, {"item": 1987, "name": "Grapes", "count": 10, "restock": 600}, {"item": 1933, "name": "Pot of flour", "count": 10, "restock": 500}, {"item": 2283, "name": "Pizza base", "count": 1, "restock": 500}, {"item": 1944, "name": "Egg", "count": 50, "restock": 100}, {"item": 1927, "name": "Bucket of milk", "count": 50, "restock": 100}, {"item": 2130, "name": "Pot of cream", "count": 50, "restock": 100}, {"item": 6697, "name": "Pat of butter", "count": 10, "restock": 100}, {"item": 2007, "name": "Spice", "count": 50, "restock": 500}, {"item": 2313, "name": "Pie dish", "count": 50, "restock": 100}, {"item": 1887, "name": "Cake tin", "count": 50, "restock": 100}, {"item": 1923, "name": "Bowl", "count": 50, "restock": 100}, {"item": 1935, "name": "Jug", "count": 50, "restock": 100}, {"item": 20742, "name": "Empty jug pack", "count": 8, "restock": 25}, {"item": 1931, "name": "Pot", "count": 50, "restock": 100}, {"item": 1980, "name": "Empty cup", "count": 50, "restock": 100}, {"item": 1925, "name": "Bucket", "count": 50, "restock": 100}, {"item": 22660, "name": "Empty bucket pack", "count": 50, "restock": 100}]},
     {"key": "culinaromancers_chest_items", "title": "Culinaromancer's Chest", "inv": 375, "size": 20, "general": false, "sellAt": 1300, "buyAt": 400, "changePer": 20, "npcs": [], "source": "OSRS Wiki, Culinaromancer's Chest, read 2026-11-19: the items store with Recipe for Disaster finished (its first table), sells at 130%, buys at 40%, change per 2%, the gloves not bought back (N/A: untradeable); inv 375 is the cache's hundred_rewardchest10. Opened by the chest's Buy-items (RfdChest)", "stock": [{"item": 7453, "name": "Hardleather gloves", "count": 60, "restock": 1}, {"item": 7454, "name": "Bronze gloves", "count": 60, "restock": 1}, {"item": 7455, "name": "Iron gloves", "count": 60, "restock": 1}, {"item": 7456, "name": "Steel gloves", "count": 60, "restock": 1}, {"item": 7457, "name": "Black gloves", "count": 60, "restock": 1}, {"item": 7458, "name": "Mithril gloves", "count": 60, "restock": 1}, {"item": 7459, "name": "Adamant gloves", "count": 60, "restock": 1}, {"item": 7460, "name": "Rune gloves", "count": 60, "restock": 1}, {"item": 7461, "name": "Dragon gloves", "count": 60, "restock": 1}, {"item": 7462, "name": "Barrows gloves", "count": 60, "restock": 1}, {"item": 7433, "name": "Wooden spoon", "count": 10, "restock": 100}, {"item": 7435, "name": "Egg whisk", "count": 10, "restock": 100}, {"item": 7437, "name": "Spork", "count": 10, "restock": 100}, {"item": 7439, "name": "Spatula", "count": 10, "restock": 100}, {"item": 7441, "name": "Frying pan", "count": 10, "restock": 100}, {"item": 7443, "name": "Skewer", "count": 10, "restock": 100}, {"item": 7445, "name": "Rolling pin", "count": 10, "restock": 100}, {"item": 7447, "name": "Kitchen knife", "count": 10, "restock": 100}, {"item": 7449, "name": "Meat tenderiser", "count": 10, "restock": 100}, {"item": 7451, "name": "Cleaver", "count": 10, "restock": 100}]}
   ]

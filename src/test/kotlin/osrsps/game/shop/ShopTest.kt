@@ -91,6 +91,10 @@ class ShopTest {
         561 to 180, 563 to 240, 564 to 50,
         // Zembo's beer and Karamjan rum (the 242 cache's values).
         1917 to 2, 431 to 30,
+        // Mor Ul Rek's Tokkul shops (the 242 cache's values; the gems and runes are with Al Kharid's and Varrock's).
+        6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
+        438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
+        9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430,
     )
 
     /**
@@ -179,6 +183,9 @@ class ShopTest {
             NpcType(2825, "Shop keeper", internalName = "generalshopkeeper7"),
             NpcType(2826, "Shop assistant", internalName = "generalassistant7"),
             NpcType(13655, "Zembo", internalName = "zembo"),
+            NpcType(2183, "TzHaar-Hur-Tel", internalName = "tzhaar_merchant_equipment"),
+            NpcType(2184, "TzHaar-Hur-Lek", internalName = "tzhaar_merchant_oreandgem"),
+            NpcType(2185, "TzHaar-Mej-Roh", internalName = "tzhaar_merchant_rune"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -266,6 +273,10 @@ class ShopTest {
         // Musa Point's shops, read 2026-11-17.
         "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
         "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
+        // Mor Ul Rek's Tokkul shops, read 2026-11-18: 150% of each value, in Tokkul.
+        "tzhaar_hur_tels_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500),
+        "tzhaar_hur_leks_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        "tzhaar_mej_rohs_rune_store" to listOf(6, 6, 6, 6, 4, 4, 135, 270, 645, 645, 645, 645),
         // The Culinaromancer's Chest with Recipe for Disaster finished, read 2026-11-19.
         "culinaromancers_chest_food" to listOf(13, 5, 5, 1, 1, 13, 5, 5, 7, 2, 5, 299, 3, 13, 5, 1, 182, 1, 2, 2, 650),
         "culinaromancers_chest_items" to listOf(65, 130, 325, 650, 1300, 1950, 3250, 6500, 130000, 130000, 45, 65, 422, 2496, 2158, 4160, 18720, 10400, 53950, 33280),
@@ -304,7 +315,13 @@ class ShopTest {
         assertEquals(shops.ofNpc(10631), dusuri)
         assertEquals(25527, dusuri.currency)
         assertEquals(listOf(1600, 2400, 240, 120), dusuri.stock.map { Shop(dusuri).sellPrice(it.type.id, it.type.cost, it.count) })
-        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key }.all { it.currency == ShopScreen.COINS })
+        // Mor Ul Rek's shops are paid in Tokkul, and buy back at 15% (the Wiki's 9,000 for the obsidian cape).
+        val tzhaar = listOf("tzhaar_hur_tels_equipment_store", "tzhaar_hur_leks_ore_and_gem_store", "tzhaar_mej_rohs_rune_store")
+        assertEquals(listOf(2183, 2184, 2185).map { shops.ofNpc(it) }, tzhaar.map { shops[it] })
+        assertTrue(tzhaar.all { shops[it]!!.currency == 6529 })
+        val equipment = shops[tzhaar[0]]!!
+        assertEquals(9000, Shop(equipment).sellPrice(6568, 60000, 1))
+        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key && it.key !in tzhaar }.all { it.currency == ShopScreen.COINS })
         // Her sales alone go in the collection log (its Rooftop Agility page).
         assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
         // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies and the Sheared
