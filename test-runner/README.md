@@ -766,6 +766,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   fishlike thing at the nearest spot, Eat is refused, the uncooking pot makes it raw, one of his talks plays, and the
   portal takes the player home with nothing and without the island's net and fish. Feeding him (no runner step uses
   an item on an NPC yet) and the XP are the headless test's part.
+- `random-events-prison-pete.json`: random events step 11 (with `::keys on`): Evil Bob's prison form takes the player to
+  ScapeRune's prison, Pete explains, the main door is refused, the lever opens the balloon window (look that it shows
+  one spinning animal), a popped balloon's key is tried (right only by chance), and asking to leave takes the player
+  home with nothing. Three right keys, the walk out and the present are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

@@ -280,6 +280,7 @@ object DialogueLines {
         osrsps.game.content.randomevents.EvilBobLines,
         osrsps.game.content.randomevents.EvilBobServantLines,
         osrsps.game.content.randomevents.UncookingPotLines,
+        osrsps.game.content.randomevents.PrisonPeteLines,
         HariLines,
         HarlanLines,
         HassanLines,
