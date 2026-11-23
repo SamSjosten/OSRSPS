@@ -563,7 +563,8 @@ class World(
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
-    val bank = Bank(objTypes)
+    // The Gravedigger's coffins can't be banked: the graveyard's mausoleum is a deposit box (Codex review on #890).
+    val bank = Bank(objTypes, notBankable = osrsps.game.content.randomevents.Gravedigger.COFFINS.toSet())
 
     val bankScreen = BankScreen(
         bank, objTypes, scripts, interfaces::openModal,
@@ -683,7 +684,11 @@ class World(
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS
         },
     )
 
@@ -786,6 +791,7 @@ class World(
         },
         placeOf = ::deathPlace,
         fell = { archiveRaids.fell(it) },
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -2097,7 +2103,8 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
-            player, inventory, bank,
+            // A random event's place keeps its own items: a player saved there leaves without them.
+            player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
             held = held,
         )
@@ -2761,6 +2768,8 @@ class World(
         player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
+        // Out of a random event's place by any way, its own items stay there.
+        randomEvents.areas.moving(player, x, z)
         player.x = x
         player.z = z
         player.level = level
@@ -3008,8 +3017,11 @@ class World(
             player.logoutRequested = true
             return@act
         }
-        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray).
-        if (op == 1 && scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)) return@act
+        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray, the
+        // Quiz Master's chat box window): only in a window that is open, main or chat box, and dropped while delayed, as onResumePauseButton does (exploit review R50A-2).
+        if (op == 1 && !player.scripts.delayed && (interfaceId in player.modals.values || interfaceId == player.chatModal) &&
+            scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)
+        ) return@act
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
@@ -3044,6 +3056,7 @@ class World(
         }
         if (bankScreen.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
         if (depositBox.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
+        if (osrsps.game.content.randomevents.Beekeeper.drag(this, player, interfaceId, componentId, toInterfaceId, toComponentId)) return@act
         logger.info { "${player.username} dragged $interfaceId:$componentId sub $fromSub onto $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 

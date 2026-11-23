@@ -11,6 +11,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.ShantayPass
 import osrsps.game.content.XpLamp
 import osrsps.game.content.randomevents.FreakyForester
 import osrsps.game.content.randomevents.RandomEvents
@@ -179,6 +180,37 @@ class HeadlessFreakyForesterTest {
                 client.awaitTicks(2)
                 assertTrue(client.inventory(Inventory.INV).all { it == null })
                 assertTrue(server.world.instances.all.isEmpty(), "the forest ended")
+            }
+        }
+    }
+
+    @Test
+    fun `he never takes away a player in a fight, even one who says yes, and a stale jail flag doesn't count`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.ready()
+                val player = server.world.playerNamed("dan")!!
+                client.command("randomevent ${FreakyForester.key}")
+                val npc = client.await("the Forester") { client.npcs().firstOrNull { it.id == FreakyForester.npcId } }
+                client.npcOp(npc.index, RandomEvents.TALK_TO)
+                client.chat("[freaky_forester.help name=dan]")
+                client.awaitDialogue("the options") { it is DialogueView.Menu }
+                // In a fight that began during the talk: yes keeps them here, and he goes (exploit review R50). The hit
+                // is dated ahead so the logout timer holds however the ticks fall.
+                player.attackedTick = server.world.tick + 200
+                client.chooseOption(1)
+                client.chat("[freaky_forester.okay]")
+                client.over()
+                client.await("him gone") { if (client.npcs().none { it.id == FreakyForester.npcId }) Unit else null }
+                assertEquals(Coord(3222, 3218, 0), client.position)
+                assertTrue(server.world.instances.all.isEmpty())
+                assertTrue(!server.world.randomEvents.allowedAt(player, FreakyForester))
+                player.attackedTick = -1
+                assertTrue(server.world.randomEvents.allowedAt(player, FreakyForester))
+                // Shantay's jail flag counts only in his cell: one who got out some other way isn't held to it.
+                player.charges[ShantayPass.JAILED] = 1
+                assertTrue(server.world.randomEvents.allowedAt(player, FreakyForester))
+                player.charges[ShantayPass.JAILED] = 0
             }
         }
     }
