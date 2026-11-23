@@ -45,6 +45,7 @@ object AgilityLines : Lines("agility", "Agility") {
     val EDGEVILLE_DUNGEON_PIPE_LEVEL = line("edgeville_dungeon_pipe_level", "Shortcut: the Edgeville Dungeon obstacle pipe to the Varrock Sewers clicked below level 51", "level")
     val EDGEVILLE_DUNGEON_SOUTH_PIPE_LEVEL = line("edgeville_dungeon_south_pipe_level", "Shortcut: the Edgeville Dungeon's south obstacle pipe clicked below level 60", "level")
     val PIPE_STUCK = line("pipe_stuck", "Shortcut: an Edgeville Dungeon obstacle pipe crossed with damage (the Wiki's Obstacle pipe (Edgeville Dungeon) page quotes it)")
+    val LUMBRIDGE_CELLAR_HOLE_LEVEL = line("lumbridge_cellar_hole_level", "Shortcut: the Lumbridge Castle cellar's hole clicked below level 13; words unsourced", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")

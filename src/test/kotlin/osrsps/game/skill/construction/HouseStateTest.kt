@@ -56,6 +56,12 @@ class HouseStateTest {
             read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"4515":6758}}]}""")
         }
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":995}}]}""") }
+        // A rug's parts each on their own tile, a bookcase with its scroll rack, curtains: all fine.
+        read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4518":6761,"4519":6760,"4520":6759,"4521":6768,"4522":6771,"4524":6774}}]}""")
+        // A chair on the rug's middle, a rug's corner on its middle, curtains on the fireplace's place: each refused.
+        for (built in listOf(""""4518":6752""", """"4518":6759""", """"4523":6774""", """"4515":6761""")) {
+            assertFailsWith<IllegalArgumentException>(built) { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{$built}}]}""") }
+        }
     }
 
     @Test
