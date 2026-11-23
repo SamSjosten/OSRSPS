@@ -3168,6 +3168,8 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
+        // A Treasure Trails key step's key goes down with the loot, as the death animation ends.
+        trails.fights.dropKey(npc, killer)
         // A Wilderness boss with group loot puts its own down, split by damage.
         if (wildernessBosses.loot(npc)) return
         // Scurrius's goes to his most damage and the rest apart.
