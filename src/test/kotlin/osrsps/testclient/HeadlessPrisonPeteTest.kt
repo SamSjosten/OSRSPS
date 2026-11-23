@@ -180,6 +180,61 @@ class HeadlessPrisonPeteTest {
     }
 
     @Test
+    fun `a teleport out during the arrival talk doesn't leave Evil Bob to take them again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.ready()
+                client.command("randomevent ${PrisonPete.key}")
+                val npc = client.await("Evil Bob") { client.npcs().firstOrNull { it.id == PrisonPete.npcId } }
+                client.npcOp(npc.index, RandomEvents.TALK_TO)
+                client.chat("[prison_pete.pet]")
+                client.menu(1)
+                client.awaitDialogue("[prison_pete.captured_too]") { it is DialogueView.Chat && it.text == "[prison_pete.captured_too]" }
+                val player = server.world.onlinePlayers.single()
+                assertTrue(PrisonPete.prisonOf(server.world, player) != null, "in the prison")
+                // Exploit review R51 C-1: taken away is the event's end at once, with Pete's talk still open, so a
+                // teleport out before it ends finds no Evil Bob to talk to again.
+                client.await("Evil Bob gone") { if (server.world.npcs.all.none { it.type.id == PrisonPete.npcId }) Unit else null }
+                assertEquals(null, server.world.randomEvents.outFor(player))
+                assertTrue(client.dialogueView != null, "the talk still open")
+                client.command("tele 3222 3218 0")
+                client.await("out") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.awaitTicks(2)
+                assertEquals(null, server.world.randomEvents.outFor(player))
+            }
+        }
+    }
+
+    @Test
+    fun `the lever is refused while a key is held, and the shape stays`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.ready()
+                val (dx, dz) = client.intoPrison()
+                client.menu(1)
+                client.chat("[prison_pete.okay]")
+                client.over()
+                val prison = PrisonPete.prisonOf(server.world, server.world.onlinePlayers.single())!!.second
+                client.pull(dx, dz)
+                val target = prison.target!!
+                val balloon = client.await("a balloon") { client.npcs().firstOrNull { PrisonPete.Animal.of(it.id) == target } }
+                client.npcOp(balloon.index, PrisonPete.POP)
+                client.await("the key") { if (client.inventory(Inventory.INV).any { it?.id == PrisonPete.KEY }) Unit else null }
+                // Pete's try shut before it begins: the key is held still.
+                client.awaitDialogue("[prison_pete.got_key]") { it is DialogueView.Chat && it.text == "[prison_pete.got_key]" }
+                client.closeModal()
+                client.over()
+                // Exploit review R51 C-2: no new shape to match the key against until it is brought.
+                client.locOp(PrisonPete.LEVER, PrisonPete.LEVER_AT.x + dx, PrisonPete.LEVER_AT.z + dz, PrisonPete.PULL)
+                client.chat("[prison_pete.bring_that_key]")
+                client.over()
+                assertEquals(target, prison.target)
+                assertTrue(PrisonPete.INTERFACE !in client.openInterfaces())
+            }
+        }
+    }
+
+    @Test
     fun `logging out holding a balloon's key leaves it in the prison`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

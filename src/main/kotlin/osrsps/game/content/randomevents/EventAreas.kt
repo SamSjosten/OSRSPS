@@ -62,6 +62,7 @@ class EventAreas(private val world: World) {
         stays[instance.id] = away
         val to = away.inside(arrive.x, arrive.z)
         world.teleport(player, to.x, to.z, 0)
+        world.randomEvents.taken(player)
         return away
     }
 
@@ -73,6 +74,7 @@ class EventAreas(private val world: World) {
         val away = awayOf(player) ?: return
         if (awayAt(x, z) === away) return
         takePlaceItems(player)
+        away.event.leftPlace(world, player)
         // A cutscene cut short (a death drops its script, end and all) must not follow them out: the camera comes back
         // and its window shuts.
         player.session.queue(CamReset)
@@ -90,8 +92,26 @@ class EventAreas(private val world: World) {
      * own items stay there ([moving]).
      */
     fun bringBack(player: Player, away: Away) {
-        val (x, z, level) = if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
-        else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
+        val (x, z, level) = backOf(away)
         world.teleport(player, x, z, level)
+    }
+
+    /**
+     * Where [away]'s player comes back to, by the way back or by a logout inside (the save, [World]'s saveOf): the tile
+     * they came from, else the first free tile beside it (north, east, south, west, then the corners), else Lumbridge.
+     * Exploit review R51 C-4: one rule for both, so a blocked tile (a fire or trap set on it meanwhile) isn't a free
+     * teleport to Lumbridge, and a logout doesn't land them on it. Guessed: the tiles beside it; the Wiki names Lumbridge only.
+     */
+    fun backOf(away: Away): Triple<Int, Int, Int> {
+        val (bx, bz) = away.back
+        for ((dx, dz) in BESIDE) {
+            if (world.canStand(bx + dx, bz + dz, away.backLevel)) return Triple(bx + dx, bz + dz, away.backLevel)
+        }
+        return Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL)
+    }
+
+    private companion object {
+        /** The tile itself, then beside it: see [backOf]. */
+        val BESIDE = listOf(0 to 0, 0 to 1, 1 to 0, 0 to -1, -1 to 0, 1 to 1, 1 to -1, -1 to -1, -1 to 1)
     }
 }
