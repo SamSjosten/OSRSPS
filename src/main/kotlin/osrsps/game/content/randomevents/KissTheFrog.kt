@@ -66,8 +66,8 @@ object KissTheFrogLines : Lines("kiss_the_frog", "Transcript:Kiss the frog") {
  * and sends the player home. A polite no ends it with nothing; asking to be a frog sends the player to Frogland, the
  * same square on the Wiki's map, where the frog there (5432, macro_frog_noncombat) asks whether they are ready to leave.
  *
- * The overheads name a princess: the Wiki's trivia says they take the opposite of the player's pronouns, and the server
- * keeps no body type, so every player counts as male. The crowned frog's own gender is picked at random, as the trivia
+ * The overheads name a princess: the Wiki's trivia says they take the opposite of the player's pronouns, and this
+ * server's text follows the male forms throughout (the project's rule), so every player gets the princess lines. The crowned frog's own gender is picked at random, as the trivia
  * says. The options show one touch and one refusal in a random order (the transcript), then a kiss.
  *
  * Guessed: Talk-to on the pointy-hat frog taking the player straight to the swamp with no words (the transcript has
@@ -93,9 +93,10 @@ object KissTheFrog : RandomEvent("kiss_the_frog", 5429) {
     const val PLAYER_KISS = 2376
     const val PLAYER_TO_FROG = 2377
 
-    /** Guessed: the kiss, then the change, then the royal standing there. */
+    /** Guessed: the kiss, then the change, then the royal standing there before the player goes home. */
     const val KISS_TICKS = 2
     const val CHANGE_TICKS = 2
+    const val ROYAL_TICKS = 1
 
     /** The zones copied: the swamp of map square 38,74. */
     const val FROM_X = 2448
@@ -119,6 +120,8 @@ object KissTheFrog : RandomEvent("kiss_the_frog", 5429) {
         var frogland = false
         var frogs: List<Npc> = emptyList()
         var froglandFrog: Npc? = null
+        /** Touched or kissed: the royal is there and the token is theirs. */
+        var won = false
     }
 
     override val teleports = true
@@ -178,18 +181,33 @@ object KissTheFrog : RandomEvent("kiss_the_frog", 5429) {
                         npc.effects.anim(FROG_TO_HUMAN)
                         delay(CHANGE_TICKS)
                         val royal = royal(world, away, swamp, npc) ?: return@start world.randomEvents.areas.bringBack(player, away)
-                        // Back first, then the token (on the ground there if it doesn't fit, not in the swamp that is
-                        // about to end), then the thanks, so shutting it neither loses nor repeats it. Guessed: the
-                        // thanks comes after the teleport.
-                        world.randomEvents.areas.bringBack(player, away)
-                        world.randomEvents.reward(player, TOKEN)
-                        chatNpc(royal, ChatAnim.HAPPY, text(THANK_YOU, "name" to player.username))
+                        swamp.won = true
+                        // The royal stands there for a tick, so the client draws them before the player goes. Guessed:
+                        // how long. A talk to them gives what this would have, should anything cut it short.
+                        delay(ROYAL_TICKS)
+                        thank(world, away, royal)
                     }
                     in TO_FROGLAND -> toFrogland(world, away, swamp)
                     else -> world.randomEvents.areas.bringBack(player, away)
                 }
             }
         }
+    }
+
+    /** Home, the token, and the royal's thanks. */
+    private suspend fun Dialogue.thank(world: World, away: EventAreas.Away, royal: Npc) = with(KissTheFrogLines) {
+        // Back first, then the token (on the ground there if it doesn't fit, not in the swamp that is about to end), then
+        // the thanks, so shutting it neither loses nor repeats it. Guessed: the thanks comes after the teleport.
+        world.randomEvents.areas.bringBack(player, away)
+        world.randomEvents.reward(player, TOKEN)
+        chatNpc(royal, ChatAnim.HAPPY, text(THANK_YOU, "name" to player.username))
+    }
+
+    /** Talk-to on the prince or princess, if the tick they stand there was cut short. */
+    suspend fun ScriptContext.talkToRoyal(world: World, npc: Npc) {
+        val (away, swamp) = swampOf(world, player) ?: return
+        if (!swamp.won) return
+        world.dialogues.start(this, npc) { thank(world, away, npc) }
     }
 
     /** The crowned frog's place taken by the prince or princess. */
@@ -241,6 +259,7 @@ object KissTheFrog : RandomEvent("kiss_the_frog", 5429) {
 
     fun register(world: World) {
         world.handlers.onNpc(CROWNED, RandomEvents.TALK_TO) { op -> talkToCrowned(world, op.npc ?: return@onNpc) }
+        for (id in listOf(PRINCE, PRINCESS)) world.handlers.onNpc(id, RandomEvents.TALK_TO) { op -> talkToRoyal(world, op.npc ?: return@onNpc) }
         world.handlers.onNpc(FROGLAND_FROG, RandomEvents.TALK_TO) { op -> talkInFrogland(world, op.npc ?: return@onNpc) }
         for (id in listOf(TOP_HAT, HATLESS)) world.handlers.onNpc(id, RandomEvents.TALK_TO) { op -> talkToOther(world, op.npc ?: return@onNpc) }
     }

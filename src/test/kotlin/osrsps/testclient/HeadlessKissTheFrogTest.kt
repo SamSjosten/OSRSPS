@@ -114,6 +114,9 @@ class HeadlessKissTheFrogTest {
                     client.over()
 
                     client.pick(client.askCrowned(), "positive_")
+                    // The royal is drawn in the swamp before the player goes home.
+                    val royalId = if (swamp.princess) KissTheFrog.PRINCESS else KissTheFrog.PRINCE
+                    client.await("the royal in the swamp") { client.npcs().firstOrNull { it.id == royalId } }
                     client.awaitDialogue("the royal's thanks") {
                         it is DialogueView.Chat && it.text == "[kiss_the_frog.thank_you name=alice]" && it.name == "Frog ${royal.replaceFirstChar(Char::uppercase)}"
                     }
