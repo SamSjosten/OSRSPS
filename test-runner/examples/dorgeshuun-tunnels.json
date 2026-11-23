@@ -1,0 +1,479 @@
+{
+ "name": "Post-quest step 6: the Lost Tribe's holes, the Dorgeshuun guides' travel, Mistag's ore, Nardok's shop, the water mill cellar and Sigmund's chest",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "empty inventory and bank, so the ore sale's coins are counted from 0; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 12",
+   "expectMessage": "12",
+   "comment": "one short of the cellar's hole"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3219 9618 0",
+   "expectMessage": "Teleported to 3219, 9618, 0",
+   "comment": "Lumbridge Castle's cellar, beside the hole in its east wall"
+  },
+  {
+   "step": "locOption",
+   "locId": 6898,
+   "option": "Squeeze-through",
+   "x": 3219,
+   "y": 9618,
+   "timeoutMs": 20000,
+   "comment": "the map's multiloc, showing the Hole after The Lost Tribe"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[agility.lumbridge_cellar_hole_level",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 13",
+   "expectMessage": "13"
+  },
+  {
+   "step": "locOption",
+   "locId": 6898,
+   "option": "Squeeze-through",
+   "x": 3219,
+   "y": 9618,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3221,
+   "y": 9618,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the tunnel side"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 6899,
+   "option": "Squeeze-through",
+   "x": 3221,
+   "y": 9618,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3219,
+   "y": 9618,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back in the cellar"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 6898,
+   "option": "Squeeze-through",
+   "x": 3219,
+   "y": 9618,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3221,
+   "y": 9618,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Kazgar",
+   "option": "Mines",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_tribe.shows_the_way guide=Kazgar]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3319,
+   "y": 9615,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "beside Mistag in the Dorgeshuun mines"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Mistag",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mistag.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.sell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.sell_none"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 440 3",
+   "expectMessage": "3",
+   "comment": "iron ore"
+  },
+  {
+   "step": "command",
+   "text": "::item 442 1",
+   "expectMessage": "1",
+   "comment": "silver ore"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Mistag",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mistag.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.sell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.sell_offer coins=100]",
+   "comment": "3 iron at 13.6 and a silver at 60: 100.8, rounded down"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mistag.sell_ok]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mistag.sell_ok_say"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 100,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Iron ore",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nardok",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "timeoutMs": 10000,
+   "comment": "Nardok's Bone Weapons"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Mistag",
+   "option": "Watermill",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_tribe.shows_the_way guide=Mistag]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3245,
+   "y": 9648,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "beside Dartog, at the tunnel to the water mill cellar"
+  },
+  {
+   "step": "locOption",
+   "locId": 15763,
+   "option": "Squeeze-through",
+   "x": 3245,
+   "y": 9649,
+   "timeoutMs": 20000,
+   "comment": "the maze side's multiloc, open after Death to the Dorgeshuun"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3245,
+   "y": 9662,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the water mill cellar"
+  },
+  {
+   "step": "locOption",
+   "locId": 15746,
+   "option": "Climb-up",
+   "x": 3240,
+   "y": 9695,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3230,
+   "y": 3285,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "Groats' farmhouse, beside the trapdoor"
+  },
+  {
+   "step": "locOption",
+   "locId": 15701,
+   "option": "Search",
+   "x": 3225,
+   "y": 3286,
+   "timeoutMs": 20000,
+   "comment": "a machine-part crate, the farm's multiloc"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[search.crate_empty]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 15765,
+   "option": "Go-down",
+   "x": 3230,
+   "y": 3286,
+   "timeoutMs": 20000,
+   "comment": "the trapdoor's multiloc, open after the quest"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3239,
+   "y": 9695,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back in the water mill cellar"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3245 9662 0",
+   "expectMessage": "Teleported to 3245, 9662, 0",
+   "comment": "the cellar side of the tunnel"
+  },
+  {
+   "step": "locOption",
+   "locId": 15764,
+   "option": "Squeeze-through",
+   "x": 3245,
+   "y": 9661,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3245,
+   "y": 9648,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the maze side"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Dartog",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dartog.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[dartog.cellar]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dartog.cellar"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dartog.cellar_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_tribe.shows_the_way guide=Dartog]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3229,
+   "y": 9611,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "beside Kazgar, by the cellar"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3224 9604 0",
+   "expectMessage": "Teleported to 3224, 9604, 0",
+   "comment": "the Goblin Maze, north of its hole to the Lumbridge Swamp Caves"
+  },
+  {
+   "step": "locOption",
+   "locId": 6912,
+   "option": "Squeeze-through",
+   "x": 3224,
+   "y": 9601,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3224,
+   "y": 9600,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the Swamp Caves"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 6912,
+   "option": "Squeeze-through",
+   "x": 3224,
+   "y": 9601,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3224,
+   "y": 9604,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back in the maze"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3217 1",
+   "expectMessage": "Teleported to 3210, 3217, 1",
+   "comment": "Lumbridge Castle's first floor, east of Sigmund's chest"
+  },
+  {
+   "step": "locOption",
+   "locId": 6910,
+   "option": "Open",
+   "x": 3209,
+   "y": 3217,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[lost_tribe.chest_found]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

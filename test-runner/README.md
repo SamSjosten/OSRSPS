@@ -126,6 +126,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `tzhaar-shops.json` (Karamja step K2.2, for test on 215: 1,000 Tokkul (6529) from `::item`, Trade on TzHaar-Hur-Tel (2183) and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's (2184) talk into his shop, and TzHaar-Mej-Roh's (2185) talk through the castes) needs nothing newer than `assertDialogue`.
 
+`mor-ul-rek-inner.json` (Karamja step K2.3, for test on 215: `::varp mor_ul_rek_access 0`, Pass on the west hot vent door (30266 at 2436,5120) refused with `[tzhaar_guard.no_pass]`, a fire cape (6570) from `::item` shown to the barrier guard through his talk, his next greeting naming the player `...-Xo-...`, the door both ways (2436,5119 and 2436,5121), TzHaar-Ket-Yil's Bank, TzHaar-Hur-Zal's Trade and TzHaar-Mej-Dir's talk) needs nothing newer than `assertDialogue`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
@@ -456,6 +458,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `culinaromancers-chest.json`: post-quest step 5 (with `::keys on`): the Culinaromancer's Chest's Bank (interface 12),
   Collect (402), Buy-food and Buy-items (300) in Lumbridge Castle's cellar, then the Wizards' Tower basement's altar bare
   (varbit 2130 at 1) and its Search's `[game.nothing_interesting]`.
+- `dorgeshuun-tunnels.json`: post-quest step 6 (with `::scenario lumbridge-bare` and `::keys on`): Lumbridge Castle
+  cellar's hole refused at Agility 12 and squeezed through both ways at 13, Kazgar's Mines, Mistag's talk with no ore
+  and then buying 3 iron and a silver for 100 coins, Nardok's Trade (interface 300), Mistag's Watermill, the tunnel to
+  the water mill cellar both ways, its ladder up to Groats' farm, an empty machine-part crate there and the trapdoor
+  back down, Dartog's talk to the cellar, the hole between the Goblin Maze and the Swamp Caves both ways, and Sigmund's
+  chest's `[lost_tribe.chest_found]`, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
@@ -785,6 +793,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   (look that a touch and a refusal show in either order, then a kiss); the kiss turns it into the prince or princess
   (look at the kiss and the change), who gives a frog token and sends the player home. The touch, the polite no and
   Frogland are the headless test's part.
+- `random-events-maze.json`: random events step 14 (with `::keys on`): the Mysterious Old Man's maze form takes the
+  player to a corner of the maze (look at the cube walls and the chests), the timer window shows the reward left (look
+  that it drops about a point every three seconds), and a teleport out closes it. The chests, the shrine, its rewards and
+  running out of time are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

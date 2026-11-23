@@ -3547,6 +3547,203 @@
           "restock": 40
         }
       ]
-    }
+    },
+    {
+      "key": "tzhaar_hur_zals_equipment_store",
+      "title": "TzHaar-Hur-Zal's Equipment Store",
+      "inv": 585,
+      "size": 11,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_cityequipment"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Zal's Equipment Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_cityequipment (585) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 6522,
+          "name": "Toktz-xil-ul",
+          "count": 500,
+          "restock": 10
+        },
+        {
+          "item": 6523,
+          "name": "Toktz-xil-ak",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6525,
+          "name": "Toktz-xil-ek",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6528,
+          "name": "Tzhaar-ket-om",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6526,
+          "name": "Toktz-mej-tal",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6527,
+          "name": "Tzhaar-ket-em",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6568,
+          "name": "Obsidian cape",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6524,
+          "name": "Toktz-ket-xil",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 21298,
+          "name": "Obsidian helmet",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 21301,
+          "name": "Obsidian platebody",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 21304,
+          "name": "Obsidian platelegs",
+          "count": 1,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "tzhaar_hur_rins_ore_and_gem_store",
+      "title": "TzHaar-Hur-Rin's Ore and Gem Store",
+      "inv": 586,
+      "size": 16,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_cityoreandgem"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Rin's Ore and Gem Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_cityoreandgem (586) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 438,
+          "name": "Tin ore",
+          "count": 25,
+          "restock": 100
+        },
+        {
+          "item": 436,
+          "name": "Copper ore",
+          "count": 25,
+          "restock": 100
+        },
+        {
+          "item": 440,
+          "name": "Iron ore",
+          "count": 15,
+          "restock": 100
+        },
+        {
+          "item": 442,
+          "name": "Silver ore",
+          "count": 12,
+          "restock": 100
+        },
+        {
+          "item": 453,
+          "name": "Coal",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 444,
+          "name": "Gold ore",
+          "count": 12,
+          "restock": 100
+        },
+        {
+          "item": 447,
+          "name": "Mithril ore",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 449,
+          "name": "Adamantite ore",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 451,
+          "name": "Runite ore",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1623,
+          "name": "Uncut sapphire",
+          "count": 16,
+          "restock": 100
+        },
+        {
+          "item": 1621,
+          "name": "Uncut emerald",
+          "count": 12,
+          "restock": 300
+        },
+        {
+          "item": 1619,
+          "name": "Uncut ruby",
+          "count": 8,
+          "restock": 500
+        },
+        {
+          "item": 1617,
+          "name": "Uncut diamond",
+          "count": 6,
+          "restock": 1000
+        },
+        {
+          "item": 1631,
+          "name": "Uncut dragonstone",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 6571,
+          "name": "Uncut onyx",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 9194,
+          "name": "Onyx bolt tips",
+          "count": 50,
+          "restock": 100
+        }
+      ]
+    },
+    {"key": "nardoks_bone_weapons", "title": "Nardok's Bone Weapons", "inv": 413, "size": 6, "general": false, "sellAt": 1000, "buyAt": 600, "changePer": 20, "npcs": ["dttd_bone_dealer"], "source": "OSRS Wiki, Nardok's Bone Weapons, read 2026-11-19: sells at 100%, buys at 60%, change per 2%, and the stock table; inv 413 is the cache's dorgeshuun_weapon_shop. Open after The Lost Tribe, which every account has done (DorgeshuunTunnels)", "stock": [{"item": 5018, "name": "Bone club", "count": 10, "restock": 20}, {"item": 5016, "name": "Bone spear", "count": 10, "restock": 20}, {"item": 8872, "name": "Bone dagger", "count": 5, "restock": 20}, {"item": 8880, "name": "Dorgeshuun crossbow", "count": 5, "restock": 20}, {"item": 8882, "name": "Bone bolts", "count": 1000, "restock": 20}, {"item": 13193, "name": "Bone bolt pack", "count": 80, "restock": 10}]}
   ]
 }

@@ -47,7 +47,8 @@ object SwampCavesLines : Lines("swamp_caves", "Lumbridge Swamp Caves") {
  * and the tiles from the 242 cache and map. Guessed: the gas explosion's message, the escape climbing with no message,
  * where the auto-climb lands ([ROPE_TOP]), the rope's messages, and that the count restarts on leaving. Out: the
  * screen's darkness (varbit 278 `darkness_level`, whose client-side meaning isn't checked), refusing attacks with no
- * light, the Fire of Eternal Light (Construction), the Lumbridge cellar's hole and the Dorgesh-Kaan side (piece 8).
+ * light, the Fire of Eternal Light (Construction). The Lumbridge cellar's hole, the hole to the Goblin Maze
+ * and the Dorgeshuun side are [DorgeshuunTunnels]'s (post-quest step 6).
  */
 object LumbridgeSwampCaves {
     const val DARK_HOLE = 5947

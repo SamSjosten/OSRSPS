@@ -50,7 +50,9 @@
     "NPCs and locs: random events step 10 (2026-11-19): Evil Bob (390 awake, 391 asleep, 6754 his prison form, one examine in his infobox) and his servant (393), from their infoboxes; the island's uncooking pot (23113), fishing spot (23114) and portal (23115), from each page's infobox.",
     "NPCs: random events step 11 (2026-11-19): Prison Pete (368) and the balloon animals (369, 370, 371, 5488, 5489, 5491, 5492, 5493, one examine in their infobox), from their infoboxes.",
     "NPCs and locs: random events step 12 (2026-11-19): Molly (her 20 looks, one examine), the suspects (20 looks, one examine), Postie Pete's Evil twin form (6738), the claw control panel (20813) and the evil claw (20811), from each page's infobox.",
-    "NPCs: random events step 13 (2026-11-19): the Kiss the frog frogs (312 and 5429-5432, one examine in their infobox), the Frog Prince (13445) and the Frog Princess (13446), from their infoboxes."
+    "NPCs: random events step 13 (2026-11-19): the Kiss the frog frogs (312 and 5429-5432, one examine in their infobox), the Frog Prince (13445) and the Frog Princess (13446), from their infoboxes.",
+    "NPCs and locs: random events step 14 (2026-11-19): the Mysterious Old Man's maze form (6752) shares his examine; the strange shrine (14985) and the maze chests (14986 closed, 14988 opened), from their infoboxes.",
+    "NPCs and locs of the tunnels between Lumbridge Castle's cellar, the Dorgeshuun mines and the water mill cellar (post-quest step 6, DorgeshuunTunnels.kt): the guides and Nardok, with the types their multi-NPCs show; the cellar's two hole multilocs, the water mill cellar's trapdoor, ladder and tunnels and Death to the Dorgeshuun's crates (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -315,6 +317,7 @@
     {"npc": 2184, "name": "TzHaar-Hur-Lek", "wiki": "TzHaar-Hur-Lek page, infobox"},
     {"npc": 2185, "name": "TzHaar-Mej-Roh", "wiki": "TzHaar-Mej-Roh page, infobox"},
     {"npc": 2180, "name": "TzHaar-Mej-Jal"},
+    {"npc": 2186, "name": "TzHaar-Ket", "also": [2187], "wiki": "TzHaar-Ket (barrier guard) page, infobox"},
     {"npc": 2200, "name": "Richard"},
     {"npc": 2268, "name": "Cave goblin", "wiki": "Cave goblin (Dorgesh-Kaan) page, infobox"},
     {"npc": 2269, "name": "Cave goblin", "wiki": "Cave goblin (Dorgesh-Kaan) page, infobox"},
@@ -764,7 +767,7 @@
     {"npc": 6740, "name": "Shade"},
     {"npc": 6741, "name": "Zombie"},
     {"npc": 6745, "name": "Leo", "also": [6746]},
-    {"npc": 6750, "name": "Mysterious Old Man", "also": [6753]},
+    {"npc": 6750, "name": "Mysterious Old Man", "also": [6752, 6753]},
     {"npc": 6773, "name": "Doomsayer", "also": [119]},
     {"npc": 6793, "name": "Hell-Rat Behemoth"},
     {"npc": 6798, "name": "Steve"},
@@ -781,7 +784,9 @@
     {"npc": 7546, "name": "Bartender", "wiki": "Bartender (The Sheared Ram) page, infobox"},
     {"npc": 7663, "name": "Krystilia"},
     {"npc": 7673, "name": "Solztun"},
-    {"npc": 7677, "name": "TzHaar-Ket-Zuh", "wiki": "TzHaar-Ket-Zuh page, infobox"},
+    {"npc": 7677, "name": "TzHaar-Ket-Zuh", "also": [7678], "wiki": "TzHaar-Ket-Zuh and TzHaar-Ket-Yil pages, infoboxes (the same words)"},
+    {"npc": 7679, "name": "TzHaar-Ket", "wiki": "TzHaar-Ket page, infobox (Level 221)"},
+    {"npc": 7680, "name": "TzHaar-Mej-Dir", "also": [7681], "wiki": "TzHaar-Mej-Dir and TzHaar-Mej-Bal pages, infoboxes (the same words)"},
     {"npc": 7682, "name": "TzHaar-Hur"},
     {"npc": 7683, "name": "TzHaar-Hur"},
     {"npc": 7684, "name": "TzHaar-Hur"},
@@ -806,6 +811,7 @@
     {"npc": 7705, "name": "Yt-HurKot", "wiki": "Yt-HurKot page, infobox (Level 141; the Zuk wave's, which shares its examine)"},
     {"npc": 7707, "name": "Ancestral Glyph", "wiki": "Ancestral Glyph page, infobox (Moving)"},
     {"npc": 7708, "name": "Jal-MejJak", "wiki": "Jal-MejJak page, infobox"},
+    {"npc": 7688, "name": "TzHaar-Hur-Zal", "also": [7689], "wiki": "TzHaar-Hur-Zal and TzHaar-Hur-Rin pages, infoboxes (the same words)"},
     {"npc": 7723, "name": "Gertrude", "also": [3500, 7284]},
     {"npc": 7747, "name": "Wizard Mizgog", "also": [5005]},
     {"npc": 7768, "name": "Barge guard"},
@@ -1001,7 +1007,11 @@
     {"npc": 16809, "name": "Monlum", "wiki": "Monlum page, infobox"},
     {"npc": 16810, "name": "Finlay", "wiki": "Finlay page, infobox"},
     {"npc": 16811, "name": "Arthur", "wiki": "Arthur page, infobox"},
-    {"npc": 16821, "name": "Captain Harlan", "wiki": "Captain Harlan page, infobox (Captain Harlan)"}
+    {"npc": 16821, "name": "Captain Harlan", "wiki": "Captain Harlan page, infobox (Captain Harlan)"},
+    {"npc": 996, "name": "Nardok"},
+    {"npc": 1996, "name": "Dartog", "also": [997]},
+    {"npc": 5324, "name": "Mistag", "also": [7297, 7298, 7299]},
+    {"npc": 5325, "name": "Kazgar", "also": [7300, 7301]}
   ],
   "locs": [
     {"loc": 3, "name": "Door", "wiki": "Door (Nulodion) page, infobox"},
@@ -2309,6 +2319,9 @@
     {"loc": 14889, "name": "Spinning wheel"},
     {"loc": 14896, "name": "Flax", "wiki": "Flax (plant) page, infobox"},
     {"loc": 14946, "name": "Rough wall", "wiki": "Rough wall (Rellekka Rooftop Course) page, infobox"},
+    {"loc": 14985, "name": "Strange shrine", "wiki": "Strange shrine page, infobox"},
+    {"loc": 14986, "name": "Chest", "wiki": "Chest (Maze) page, infobox (Closed)"},
+    {"loc": 14988, "name": "Chest", "wiki": "Chest (Maze) page, infobox (Opened)"},
     {"loc": 14990, "name": "Gap", "wiki": "Gap (Rellekka Rooftop Course) page, infobox"},
     {"loc": 14991, "name": "Gap", "wiki": "Gap (Rellekka Rooftop Course) page, infobox"},
     {"loc": 14992, "name": "Tightrope", "wiki": "Tightrope (Rellekka Rooftop Course) page, infobox"},
@@ -2871,7 +2884,7 @@
     {"loc": 29560, "name": "Fairy ring"},
     {"loc": 30108, "name": "Rowboat"},
     {"loc": 30180, "name": "Cave", "wiki": "Cave (Kalphite Cave) page, infobox"},
-    {"loc": 30266, "name": "Hot vent door"},
+    {"loc": 30266, "name": "Hot vent door", "wiki": "Hot vent door page, infobox"},
     {"loc": 30267, "name": "Bank chest"},
     {"loc": 30268, "name": "Bank Deposit Box"},
     {"loc": 30269, "name": "Terminal"},
@@ -3238,6 +3251,15 @@
     {"loc": 63271, "name": "Ascension rocks"},
     {"loc": 63332, "name": "Market stall", "wiki": "Market stall (events) page, infobox"},
     {"loc": 63333, "name": "Market stall", "wiki": "Market stall (events) page, infobox"},
-    {"loc": 65000, "name": "Lodestone", "also": [65001, 65002, 65003, 65004, 65005, 65006, 65007], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"}
+    {"loc": 65000, "name": "Lodestone", "also": [65001, 65002, 65003, 65004, 65005, 65006, 65007], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"},
+    {"loc": 6898, "name": "Hole", "wiki": "Hole (Lumbridge Castle cellar) page, infobox (the hole the cellar side's multiloc shows after The Lost Tribe)"},
+    {"loc": 6899, "name": "Hole", "wiki": "Hole (Lumbridge Castle cellar) page, infobox (the tunnel side's multiloc)"},
+    {"loc": 15695, "name": "Crate"},
+    {"loc": 15696, "name": "Crate"},
+    {"loc": 15701, "name": "Crate", "wiki": "the farm's multiloc, showing 15695 after Death to the Dorgeshuun"},
+    {"loc": 15746, "name": "Ladder"},
+    {"loc": 15763, "name": "Tunnel", "wiki": "the maze side's multiloc, showing 15748 after Death to the Dorgeshuun"},
+    {"loc": 15764, "name": "Tunnel", "wiki": "the water mill cellar side's multiloc, showing 15750 after Death to the Dorgeshuun"},
+    {"loc": 15765, "name": "Trapdoor", "wiki": "Trapdoor (Water mill cellar) page, infobox, open (the multiloc shows 15753 after Death to the Dorgeshuun)"}
   ]
 }
