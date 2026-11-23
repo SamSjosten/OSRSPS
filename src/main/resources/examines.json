@@ -47,7 +47,8 @@
     "NPCs: random events step 8 (2026-11-19): the Bee keeper (6747 out in the world, 3235 in his field), from his infobox.",
     "NPCs: random events step 9 (2026-11-19): Capt' Arnav (5426), from his infobox.",
     "NPCs and locs: random events step 10 (2026-11-19): Evil Bob (390 awake, 391 asleep, 6754 his prison form, one examine in his infobox) and his servant (393), from their infoboxes; the island's uncooking pot (23113), fishing spot (23114) and portal (23115), from each page's infobox.",
-    "NPCs: random events step 11 (2026-11-19): Prison Pete (368) and the balloon animals (369, 370, 371, 5488, 5489, 5491, 5492, 5493, one examine in their infobox), from their infoboxes."
+    "NPCs: random events step 11 (2026-11-19): Prison Pete (368) and the balloon animals (369, 370, 371, 5488, 5489, 5491, 5492, 5493, one examine in their infobox), from their infoboxes.",
+    "NPCs and locs: random events step 12 (2026-11-19): Molly (her 20 looks, one examine), the suspects (20 looks, one examine), Postie Pete's Evil twin form (6738), the claw control panel (20813) and the evil claw (20811), from each page's infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -122,6 +123,8 @@
     {"npc": 323, "name": "Strange plant"},
     {"npc": 326, "name": "Genie"},
     {"npc": 337, "name": "Sergeant Damien", "also": [6743]},
+    {"npc": 342, "name": "Molly", "also": [352, 356, 361, 362, 363, 364, 365, 366, 367, 5464, 5467, 5471, 5474, 5476, 5478, 5480, 5485, 5486, 5487]},
+    {"npc": 343, "name": "Suspect", "also": [344, 345, 346, 347, 349, 350, 351, 354, 355, 357, 358, 359, 5465, 5468, 5469, 5470, 5482, 5483, 5484]},
     {"npc": 368, "name": "Prison Pete"},
     {"npc": 369, "name": "Balloon Animal", "also": [370, 371, 5488, 5489, 5491, 5492, 5493]},
     {"npc": 372, "name": "Freaky Forester", "also": [6748]},
@@ -751,6 +754,7 @@
     {"npc": 6606, "name": "Dark warrior", "wiki": "Dark warrior page, infobox (Level 145)"},
     {"npc": 6607, "name": "Elder Chaos druid"},
     {"npc": 6608, "name": "Ankou", "wiki": "Ankou page, infobox (Level 86)"},
+    {"npc": 6738, "name": "Postie Pete", "wiki": "Postie Pete page, infobox (Evil Twin version)"},
     {"npc": 6740, "name": "Shade"},
     {"npc": 6741, "name": "Zombie"},
     {"npc": 6745, "name": "Leo", "also": [6746]},
@@ -2504,6 +2508,8 @@
     {"loc": 20787, "name": "Danger Sign"},
     {"loc": 20788, "name": "Dead Explorer"},
     {"loc": 20790, "name": "Entrance"},
+    {"loc": 20811, "name": "Evil claw"},
+    {"loc": 20813, "name": "Control panel", "wiki": "Control panel (Evil twin) page, infobox"},
     {"loc": 20873, "name": "Cage"},
     {"loc": 20885, "name": "Crate"},
     {"loc": 21634, "name": "Fremennik boat"},
