@@ -15,7 +15,7 @@
   {"step": "assertInventory", "item": "Bone shortbow", "count": 1, "timeoutMs": 10000},
   {"step": "command", "text": "::item 1755", "expectMessage": "Added 1 x Chisel"},
   {"step": "command", "text": "::item 1391", "expectMessage": "Added 1 x Battlestaff"},
-  {"step": "command", "text": "::item 562 1000", "expectMessage": "Added 1000 x Chaos rune"},
+  {"step": "command", "text": "::item 562 1000", "expectMessage": "Added 1,000 x Chaos rune"},
   {"step": "useItemOnItem", "item": "Chisel", "onItem": "Scurrius' spine"},
   {"step": "assertInventory", "item": "Bone staff", "count": 1, "timeoutMs": 10000},
   {"step": "itemOption", "item": "Bone staff", "option": "Check"},
