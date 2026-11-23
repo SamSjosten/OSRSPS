@@ -761,6 +761,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `random-events-capt-arnav.json`: random events step 9 (with `::keys on`): Capt' Arnav's lock opens, its arrows roll
   the columns, and two Unlocks that are wrong (by chance; rerun if the first is right) bring his explanation, then send
   him off with nothing. Matching the words is the headless test's part; the words themselves are still held empty.
+- `random-events-evil-bob.json`: random events step 10 (with `::keys on`): Evil Bob takes the player to his island, his
+  servant's cutscene turns the camera to a statue (look that it does, and comes back), a net from the beach catches a
+  fishlike thing at the nearest spot, Eat is refused, the uncooking pot makes it raw, one of his talks plays, and the
+  portal takes the player home with nothing and without the island's net and fish. Feeding him (no runner step uses
+  an item on an NPC yet) and the XP are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

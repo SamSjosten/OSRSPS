@@ -63,6 +63,7 @@ object GameFrameCheck {
             osrsps.game.content.randomevents.Certers.CACHE_NAMES,
             osrsps.game.content.randomevents.SandwichLady.CACHE_NAMES,
             osrsps.game.content.randomevents.CaptArnav.CACHE_NAMES,
+            osrsps.game.content.randomevents.EvilBob.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */
