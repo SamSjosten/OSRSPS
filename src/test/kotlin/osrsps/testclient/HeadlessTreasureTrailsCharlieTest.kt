@@ -10,6 +10,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.npc.NpcSpawn
@@ -32,11 +33,17 @@ class HeadlessTreasureTrailsCharlieTest {
     private val charlie = ClueStep(StepType.CRYPTIC, 1, TrailTier.BEGINNER, "Talk to a made-up tramp.", listOf(TrailTarget.Npc(TreasureTrails.CHARLIE, -1, TrailTile(3224, 3220, 0))))
     private val trout = ClueStep(StepType.SKILL_CHALLENGE, 549, TrailTier.BEGINNER, "Give him a made-up trout.", listOf(TrailTarget.Npc(TreasureTrails.CHARLIE, -1, TrailTile(3224, 3220, 0))))
     private val hotCold = ClueStep(StepType.HOT_COLD, 2, TrailTier.BEGINNER, null, listOf(TrailTarget.Dig(TrailTile(3222, 3240, 0))))
+    /** A master hot-cold step with no Brassican Mage, so Dig is just the spot. */
+    private val masterHotCold = ClueStep(StepType.HOT_COLD, 3, TrailTier.MASTER, null, listOf(TrailTarget.Dig(TrailTile(3222, 3240, 0))))
 
     private fun server(dir: Path, steps: List<ClueStep>) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(25_000)
         val shared = TrailTier.BEGINNER.sharedClue
         objs[shared] = ObjType(shared, "Clue scroll (beginner)", iops = listOf("Read", "Check steps", null, null, "Drop"), params = mapOf(TrailTier.BEGINNER.param to 1))
+        val master = TrailTier.MASTER.sharedClue
+        objs[master] = ObjType(master, "Clue scroll (master)", iops = listOf("Read", "Check steps", null, null, "Drop"), params = mapOf(TrailTier.MASTER.param to 1))
+        objs[MASTER_DEVICE] = ObjType(MASTER_DEVICE, "Strange device", iops = listOf("Feel", null, null, null, "Drop"))
+        objs[TrailTier.MASTER.rewardCasket] = ObjType(TrailTier.MASTER.rewardCasket, "Reward casket (master)", stackable = true, iops = listOf("Open", null, null, null, "Drop"))
         objs[TROUT] = ObjType(TROUT, "Trout")
         objs[DEVICE] = ObjType(DEVICE, "Strange device", iops = listOf("Feel", null, null, null, "Drop"))
         objs[TreasureTrails.SPADE] = ObjType(TreasureTrails.SPADE, "Spade", iops = listOf("Dig", null, null, null, "Drop"))
@@ -124,10 +131,58 @@ class HeadlessTreasureTrailsCharlieTest {
         }
     }
 
+    @Test
+    fun `the master device hurts on each feel, keeps its own reading beside the beginner one, and digs from 4 tiles`(@TempDir dir: Path) {
+        server(dir, listOf(hotCold, masterHotCold)).use { server ->
+            server.login("rue").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("clue beginner hotcold:2") { it.startsWith("Clue") }
+                client.commandReply("clue master hotcold:3") { it.startsWith("Clue") }
+                client.command("item $DEVICE")
+                client.command("item $MASTER_DEVICE")
+                client.command("item ${TreasureTrails.SPADE}")
+                client.commandReply("tele 3222 3222") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                val player = server.world.playerNamed("rue")!!
+
+                var from = client.messages().size
+                val hp = player.skills.currentLevel(Skill.HITPOINTS)
+                client.op(MASTER_DEVICE, 1)
+                client.await("the master reading") { client.messages().drop(from).firstOrNull { it.text == "[hotcold.first temperature=[hotcold.incredibly_hot]]" } }
+                client.await("the device's hit") { (hp - player.skills.currentLevel(Skill.HITPOINTS)).takeIf { it != 0 } }
+                    .let { assertTrue(it in HotCold.MASTER_MIN_HIT..HotCold.MASTER_MAX_HIT, "hit $it") }
+
+                // The beginner device in between leaves the master reading alone.
+                from = client.messages().size
+                client.op(DEVICE, 1)
+                client.await("the beginner reading") { client.messages().drop(from).firstOrNull { it.text == "[hotcold.first temperature=[hotcold.incredibly_hot]]" } }
+                client.commandReply("tele 3222 3235") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                from = client.messages().size
+                client.op(MASTER_DEVICE, 1)
+                client.await("warmer on the master device") { client.messages().drop(from).firstOrNull { it.text == "[hotcold.again temperature=[hotcold.incredibly_hot] change=[hotcold.warmer]]" } }
+
+                // Five tiles off is outside the master's hottest band: Dig finds nothing. Four tiles off solves it.
+                // The beginner step is at the same spot but 4 is outside its band too, so only the master one counts.
+                client.op(TreasureTrails.SPADE, 1)
+                client.awaitMessage("nothing at 5 tiles") { it == "[game.nothing_interesting]" }
+                assertTrue(client.inventory(BACKPACK).any { it?.id == TrailTier.MASTER.sharedClue }, "the master clue is still held")
+                client.commandReply("tele 3222 3236") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                client.op(TreasureTrails.SPADE, 1)
+                client.objbox("trail.casket")
+                client.await("the master casket") { client.inventory(BACKPACK).firstOrNull { it?.id == TrailTier.MASTER.rewardCasket } }
+                assertTrue(client.inventory(BACKPACK).any { it?.id == TrailTier.BEGINNER.sharedClue }, "the beginner clue is still held")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val TROUT = 333
         const val RELDO = 4243
         val DEVICE = HotCold.DEVICES.getValue(TrailTier.BEGINNER)
+        val MASTER_DEVICE = HotCold.DEVICES.getValue(TrailTier.MASTER)
     }
 }

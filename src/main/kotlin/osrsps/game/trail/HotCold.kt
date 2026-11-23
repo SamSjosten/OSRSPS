@@ -45,10 +45,11 @@ object HotColdLines : Lines("hotcold", "Treasure Trails hot-cold") {
  */
 class HotCold(private val world: World, private val trails: TreasureTrails) {
     /**
-     * The step and distance each player last felt, for warmer and colder. Not saved, and weak, so a logged-out player's
-     * entry goes with it (Codex review on #899).
+     * The step and distance each player last felt on each tier's device, for warmer and colder: a beginner and a master
+     * trail can be under way together. Not saved, and weak, so a logged-out player's entry goes with it (Codex review
+     * on #899).
      */
-    private val last = java.util.WeakHashMap<Player, Pair<String, Int>>()
+    private val last = java.util.WeakHashMap<Player, MutableMap<TrailTier, Pair<String, Int>>>()
 
     /** The hot-cold step [player] is on with [device] (its tier's), or null. */
     private fun stepFor(player: Player, device: Int): Pair<TrailTier, ClueStep>? {
@@ -66,7 +67,7 @@ class HotCold(private val world: World, private val trails: TreasureTrails) {
         val distance = if (spot.level != player.level) Int.MAX_VALUE else maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z))
         val words = world.textFor(player)
         val temperature = words[band(tier, distance)]
-        val before = last.put(player, step.key to distance)?.takeIf { it.first == step.key }?.second
+        val before = last.getOrPut(player) { HashMap() }.put(tier, step.key to distance)?.takeIf { it.first == step.key }?.second
         if (before == null) {
             player.message(words[HotColdLines.FIRST, "temperature" to temperature])
             return
