@@ -124,6 +124,20 @@ class HeadlessPrisonPeteTest {
         chat(then)
     }
 
+    /**
+     * Pop on a balloon of [animal]'s shape until its key is held. A wandering balloon, or one the view still shows for
+     * a tick after it went, can miss a Pop under load, so it is tried again (as [pop] does).
+     */
+    private fun HeadlessClient.popForKey(animal: PrisonPete.Animal) {
+        for (attempt in 1..3) {
+            val balloon = await("a balloon") { npcs().firstOrNull { PrisonPete.Animal.of(it.id) == animal } }
+            npcOp(balloon.index, PrisonPete.POP)
+            val got = runCatching { await("the key", 4000) { if (inventory(Inventory.INV).any { it?.id == PrisonPete.KEY }) Unit else null } }
+            if (got.isSuccess) return
+            if (attempt == 3) throw got.exceptionOrNull()!!
+        }
+    }
+
     @Test
     fun `three right keys in a row free Pete, and walking out brings a present`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -221,9 +235,7 @@ class HeadlessPrisonPeteTest {
                 val prison = PrisonPete.prisonOf(server.world, server.world.onlinePlayers.single())!!.second
                 client.pull(dx, dz)
                 val target = prison.target!!
-                val balloon = client.await("a balloon") { client.npcs().firstOrNull { PrisonPete.Animal.of(it.id) == target } }
-                client.npcOp(balloon.index, PrisonPete.POP)
-                client.await("the key") { if (client.inventory(Inventory.INV).any { it?.id == PrisonPete.KEY }) Unit else null }
+                client.popForKey(target)
                 // Pete's try shut before it begins: the key is held still.
                 client.awaitDialogue("[prison_pete.got_key]") { it is DialogueView.Chat && it.text == "[prison_pete.got_key]" }
                 client.closeModal()
@@ -249,9 +261,7 @@ class HeadlessPrisonPeteTest {
                 client.over()
                 val prison = PrisonPete.prisonOf(server.world, server.world.onlinePlayers.single())!!.second
                 client.pull(dx, dz)
-                val balloon = client.await("a balloon") { client.npcs().firstOrNull { PrisonPete.Animal.of(it.id) == prison.target } }
-                client.npcOp(balloon.index, PrisonPete.POP)
-                client.await("the key") { if (client.inventory(Inventory.INV).any { it?.id == PrisonPete.KEY }) Unit else null }
+                client.popForKey(prison.target!!)
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
             }
