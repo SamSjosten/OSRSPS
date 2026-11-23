@@ -234,12 +234,12 @@ class HeadlessEvilTwinTest {
                 client.over()
 
                 val suspect = client.await("a suspect") { client.npcs().firstOrNull { it.id in EvilTwin.ALL_SUSPECTS } }
+                val standing = client.position
                 client.npcOp(suspect.index, EvilTwin.GRAB_OP)
                 client.chat("[molly.use_the_panel]")
+                // Said from where the player stood, with no walk towards the pen (fenced in on the real map).
+                assertEquals(standing, client.position, "no walk to the suspect")
                 client.over()
-                // Nothing fences the pen in this test's map, so the walk to her took the player into it: back out first.
-                client.walk(EvilTwin.PANEL_SIDE.x + dx, EvilTwin.PANEL_SIDE.z + dz)
-                client.await("out of the pen") { client.position?.takeIf { it == Coord(EvilTwin.PANEL_SIDE.x + dx, EvilTwin.PANEL_SIDE.z + dz, 0) } }
 
                 client.openDoor(dx, dz)
                 client.chat("[molly.finish_first]")

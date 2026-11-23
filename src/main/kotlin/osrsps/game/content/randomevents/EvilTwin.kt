@@ -434,7 +434,13 @@ object EvilTwin : RandomEvent("evil_twin", 6738) {
 
     fun register(world: World) {
         for (id in MOLLIES) world.handlers.onNpc(id, RandomEvents.TALK_TO) { op -> talkToMolly(world, op.npc ?: return@onNpc) }
-        for (id in ALL_SUSPECTS) world.handlers.onNpc(id, GRAB_OP) { grabByHand(world) }
+        // From where the player stands: the suspects are fenced in the pen, so walking over to them would never get there.
+        for (id in ALL_SUSPECTS) world.npcInteractions.fromAfar(id, GRAB_OP) { player, _ ->
+            if (roomsOf(world, player) == null) return@fromAfar false
+            player.waypoints.clear()
+            world.scripts.start(player) { grabByHand(world) }
+            true
+        }
         world.handlers.onLoc(PANEL, USE) { usePanel(world, player) }
         world.handlers.onLoc(DOOR, OPEN) { door(world) }
         // Only while the claw's controls are open: a button sent without them is ignored.
