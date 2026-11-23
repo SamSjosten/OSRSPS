@@ -1,0 +1,250 @@
+{
+ "name": "Construction step CON4b: in building mode, a kitchen added off the garden takes a wooden larder from its larder space for the Wiki's 228 XP, and Search on the larder gives tea leaves from its supplies, again and again (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 9",
+   "expectMessage": "9",
+   "comment": "the wooden larder's level (the kitchen needs 5); ::reset puts the level back"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 5000",
+   "expectMessage": "5,000",
+   "comment": "the kitchen's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 9,
+   "comment": "the kitchen's button: its op sends the kitchen's room type"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.rotate_clockwise]",
+   "comment": "the ghost first faces one door north, onto the garden; clockwise turns it the other way that still does"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the redraw"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 5,000 for the kitchen"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 8",
+   "expectMessage": "Plank",
+   "comment": "the wooden larder: 8 planks and 8 nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 8",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15403,
+   "option": "Build",
+   "comment": "the kitchen's larder space (poh_kitchen_5)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000,
+   "comment": "poh_furniture_creation"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the wooden larder"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Plank",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "level": 10,
+   "xp": 1197,
+   "timeoutMs": 5000,
+   "comment": "level 9's 969 XP and the wooden larder's 228"
+  },
+  {
+   "step": "locOption",
+   "locId": 13565,
+   "option": "Search",
+   "comment": "the wooden larder (poh_larder_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 10000,
+   "comment": "its supplies in the Make-X box (GUESSED)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the first: tea leaves"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Tea leaves",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 13565,
+   "option": "Search",
+   "comment": "again: it never runs out"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15
+  },
+  {
+   "step": "assertInventory",
+   "item": "Tea leaves",
+   "count": 2,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
