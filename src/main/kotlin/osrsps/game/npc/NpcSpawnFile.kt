@@ -116,6 +116,7 @@ object NpcSpawnFile {
         "karamja-volcano.json",
         "crandor.json",
         "mor-ul-rek.json",
+        "dorgeshuun-tunnels.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
