@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 
 /** The infernal eel's words, in the dialogue file. */
@@ -16,8 +17,9 @@ object InfernalEelLines : Lines("infernal_eel", "Infernal eel") {
  * (29 in 35), an onyx bolt tip (2 in 35) or 1 to 5 lava scale shards (4 in 35). Eat says it's too hard. The eels are
  * caught in Mor Ul Rek's inner city (Fishing's [osrsps.game.skill.Fishing.INFERNAL_EEL_BAIT]).
  *
- * Guessed: a crack every [CRACK_TICKS] ticks, the animation (the hammer's [ANIM_CRACK]) and the message. Out: the
- * quicker smashing a player gets by clicking again.
+ * Each crack after the first is a weak queue entry, so any other action stops it. Guessed: a crack every [CRACK_TICKS]
+ * ticks, the animation (the hammer's [ANIM_CRACK]) and the message. Out: the quicker smashing a player gets by clicking
+ * again.
  */
 object InfernalEels {
     const val EEL = 21293
@@ -38,18 +40,23 @@ object InfernalEels {
         else -> LAVA_SCALE_SHARD to between(1, 5)
     }
 
-    internal suspend fun ScriptContext.crackAll(world: World) {
-        while (player.inventory.count(HAMMER) > 0) {
-            val slot = player.inventory.contents().firstOrNull { it.second.id == EEL }?.first ?: return
-            player.anim(ANIM_CRACK)
-            player.inventory.remove(slot, 1)
-            val (obj, count) = loot(world.random.nextInt(35)) { min, max -> world.random.between(min, max) }
-            val type = world.objTypes[obj] ?: return
-            world.groundObjs.give(player, type, count)
-            world.message(player, InfernalEelLines.CRACKED, "item" to type.name)
-            delay(CRACK_TICKS)
-        }
+    /**
+     * Cracks the first eel, then queues the next [CRACK_TICKS] later as a weak queue entry, so walking off, eating or
+     * anything else the player starts stops the cracking, as Making's products do.
+     */
+    internal fun ScriptContext.crackAll(world: World) {
+        if (player.inventory.count(HAMMER) <= 0) return
+        val slot = player.inventory.contents().firstOrNull { it.second.id == EEL }?.first ?: return
+        player.anim(ANIM_CRACK)
+        player.inventory.remove(slot, 1)
+        val (obj, count) = loot(world.random.nextInt(35)) { min, max -> world.random.between(min, max) }
+        val type = world.objTypes[obj] ?: return
+        world.groundObjs.give(player, type, count)
+        world.message(player, InfernalEelLines.CRACKED, "item" to type.name)
+        if (player.inventory.count(EEL) > 0) queue(QUEUE, QueueType.WEAK, CRACK_TICKS) { crackAll(world) }
     }
+
+    const val QUEUE = "infernal_eels"
 }
 
 fun registerInfernalEels(world: World) {

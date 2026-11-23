@@ -107,6 +107,30 @@ class HeadlessInfernalEelsTest {
     }
 
     @Test
+    fun `walking off stops the cracking`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cara").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 2448 5106")
+                client.await("there") { if (client.position?.z == 5106) Unit else null }
+                client.give(InfernalEels.HAMMER)
+                client.give(InfernalEels.EEL, 5)
+                val hammer = client.slot(InfernalEels.HAMMER)
+                val eel = client.slot(InfernalEels.EEL)
+                client.ifButtonT(InventoryTab.INTERFACE, InventoryTab.ITEMS, hammer, InfernalEels.HAMMER, InventoryTab.INTERFACE, InventoryTab.ITEMS, eel, InfernalEels.EEL)
+                client.await("the first eel cracked") { if (client.count(InfernalEels.EEL) == 4) Unit else null }
+                client.walk(2448, 5112)
+                client.await("walking") { if (client.position?.z?.let { it > 5106 } == true) Unit else null }
+                val left = client.count(InfernalEels.EEL)
+                val until = server.world.tick + 4 * InfernalEels.CRACK_TICKS
+                client.await("the cracks' time to pass") { if (server.world.tick >= until) Unit else null }
+                assertEquals(left, client.count(InfernalEels.EEL), "no eel cracked after walking off")
+                assertTrue(left >= 3)
+            }
+        }
+    }
+
+    @Test
     fun `the gem counter needs 75 and gives a gem`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
