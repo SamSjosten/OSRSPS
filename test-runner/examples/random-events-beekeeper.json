@@ -65,9 +65,9 @@
     {"step": "continueDialogue"},
     {"step": "assertInterface", "interfaceId": 420, "timeoutMs": 20000},
     {"step": "clickWidget", "interfaceId": 420, "component": 22},
+    {"comment": "The message comes before his last line, so it is checked before that line is continued.", "step": "assertMessage", "contains": "[beekeeper.teleported_away]", "timeoutMs": 20000},
     {"step": "assertDialogue", "speaker": "Bee keeper", "contains": "[beekeeper.fed_up]", "timeoutMs": 20000},
     {"step": "continueDialogue"},
-    {"step": "assertMessage", "contains": "[beekeeper.teleported_away]", "timeoutMs": 20000},
     {"step": "waitTicks", "ticks": 3},
     {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
     {"step": "assertInventory", "item": "Lamp", "count": 0}
