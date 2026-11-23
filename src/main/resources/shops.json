@@ -3278,6 +3278,273 @@
           "restock": 15000
         }
       ]
+    },
+    {
+      "key": "tzhaar_hur_tels_equipment_store",
+      "title": "TzHaar-Hur-Tel's Equipment Store",
+      "inv": 325,
+      "size": 8,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_equipment"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Tel's Equipment Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_equipment (325) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 6522,
+          "name": "Toktz-xil-ul",
+          "count": 500,
+          "restock": 10
+        },
+        {
+          "item": 6523,
+          "name": "Toktz-xil-ak",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6525,
+          "name": "Toktz-xil-ek",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6528,
+          "name": "Tzhaar-ket-om",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6526,
+          "name": "Toktz-mej-tal",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6527,
+          "name": "Tzhaar-ket-em",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6568,
+          "name": "Obsidian cape",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 6524,
+          "name": "Toktz-ket-xil",
+          "count": 1,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "tzhaar_hur_leks_ore_and_gem_store",
+      "title": "TzHaar-Hur-Lek's Ore and Gem Store",
+      "inv": 326,
+      "size": 16,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_oreandgem"
+      ],
+      "source": "OSRS Wiki, TzHaar-Hur-Lek's Ore and Gem Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_oreandgem (326) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 438,
+          "name": "Tin ore",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 436,
+          "name": "Copper ore",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 440,
+          "name": "Iron ore",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 442,
+          "name": "Silver ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 453,
+          "name": "Coal",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 444,
+          "name": "Gold ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 447,
+          "name": "Mithril ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 449,
+          "name": "Adamantite ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 451,
+          "name": "Runite ore",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1623,
+          "name": "Uncut sapphire",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1621,
+          "name": "Uncut emerald",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1619,
+          "name": "Uncut ruby",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1617,
+          "name": "Uncut diamond",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1631,
+          "name": "Uncut dragonstone",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 6571,
+          "name": "Uncut onyx",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 9194,
+          "name": "Onyx bolt tips",
+          "count": 50,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "tzhaar_mej_rohs_rune_store",
+      "title": "TzHaar-Mej-Roh's Rune Store",
+      "inv": 327,
+      "size": 12,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 150,
+      "changePer": 20,
+      "currency": 6529,
+      "npcs": [
+        "tzhaar_merchant_rune"
+      ],
+      "source": "OSRS Wiki, TzHaar-Mej-Roh's Rune Store, read 2026-11-18: paid in Tokkul (sellmultiplier 1500, buymultiplier 150, delta 20: Sells at 150.0%, Buys at 15.0%, Change per 2.0%) and the Default tab's stock table. inv tzhaar_shop_rune (327) from the 242 cache. Left out: the Ironman tab and Karamja gloves' prices",
+      "stock": [
+        {
+          "item": 554,
+          "name": "Fire rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 555,
+          "name": "Water rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 556,
+          "name": "Air rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 557,
+          "name": "Earth rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 558,
+          "name": "Mind rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 559,
+          "name": "Body rune",
+          "count": 5000,
+          "restock": 20
+        },
+        {
+          "item": 562,
+          "name": "Chaos rune",
+          "count": 2500,
+          "restock": 95
+        },
+        {
+          "item": 560,
+          "name": "Death rune",
+          "count": 2500,
+          "restock": 105
+        },
+        {
+          "item": 21707,
+          "name": "Tzhaar fire rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21701,
+          "name": "Tzhaar water rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21698,
+          "name": "Tzhaar air rune pack",
+          "count": 50,
+          "restock": 40
+        },
+        {
+          "item": 21704,
+          "name": "Tzhaar earth rune pack",
+          "count": 50,
+          "restock": 40
+        }
+      ]
     }
   ]
 }
