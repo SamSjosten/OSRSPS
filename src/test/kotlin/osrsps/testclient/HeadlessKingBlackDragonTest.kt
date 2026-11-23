@@ -138,6 +138,11 @@ class HeadlessKingBlackDragonTest {
                 // As any NPC taking a target on, his first attack waits for the next tick.
                 val took = fight.lines.first { "takes on wes" in it }
                 assertTrue(first.substringBefore(" ").toLong() > took.substringBefore(" ").toLong(), "$took then $first")
+                // From the lever's landing he is further off than a client draws him, so he comes near before breathing
+                // (nightly Nov 23).
+                assertTrue(osrsps.map.LineOfSight.distance(KingBlackDragon.SPAWN.x, KingBlackDragon.SPAWN.z, npc.type.size, 2271, 4680) > 15)
+                val at = osrsps.map.LineOfSight.distance(npc.x, npc.z, npc.type.size, wes.x, wes.z)
+                assertTrue(at <= KingBlackDragon.BREATH_RANGE, "$first at $at tiles")
             }
         }
     }
@@ -275,9 +280,10 @@ class HeadlessKingBlackDragonTest {
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit King Black Dragon") }
                 client.await("his fight in the instance") { server.world.encounters.all.firstOrNull { it.boss === npc } }
                 // His drops there last 30 minutes, not the usual 200 ticks (Codex review of W4.6b).
-                val (dx, dz) = npc.x to npc.z
                 client.commandReply("god") { it.startsWith("You can") }
                 client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                // Where he died: he comes toward the player to breathe, so not where he stood a moment before.
+                val (dx, dz) = npc.x to npc.z
                 val bones = client.await("his bones in the private lair") { server.world.groundObjs.visibleAt(di, dx, dz, 0).firstOrNull { it.id == 536 } }
                 assertTrue(bones.ticksUntilDespawn > GroundObjs.LOOT_DESPAWN_TICKS, "lasting ${bones.ticksUntilDespawn} ticks")
                 assertEquals(GroundObjs.LOOT_DESPAWN_TICKS, KingBlackDragon.lootTicks(server.world, server.world.npcs.all.first { it.type.id == KingBlackDragon.BOSS && !instance.contains(it.x, it.z) }, GroundObjs.LOOT_DESPAWN_TICKS), "the open lair's last as anywhere")
