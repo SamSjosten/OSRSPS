@@ -192,7 +192,7 @@ object PrisonPete : RandomEvent("prison_pete", 6754) {
         if (player.vars.types.varbit(BARRIERS_VARBIT) != null) player.vars.setVarbit(BARRIERS_VARBIT, open)
     }
 
-    /** "How do I get out of here?", his answer, and the choice to stay or go. */
+    /** The player asking the way out ([PrisonPeteLines.HOW_GET_OUT]), his answer, and the choice to stay or go. */
     private suspend fun Dialogue.explain(world: World, pete: Npc, away: EventAreas.Away) = with(PrisonPeteLines) {
         chatPlayer(ChatAnim.ANGRY, HOW_GET_OUT)
         chatNpc(pete, ChatAnim.NEUTRAL, text(BALLOON_KEYS))
