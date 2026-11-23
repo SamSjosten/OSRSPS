@@ -1,6 +1,7 @@
 package osrsps.game.skill.construction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.AllSettings
 import osrsps.game.FrameSlot
 import osrsps.game.GameLines
 import osrsps.game.Player
@@ -252,6 +253,10 @@ class Furniture(private val world: World, private val houses: Houses, private va
                 remove(this, op.loc ?: return@onLoc)
             }
         }
+        // The menu's init (script1406) takes the chat's keys away (chatdefault_stopinput) and nothing in the client gives
+        // them back, so the server does when it closes, as for the canoe map. Without it the chat ignores every key after
+        // a build (nightly 2026-11-23: construction-furniture stuck at its next command).
+        world.interfaces.onClose(MENU) { player -> world.interfaces.runClientScript(player, AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT, emptyList()) }
     }
 
     /** The choices on [hotspot] the menu shows, by slot from 1. */

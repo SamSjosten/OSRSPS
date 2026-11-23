@@ -1,5 +1,6 @@
 package osrsps.testclient
 
+import osrsps.game.AllSettings
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -432,6 +433,10 @@ class HeadlessHouseTest {
                 menuOpen()
                 client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
                 client.await("the tools refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_tools]" } }
+                // The menu's layout script took the chat's keys (script1406's chatdefault_stopinput); its closing gives them back.
+                client.await("chatdefault_restoreinput") {
+                    client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT }.takeIf { it == 1 }
+                }
 
                 // With the tools and materials: each slot is drawn by the client's own script, the wooden chair crossed out
                 // (level 8), and the list laid out for two.
