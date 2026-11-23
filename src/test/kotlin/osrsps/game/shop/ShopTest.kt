@@ -88,7 +88,7 @@ class ShopTest {
         // Mor Ul Rek's Tokkul shops (the 242 cache's values; the gems and runes are with Al Kharid's and Varrock's).
         6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
         438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
-        9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430,
+        9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430, 21298 to 56320, 21301 to 84000, 21304 to 67000,
     )
 
     /**
@@ -178,6 +178,8 @@ class ShopTest {
             NpcType(2183, "TzHaar-Hur-Tel", internalName = "tzhaar_merchant_equipment"),
             NpcType(2184, "TzHaar-Hur-Lek", internalName = "tzhaar_merchant_oreandgem"),
             NpcType(2185, "TzHaar-Mej-Roh", internalName = "tzhaar_merchant_rune"),
+            NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
+            NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -269,6 +271,8 @@ class ShopTest {
         "tzhaar_hur_tels_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500),
         "tzhaar_hur_leks_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
         "tzhaar_mej_rohs_rune_store" to listOf(6, 6, 6, 6, 4, 4, 135, 270, 645, 645, 645, 645),
+        "tzhaar_hur_zals_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500, 84480, 126000, 100500),
+        "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
     )
 
     @Test
@@ -305,8 +309,11 @@ class ShopTest {
         assertEquals(25527, dusuri.currency)
         assertEquals(listOf(1600, 2400, 240, 120), dusuri.stock.map { Shop(dusuri).sellPrice(it.type.id, it.type.cost, it.count) })
         // Mor Ul Rek's shops are paid in Tokkul, and buy back at 15% (the Wiki's 9,000 for the obsidian cape).
-        val tzhaar = listOf("tzhaar_hur_tels_equipment_store", "tzhaar_hur_leks_ore_and_gem_store", "tzhaar_mej_rohs_rune_store")
-        assertEquals(listOf(2183, 2184, 2185).map { shops.ofNpc(it) }, tzhaar.map { shops[it] })
+        val tzhaar = listOf(
+            "tzhaar_hur_tels_equipment_store", "tzhaar_hur_leks_ore_and_gem_store", "tzhaar_mej_rohs_rune_store", "tzhaar_hur_zals_equipment_store",
+            "tzhaar_hur_rins_ore_and_gem_store",
+        )
+        assertEquals(listOf(2183, 2184, 2185, 7688, 7689).map { shops.ofNpc(it) }, tzhaar.map { shops[it] })
         assertTrue(tzhaar.all { shops[it]!!.currency == 6529 })
         val equipment = shops[tzhaar[0]]!!
         assertEquals(9000, Shop(equipment).sellPrice(6568, 60000, 1))

@@ -46,6 +46,8 @@ class HeadlessKaramjaVolcanoTest {
                 add(ZoneLoc(KaramjaVolcano.WALL, LocShape.WALL_STRAIGHT, 3, KaramjaVolcano.WALL_X, KaramjaVolcano.WALL_Z, 0))
                 add(ZoneLoc(KaramjaVolcano.CRANDOR_HOLE, LocShape.CENTREPIECE_STRAIGHT, 0, 2833, 3255, 0))
                 add(ZoneLoc(KaramjaVolcano.CRANDOR_ROPE, LocShape.CENTREPIECE_STRAIGHT, 0, 2833, 9657, 0))
+                // A copy of the volcano's rope on the surface, which the real map doesn't have: it must not climb.
+                add(ZoneLoc(KaramjaVolcano.VOLCANO_ROPE, LocShape.CENTREPIECE_STRAIGHT, 0, STRAY_ROPE_X, 3168, 0))
             },
             cycleMillis = millis,
         )
@@ -100,5 +102,23 @@ class HeadlessKaramjaVolcanoTest {
                 client.arrive(KaramjaVolcano.CRANDOR_ABOVE.x, KaramjaVolcano.CRANDOR_ABOVE.z)
             }
         }
+    }
+
+    @Test
+    fun `a copy of a climb anywhere else does nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dee").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.tele(STRAY_ROPE_X, 3167)
+                client.locOp(KaramjaVolcano.VOLCANO_ROPE, STRAY_ROPE_X, 3168, KaramjaVolcano.CLIMB)
+                client.awaitMessage("nothing interesting") { it == "[game.nothing_interesting]" }
+                client.arrive(STRAY_ROPE_X, 3167)
+            }
+        }
+    }
+
+    private companion object {
+        const val STRAY_ROPE_X = 2861
     }
 }
