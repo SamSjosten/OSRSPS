@@ -7,6 +7,8 @@ import osrsps.game.Player
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.content.KingBlackDragon
+import osrsps.game.content.Scurrius
+import osrsps.game.content.ShantayPass
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Line
@@ -49,11 +51,26 @@ abstract class RandomEvent(
     /** Talk-to by anyone but its player, with `{name}` their player's name; null for nothing at all. */
     open val notYours: Line? = null
 
+    /** Other lines for Talk-to by anyone but its player, picked at random with [notYours] (the frogs have two). */
+    open val notYoursAlso: List<Line> = emptyList()
+
+    /** A message box for Talk-to by its player once it has given up and is going; null for nothing at all. */
+    open val gaveUp: Line? = null
+
+    /** Whether [notYours] shows in a message box rather than as the NPC's words (Evil Bob's does). */
+    open val notYoursInBox: Boolean = false
+
+    /** Items that belong to its place and stay there: taken as the player leaves it, by any way out, logging out too. */
+    open val placeItems: Set<Int> = emptySet()
+
     /** Called once its NPC is out, before its first words. */
     open fun started(world: World, out: RandomEvents.Out) {}
 
     /** Talk-to by its player, which ends the event when it returns true: its NPC then goes. */
     abstract suspend fun Dialogue.talk(world: World, events: RandomEvents): Boolean
+
+    /** Talk-to on one of [npcIds] that is no event's NPC out in the world: Evil Bob on his own island. */
+    open suspend fun ScriptContext.talkElsewhere(world: World, npc: Npc) {}
 }
 
 /**
@@ -73,7 +90,10 @@ abstract class RandomEvent(
  * Inferred: the 5-minute look counts the player's own logged-in ticks ([Player.playedTicks]); a player found offline
  * gets one 10 to 70 minute move from the moment they log back in; the times are whole minutes, kept in
  * [Player.charges]. Guessed: what counts as a bank (a loc whose name starts "Bank" with a Bank or Use option within
- * [BANK_RANGE] tiles), a boss area (the King Black Dragon's lair) and a minigame (any instance); the NPC's tile (the
+ * [BANK_RANGE] tiles), a boss area (the King Black Dragon's lair and Scurrius's lair) and a minigame (any instance,
+ * and the Archive raid's lobby); that an event that takes the player away doesn't come, and its NPC goes, while they are
+ * in combat, Tele Blocked or in Shantay's cell, so it is never a way out (exploit review R50); that none come during a
+ * test setup (the Leagues Tutor's or `::scenario`), whose snapshot would otherwise wind the timer back; the NPC's tile (the
  * first free tile west, east, south or north of the player, then the corners); a nag every [NAG_TICKS] ticks (the
  * pre-2014 Genie's 12 seconds); the NPC catching up by stepping beside its player when they get more than
  * [CATCH_UP] tiles away or change level; its leaving line shown for [LEAVE_TICKS] ticks before it goes; Dismiss
@@ -123,6 +143,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
         /** Set while its player talks to it; its timers wait until that script ends (a window can be open meanwhile). */
         var talking: Boolean = false
+
+        /** The event's own progress while it is out, kept across talks (a talk shut partway starts again from here). */
+        var state: Any? = null
     }
 
     /** The places teleporting events take their player to. */
@@ -191,6 +214,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     /** Each tick, in the scripts phase: is [player]'s event due, and are they free for it? */
     fun process(player: Player) {
         if (player.loggedOut || player.dead || isOff(player)) return
+        // None during a test setup, one held back included: it waits, due, till the setup is put back (R50A-1).
+        if (player.beforeScenario != null) return
         val key = player.saveKey
         if (key !in held) {
             if (player.playedTicks % CHECK_TICKS != 0L) return
@@ -218,9 +243,20 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val (x, z, level) = Triple(player.x, player.z, player.level)
         if (world.instances.inDynamicArea(x, z)) return false
         if (KingBlackDragon.inLair(x, z)) return false
-        if (event.teleports && Wilderness.inside(x, z)) return false
+        if (Scurrius.inPublicLair(x, z) && level == 0) return false
+        if (world.archiveRaids.inLobby(player)) return false
+        if (event.teleports && (Wilderness.inside(x, z) || !freeToLeave(player))) return false
         if (!event.entersBanks && inBank(x, z, level)) return false
         return true
+    }
+
+    /** Whether [player] may be taken away: not in combat, not Tele Blocked and not jailed in Shantay's cell. */
+    private fun freeToLeave(player: Player): Boolean =
+        !world.inCombat(player) && player.teleblockTicks <= 0 && !(player.charges[ShantayPass.JAILED] != 0 && ShantayPass.inCell(player))
+
+    /** Ends [player]'s event NPC, if one is out, without a word: a test setup starting or being put back. */
+    fun end(player: Player) {
+        for (it in out.values.filter { it.owner == player.saveKey }) remove(it)
     }
 
     /** Whether a bank booth, chest or deposit box is within [BANK_RANGE] tiles of [x], [z]. Guessed; see the class. */
@@ -318,7 +354,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
             // An NPC can't change level in place: a fresh one takes its place beside the player.
             val type = it.npc.type
             val npc = world.spawnNpc(NpcSpawn(type, x, z, owner.level, source = it.npc.spawn.source, respawns = false)) ?: return null
-            val moved = Out(it.owner, it.ownerName, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag }
+            val moved = Out(it.owner, it.ownerName, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag; m.state = it.state }
             out.remove(it.npc)
             world.removeNpc(it.npc)
             out[npc] = moved
@@ -354,30 +390,45 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     }
 
     /** The world took [npc] out (`::npcs`, an instance ending): forget its event. */
+    /** The event out as [npc], if it is one. */
+    fun outOf(npc: Npc?): Out? = npc?.let { out[it] }
+
     fun removed(npc: Npc) {
         out.remove(npc)
     }
 
     private suspend fun talk(context: ScriptContext, npc: Npc) {
         val player = context.player
-        val it = out[npc] ?: return
+        val it = out[npc] ?: return elsewhere(context, npc)
         if (it.owner != player.saveKey) {
             notYours(context, npc, it)
             return
         }
-        // Guessed: once it has said its leaving line it has nothing more for its player.
-        if (it.leaveAt >= 0) return
+        // Guessed: once it has said its leaving line it has nothing more for its player but its gave-up box, if it has one.
+        if (it.leaveAt >= 0) {
+            val line = it.event.gaveUp ?: return
+            world.dialogues.start(context, npc) { mesbox(line) }
+            return
+        }
         it.talking = true
         world.dialogues.start(context, npc) {
             if (with(it.event) { talk(world, this@RandomEvents) }) remove(it)
         }
     }
 
+    private suspend fun elsewhere(context: ScriptContext, npc: Npc) {
+        val event = all.values.firstOrNull { npc.type.id in it.npcIds } ?: return
+        with(event) { context.talkElsewhere(world, npc) }
+    }
+
     /** Another player's Talk-to or Dismiss: the event's line for them, naming its own player if the words do. */
     private suspend fun notYours(context: ScriptContext, npc: Npc, it: Out) {
-        val line = it.event.notYours ?: return
+        val first = it.event.notYours ?: return
+        val also = it.event.notYoursAlso
+        val line = if (also.isEmpty()) first else (listOf(first) + also).let { lines -> lines[world.random.nextInt(lines.size)] }
         world.dialogues.start(context, npc) {
-            if ("name" in line.args) chatNpc(ChatAnim.NEUTRAL, line, "name" to it.ownerName) else chatNpc(ChatAnim.NEUTRAL, line)
+            val values = if ("name" in line.args) arrayOf("name" to it.ownerName) else emptyArray()
+            if (it.event.notYoursInBox) mesbox(line, *values) else chatNpc(ChatAnim.NEUTRAL, line, *values)
         }
     }
 
@@ -414,9 +465,21 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
 /** Every random event built, and the strange fruit's Eat. */
 fun registerRandomEvents(world: World) {
-    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady, FreakyForester)) {
+    val events = listOf(
+        Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog,
+    )
+    for (event in events) {
         world.randomEvents.register(event)
     }
     FreakyForester.register(world)
+    DrillDemon.register(world)
+    Gravedigger.register(world)
+    Mime.register(world)
+    Beekeeper.register(world)
+    EvilBob.register(world)
+    PrisonPete.register(world)
+    EvilTwin.register(world)
+    KissTheFrog.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }

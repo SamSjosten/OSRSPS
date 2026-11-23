@@ -1,5 +1,7 @@
 package osrsps.game.content.randomevents
 
+import net.rsprot.protocol.game.outgoing.camera.CamReset
+import osrsps.game.InvObj
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.instance.Instance
@@ -33,6 +35,12 @@ class EventAreas(private val world: World) {
     /** The stay [player] is in, if any. */
     fun awayOf(player: Player): Away? = awayAt(player.x, player.z)?.takeIf { it.owner == player.saveKey }
 
+    /** [inventory] without the items of the place [player] is saved in, if they are in one ([RandomEvent.placeItems]). */
+    fun withoutPlaceItems(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+        val items = awayOf(player)?.event?.placeItems ?: return inventory
+        return if (items.isEmpty()) inventory else inventory.filterValues { it.id !in items }
+    }
+
     fun awayAt(x: Int, z: Int): Away? {
         val instance = world.instances.at(x, z) ?: return null
         return stays[instance.id]?.takeIf { it.instance === instance }
@@ -41,10 +49,12 @@ class EventAreas(private val world: World) {
     /**
      * Takes [player] to [event]'s place: the [widthZones] by [heightZones] zones from [fromX], [fromZ] (zone-aligned),
      * landing on [arrive] (real-map coordinates). Returns the stay, or null, leaving them where they are, when the
-     * dynamic area has no room.
+     * dynamic area has no room or the event isn't allowed where they stand now ([RandomEvents.allowedAt]).
      */
     fun takeAway(player: Player, event: RandomEvent, fromX: Int, fromZ: Int, widthZones: Int, heightZones: Int, arrive: Tile): Away? {
         require(fromX % 8 == 0 && fromZ % 8 == 0) { "${event.key}'s place isn't zone-aligned" }
+        // Checked again as they say yes: a fight or Tele Block that began during the talk keeps them here (R50).
+        if (!world.randomEvents.allowedAt(player, event)) return null
         // Ended stays are let go of here, as nothing else tells this when an instance ends.
         stays.values.removeAll { world.instances.all.none { instance -> instance === it.instance } }
         val instance = world.instances.create(fromX, fromZ, widthZones, heightZones, player.x, player.z, player.level) ?: return null
@@ -55,7 +65,30 @@ class EventAreas(private val world: World) {
         return away
     }
 
-    /** Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now. */
+    /**
+     * [player] is being moved to [x], [z]: out of their stay, by any way at all (the way back, a teleport spell or tablet,
+     * a death, which takes them first: [takePlaceItems]), and the camera and any cutscene window are put back, the place's own items ([RandomEvent.placeItems]) stay behind. Called by [World.teleport].
+     */
+    fun moving(player: Player, x: Int, z: Int) {
+        val away = awayOf(player) ?: return
+        if (awayAt(x, z) === away) return
+        takePlaceItems(player)
+        // A cutscene cut short (a death drops its script, end and all) must not follow them out: the camera comes back
+        // and its window shuts.
+        player.session.queue(CamReset)
+        world.interfaces.closeFloater(player)
+    }
+
+    /** Takes the place's own items ([RandomEvent.placeItems]) off [player] if they are on a stay; also run by a death. */
+    fun takePlaceItems(player: Player) {
+        val items = awayOf(player)?.event?.placeItems ?: return
+        if (items.isNotEmpty()) for (slot in 0 until player.inventory.capacity) if (player.inventory[slot]?.id in items) player.inventory.remove(slot)
+    }
+
+    /**
+     * Sends [player] back from [away] to where they came from, or to Lumbridge when that tile is blocked now; the place's
+     * own items stay there ([moving]).
+     */
     fun bringBack(player: Player, away: Away) {
         val (x, z, level) = if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
         else Triple(World.SPAWN_X, World.SPAWN_Z, 0)

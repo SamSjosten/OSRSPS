@@ -53,7 +53,12 @@ class ScurriusLoot(private val world: World) {
 
     /** [npc] died: who gets what is decided now, and each of them counts the kill. */
     fun died(npc: Npc) {
-        val online = world.onlinePlayers.filter { !it.loggedOut }.associateBy { it.saveKey }
+        // Only damagers logged in and in his lair at the kill loot it and count it (exploit review round 50, R50C-2):
+        // a tag from afar, or an alt gone off elsewhere, gets nothing. INFERRED: live's "in the arena" rule.
+        val run = world.scurriusLairs.runAt(npc.x, npc.z)
+        val online = world.onlinePlayers.filter {
+            !it.loggedOut && world.scurriusLairs.inLair(it.level, it.x, it.z) && world.scurriusLairs.runAt(it.x, it.z) === run
+        }.associateBy { it.saveKey }
         // Ties keep the order of first hits: sortedByDescending is stable.
         val tally = damage.remove(npc).orEmpty()
         val keys = tally.entries.filter { it.key in online }.sortedByDescending { it.value }.map { it.key }
@@ -81,7 +86,7 @@ class ScurriusLoot(private val world: World) {
 
     /**
      * Puts down [npc]'s loot if it is Scurrius, and returns true; false leaves any other NPC to the usual drop. With no
-     * damager logged in, the MVP table goes down for everyone (guessed, as any NPC's drop with no killer).
+     * damager logged in and in his lair at the kill, nothing goes down.
      */
     fun loot(npc: Npc): Boolean {
         if (npc.type.id !in TYPES) return false
@@ -92,10 +97,9 @@ class ScurriusLoot(private val world: World) {
         val private = world.scurriusLairs.runAt(npc.x, npc.z) != null
         val mvpTable = world.npcDrops[npc.type]
         val others = world.npcDrops.chests[NON_MVP_TABLE]
-        if (keys.isEmpty()) {
-            mvpTable?.roll(world.random)?.forEach { put(npc, it, null, private) }
-            return true
-        }
+        // No looter there at the kill (a poison or venom kill after everyone left): nothing drops, so the MVP table
+        // can't go down for anyone (exploit review round 50, R50C-1). GUESSED: live's drop then.
+        if (keys.isEmpty()) return true
         var spine = false
         // Ironmen in a public kill with others get the kill count but no drops, save a medium clue as the MVP.
         val shared = !private && looters.shared

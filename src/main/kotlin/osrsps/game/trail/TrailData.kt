@@ -139,6 +139,8 @@ data class ClueStep(
     val targets: List<TrailTarget>,
     val items: List<Int> = emptyList(),
     val combat: Boolean = false,
+    /** The NPCs of the fight that comes with the step (cluehelper_combat_encounter), all of them at once. */
+    val combatNpcs: List<Int> = emptyList(),
     val challenge: TrailChallenge? = null,
     val challengeItem: Int = -1,
     /** An emote step's emotes, in order (the emote tab's indexes): the first calls Uri, the second comes before talking to him. */
