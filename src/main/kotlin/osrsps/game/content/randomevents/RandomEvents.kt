@@ -387,7 +387,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
      * [player] has been taken to their event's place: the NPC that took them goes on the next tick, however the talk ends.
      * A teleport cast during the arrival talk drops the talk before it could remove the NPC, which left it to be taken
      * again (exploit review round 51, C-1). Guessed: that it goes on the next tick and says nothing as it goes; the
-     * player is out of sight of it by then, as on live.
+     * player is out of sight of it by then.
      */
     fun taken(player: Player) {
         val it = outFor(player) ?: return
