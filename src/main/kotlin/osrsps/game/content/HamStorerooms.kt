@@ -54,8 +54,8 @@ object HamStoreroomsLines : Lines("ham_storerooms", "OSRS Wiki, H.A.M. Storeroom
  * trapdoor's) and one try a click; Open from inside letting the player out with no pick; the guards' patrols (along a
  * corridor, within the combat leash, [GUARD_WAIT] ticks at each end), how far they see, and that a settled guard stays
  * settled for as long as the world runs; the guards' pickpocket chance (the H.A.M. members' 135 to 239: the Wiki has no chart yet) and the
- * usual 9-tick stun; 0 coins giving nothing; needing [CHEST_ROOM] free slots to open a chest. Left out: the easy clue
- * (no Treasure Trails yet; counted as nothing, as the members'), the chests' open look, the crack's squeeze animation,
+ * usual 9-tick stun; 0 coins giving nothing; needing [CHEST_ROOM] free slots to open a chest. The easy clue comes as
+ * its scroll box (Treasure Trails step TT9). Left out: the chests' open look, the crack's squeeze animation,
  * Talk-to on the guards (quest talk), aggression when spoken to without the H.A.M. robes.
  */
 object HamStorerooms {
@@ -152,7 +152,7 @@ object HamStorerooms {
             guard(697, 132), guard(686, 132), // damaged armour, rusty sword
             guard(199, 36), guard(201, 18), guard(203, 12), // grimy guam, marrentill, tarromin: 18, 9 and 6 /2750
             guard(440, 66), guard(1627, 66), // iron ore, uncut jade
-            guard(-1, 66), // the easy clue, 6/500, left out
+            guard(osrsps.game.skill.Pickpocketing.CLUE_EASY, 66), // the easy clue, 6/500, as its scroll box
         )
     }
 

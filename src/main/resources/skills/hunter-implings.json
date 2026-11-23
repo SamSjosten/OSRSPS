@@ -1,5 +1,5 @@
 {
-  "about": "What each impling jar gives when looted, as the OSRS Wiki's jar pages list it (read 2026-11-15): one roll on the table (a line's weight out of the slots), a pre-roll first where the Wiki gives one, then each tertiary drop. Written as npc-drops.json's chests are and read by the same loader. Items are ids with their cache names beside them; a noted line is the note's id. Clue scrolls are left out until clues are their own piece, so the tables hold only the Wiki's other lines.",
+  "about": "What each impling jar gives when looted, as the OSRS Wiki's jar pages list it (read 2026-11-15): one roll on the table (a line's weight out of the slots), a pre-roll first where the Wiki gives one, then each tertiary drop. Written as npc-drops.json's chests are and read by the same loader. Items are ids with their cache names beside them; a noted line is the note's id. Clue scrolls are tertiary drops (the Wiki's clue scroll drop sources), given as their tier's scroll box.",
   "npcs": [],
   "chests": {
     "baby": {
@@ -102,7 +102,19 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Baby impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Baby impling jar (read 2026-11-15); its clue scrolls from the Wiki's Clue scroll (beginner, easy) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 23182,
+          "name": "Clue scroll (beginner)",
+          "chance": "1/50"
+        },
+        {
+          "item": 2677,
+          "name": "Clue scroll (easy)",
+          "chance": "1/100"
+        }
+      ]
     },
     "young": {
       "table": {
@@ -206,7 +218,19 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Young impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Young impling jar (read 2026-11-15); its clue scrolls from the Wiki's Clue scroll (beginner, easy) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 23182,
+          "name": "Clue scroll (beginner)",
+          "chance": "1/25"
+        },
+        {
+          "item": 2677,
+          "name": "Clue scroll (easy)",
+          "chance": "1/50"
+        }
+      ]
     },
     "gourmet": {
       "table": {
@@ -310,12 +334,19 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Gourmet impling jar (read 2026-11-15)",
+      "source": "OSRS Wiki, Gourmet impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (easy) drop sources, read 2026-11-19",
       "preroll": [
         {
           "item": 23499,
           "name": "Grubby key",
           "chance": "1/500"
+        }
+      ],
+      "tertiary": [
+        {
+          "item": 2677,
+          "name": "Clue scroll (easy)",
+          "chance": "1/25"
         }
       ]
     },
@@ -430,7 +461,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Earth impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Earth impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (medium) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2801,
+          "name": "Clue scroll (medium)",
+          "chance": "1/100"
+        }
+      ]
     },
     "essence": {
       "table": {
@@ -551,7 +589,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Essence impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Essence impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (medium) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2801,
+          "name": "Clue scroll (medium)",
+          "chance": "1/50"
+        }
+      ]
     },
     "eclectic": {
       "table": {
@@ -661,7 +706,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Eclectic impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Eclectic impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (medium) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2801,
+          "name": "Clue scroll (medium)",
+          "chance": "1/25"
+        }
+      ]
     },
     "nature": {
       "table": {
@@ -767,7 +819,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Nature impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Nature impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (hard) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2722,
+          "name": "Clue scroll (hard)",
+          "chance": "1/100"
+        }
+      ]
     },
     "magpie": {
       "table": {
@@ -883,7 +942,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Magpie impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Magpie impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (hard) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2722,
+          "name": "Clue scroll (hard)",
+          "chance": "1/50"
+        }
+      ]
     },
     "ninja": {
       "table": {
@@ -996,7 +1062,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Ninja impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Ninja impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (hard) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 2722,
+          "name": "Clue scroll (hard)",
+          "chance": "1/25"
+        }
+      ]
     },
     "crystal": {
       "table": {
@@ -1122,12 +1195,17 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Crystal impling jar (read 2026-11-15)",
+      "source": "OSRS Wiki, Crystal impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (elite) drop sources, read 2026-11-19",
       "tertiary": [
         {
           "item": 23943,
           "name": "Elven signet",
           "chance": "1/128"
+        },
+        {
+          "item": 12073,
+          "name": "Clue scroll (elite)",
+          "chance": "1/50"
         }
       ]
     },
@@ -1257,7 +1335,14 @@
           }
         ]
       },
-      "source": "OSRS Wiki, Dragon impling jar (read 2026-11-15)"
+      "source": "OSRS Wiki, Dragon impling jar (read 2026-11-15); its clue scroll from the Wiki's Clue scroll (elite) drop sources, read 2026-11-19",
+      "tertiary": [
+        {
+          "item": 12073,
+          "name": "Clue scroll (elite)",
+          "chance": "1/50"
+        }
+      ]
     }
   }
 }
