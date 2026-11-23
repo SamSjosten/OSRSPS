@@ -101,7 +101,7 @@ class TrailLoaderTest {
     fun `a trail under way, the caskets opened, the scroll cases opened and the STASH units' items and the boxes under way survive a save`() {
         val progress = TrailProgress()
         progress[TrailTier.EASY] = Trail("map:107", 3, mutableListOf("cryptic:636"))
-        progress[TrailTier.BEGINNER] = Trail("map:101", 1)
+        progress[TrailTier.BEGINNER] = Trail("cryptic:639", 1, fought = true, task = "skillchallenge:549")
         progress.setCompleted(TrailTier.HARD, 51)
         progress.cases += 30914
         progress.stashes[34736] = listOf(1654, 1635)
@@ -112,6 +112,8 @@ class TrailLoaderTest {
         assertEquals(3, back[TrailTier.EASY]!!.length)
         assertEquals(listOf("cryptic:636"), back[TrailTier.EASY]!!.done)
         assertEquals(1, back[TrailTier.BEGINNER]!!.length)
+        assertEquals(true to "skillchallenge:549", back[TrailTier.BEGINNER]!!.let { it.fought to it.task })
+        assertEquals(false to null, back[TrailTier.EASY]!!.let { it.fought to it.task })
         assertNull(back[TrailTier.HARD])
         assertEquals(51, back.completed(TrailTier.HARD))
         assertEquals(0, back.completed(TrailTier.EASY))

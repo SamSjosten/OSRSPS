@@ -41,11 +41,18 @@ class HeadlessTreasureTrailsBoxTest {
         challenge = TrailChallenge.Box("A light box."),
     )
 
+    /** A hard box step whose clue has no puzzle box after it in the cache. */
+    private val boxless = ClueStep(
+        StepType.ANAGRAM, 3, TrailTier.HARD, "A BOXLESS ANAGRAM", listOf(TrailTarget.Npc(GUIDE, -1, TrailTile(3224, 3220, 0))),
+        items = listOf(BOXLESS_CLUE), challenge = TrailChallenge.Box("A puzzle box."),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(25_000)
         val read = listOf("Read", "Check steps", null, null, "Drop")
         objs[HARD_CLUE] = ObjType(HARD_CLUE, "Clue scroll (hard)", iops = read, params = mapOf(TrailTier.HARD.param to 1))
         objs[TrailTier.MASTER.sharedClue] = ObjType(TrailTier.MASTER.sharedClue, "Clue scroll (master)", iops = read, params = mapOf(TrailTier.MASTER.param to 1))
+        objs[BOXLESS_CLUE] = ObjType(BOXLESS_CLUE, "Clue scroll (hard)", iops = read, params = mapOf(TrailTier.HARD.param to 1))
         objs[TREE_BOX] = ObjType(TREE_BOX, "Puzzle box (hard)", iops = listOf("Open", null, null, null, "Drop"))
         objs[OTHER_BOX] = ObjType(OTHER_BOX, "Puzzle box (hard)", iops = listOf("Open", null, null, null, "Drop"))
         objs[TrailBoxes.LIGHT_BOX] = ObjType(TrailBoxes.LIGHT_BOX, "Light box", iops = listOf("Open", null, null, null, "Destroy"))
@@ -55,7 +62,7 @@ class HeadlessTreasureTrailsBoxTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             npcTypes = types, npcSpawns = listOf(NpcSpawn(types[GUIDE]!!, 3224, 3220, wander = 0, source = "test")),
-            trailData = TrailData(listOf(hard, master)), cycleMillis = millis,
+            trailData = TrailData(listOf(hard, master, boxless)), cycleMillis = millis,
         )
     }
 
@@ -73,6 +80,15 @@ class HeadlessTreasureTrailsBoxTest {
     private fun HeadlessClient.objbox(key: String) {
         await(key) { if (dialogueView is DialogueView.Other && text(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_TEXT) == "[$key]") Unit else null }
         resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
+    }
+
+    @Test
+    fun `a box step whose box the cache doesn't have never comes up`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val pool = server.world.trails.pool(TrailTier.HARD)
+            assertTrue(hard in pool, "the step with a box comes up")
+            assertTrue(boxless !in pool, "the step with no box would stick the trail")
+        }
     }
 
     @Test
@@ -184,5 +200,6 @@ class HeadlessTreasureTrailsBoxTest {
         const val DESTROY_BUTTON_OP = 7
         const val OTHER_BOX = 2_795
         const val TREE_BOX = 19_887
+        const val BOXLESS_CLUE = 19_890
     }
 }
