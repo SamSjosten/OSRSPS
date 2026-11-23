@@ -793,6 +793,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   (look that a touch and a refusal show in either order, then a kiss); the kiss turns it into the prince or princess
   (look at the kiss and the change), who gives a frog token and sends the player home. The touch, the polite no and
   Frogland are the headless test's part.
+- `random-events-maze.json`: random events step 14 (with `::keys on`): the Mysterious Old Man's maze form takes the
+  player to a corner of the maze (look at the cube walls and the chests), the timer window shows the reward left (look
+  that it drops about a point every three seconds), and a teleport out closes it. The chests, the shrine, its rewards and
+  running out of time are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

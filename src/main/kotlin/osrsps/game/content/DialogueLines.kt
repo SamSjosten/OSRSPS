@@ -283,6 +283,7 @@ object DialogueLines {
         osrsps.game.content.randomevents.UncookingPotLines,
         osrsps.game.content.randomevents.PrisonPeteLines,
         osrsps.game.content.randomevents.KissTheFrogLines,
+        osrsps.game.content.randomevents.MazeLines,
         osrsps.game.content.randomevents.PostiePeteTwinLines,
         osrsps.game.content.randomevents.MollyLines,
         HariLines,

@@ -200,7 +200,8 @@ class HeadlessMuseumKudosTest {
                 client.useOnCase(pottery)
                 val bob = server.world.playerNamed("bob")!!
                 client.await("on display") { if (bob.vars.getVarbit(Kudos.VARBIT_POTTERY) == 1) Unit else null }
-                assertEquals(1, client.count(MuseumCleaning.POTTERY))
+                // The server's varbit can change before the backpack's update reaches the client: wait for it.
+                client.await("one piece left") { client.count(MuseumCleaning.POTTERY).takeIf { it == 1 } }
                 assertEquals(10, bob.vars.getVarbit(Kudos.VARBIT_KUDOS))
                 assertEquals(0, client.seen("[museum_case.placed"))
             }

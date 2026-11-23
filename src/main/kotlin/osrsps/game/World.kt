@@ -689,7 +689,8 @@ class World(
                 it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS
         },
     )
 
