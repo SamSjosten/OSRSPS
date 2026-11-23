@@ -29,12 +29,12 @@ class NpcMeleeSpellTest {
     private val npcTypes = NpcTypes.of(glarer)
     private val seqs = SeqNames(mapOf("swing" to 4271, "glare" to 4272, "parry" to 4273, "death" to 4270))
 
-    private fun combatFile(chance: Int) = NpcCombat.parse(
+    private fun combatFile(chance: Int, counters: Boolean = false) = NpcCombat.parse(
         """{ "npcs": [ { "npcs": ["glarer"], "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": -500, "strengthBonus": 0,
             "magicAttack": 5000,
             "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
             "anims": { "attack": "swing", "defend": "parry", "death": "death" }, "respawnTicks": 20, "source": "test",
-            "spell": { "anim": "glare", "projectile": 106, "impact": 107, "maxHit": 0, "chance": $chance,
+            "spell": { "anim": "glare", "projectile": 106, "impact": 107, "maxHit": 0, "chance": $chance, "countersPrayer": $counters,
               "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } } } ] }""",
         npcTypes, seqs,
     )
@@ -43,18 +43,19 @@ class NpcMeleeSpellTest {
     private val npcs = Npcs(map, GameRandom(1))
     private val projectiles = mutableListOf<Projectile>()
     private var protectFromMagic = false
+    private var protectFromMelee = false
     private val alice = Player(1, "alice", 3212, 3210, 0)
 
-    private fun melee(chance: Int) = MeleeCombat(
-        npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.DEFAULT, combatFile(chance)), GameRandom(5), { tick },
+    private fun melee(chance: Int, counters: Boolean = false) = MeleeCombat(
+        npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.DEFAULT, combatFile(chance, counters)), GameRandom(5), { tick },
         removeNpc = { npcs.remove(it) }, spawnNpc = {},
         players = { sequenceOf(alice) },
-        protects = { _, type -> protectFromMagic && type == AttackType.MAGIC },
+        protects = { _, type -> (protectFromMagic && type == AttackType.MAGIC) || (protectFromMelee && type == AttackType.STAB) },
         projectile = { projectiles += it },
     )
 
-    private fun fight(chance: Int, ticks: Int, each: (Int, Npc) -> Unit = { _, _ -> }) {
-        val melee = melee(chance)
+    private fun fight(chance: Int, ticks: Int, counters: Boolean = false, each: (Int, Npc) -> Unit = { _, _ -> }) {
+        val melee = melee(chance, counters)
         val npc = npcs.add(NpcSpawn(glarer, 3213, 3210, source = "test"))!!
         melee.provoke(npc, alice, tick)
         for (t in 1..ticks) {
@@ -105,5 +106,29 @@ class NpcMeleeSpellTest {
         }
         assertEquals(100, glares + swings)
         assertTrue(glares in 10..45, "glares $glares of 100")
+    }
+
+    /** The turns' animations, glare or swing, over [turns] turns against the prayers set. */
+    private fun styles(turns: Int, counters: Boolean): List<Int?> {
+        val anims = ArrayList<Int?>()
+        fight(chance = 2, ticks = turns * 4, counters = counters) { t, npc ->
+            if (t % 4 == 1) anims += npc.effects.anim?.id
+            alice.skills.setCurrentLevel(Skill.STRENGTH, 99)
+        }
+        return anims
+    }
+
+    @Test
+    fun `one that counters prayers casts against Protect from Melee`() {
+        alice.skills.setLevel(Skill.STRENGTH, 99)
+        protectFromMelee = true
+        assertEquals(List<Int?>(10) { 4272 }, styles(10, counters = true))
+    }
+
+    @Test
+    fun `one that counters prayers swings against Protect from Magic`() {
+        alice.skills.setLevel(Skill.STRENGTH, 99)
+        protectFromMagic = true
+        assertEquals(List<Int?>(10) { 4271 }, styles(10, counters = true))
     }
 }
