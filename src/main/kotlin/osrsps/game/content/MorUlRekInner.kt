@@ -5,6 +5,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.tzhaar.Inferno
 
 /** The barrier guards' words, the Wiki's Transcript:TzHaar-Ket (read 2026-11-18). [name] is the player's TzHaar name. */
 object TzHaarGuardLines : Lines("tzhaar_guard", "Transcript:TzHaar-Ket") {
@@ -86,7 +87,7 @@ object TzHaarElderLines : Lines("tzhaar_elder", "Transcript:TzHaar-Mej-Bal; Tran
  * - **The barrier guards** (TzHaar-Ket, 2187 at the outer gates and 2186 by the central one) talk (the transcript);
  *   showing them a fire cape or fire max cape, worn or carried, opens the inner city to the player for good (a varp of
  *   ours, [CustomVars.morUlRekAccessVarp]) and makes them Xo in their TzHaar name ([TzHaarNames.name]).
- * - **The hot vent doors** (30266, five of them) let a player with access through either way, and no one else.
+ * - **The hot vent doors** (30266, five of them) let a player with access in, and anyone inside out.
  * - **TzHaar-Ket-Yil** (7678, [MorUlRek.BANKER_INNER]) minds the east bank; **TzHaar-Hur-Zal** (7688) and
  *   **TzHaar-Hur-Rin** (7689) keep the inner shops ([TzHaarShops]); **TzHaar-Mej-Bal** (7681) and **-Dir** (7680)
  *   tell of the terminal chambers. The level 221 TzHaar-Ket wander the inner city (`mor-ul-rek.json`).
@@ -121,8 +122,20 @@ object MorUlRekInner {
 
     private fun varp(player: Player): Int? = player.vars.types.namedVarps[CustomVars.MOR_UL_REK_ACCESS]
 
-    /** Whether the player has shown a fire cape to a barrier guard. */
-    fun hasAccess(player: Player): Boolean = varp(player)?.let { player.vars[it] != 0 } ?: false
+    /** An infernal cape and an infernal max cape, which only a player who gave TzHaar-Ket-Keh a fire cape can have. */
+    val INFERNAL_CAPES = listOf(Inferno.INFERNAL_CAPE, 21285)
+
+    /**
+     * Whether the player may pass the hot vent doors: they have shown a fire cape to a barrier guard, or they have given
+     * one to TzHaar-Ket-Keh or hold an infernal cape (accounts that did either before the guards came, exploit review
+     * R52B-3; inferred, as the Wiki's guards want only to have seen a fire cape).
+     */
+    fun hasAccess(player: Player): Boolean =
+        (varp(player)?.let { player.vars[it] != 0 } ?: false) || sacrificedFireCape(player) ||
+            INFERNAL_CAPES.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }
+
+    private fun sacrificedFireCape(player: Player): Boolean =
+        player.vars.types.varbit(Inferno.VARBIT_SACRIFICED) != null && player.vars.getVarbit(Inferno.VARBIT_SACRIFICED) >= Inferno.SACRIFICED
 
     internal fun grant(player: Player) {
         varp(player)?.let { player.vars[it] = 1 }
@@ -132,10 +145,12 @@ object MorUlRekInner {
         FIRE_CAPES.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }
 
     /** Where passing [door] takes a player standing at [x], [z]: through to the far side. */
-    fun through(door: Door, x: Int, z: Int): Destination {
+    fun through(door: Door, x: Int, z: Int): Destination = if (onOutside(door, x, z)) door.inside else door.outside
+
+    /** Whether a player at [x], [z] stands on [door]'s outside (the guards') side. */
+    fun onOutside(door: Door, x: Int, z: Int): Boolean {
         val outside = door.outside
-        val onOutside = if (outside.x == door.x) (z - door.z) * (outside.z - door.z) > 0 else (x - door.x) * (outside.x - door.x) > 0
-        return if (onOutside) door.inside else outside
+        return if (outside.x == door.x) (z - door.z) * (outside.z - door.z) > 0 else (x - door.x) * (outside.x - door.x) > 0
     }
 
     /** A barrier guard's talk: [central] for the central gate's guards. */
@@ -263,7 +278,8 @@ fun registerMorUlRekInner(world: World) {
             val loc = op.loc ?: return@onLoc
             val door = DOORS.firstOrNull { it.x == loc.x && it.z == loc.z } ?: return@onLoc
             arriveDelay()
-            if (!hasAccess(player)) {
+            // Anyone inside may always leave (the Inferno's exits land inside the doors, exploit review R52B-3).
+            if (onOutside(door, player.x, player.z) && !hasAccess(player)) {
                 world.message(player, TzHaarGuardLines.NO_PASS)
                 return@onLoc
             }
