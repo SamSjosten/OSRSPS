@@ -61,6 +61,7 @@
     {"step": "assertDialogue", "contains": "[tzhaar_elder.hello name=JalYt-", "timeoutMs": 15000},
     {"step": "continueDialogue"},
     {"step": "assertDialogue", "contains": "[tzhaar_elder.whats_happening]"},
+    {"step": "finishDialogue", "comment": "the rest of the elder's talk, closed before the commands below"},
     {"step": "command", "text": "::varp mor_ul_rek_access 0", "expectMessage": "Varp mor_ul_rek_access"},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
