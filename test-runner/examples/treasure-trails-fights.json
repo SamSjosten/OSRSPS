@@ -1,0 +1,47 @@
+{
+ "name": "Treasure Trails step TT7: a hard coordinate's Dig brings out a Saradomin wizard and digs once he's dead; a master emote brings out a double agent, and Uri comes once it's dead (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::god on", "comment": "the wizard and the agent fight back"},
+
+  {"step": "command", "text": "::clue hard coordinate:432", "expectMessage": "Clue (hard): coordinate:432", "comment": "01.30N 20.01E, west of Draynor (3081, 3209), Saradomin wizard 2955"},
+  {"step": "command", "text": "::item 952", "comment": "a spade"},
+  {"step": "command", "text": "::tele 3081 3209 0"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::kill saradomin wizard", "expectMessage": "Killed Saradomin wizard", "comment": "he only exists once the Dig brought him out"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "another_clue, or casket on a one-step trail"},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue master emote:381", "expectMessage": "Clue (master): emote:381", "comment": "anger at the Statue of Saradomin in Ellamaria's garden (3230, 3478) in a Zamorak godsword, double agent 7312"},
+  {"step": "command", "text": "::setlevel attack 75", "expectMessage": "Attack set to level 75"},
+  {"step": "command", "text": "::item 11808", "comment": "Zamorak godsword"},
+  {"step": "itemOption", "item": "Zamorak godsword", "option": "Wield"},
+  {"step": "command", "text": "::tele 3230 3477 0", "comment": "a tile south of the spot"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 3, "comment": "Angry"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::kill double agent", "expectMessage": "Killed Double agent", "comment": "it only exists once the emote brought it out"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 3, "comment": "Angry again, now the fight is won"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "npcOption", "npc": "Uri", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.uri_clue]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "continueDialogue", "comment": "the item box: the next clue, or the casket on a one-step trail"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
