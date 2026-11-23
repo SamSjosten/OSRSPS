@@ -98,20 +98,10 @@ class EventAreas(private val world: World) {
 
     /**
      * Where [away]'s player comes back to, by the way back or by a logout inside (the save, [World]'s saveOf): the tile
-     * they came from, else the first free tile beside it (north, east, south, west, then the corners), else Lumbridge.
-     * Exploit review R51 C-4: one rule for both, so a blocked tile (a fire or trap set on it meanwhile) isn't a free
-     * teleport to Lumbridge, and a logout doesn't land them on it. Guessed: the tiles beside it; the Wiki names Lumbridge only.
+     * they came from, or Lumbridge when it is blocked now, as the Wiki gives (see the class notes). Exploit review R51
+     * C-4: one rule for both, so a logout doesn't land them on a tile that was blocked meanwhile.
      */
-    fun backOf(away: Away): Triple<Int, Int, Int> {
-        val (bx, bz) = away.back
-        for ((dx, dz) in BESIDE) {
-            if (world.canStand(bx + dx, bz + dz, away.backLevel)) return Triple(bx + dx, bz + dz, away.backLevel)
-        }
-        return Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL)
-    }
-
-    private companion object {
-        /** The tile itself, then beside it: see [backOf]. */
-        val BESIDE = listOf(0 to 0, 0 to 1, 1 to 0, 0 to -1, -1 to 0, 1 to 1, 1 to -1, -1 to -1, -1 to 1)
-    }
+    fun backOf(away: Away): Triple<Int, Int, Int> =
+        if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
+        else Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL)
 }

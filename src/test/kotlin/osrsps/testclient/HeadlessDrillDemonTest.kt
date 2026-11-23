@@ -225,7 +225,7 @@ class HeadlessDrillDemonTest {
     }
 
     @Test
-    fun `the signs blank after a teleport out, and a blocked tile sends them beside it, by the way back and by a logout`(@TempDir dir: Path) {
+    fun `the signs blank after a teleport out, and a blocked tile sends them to Lumbridge, by the way back and by a logout`(@TempDir dir: Path) {
         val collision = CollisionMap()
         server(dir, collision).use { server ->
             server.login("dan").use { client ->
@@ -237,7 +237,7 @@ class HeadlessDrillDemonTest {
                 client.await("out") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
                 client.await("the signs blank") { if (client.varp(MACRO_TRANSMIT) == 0) Unit else null }
 
-                // The tile they came from blocked meanwhile: back beside it, not at Lumbridge (R51 C-4).
+                // The tile they came from blocked meanwhile: Lumbridge, as the Wiki gives.
                 client.awaitTicks(2)
                 client.command("tele 3230 3218 0")
                 client.await("the first tile") { client.position?.takeIf { it == Coord(3230, 3218, 0) } }
@@ -248,9 +248,9 @@ class HeadlessDrillDemonTest {
                 client.order(answer = 2)
                 client.chat("[drill_demon.leave]")
                 client.chat("[drill_demon.pathetic]")
-                client.await("beside it") { client.position?.takeIf { it == Coord(3230, 3219, 0) } }
+                client.await("Lumbridge") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
 
-                // The same rule for a logout in the camp.
+                // The same rule for a logout in the camp, not the blocked tile (R51 C-4).
                 client.awaitTicks(2)
                 client.command("tele 3234 3218 0")
                 client.await("the second tile") { client.position?.takeIf { it == Coord(3234, 3218, 0) } }
@@ -262,7 +262,7 @@ class HeadlessDrillDemonTest {
             val until = System.currentTimeMillis() + 10_000
             while (server.world.playerNamed("dan") != null && System.currentTimeMillis() < until) Thread.sleep(20)
             server.login("dan").use { again ->
-                again.await("saved beside it") { again.position?.takeIf { it == Coord(3234, 3219, 0) } }
+                again.await("saved at Lumbridge") { again.position?.takeIf { it == Coord(3222, 3218, 0) } }
             }
         }
     }
