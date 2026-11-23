@@ -35,6 +35,7 @@ object TrailLoader {
     const val TARGET_KILL = 20
     const val CHALLENGE_QUESTION = 25
     const val CHALLENGE_BOX = 26
+    const val COMBAT_ENCOUNTER = 27
     const val OUTFIT = 28
 
     /**
@@ -70,7 +71,7 @@ object TrailLoader {
 
     fun load(library: CacheLibrary, objTypes: ObjTypes): TrailData {
         val rows = HashMap<Int, DbRow>()
-        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX + OUTFIT
+        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX + COMBAT_ENCOUNTER + OUTFIT
         for (file in library.index(2)?.archive(38)?.files().orEmpty()) {
             val row = DbRows.decode(file.data ?: continue)
             if (row.table in tables) rows[file.id] = row
@@ -109,6 +110,8 @@ object TrailLoader {
                 targets = targets,
                 items = items,
                 combat = columns.combat >= 0 && row.columns[columns.combat].orEmpty().isNotEmpty(),
+                // cluehelper_combat_encounter: description, then the NPCs that fight.
+                combatNpcs = if (columns.combat >= 0) row.int(columns.combat)?.let { rows[it] }?.takeIf { it.table == COMBAT_ENCOUNTER }?.ints(1).orEmpty() else emptyList(),
                 challenge = if (columns.challenge >= 0) row.int(columns.challenge)?.let { challenge(rows, it) } else null,
                 challengeItem = challengeScrolls.firstOrNull() ?: -1,
                 emotes = if (columns.emote >= 0) row.ints(columns.emote) else emptyList(),
