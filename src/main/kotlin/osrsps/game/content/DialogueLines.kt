@@ -133,6 +133,7 @@ object DialogueLines {
         AlchemyLines,
         SuperheatLines,
         BorkLines,
+        BrutusLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,
