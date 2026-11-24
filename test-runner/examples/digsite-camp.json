@@ -1,0 +1,290 @@
+{
+ "name": "Post-quest step 7: the Digsite's bushes and teddy, the tent's chest, the barrel's liquid and the dungeon's stone tablet",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "empty inventory and bank, so the bush gives the teddy; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3356 3372 0",
+   "expectMessage": "Teleported to 3356, 3372, 0",
+   "comment": "the Digsite's south-west, between a bush and the teddy's bush"
+  },
+  {
+   "step": "locOption",
+   "locId": 2357,
+   "option": "Search",
+   "x": 3355,
+   "y": 3372,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[digsite_camp.bush_nothing]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 2358,
+   "option": "Search",
+   "x": 3357,
+   "y": 3372,
+   "timeoutMs": 20000,
+   "comment": "the teddy's bush"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.teddy_found"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.teddy_box]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Teddy",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3375 3378 0",
+   "expectMessage": "Teleported to 3375, 3378, 0",
+   "comment": "the panning tent, east of the chest"
+  },
+  {
+   "step": "locOption",
+   "locId": 2361,
+   "option": "Open",
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[digsite_camp.chest_locked]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::item 709 1",
+   "expectMessage": "1",
+   "comment": "the Digsite chest key"
+  },
+  {
+   "step": "locOption",
+   "locId": 2361,
+   "option": "Open",
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLoc",
+   "locId": 2360,
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 10000,
+   "comment": "the chest open"
+  },
+  {
+   "step": "locOption",
+   "locId": 2360,
+   "option": "Search",
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.chest_powder]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chemical powder",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 2360,
+   "option": "Close",
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLoc",
+   "locId": 2361,
+   "x": 3374,
+   "y": 3378,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3363 3378 0",
+   "expectMessage": "Teleported to 3363, 3378, 0",
+   "comment": "west of the barrel"
+  },
+  {
+   "step": "locOption",
+   "locId": 2359,
+   "option": "Open",
+   "x": 3364,
+   "y": 3378,
+   "timeoutMs": 20000,
+   "comment": "the map's multiloc, the barrel sealed"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.barrel_shut"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 676 1",
+   "expectMessage": "1",
+   "comment": "a trowel"
+  },
+  {
+   "step": "command",
+   "text": "::item 229 1",
+   "expectMessage": "1",
+   "comment": "a vial"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Trowel",
+   "locId": 2359,
+   "x": 3364,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.barrel_opened"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2547,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the barrel open"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Vial",
+   "locId": 2359,
+   "x": 3364,
+   "y": 3378,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.barrel_fill]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_camp.barrel_careful"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[digsite_camp.barrel_lid]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Unidentified liquid",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2547,
+   "value": 0,
+   "timeoutMs": 5000,
+   "comment": "the lid back on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3373 9745 0",
+   "expectMessage": "Teleported to 3373, 9745, 0",
+   "comment": "the Digsite Dungeon's after-quest copy, south of the stone tablet"
+  },
+  {
+   "step": "locOption",
+   "locId": 17369,
+   "option": "Take",
+   "x": 3373,
+   "y": 9746,
+   "timeoutMs": 20000,
+   "comment": "the map's multiloc, showing the tablet"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Stone tablet",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 17369,
+   "option": "Take",
+   "x": 3373,
+   "y": 9746,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[digsite_camp.tablet_have]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

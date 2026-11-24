@@ -147,6 +147,17 @@ class HansTest {
     }
 
     @Test
+    fun `hearing the time played once shows the Age option from then on`() {
+        val types = osrsps.game.VarTypes(6_000, mapOf(Hans.VARBIT_AGE_CHECKED to osrsps.game.VarbitType(5_000, 0, 0)), 21_000)
+        val checker = Player(2, "Checker", 3222, 3219, 0, varTypes = types)
+        scripts.start(checker) { dialogues.start(this, npc) { age(0) } }
+        assertEquals(0, checker.vars.getVarbit(Hans.VARBIT_AGE_CHECKED))
+        assertTrue(dialogues.resume(checker, Chatbox.CHAT_LEFT, Chatbox.CHAT_CONTINUE, -1))
+        assertTrue(dialogues.resume(checker, Chatbox.CHAT_LEFT, Chatbox.CHAT_CONTINUE, -1))
+        assertEquals(1, checker.vars.getVarbit(Hans.VARBIT_AGE_CHECKED))
+    }
+
+    @Test
     fun `talk-to and age are registered on the world`() {
         val world = World(IntArray(0), CollisionMap())
         assertTrue(world.handlers.find(Op(OpTarget.NPC, Hans.ID, Hans.TALK_TO)) != null)

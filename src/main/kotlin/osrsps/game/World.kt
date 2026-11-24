@@ -136,6 +136,7 @@ import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
+import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -509,6 +510,9 @@ class World(
     /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
     val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
 
+    /** Brutus's fields, one a player ([osrsps.game.content.BrutusPens]). */
+    val brutusPens = osrsps.game.content.BrutusPens(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -533,6 +537,9 @@ class World(
 
     val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+
+    /** What [player] carries in grams now, from their backpack and worn items, rather than at the last tick's update. */
+    fun weightNow(player: Player): Int = itemWeights.total(player)
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
@@ -690,6 +697,7 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.content.Brutus.INSTANCE_LOCS ||
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
@@ -994,6 +1002,9 @@ class World(
     /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
     val spiritTrees = osrsps.game.content.SpiritTrees(this)
 
+    /** The balloon transport system; see [osrsps.game.content.Balloons]. */
+    val balloons = osrsps.game.content.Balloons(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1072,6 +1083,9 @@ class World(
 
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
+
+    /** Lvl-1 to Lvl-7 Enchant; see [osrsps.game.skill.magic.JewelleryEnchant]. */
+    val jewelleryEnchant = osrsps.game.skill.magic.JewelleryEnchant(this, osrsps.game.skill.magic.JewelleryEnchantData.load(objTypes))
 
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
@@ -1221,6 +1235,7 @@ class World(
         registerDigsiteDigs(this)
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
+        registerDigsiteCamp(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1279,6 +1294,7 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1301,6 +1317,7 @@ class World(
         canoes.register()
         fairyRings.register()
         spiritTrees.register()
+        balloons.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1324,6 +1341,7 @@ class World(
         boltEnchant.register()
         alchemy.register()
         superheat.register()
+        jewelleryEnchant.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -3724,6 +3742,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            balloons.forget(player)
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)

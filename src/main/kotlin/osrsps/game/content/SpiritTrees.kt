@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.AllSettings
 import osrsps.game.FrameSlot
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -107,6 +108,10 @@ class SpiritTrees(private val world: World) {
             world.handlers.onLoc(tree, TALK) { op -> talk(op.loc ?: return@onLoc) }
             world.handlers.onLoc(tree, LAST_DESTINATION) { op -> lastDestination(op.loc ?: return@onLoc) }
         }
+        // The menu script, with its keys on, stops the chat's input (chatdefault_stopinput); nothing in the client gives
+        // it back, so the server does once the menu closes, by a pick, Esc or a walk, as for the settings' search (Nightly
+        // 23 Nov 2026: with it left off, typing did nothing after a trip).
+        world.interfaces.onClose(MENU) { player -> world.interfaces.runClientScript(player, AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT, emptyList()) }
     }
 
     private fun here(loc: ZoneLoc): SpiritTreeSpot? = SpiritTreeSpot.at(loc.x, loc.z, loc.level)
