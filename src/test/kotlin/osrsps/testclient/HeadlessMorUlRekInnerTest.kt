@@ -28,7 +28,10 @@ import osrsps.map.LocShape
 class HeadlessMorUlRekInnerTest {
     private val guard = NpcType(MorUlRekInner.GUARD_BORDER, "TzHaar-Ket", ops = listOf("Talk-to", null, null, null, null), internalName = "tzhaar_guard_border")
     private val elder = NpcType(MorUlRekInner.ELDER_BAL, "TzHaar-Mej-Bal", ops = listOf("Talk-to", null, null, null, null), internalName = "tzhaar_elder2")
-    private val objs = arrayOfNulls<ObjType>(FIRE_CAPE + 1).apply { this[FIRE_CAPE] = ObjType(FIRE_CAPE, "Fire cape") }
+    private val objs = arrayOfNulls<ObjType>(INFERNAL_CAPE + 1).apply {
+        this[FIRE_CAPE] = ObjType(FIRE_CAPE, "Fire cape")
+        this[INFERNAL_CAPE] = ObjType(INFERNAL_CAPE, "Infernal cape")
+    }
     private val door = LocType(MorUlRekInner.DOOR, "Hot vent door", ops = listOf("Pass", null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
@@ -115,6 +118,27 @@ class HeadlessMorUlRekInnerTest {
     }
 
     @Test
+    fun `anyone inside may leave, and an infernal cape lets a player in`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bo").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                // Inside with no access, as the Inferno's exits leave a player.
+                client.command("tele 2436 5119 0")
+                client.arrive(2436, 5119)
+                client.locOp(MorUlRekInner.DOOR, 2436, 5120, MorUlRekInner.PASS)
+                client.arrive(2436, 5121)
+                client.locOp(MorUlRekInner.DOOR, 2436, 5120, MorUlRekInner.PASS)
+                client.await("the refusal") { client.messages().firstOrNull { it.text == "[tzhaar_guard.no_pass]" } }
+                client.command("item $INFERNAL_CAPE")
+                client.await("the cape") { if (client.inventory(BACKPACK).any { it?.id == INFERNAL_CAPE }) Unit else null }
+                client.locOp(MorUlRekInner.DOOR, 2436, 5120, MorUlRekInner.PASS)
+                client.arrive(2436, 5119)
+            }
+        }
+    }
+
+    @Test
     fun `TzHaar-Mej-Bal tells of the terminal chambers`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ben").use { client ->
@@ -135,6 +159,7 @@ class HeadlessMorUlRekInnerTest {
 
     private companion object {
         const val FIRE_CAPE = 6570
+        const val INFERNAL_CAPE = 21295
         const val BACKPACK = 93
     }
 }
