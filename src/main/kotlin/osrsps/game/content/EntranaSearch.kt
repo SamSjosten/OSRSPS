@@ -11,7 +11,9 @@ import osrsps.game.WearPos
  * Port Sarim monks' boat isn't built yet.
  *
  * Inferred: matching the page's items by their cache names (a whole family, such as every god cape or wizard robe, by
- * a shared part of the name); noted items passing, as nothing can wear them. Not built yet: the looting bag and tackle
+ * a shared part of the name); noted items passing, as nothing can wear them; only the vestment and third-age cloaks passing of the cloaks (the
+ * page names no others, so an Ardougne cloak with bonuses is barred); imbued god capes barred, as the page names the
+ * god capes only. Not built yet: the looting bag and tackle
  * box, which the page bars only when they hold a barred item.
  */
 object EntranaSearch {
@@ -25,7 +27,7 @@ object EntranaSearch {
     }
 
     private fun allowed(name: String): Boolean =
-        ALLOWED.any { it in name } || COLOURED_ROBE.containsMatchIn(name)
+        !name.startsWith("imbued") && (ALLOWED.any { it in name } || COLOURED_ROBE.containsMatchIn(name))
 
     /** The slots weapons and armour are worn in; jewellery (neck and ring) and ammunition other than darts pass. */
     private val SLOTS = setOf(WearPos.HEAD, WearPos.CAPE, WearPos.WEAPON, WearPos.BODY, WearPos.SHIELD, WearPos.LEGS, WearPos.HANDS, WearPos.FEET)
@@ -47,7 +49,8 @@ object EntranaSearch {
         "magic secateurs", "wizard", "zamorak monk", "ham shirt", "ham robe", "ham hood", "ham cloak", "ham logo",
         "ham gloves", "ham boots", "fremennik", "gloves of silence", "ice gloves", "penance gloves", "twitcher's gloves",
         "leather gloves", "ghostly gloves", "ghostly boots", "leather boots", "boots of lightness", "climbing boots",
-        "rock-shell boots", "boots of stone", "spiked boots", "cloak", "black cape", "red cape", "blue cape",
+        "rock-shell boots", "boots of stone", "spiked boots", "saradomin cloak", "guthix cloak", "zamorak cloak",
+        "armadyl cloak", "bandos cloak", "ancient cloak", "3rd age cloak", "black cape", "red cape", "blue cape",
         "yellow cape", "green cape", "purple cape", "orange cape", "team-", "team cape", "spotted cape", "spottier cape",
         "saradomin cape", "zamorak cape", "guthix cape", "holy book", "unholy book", "book of balance", "book of law",
         "book of war", "book of darkness", "book of the dead", "tome of water", "tome of earth", "chronicle",
