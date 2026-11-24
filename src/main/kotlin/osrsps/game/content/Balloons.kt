@@ -4,7 +4,6 @@ import osrsps.game.FrameSlot
 import osrsps.game.Interfaces
 import osrsps.game.Player
 import osrsps.game.Skill
-import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Line
@@ -69,7 +68,8 @@ enum class BalloonStation(
  *
  * - A basket's Use, an assistant's Fly (or Talk-to, then Yes) opens the map; a destination's Travel flies there.
  * - A trip needs the destination's Firemaking level (boosts count), one of its logs in the backpack, and no more than
- *   40 kg carried without that log; a trip to Entrana also needs no weapons or armour, which the assistant searches for.
+ *   40 kg carried without that log; a trip to Entrana also needs nothing Entrana bars ([EntranaSearch]), which the
+ *   assistant searches for.
  * - The log is burnt, the balloon journey jingle plays, and the player lands beside the destination's basket.
  *
  * Sources: the Wiki's Balloon transport system page (read 23 Nov 2026) for the routes, logs, levels, weight limit and
@@ -81,8 +81,7 @@ enum class BalloonStation(
  * builds in two steps, 1 for the others). Guessed: where a trip lands (the tile south of the basket's south-west corner,
  * walkable on the 242 map); the trip itself (the map closing, the jingle and a move [FLIGHT_TICKS] later, with no flying
  * screen or fade); the Firemaking and weight messages' words (keys with no words until a recording); a click on the
- * station the player is at doing nothing; Entrana's rule (any carried or worn item worn in the head, cape, weapon, body,
- * shield, legs, hands or feet slot with an attack or defence bonus); the player having to stay within [REACH] of the
+ * station the player is at doing nothing; the player having to stay within [REACH] of the
  * basket while the map is open.
  * Not built yet: log storage and paying from it (step T6); Auguste's other options (origami balloons, replacing the
  * bomber jacket and cap); the bail-out crash.
@@ -199,13 +198,10 @@ class Balloons(private val world: World) {
         return !armed
     }
 
-    /** Guessed: anything worn or carried that is worn as armour or a weapon and has an attack or defence bonus. */
+    /** Anything worn or carried that Entrana bars ([EntranaSearch]). */
     private fun armed(player: Player): Boolean {
         val items = player.inventory.contents().map { it.second.id } + player.equipment.contents().map { it.second.id }
-        return items.any { id ->
-            val type = world.objTypes[id] ?: return@any false
-            type.wearpos1 in ARMED_SLOTS && COMBAT_BONUS_PARAMS.any { (type.params[it] as? Int ?: 0) != 0 }
-        }
+        return items.any { id -> world.objTypes[id]?.let(EntranaSearch::prohibited) ?: false }
     }
 
     private fun ScriptContext.near(station: BalloonStation): Boolean =
@@ -233,10 +229,7 @@ class Balloons(private val world: World) {
         /** Guessed: how far from the basket's south-west tile the player may stand with the map open (the assistants stand 2 away). */
         const val REACH = 4
 
-        private val ARMED_SLOTS = setOf(WearPos.HEAD, WearPos.CAPE, WearPos.WEAPON, WearPos.BODY, WearPos.SHIELD, WearPos.LEGS, WearPos.HANDS, WearPos.FEET)
 
-        /** Params 0 to 9: the attack and defence bonuses (see Equipment). */
-        private val COMBAT_BONUS_PARAMS = 0..9
 
         /** `zep_assist_gno_replacement_vis`: Assistant Lori. */
         private const val LORI = 7154
