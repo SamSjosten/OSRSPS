@@ -113,6 +113,7 @@ object NpcSpawnFile {
         "web-chasm.json",
         "escape-caves.json",
         "karamja-musa-point.json",
+        "callistos-den.json",
         "karamja-volcano.json",
         "crandor.json",
         "mor-ul-rek.json",

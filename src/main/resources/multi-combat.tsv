@@ -311,3 +311,6 @@ scurrius_lair	0	3288	9856	3311	9879
 # The Escape Caves (Wilderness step W4.11): the OSRS Wiki's Escape Caves page calls them an underground multicombat area.
 # The box is their whole map square 52_160 (inferred: live's box is the same).
 escape_caves	0	3328	10240	3391	10303
+# Callisto's Den (Wilderness step W4.12): the OSRS Wiki's Callisto's Den calls it multi-way. The box is its whole map
+# square 52_161 on the ground level (inferred: live's box is the same).
+callistos_den	0	3328	10304	3391	10367
