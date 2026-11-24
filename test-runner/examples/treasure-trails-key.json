@@ -9,7 +9,8 @@
   {"step": "command", "text": "::god on", "comment": "the wizards fight back"},
 
   {"step": "command", "text": "::clue medium cryptic:741", "expectMessage": "Clue (medium): cryptic:741", "comment": "the drawers in the Wizards' Tower basement (3116, 9562), key 7302 from a wizard"},
-  {"step": "command", "text": "::tele 3117 9562 0", "comment": "east of the drawers, where they are opened from"},
+  {"step": "command", "text": "::clue medium steps", "expectMessage": "cryptic:741", "comment": "the step must be one the trails offer, or the drawers just open (nightly Nov 23 had no [trail.locked])"},
+  {"step": "command", "text": "::tele 3115 9562 0", "comment": "west of the drawers, their only open side by the cache (access 29 turned twice; a wall corner at 3117, 9562 shuts the east)"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3116, "y": 9562},
   {"step": "assertMessage", "contains": "[trail.locked]"},
@@ -21,7 +22,7 @@
   {"step": "takeItem", "item": "Key (medium)"},
   {"step": "assertInventory", "item": "Key (medium)", "count": 1},
 
-  {"step": "command", "text": "::tele 3117 9562 0"},
+  {"step": "command", "text": "::tele 3115 9562 0"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3116, "y": 9562},
   {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "another_clue, or casket on a one-step trail"},

@@ -1,0 +1,26 @@
+{
+ "name": "Treasure Trails step TT10: with every clue roll hitting, an easy reward casket holds a master scroll box, which opens into a master clue (::clue lucky on, ::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::clue lucky on", "expectMessage": "Every skilling and casket clue roll hits."},
+
+  {"step": "command", "text": "::item 20546 1", "comment": "Reward casket (easy)"},
+  {"step": "itemOption", "itemId": 20546, "option": "Open"},
+  {"step": "assertInterface", "interfaceId": 73, "comment": "trail_rewardscreen"},
+  {"step": "assertMessage", "contains": "[trail.completed count=1 tier=easy]"},
+  {"step": "assertInventory", "itemId": 24366, "count": 1, "comment": "Scroll box (master): the casket's 1/50 master roll, made to hit"},
+  {"step": "clickWidget", "interfaceId": 73, "component": 4, "comment": "the close button"},
+  {"step": "itemOption", "itemId": 24366, "option": "Open"},
+  {"step": "assertInventory", "itemId": 19835, "count": 1, "comment": "Clue scroll (master), on a new master trail"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue lucky off", "expectMessage": "Skilling and casket clue rolls as the Wiki's."},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
