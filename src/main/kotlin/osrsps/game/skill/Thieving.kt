@@ -300,12 +300,45 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             Stall(GEM_STALL, EMPTY_STALL, 75, 4080, 100, GEM_LOOT, ARDOUGNE_GEM_MERCHANT, STALL_REFUSE_TICKS, ARDOUGNE_WATCH),
         )
 
+        /**
+         * Mor Ul Rek's two shop counters (Karamja step K2.4; the Wiki's Shop Counter (gems) and Shop Counter (ore) pages,
+         * read 2026-11-18), TzHaar-Hur-Rin's in the inner city: gems from 75 for 408 XP, back in 105 seconds (175 ticks),
+         * and she won't trade for 30 minutes after; ores from 82 for 350 XP, back in 30 seconds (50 ticks). Both empty to
+         * `tzhaar_shopcounter_empty`. The gem table is Mod Ash's: 1 in 50,000 an onyx, else of 1,000 a dragonstone 1,
+         * diamond 49, ruby 150, emerald 300, sapphire 500, each uncut 2 in 3 (out of 150,000,000 here). Guessed: the
+         * level 221 TzHaar-Ket watch them; the ore counter's ban is the gem counter's. Out: the TzHaar's own overhead
+         * words (Thieving's lines are said), Rocky.
+         */
+        const val TZHAAR_ORE_COUNTER = 30279
+        const val TZHAAR_GEM_COUNTER = 30280
+        const val TZHAAR_COUNTER_EMPTY = 30278
+        const val TZHAAR_HUR_RIN = 7689
+        const val TZHAAR_KET_STRONG = 7679
+        const val TZHAAR_REFUSE_TICKS = 3_000
+        private const val GEM_ROLL = 49_999
+        val TZHAAR_GEM_LOOT = listOf(
+            StallLoot(6571, 2_000), StallLoot(6573, 1_000), // uncut_onyx, onyx
+            StallLoot(1623, 1_000 * GEM_ROLL), StallLoot(1607, 500 * GEM_ROLL), // sapphire
+            StallLoot(1621, 600 * GEM_ROLL), StallLoot(1605, 300 * GEM_ROLL), // emerald
+            StallLoot(1619, 300 * GEM_ROLL), StallLoot(1603, 150 * GEM_ROLL), // ruby
+            StallLoot(1617, 98 * GEM_ROLL), StallLoot(1601, 49 * GEM_ROLL), // diamond
+            StallLoot(1631, 2 * GEM_ROLL), StallLoot(1615, 1 * GEM_ROLL), // dragonstone
+        )
+        val TZHAAR_ORE_LOOT = listOf(
+            StallLoot(440, 25), StallLoot(453, 15), StallLoot(442, 10), StallLoot(444, 10), StallLoot(447, 10), StallLoot(449, 8),
+            StallLoot(451, 2),
+        )
+        val MOR_UL_REK_STALLS = listOf(
+            Stall(TZHAAR_GEM_COUNTER, TZHAAR_COUNTER_EMPTY, 75, 4080, 175, TZHAAR_GEM_LOOT, TZHAAR_HUR_RIN, TZHAAR_REFUSE_TICKS, setOf(TZHAAR_KET_STRONG)),
+            Stall(TZHAAR_ORE_COUNTER, TZHAAR_COUNTER_EMPTY, 82, 3500, 50, TZHAAR_ORE_LOOT, TZHAAR_HUR_RIN, TZHAAR_REFUSE_TICKS, setOf(TZHAAR_KET_STRONG)),
+        )
+
         val STALLS: Map<Int, Stall> = (
             listOf(
                 Stall(7053, EMPTY_STALL, 27, 100, 4, SEED_LOOT, OLIVIA, OLIVIA_REFUSE_TICKS, setOf(MARKET_GUARD)),
                 Stall(14011, 14012, 22, 270, 8, WINE_LOOT, FORTUNATO, STALL_REFUSE_TICKS, setOf(MARKET_GUARD)),
                 Stall(635, EMPTY_STALL, 5, 160, 4, TEA_LOOT, TEA_SELLER, STALL_REFUSE_TICKS, emptySet()),
-            ) + ARDOUGNE_STALLS
+            ) + ARDOUGNE_STALLS + MOR_UL_REK_STALLS
             ).associateBy { it.loc }
     }
 }

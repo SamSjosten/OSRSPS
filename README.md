@@ -278,6 +278,7 @@ related ones.
 | `::xprate [rate\|restore]` | Server-wide XP rate, 0.1 to 1000 (kept in `data/xp-rate.txt`); 1 is live's |
 | `::varp id\|name [value]` / `::varbit id\|name [value]` | Shows or sets a var; our own vars go by name (`::varp lodestones`) |
 | `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Shows or sets your Slayer task, points and streak |
+| `::diary [complete <area> <tier> [n\|all] \| reset <area> [tier] [n] \| journal <area>]` | Your Achievement Diary task counts; completes or resets tasks, or opens a journal |
 | `::randomevent [list\|now\|on\|off\|<event> [npc]]` | Your random event status; lists, brings on, turns off or sends one |
 | `::look [body a\|b \| kit part id \| colour part n \| reset \| design]` | Shows or sets your body type, kits and colours (and shows your pronouns); `design` opens the Character Creator |
 | `::farmtick [ticks]` / `::farmclock pause\|run` / `::farmdisease patch\|off\|on` | Moves, holds or runs your farming clock; makes a patch diseased or stops disease |

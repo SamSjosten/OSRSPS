@@ -128,6 +128,10 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `mor-ul-rek-inner.json` (Karamja step K2.3, for test on 215: `::varp mor_ul_rek_access 0`, Pass on the west hot vent door (30266 at 2436,5120) refused with `[tzhaar_guard.no_pass]`, a fire cape (6570) from `::item` shown to the barrier guard through his talk, his next greeting naming the player `...-Xo-...`, the door both ways (2436,5119 and 2436,5121), TzHaar-Ket-Yil's Bank, TzHaar-Hur-Zal's Trade and TzHaar-Mej-Dir's talk) needs nothing newer than `assertDialogue`.
 
+`mor-ul-rek-eels.json` (Karamja step K2.4, for test on 215: Fishing 80 by `::setlevel`, an oily fishing rod (1585), bait, a hammer and ice gloves (1580) from `::item`, Bait on the west infernal eel spot (7676 at 2446,5104) refused with `[fishing.no_ice_gloves]`, the gloves worn, an eel caught, and the hammer used on it until none are left) needs nothing newer than `useItemOnItem`.
+
+`barnaby-ship.json` (Karamja step K3.1, for test on 215: 100 coins from `::item`, Captain Barnaby's talk on Brimhaven's dock (2773,3229) and his Ardougne option, `[barnaby.sail_ardougne]` and the landing on Ardougne's deck (2683,3263, plane 1) for 30 coins, the gangplank ashore to 2683,3266; his Rimmington option on Ardougne's dock to Rimmington's deck (2915,3222, plane 1) and the gangplank ashore to 2915,3225; his Brimhaven option there to Brimhaven's deck (2775,3234, plane 1) and the gangplank ashore to 2772,3234) needs 0.4.0 for `assertInventory` (and `locOption`).
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 

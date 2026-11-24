@@ -76,7 +76,7 @@ object ClanHub {
 
     /** The clan cloaks and vexilla, by colour in enum_3819's order (the cache: black, orange, blue, ..., pink). */
     val CLOAKS = intArrayOf(25712, 25714, 25715, 25716, 25717, 25718, 25719, 25720)
-    val VEXILLA = intArrayOf(25721, 25723, 25724, 25725, 25726, 25727, 25728, 25729)
+    val VEXILLA = osrsps.game.social.Clans.VEXILLA
 
     /**
      * Gives every clan cloak and vexillum [player] holds, wears or banks [colour]'s look: the Clan cloak page says the new
