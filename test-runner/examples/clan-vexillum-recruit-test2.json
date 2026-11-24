@@ -1,0 +1,21 @@
+{
+ "name": "Clan vexillum Recruit, two players (run with clan-vexillum-recruit.json on the other VM at the same time): test2 is asked to join test's clan, answers No, is asked again and answers Yes, and is in the clan",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3230 3232 0", "expectMessage": "Teleported", "comment": "off the meeting tile first: test waits for us there before it recruits"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "out of any clan from another run: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::varbit 4180 1", "expectMessage": "-> 1", "comment": "Accept Aid on: Recruit is refused without it"},
+  {"step": "command", "text": "::tele 3232 3232 0", "expectMessage": "Teleported", "comment": "the meeting tile, test's sign that we're ready"},
+  {"step": "assertDialogue", "contains": "[clan.recruit_question name=test clan=Recruit Gate]", "timeoutMs": 180000},
+  {"step": "chooseOption", "text": "[clan.confirm_no]"},
+  {"step": "assertNoDialogue", "timeoutMs": 10000},
+  {"step": "command", "text": "::clan", "expectMessage": "You aren't in a clan"},
+  {"step": "assertDialogue", "contains": "[clan.recruit_question name=test clan=Recruit Gate]", "timeoutMs": 60000},
+  {"step": "chooseOption", "text": "[clan.confirm_yes]"},
+  {"step": "assertMessage", "contains": "[clan.recruited name=Recruit Gate]"},
+  {"step": "command", "text": "::clan", "expectMessage": "Clan Recruit Gate"},
+  {"step": "command", "text": "::tele 3230 3232 0", "expectMessage": "Teleported", "comment": "off the meeting tile, so the next run starts away from it"}
+ ]
+}
