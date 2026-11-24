@@ -27,7 +27,7 @@ object EntranaSearch {
     }
 
     private fun allowed(name: String): Boolean =
-        !name.startsWith("imbued") && (ALLOWED.any { it in name } || COLOURED_ROBE.containsMatchIn(name))
+        !name.startsWith("imbued") && (ALLOWED.any { it in name } || COLOURED_ROBE.containsMatchIn(name) || FREMENNIK_CLOTHING.containsMatchIn(name))
 
     /** The slots weapons and armour are worn in; jewellery (neck and ring) and ammunition other than darts pass. */
     private val SLOTS = setOf(WearPos.HEAD, WearPos.CAPE, WearPos.WEAPON, WearPos.BODY, WearPos.SHIELD, WearPos.LEGS, WearPos.HANDS, WearPos.FEET)
@@ -47,7 +47,7 @@ object EntranaSearch {
     /** The page's items with bonuses that may still go. */
     private val ALLOWED = listOf(
         "magic secateurs", "wizard", "zamorak monk", "ham shirt", "ham robe", "ham hood", "ham cloak", "ham logo",
-        "ham gloves", "ham boots", "fremennik", "gloves of silence", "ice gloves", "penance gloves", "twitcher's gloves",
+        "ham gloves", "ham boots", "gloves of silence", "ice gloves", "penance gloves", "twitcher's gloves",
         "leather gloves", "ghostly gloves", "ghostly boots", "leather boots", "boots of lightness", "climbing boots",
         "rock-shell boots", "boots of stone", "spiked boots", "saradomin cloak", "guthix cloak", "zamorak cloak",
         "armadyl cloak", "bandos cloak", "ancient cloak", "3rd age cloak", "black cape", "red cape", "blue cape",
@@ -56,6 +56,9 @@ object EntranaSearch {
         "book of war", "book of darkness", "book of the dead", "tome of water", "tome of earth", "chronicle",
         "explorer's ring",
     )
+
+    /** Yrsa's Fremennik clothing; the Fremennik blade, shield and helm are weapons and armour. */
+    private val FREMENNIK_CLOTHING = Regex("^fremennik .*(shirt|robe|skirt|hat|cloak|boots|gloves)$")
 
     /** Canifis and gnome robes: a colour, then robe top or robe bottoms. */
     private val COLOURED_ROBE = Regex("^(yellow|green|red|blue|purple|grey|white|black|pink|cream|turquoise|teal) robe (top|bottoms)")
