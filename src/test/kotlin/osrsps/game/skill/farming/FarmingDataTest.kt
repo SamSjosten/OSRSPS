@@ -30,7 +30,7 @@ class FarmingDataTest {
         val flowerValues = flowers.flatMap { crop -> crop.growing + crop.watered + crop.harvest + crop.diseased + crop.dead }
         assertEquals(flowerValues.size, flowerValues.toSet().size, "a flower value drawn twice")
         assertTrue(flowerValues.all { it in 8..255 }, "0 to 7 are the weed stages")
-        assertEquals(55, Crops.ALL.size)
+        assertEquals(56, Crops.ALL.size)
         assertEquals(Crops.ALL.size, Crops.ALL.map { it.seed }.toSet().size)
     }
 
