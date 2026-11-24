@@ -163,6 +163,7 @@ import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDiaries
+import osrsps.game.content.registerAntiqueLamps
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
@@ -1273,6 +1274,7 @@ class World(
         registerBarnabyShip(this)
         registerVarrock(this)
         registerDiaries(this)
+        registerAntiqueLamps(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
         archiveRaids.register()
