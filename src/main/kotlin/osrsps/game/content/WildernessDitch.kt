@@ -134,8 +134,9 @@ object WildernessDitch {
         world.interfaces.setVarbitNow(player, VARBIT_WARNING_ID, WARNING_ID)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, WARNING_SCREEN)
         world.interfaces.setText(player, WARNING_SCREEN, WARNING_MESSAGE, world.textFor(player)[WildernessDitchLines.WARNING])
-        world.interfaces.setEvents(player, WARNING_SCREEN, WARNING_UNIVERSE, DONT_GO, ENTER, Chatbox.EVENT_PAUSE_BUTTON)
-        world.interfaces.setEvents(player, WARNING_SCREEN, WARNING_TOGGLE, 0, 0, Chatbox.EVENT_PAUSE_BUTTON)
+        // The pause button is a script event (events1), not an op, or the client won't send the click.
+        world.interfaces.setEvents(player, WARNING_SCREEN, WARNING_UNIVERSE, DONT_GO, ENTER, 0, Chatbox.EVENT_PAUSE_BUTTON)
+        world.interfaces.setEvents(player, WARNING_SCREEN, WARNING_TOGGLE, 0, 0, 0, Chatbox.EVENT_PAUSE_BUTTON)
         val answer = pauseButton(WARNING_SCREEN, WARNING_UNIVERSE, DONT_GO..ENTER)
         world.interfaces.closeModals(player)
         // Guessed: counted when answered, so the seventh showing is the first with the toggle (0 to 6 seen before it).
