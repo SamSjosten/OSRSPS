@@ -1897,6 +1897,9 @@ class Clans(
         val PERMISSION_VARS = mapOf(
             0 to VAR_PERMISSION_ACCESS, 1 to VAR_RANK_TITLES, 2 to VAR_ASSIGN_RANKS, 3 to VAR_RECRUITMENT, 4 to VAR_EXPEL,
             5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 7 to PERM_TALK, 8 to PERM_KICK, 9 to VAR_BAN_FROM_CHAT,
+            // Enter clan hall (struct_2969): enum_3831's first, after the guest toggles (10 to 14), events (15 to 17) and
+            // coffer (18, 19) in enum_3825's order, as clan_permission_init numbers the buttons (Codex on PR 911).
+            20 to VAR_ENTER_HALL,
         )
 
         /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */
