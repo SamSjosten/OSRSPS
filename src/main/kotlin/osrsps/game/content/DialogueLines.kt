@@ -102,6 +102,7 @@ object DialogueLines {
         AlKharidShopKeeperLines,
         AliMorrisaneLines,
         AltarLines,
+        AntiqueLampLines,
         ApothecaryLines,
         ApothecaryPotionsLines,
         ArchiveBankerLines,
