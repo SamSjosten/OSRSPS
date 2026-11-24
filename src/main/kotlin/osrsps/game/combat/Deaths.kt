@@ -45,6 +45,11 @@ data class DeathPlace(
     val toLevel: Int,
     val coord: Int = -1,
     val safe: Boolean = false,
+    /**
+     * Only where they come back is changed, as by Krystilia's Edgeville respawn: the death is otherwise as anywhere, so
+     * a Wilderness one still counts as PvP, its items going to the killer (exploit review round 49, R49C-1).
+     */
+    val respawnOnly: Boolean = false,
 )
 
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
@@ -157,6 +162,8 @@ class Deaths(
     },
     /** The player has just fallen, before their death animation: a raid counts the death then ([osrsps.game.raid.ArchiveRaids.fell]). */
     private val fell: (Player) -> Unit = {},
+    /** Takes a random event's own items off the player ([EventAreas.takePlaceItems]), before anything is sorted. */
+    private val takePlaceItems: (Player) -> Unit = {},
     /** Who killed the player, by save key, if it is a PvP death ([PvpCombat.killerOf]); null for any other. */
     private val killerOf: (Player) -> String? = { null },
     /**
@@ -212,11 +219,11 @@ class Deaths(
     /**
      * Whether [player]'s death can be a PvP one, its loot for a killer: only on a tile where players may fight
      * ([osrsps.game.Wilderness.pvpLevel] above 0, so not the safe rows or Ferox Enclave), outside any instance or raid
-     * ([placeOf] null), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
+     * ([placeOf] null, or one that only moves the respawn), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
      * with the death somewhere else is a death like any other (exploit review round 36, R36A-1 and R36A-2).
      */
     private fun pvpDeath(player: Player): Boolean =
-        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player) == null && player.scenario == null
+        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player).let { it == null || it.respawnOnly } && player.scenario == null
 
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */
     fun process() {
@@ -243,6 +250,8 @@ class Deaths(
         // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
         if (!player.dead) die(player)
         player.deathTick = -1
+        // A random event's own items stay in its place, out of what is kept or lost, the grave included.
+        takePlaceItems(player)
         if (place?.safe != true) loseHardcore(player)
         val keep = place?.keepItems == true || place?.safe == true
         if (!keep) {

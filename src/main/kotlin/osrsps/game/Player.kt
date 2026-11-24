@@ -218,6 +218,9 @@ class Player(
     /** The player's house, null until they buy one; see [osrsps.game.skill.construction.Houses]. Saved. */
     var house: osrsps.game.skill.construction.HouseState? = null
 
+    /** The player's Treasure Trails under way, one per tier; see [osrsps.game.trail.TreasureTrails]. Saved. */
+    val trails = osrsps.game.trail.TrailProgress()
+
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
@@ -323,6 +326,9 @@ class Player(
 
     /** Ticks to the next poison hit or immunity step, -1 while the poison varp is 0; see [osrsps.game.combat.Poison]. Not saved. */
     var poisonTicks: Int = -1
+
+    /** Ticks left of a block on poison and venom going on, from a strange fruit; see [osrsps.game.combat.Poison.block]. */
+    var poisonBlockTicks: Int = 0
 
     /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
     var stunnedUntil: Long = 0
@@ -468,6 +474,9 @@ class Player(
      */
     val pvpDamage = LinkedHashMap<String, Int>()
     var lastPvpHitTick: Long = -1
+
+    /** How the player looks under what they wear. Saved, in the header: ::reset and scenarios keep it. */
+    var look: PlayerLook = PlayerLook.DEFAULT
 
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1

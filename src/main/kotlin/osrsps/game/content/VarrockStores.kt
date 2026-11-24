@@ -1,6 +1,9 @@
 package osrsps.game.content
 
+import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.look.MakeoverPage
+import osrsps.game.npc.Npc
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
@@ -35,6 +38,11 @@ object ThessaliaLines : Lines("thessalia", "Transcript:Thessalia") {
     val MORE_2 = line("more_2", "the makeover: second line")
     val MORE_3 = line("more_3", "the makeover: third line, it's free")
     val MORE_4 = line("more_4", "the makeover: what does the player say?")
+    val TOP = line("top", "after the makeover's lines: change the top, with no line from the player")
+    val LEGWEAR = line("legwear", "after the makeover's lines: change the legwear, with no line from the player")
+    val CATALOGUE = line("catalogue", "before the makeover screen opens: pick a style and colour")
+    /** Her line after a makeover is confirmed, one of six at random. */
+    val COMPLIMENTS = (1..6).map { line("compliment_$it", "after a makeover from her talk: compliment $it of 6, picked at random") }
     val BUY = line("buy", "the menus' buy option: the shop opens, with no line from the player")
     val NO_THANKS = line("no_thanks", "the menus' no option, which the player then says")
     val RETURN = line("return", "her parting line")
@@ -70,9 +78,10 @@ object TeaSellerLines : Lines("tea_seller", "Transcript:Tea Seller") {
  * Thessalia (thessalia_normal, 10477), Asyff (2887) and the Tea Seller (8687). Trade is [registerShops]'s. From the
  * Wiki's transcripts. Guessed: every expression; that the General Store's assistant, who has no transcript, says what
  * the keeper says; that Aubury's two partings are one line. Aubury's Teleport and his talk's fourth option send the
- * player to the rune essence mine ([teleportToEssenceMine]), whose portals bring them back to his shop. Left out: Thessalia's Makeover and its change top and legwear options (there is no makeover screen
- * yet), her scythe, bunny ears and frog token options, and Asyff's Fur Clothing, bird costume, hunting clothing and
- * priest gown options.
+ * player to the rune essence mine ([teleportToEssenceMine]), whose portals bring them back to his shop. Thessalia's change
+ * top and legwear options and her Makeover option open the makeover screen ([osrsps.game.look.MakeoverScreen]) on its
+ * tops or bottoms. Left out: her scythe, bunny ears and frog token options, and Asyff's Fur Clothing, bird costume,
+ * hunting clothing and priest gown options.
  */
 object VarrockStores {
     const val SHOP_KEEPER = 2815
@@ -82,6 +91,9 @@ object VarrockStores {
     const val ASYFF = 2887
     const val TEA_SELLER = 8687
     const val TALK_TO = 1
+
+    /** thessalia_normal's op4. */
+    const val MAKEOVER_OP = 4
 
     /** aubury_3op's Teleport. */
     const val TELEPORT_OP = 4
@@ -117,7 +129,14 @@ object VarrockStores {
         AuburyChoice.NOTHING
     }
 
-    internal suspend fun Dialogue.thessalia(): Boolean = with(ThessaliaLines) {
+    /** What the player picked in Thessalia's talk: nothing, her shop, or the makeover screen on a page. */
+    sealed interface ThessaliaChoice {
+        data object Nothing : ThessaliaChoice
+        data object Shop : ThessaliaChoice
+        data class Makeover(val page: MakeoverPage) : ThessaliaChoice
+    }
+
+    internal suspend fun Dialogue.thessalia(): VarrockStores.ThessaliaChoice = with(ThessaliaLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         var picked = choice(WHAT_GOT, BUY, NO_THANKS)
         if (picked == 1) {
@@ -127,14 +146,33 @@ object VarrockStores {
             if (picked == 1) {
                 chatPlayer(ChatAnim.QUIZ, MORE)
                 for (line in listOf(MORE_1, MORE_2, MORE_3, MORE_4)) chatNpc(ChatAnim.HAPPY, line)
-                // The change top and legwear options are left out, so buying and no are the menu's first two.
-                picked = choice(BUY, NO_THANKS) + 1
+                when (val change = choice(TOP, LEGWEAR, BUY, NO_THANKS)) {
+                    1, 2 -> {
+                        val page = if (change == 1) MakeoverPage.TORSOS else MakeoverPage.BOTTOMS
+                        chatNpc(ChatAnim.HAPPY, CATALOGUE)
+                        return@with VarrockStores.ThessaliaChoice.Makeover(page)
+                    }
+                    3 -> picked = 2
+                    else -> picked = 3
+                }
             }
         }
-        if (picked == 2) return@with true
+        if (picked == 2) return@with VarrockStores.ThessaliaChoice.Shop
         chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
         chatNpc(ChatAnim.HAPPY, RETURN)
-        false
+        VarrockStores.ThessaliaChoice.Nothing
+    }
+
+    /**
+     * Thessalia's line after a makeover offered in her talk is confirmed, one of six at random (the Wiki's transcript:
+     * "After choosing a top" or "a bottom"). Inferred: Apply alone, or the Makeover option, gets no line.
+     */
+    fun compliment(world: World, player: Player, thessalia: Npc) {
+        if (world.npcs[thessalia.index] !== thessalia) return
+        val line = ThessaliaLines.COMPLIMENTS[world.random.nextInt(ThessaliaLines.COMPLIMENTS.size)]
+        world.scripts.start(player) {
+            world.dialogues.start(this, thessalia) { chatNpc(ChatAnim.HAPPY, line) }
+        }
     }
 
     internal suspend fun Dialogue.asyff(): Boolean = with(AsyffLines) {
@@ -188,7 +226,6 @@ fun registerVarrockStores(world: World) {
         val talks: List<Pair<Int, suspend Dialogue.() -> Boolean>> = listOf(
             SHOP_KEEPER to { with(LumbridgeShopkeepers) { keeper(VarrockShopKeeperLines) } },
             SHOP_ASSISTANT to { with(LumbridgeShopkeepers) { keeper(VarrockShopKeeperLines) } },
-            THESSALIA to { thessalia() },
             ASYFF to { asyff() },
             TEA_SELLER to { teaSeller() },
         )
@@ -201,6 +238,17 @@ fun registerVarrockStores(world: World) {
                 if (trade) world.shopTypes.ofNpc(id)?.let { world.shopScreen.open(player, it) }
             }
         }
+        world.handlers.onNpc(THESSALIA, TALK_TO) { op ->
+            var picked: VarrockStores.ThessaliaChoice = VarrockStores.ThessaliaChoice.Nothing
+            world.dialogues.start(this, op.npc) { picked = thessalia() }
+            when (val choice = picked) {
+                VarrockStores.ThessaliaChoice.Shop -> world.shopTypes.ofNpc(THESSALIA)?.let { world.shopScreen.open(player, it) }
+                is VarrockStores.ThessaliaChoice.Makeover -> world.makeoverScreen.open(player, choice.page, op.npc)
+                VarrockStores.ThessaliaChoice.Nothing -> Unit
+            }
+        }
+        // Her Makeover option opens the screen on its tops, with no line after. Inferred: the page it opens on.
+        world.handlers.onNpc(THESSALIA, MAKEOVER_OP) { world.makeoverScreen.open(player, MakeoverPage.TORSOS) }
         for (id in AUBURY) {
             world.handlers.onNpc(id, TALK_TO) { op ->
                 var picked = VarrockStores.AuburyChoice.NOTHING

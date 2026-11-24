@@ -603,6 +603,86 @@ class HeadlessFightCaveTest {
 
     // Fight Caves step FC4: TzHaar-Mej-Jal.
 
+    // Exploit review round 45: test setups and the pet.
+
+    @Test
+    fun `a login in a test setup leaves the saved run for a login after it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ada").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ada")!!
+                val caves = server.world.fightCaves
+                player.vars[server.world.customVars.fightCaveVarp] = 5 or (1 shl 7)
+                assertEquals(5, caves.saved(player)?.wave)
+                player.scenario = "raid-tester"
+                caves.login(player)
+                client.await("the line") { client.messages().firstOrNull { "fight_cave.in_scenario" in it.text } }
+                assertNull(server.run("ada"), "no run for the kit")
+                assertEquals(5, caves.saved(player)?.wave, "still saved")
+                player.scenario = null
+                caves.login(player)
+                assertEquals(5, client.await("the run back") { server.run("ada") }.wave)
+            }
+        }
+    }
+
+    @Test
+    fun `putting a setup back keeps the run saved from before it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bo").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("bo")!!
+                val saved = 7 or (2 shl 7)
+                player.vars[server.world.customVars.fightCaveVarp] = saved
+                player.beforeScenario = server.world.snapshot(player)
+                player.scenario = "fight-cave"
+                player.vars[server.world.customVars.fightCaveVarp] = 0
+                assertTrue(server.world.fightCaves.start(player, 1, 1), "the setup's run")
+                client.await("the setup's run") { server.run("bo") }
+                osrsps.game.command.resetScenario(server.world, player)
+                assertNull(server.run("bo"), "the setup's run over")
+                client.awaitTicks(3)
+                assertEquals(saved, player.vars[server.world.customVars.fightCaveVarp], "the saved run kept")
+            }
+        }
+    }
+
+    @Test
+    fun `a TzRek-Jad roll won with the pet owned gives the message, not a second pet`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cy").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("cy")!!
+                server.world.fightCaves.petWon(player)
+                client.await("the pet") { client.inventory(INV).firstOrNull { it?.id == FightCaves.PET } }
+                server.world.fightCaves.petWon(player)
+                client.await("the message") { client.messages().firstOrNull { "fight_cave.pet_owned" in it.text } }
+                assertEquals(1L, player.inventory.count(FightCaves.PET) + player.bank.count(FightCaves.PET))
+            }
+        }
+    }
+
+    @Test
+    fun `in a test setup a reward with no room goes to the bank, and TzHaar-Mej-Jal takes no cape`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("di").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("di")!!
+                client.commandReply("item ${FightCaves.FIRE_CAPE} 28") { true }
+                client.await("a full backpack") { client.inventory(INV).takeIf { inv -> inv.count { it != null } == 28 } }
+                player.scenario = "raid-tester"
+                server.world.fightCaves.reward(player, FightCaves.FIRE_CAPE, 1)
+                server.world.fightCaves.pay(player, 100)
+                assertEquals(1L, player.bank.count(FightCaves.FIRE_CAPE), "the cape in the bank")
+                assertEquals(100L, player.bank.count(FightCaves.TOKKUL), "the TokKul in the bank")
+                val mej = client.mejJal()
+                client.npcOp(mej.index, MejJal.EXCHANGE)
+                client.await("the line") { client.messages().firstOrNull { "mej_jal.in_scenario" in it.text } }
+                assertEquals(28L, player.inventory.count(FightCaves.FIRE_CAPE), "every cape kept")
+            }
+        }
+    }
+
     private fun HeadlessClient.mejJal(): NpcView {
         tele(2438, 5168)
         return await("TzHaar-Mej-Jal in view") { npcs().firstOrNull { it.id == FightCaves.MEJ_JAL } }

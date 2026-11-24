@@ -19,6 +19,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 import osrsps.map.Reach
 import osrsps.map.Route
 import osrsps.map.RouteTarget
@@ -273,7 +274,7 @@ class NpcInteractions(
             return true
         }
         val size = npc.type.size
-        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size) && !overCounter(player, npc)) {
+        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size) && !overCounter(player, npc) && !fromRange(player, npc)) {
             if (interaction.repeat) {
                 // The NPC moved off while the action went on (a fishing spot moving): the action stops where the player
                 // stands, as on live, rather than chasing it. Guessed: the animation stops with it.
@@ -312,7 +313,7 @@ class NpcInteractions(
         // checked.
         val engaged = npc.engagedWith
         if (engaged == null || engaged === player || !scripts.busy(engaged)) npcs.engage(npc, player, currentTick()) else npcs.wait(npc, player)
-        if (handlers.find(op) != null) {
+        if (handlers.find(op, player) != null) {
             scripts.trigger(player, op)
         } else {
             logger.info { "${player.username} used $op on $npc (not handled)" }
@@ -333,6 +334,26 @@ class NpcInteractions(
      */
     fun reachOverCounter(id: Int) {
         overCounter += id
+    }
+
+    /** NPC types (the type the player sees, for a multi-NPC) used from up to their range away; see [reachFromRange]. */
+    private val approachRange = HashMap<Int, Int>()
+
+    /**
+     * Lets players use NPC type [id] (the type they see, for a multi-NPC) from up to [range] tiles away with it in line
+     * of sight, as the RS engine's approach options do: for an NPC on a ledge or platform no player can step beside,
+     * such as TzHaar-Ket-Keh by the Inferno. The player walks towards it as usual and the option runs once they are in
+     * range. Guessed: which NPCs live gives an approach range, and how far, aren't recorded.
+     */
+    fun reachFromRange(id: Int, range: Int) {
+        approachRange[id] = range
+    }
+
+    private fun fromRange(player: Player, npc: Npc): Boolean {
+        val range = approachRange[npc.type.id] ?: shownType(npc, player)?.id?.let(approachRange::get) ?: return false
+        val size = npc.type.size
+        return LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size) <= range &&
+            LineOfSight.clear(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size)
     }
 
     private fun countsOverCounter(player: Player, npc: Npc): Boolean =

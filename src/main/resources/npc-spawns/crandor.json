@@ -1,0 +1,30 @@
+{
+  "about": "Crandor's surface (Karamja step K1.4): hobgoblins, King Scorpions, lesser demons, moss giants and skeletons, guarding its mines. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), counts checked against the Wiki's Crandor page.",
+  "spawns": [
+    {"npc": "skeleton_armed", "x": 2820, "z": 3259, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed", "x": 2824, "z": 3237, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed", "x": 2850, "z": 3256, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed2", "x": 2832, "z": 3234, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed2", "x": 2854, "z": 3249, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed3", "x": 2840, "z": 3238, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed3", "x": 2852, "z": 3260, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed4", "x": 2846, "z": 3249, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "skeleton_armed5", "x": 2850, "z": 3247, "wander": 5, "source": "Skeleton (level 25), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "lesser_demon3", "x": 2837, "z": 3280, "wander": 5, "source": "Lesser demon (level 82), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "lesser_demon5", "x": 2832, "z": 3278, "wander": 5, "source": "Lesser demon (level 82), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "mossgiant", "x": 2831, "z": 3243, "wander": 5, "source": "Moss giant (level 42), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "mossgiant2", "x": 2834, "z": 3242, "wander": 5, "source": "Moss giant (level 42), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "mossgiant3", "x": 2827, "z": 3246, "wander": 5, "source": "Moss giant (level 42), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2842, "z": 3298, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2844, "z": 3291, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2851, "z": 3298, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2855, "z": 3303, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2859, "z": 3283, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "kingscorpion", "x": 2861, "z": 3295, "wander": 5, "source": "King Scorpion (level 32), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "hobgoblin_unarmed", "x": 2818, "z": 3291, "wander": 5, "source": "Hobgoblin (level 28), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "hobgoblin_unarmed", "x": 2822, "z": 3282, "wander": 5, "source": "Hobgoblin (level 28), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "hobgoblin_unarmed", "x": 2822, "z": 3288, "wander": 5, "source": "Hobgoblin (level 28), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "hobgoblin_unarmed", "x": 2824, "z": 3298, "wander": 5, "source": "Hobgoblin (level 28), Crandor. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "hobgoblin_unarmed", "x": 2834, "z": 3305, "wander": 5, "source": "Hobgoblin (level 28), Crandor. mejrs NPCList_OSRS; wander 5 guessed"}
+  ]
+}

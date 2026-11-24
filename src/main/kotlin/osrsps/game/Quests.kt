@@ -116,6 +116,28 @@ class Quests(val all: List<Quest>) {
             2025 to 1,
             2032 to 1,
             2034 to 1,
+            // Garden of Tranquillity leaves Varrock Palace's garden grown: each flower bed, the vines and the three rose
+            // bushes at their fully grown stage (7), both orchid pots likewise (the Wiki: the quest ends once every patch
+            // is fully grown and both statues are in place). The White Tree is set fully grown (8), and [osrsps.game.content.PalaceGarden]
+            // hangs its fruit on it. The two statues stand on their plinths (2 shows each placed), which leaves
+            // Lumbridge's statue of a former king gone from its plinth (the same varbit, 964, shows statue_plinth_lumbridge
+            // at 2). Varbit names: garden_delphinium_patch and so on, as the multilocs that read them are named.
+            979 to 7, 980 to 7, 981 to 7, 982 to 7, 983 to 7, 987 to 7,
+            984 to 7, 986 to 7,
+            985 to 8,
+            963 to 2, 964 to 2,
+            // Daddy's Home leaves Marlo's house mended: each piece of furniture and the carpet at its _fixed form (3).
+            10563 to 3, 10564 to 3, 10565 to 3, 10566 to 3, 10567 to 3, 10568 to 3, 10569 to 3,
+            // Demon Slayer: Sir Prysin's sword case (qip_ds_silverlight_case) stands empty once he has handed over
+            // Silverlight (inferred from its two forms, full and empty).
+            2567 to 1,
+            // bolren_got_orbs: Tree Gnome Village ends with the orbs back with King Bolren, and his village's spirit tree
+            // (ent) shows Travel, Talk-to and Last-destination from 2, the lowest value whose form has them (inferred;
+            // [osrsps.game.content.SpiritTrees]).
+            598 to 2,
+            // The Restless Ghost: the Wizards' Tower basement's altar (restless_ghost_altar) bare, the skull back in the
+            // coffin (1, restless_ghost_altar_no_skull).
+            2130 to 1,
         )
 
         val NONE = Quests(emptyList())

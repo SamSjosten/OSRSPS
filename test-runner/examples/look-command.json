@@ -1,0 +1,16 @@
+{
+  "name": "Looks step 1: ::look shows the saved look, switches body type, sets a kit and a colour, keeps them over a relog and resets",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::look reset", "expectMessage": "Look: body type A; kits hair 0, jaw 10, torso 18, arms 26, hands 33, legs 36, feet 42; colours hair 0, torso 0, legs 0, feet 0, skin 0", "comment": "the default look every account had before looks were kept"},
+    {"step": "command", "text": "::look body b", "expectMessage": "Look: body type B; kits hair 45, jaw -1, torso 56, arms 61, hands 67, legs 70, feet 79", "comment": "body type B's first kit of each part in the 242 cache, and no jaw; check by eye that the model changes"},
+    {"step": "command", "text": "::look colour skin 7", "expectMessage": "skin 7"},
+    {"step": "command", "text": "::look kit hair 0", "expectMessage": "Kit 0 isn't a hair of body type B", "comment": "kit 0 is body type A's bald"},
+    {"step": "command", "text": "::look colour feet 6", "expectMessage": "feet colours are 0 to 5"},
+    {"step": "logout", "comment": "auto login logs back in a few seconds later"},
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::look", "expectMessage": "Look: body type B; kits hair 45, jaw -1, torso 56, arms 61, hands 67, legs 70, feet 79; colours hair 0, torso 0, legs 0, feet 0, skin 7", "comment": "kept over the relog"},
+    {"step": "command", "text": "::look reset", "expectMessage": "Look: body type A", "comment": "the account back as it was; ::reset between scripts doesn't touch the look"}
+  ]
+}

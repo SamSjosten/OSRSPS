@@ -35,7 +35,7 @@ class LodestonesTest {
         }
         val locFiles = locs.overlayFiles.filter { it.group == CustomLocs.LOC_TYPE_GROUP }
         assertEquals(locs.all.map { it.id }, locFiles.map { it.file })
-        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006), locs.all.map { it.id })
+        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006, 65007), locs.all.map { it.id })
         assertTrue(locs.overlayFiles.all { it.index == 2 && (it.group == 6 || it.group == MapElementCodec.GROUP) })
         assertContentEquals(Lodestones.DORMANT_TYPE.encoded, locFiles.first { it.file == Lodestones.DORMANT }.data)
     }
@@ -80,8 +80,8 @@ class LodestonesTest {
             // Another cache's ids give another type, so a stone can't be built before the cache is read.
             assertEquals(varbit + 100, site.type(varbit + 100).definition.transform?.varbit)
         }
-        assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville"), Lodestones.SITES.map { it.slug })
-        assertEquals(listOf(65002, 65003, 65004, 65005, 65006), Lodestones.SITES.map { it.id })
+        assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville", "karamja"), Lodestones.SITES.map { it.slug })
+        assertEquals(listOf(65002, 65003, 65004, 65005, 65006, 65007), Lodestones.SITES.map { it.id })
     }
 
     @Test
@@ -133,8 +133,8 @@ class LodestonesTest {
         val other = World(IntArray(0), CollisionMap(), cache)
         assertEquals(5996, other.customVars.lodestonesVarp, "right after this cache's varps")
         assertEquals(20411, other.lodestones.varbit(Lodestones.LUMBRIDGE))
-        assertEquals(6002, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's, the giant lairs', the Wilderness lair visit's, the Fight Cave's and the Inferno's varps")
+        assertEquals(6005, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's, the giant lairs', the Wilderness lair visit's, the Fight Cave's, the Inferno's, the White Tree's, the banana crate's and Mor Ul Rek's access varps")
         assertEquals(VarbitType(5996, 4, 4), other.varTypes.varbit(20415))
-        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001), other.varTypes.namedVarps)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003, "mor_ul_rek_access" to 6004), other.varTypes.namedVarps)
     }
 }

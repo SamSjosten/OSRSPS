@@ -34,6 +34,7 @@ object AgilityLines : Lines("agility", "Agility") {
     val VARROCK_LEVEL = line("varrock_level", "Varrock Rooftop Course: an obstacle clicked below level 30", "level")
     val GNOME_LAPS = line("gnome_laps", "Gnome Stronghold Agility Course: the lap count message after each lap", "count")
     val VARROCK_FENCE_LEVEL = line("varrock_fence_level", "Shortcut: the Varrock south fence clicked below level 13", "level")
+    val VARROCK_PALACE_TRELLIS_LEVEL = line("varrock_palace_trellis_level", "Shortcut: Varrock Palace garden's trellis clicked below level 35", "level")
     val GRAND_EXCHANGE_TUNNEL_LEVEL = line("grand_exchange_tunnel_level", "Shortcut: the Grand Exchange underwall tunnel clicked below level 21", "level")
     val CHAMPIONS_GUILD_STONE_LEVEL = line("champions_guild_stone_level", "Shortcut: the Champions' Guild stepping stone clicked below level 31", "level")
     val DRAYNOR_TUNNEL_LEVEL = line("draynor_tunnel_level", "Shortcut: the Draynor underwall tunnel clicked below level 42", "level")
@@ -41,6 +42,10 @@ object AgilityLines : Lines("agility", "Agility") {
     val CHAMPIONS_GUILD_SOUTH_STONES_LEVEL = line("champions_guild_south_stones_level", "Shortcut: the Champions' Guild south stepping stones clicked below level 52", "level")
     val RIVER_LUM_RAFT_LEVEL = line("river_lum_raft_level", "Shortcut: the River Lum's broken raft, Jump-to clicked below level 48", "level")
     val LUMBRIDGE_SWAMP_DESERT_STONE_LEVEL = line("lumbridge_swamp_desert_stone_level", "Shortcut: the Lumbridge Swamp stepping stone to the desert clicked below level 66", "level")
+    val EDGEVILLE_DUNGEON_PIPE_LEVEL = line("edgeville_dungeon_pipe_level", "Shortcut: the Edgeville Dungeon obstacle pipe to the Varrock Sewers clicked below level 51", "level")
+    val EDGEVILLE_DUNGEON_SOUTH_PIPE_LEVEL = line("edgeville_dungeon_south_pipe_level", "Shortcut: the Edgeville Dungeon's south obstacle pipe clicked below level 60", "level")
+    val PIPE_STUCK = line("pipe_stuck", "Shortcut: an Edgeville Dungeon obstacle pipe crossed with damage (the Wiki's Obstacle pipe (Edgeville Dungeon) page quotes it)")
+    val LUMBRIDGE_CELLAR_HOLE_LEVEL = line("lumbridge_cellar_hole_level", "Shortcut: the Lumbridge Castle cellar's hole clicked below level 13; words unsourced", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -112,6 +117,13 @@ class Obstacle(
     val fromStart: Boolean = false,
     /** Whether a failure puts out the player's lights, as a fall into water does (the Wiki's Light sources page). */
     val failDouses: Boolean = false,
+    /** The message a failure gives, after its moves; null for none. */
+    val failLine: Line? = null,
+    /**
+     * The hitpoints at or below which the obstacle can't fail, so its damage can't kill: the Edgeville Dungeon pipes' 6,
+     * as their Wiki pages say; 0 for most.
+     */
+    val safeAtHp: Int = 0,
 ) {
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
@@ -221,6 +233,8 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["failXpTenths"]?.jsonPrimitive?.int ?: 0,
                 json["fromStart"]?.jsonPrimitive?.boolean ?: false,
                 json["failDouses"]?.jsonPrimitive?.boolean ?: false,
+                json["failLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey),
+                json["safeAtHp"]?.jsonPrimitive?.int ?: 0,
             )
         }
 
@@ -289,7 +303,7 @@ class Agility(private val world: World, val data: AgilityData) {
         }
         val route = routeFor(obstacle, loc) ?: return
         if (!walkTo(route.from)) return
-        val success = obstacle.success?.let { (low, high) ->
+        val success = player.hitpoints <= obstacle.safeAtHp || obstacle.success?.let { (low, high) ->
             SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
         } ?: true
         for (move in if (success) route.moves else route.fail) play(move)
@@ -300,8 +314,12 @@ class Agility(private val world: World, val data: AgilityData) {
         } else {
             if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)
             if (obstacle.failDouses) LightSources.extinguish(player)
+            obstacle.failLine?.let { player.message(world.textFor(player)[it]) }
             if (obstacle.damage.isEmpty()) return
-            val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
+            var damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
+            // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
+            if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
+            if (damage <= 0) return
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
         }
     }

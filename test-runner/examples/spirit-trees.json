@@ -1,0 +1,57 @@
+{
+ "name": "Travel networks step T4: the Grand Exchange's spirit tree takes the player to Feldip Hills by its travel menu, Feldip's refuses its own place, Talk-to's Where can I go goes back, and Last-destination returns to Feldip (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back, Last-destination with it"},
+  {"step": "command", "text": "::varbit 20252 0", "comment": "spirit_tree_previous: no trip yet"},
+  {"step": "command", "text": "::tele 3184 3508 0", "expectMessage": "Teleported to 3184, 3508, 0", "comment": "south of the Grand Exchange's tree (3184, 3509)"},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "locOption", "loc": "Spirit tree", "option": "Travel", "x": 3184, "y": 3509},
+  {"step": "assertInterface", "interfaceId": 187, "comment": "the travel menu"},
+  {"step": "assertWidgetText", "interfaceId": 187, "component": 3, "contains": "[spirit_tree.feldip_hills]"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the menu lays itself out"},
+  {"step": "mouseClick", "interfaceId": 187, "component": 3, "slot": 4, "comment": "Feldip Hills, the fifth entry: a click on an entry is its Continue"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.bark]"},
+  {"step": "continueDialogue"},
+  {"step": "assertLocation", "x": 2486, "y": 2849, "plane": 0, "timeoutMs": 10000, "comment": "south of Feldip Hills' tree"},
+  {"step": "assertVarbit", "id": 20252, "value": 5},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "locOption", "loc": "Spirit tree", "option": "Travel", "x": 2486, "y": 2850},
+  {"step": "assertInterface", "interfaceId": 187},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "mouseClick", "interfaceId": 187, "component": 3, "slot": 4, "comment": "Feldip Hills again, from its own tree"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.already_here]"},
+  {"step": "continueDialogue"},
+  {"step": "assertNoDialogue"},
+
+  {"step": "locOption", "loc": "Spirit tree", "option": "Talk-to", "x": 2486, "y": 2850},
+  {"step": "assertDialogue", "contains": "[spirit_tree.greeting]"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[spirit_tree.where]"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.where]"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.related]"},
+  {"step": "continueDialogue"},
+  {"step": "assertInterface", "interfaceId": 187, "comment": "the same menu"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "mouseClick", "interfaceId": 187, "component": 3, "slot": 3, "comment": "Grand Exchange, the fourth entry"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.bark]"},
+  {"step": "continueDialogue"},
+  {"step": "assertLocation", "x": 3184, "y": 3508, "plane": 0, "timeoutMs": 10000},
+  {"step": "assertVarbit", "id": 20252, "value": 4},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "command", "text": "::varbit 20252 5", "comment": "Last-destination at Feldip Hills"},
+  {"step": "locOption", "loc": "Spirit tree", "option": "Feldip Hills", "x": 3184, "y": 3509, "comment": "Last-destination, which the cache names after its place (multiop3)"},
+  {"step": "assertDialogue", "contains": "[spirit_tree.bark]"},
+  {"step": "continueDialogue"},
+  {"step": "assertLocation", "x": 2486, "y": 2849, "plane": 0, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "name": "Treasure Trails step TT8: Charlie the Tramp sets a beginner task, waits for its item and takes it for the next clue (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+
+  {"step": "command", "text": "::clue beginner cryptic:639", "expectMessage": "Clue (beginner): cryptic:639", "comment": "Talk to Charlie the Tramp in Varrock, on the shared beginner scroll"},
+  {"step": "command", "text": "::tele 3209 3393 0", "comment": "beside Charlie's spot (3208, 3391)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Charlie the Tramp", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.charlie_task]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "npcOption", "npc": "Charlie the Tramp", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.charlie_waiting]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::item 333 1", "comment": "every task's item, so whichever he set is there"},
+  {"step": "command", "text": "::item 351 1"},
+  {"step": "command", "text": "::item 345 1"},
+  {"step": "command", "text": "::item 335 1"},
+  {"step": "command", "text": "::item 440 1"},
+  {"step": "command", "text": "::item 1203 1"},
+  {"step": "command", "text": "::item 1129 1"},
+  {"step": "command", "text": "::item 1095 1"},
+  {"step": "npcOption", "npc": "Charlie the Tramp", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.charlie_thanks]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "the item box: another_clue, or casket on a one-step trail"},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

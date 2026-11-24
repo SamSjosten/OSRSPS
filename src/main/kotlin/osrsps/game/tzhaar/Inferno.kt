@@ -41,8 +41,9 @@ object InfernoLines : Lines("inferno", "The Inferno") {
  * [osrsps.game.content.CustomVars.infernoVarp] and the supports' damage in their own varbits.
  *
  * Built in IN1: the waves and their monsters with their stats and ordinary attacks (npc-combat.json); the supports and
- * Nibblers; entry, exit, death and logout. Each monster's own mechanics come in IN2 (Jal-Ak's split, Jal-ImKot's dig,
- * Jal-Zek's revive, ...), JalTok-Jad's in IN3, TzKal-Zuk's shield, sets and healers with the pet in IN4.
+ * Nibblers; entry, exit, death and logout. IN2: each monster's own mechanics ([InfernoMonsters]: Jal-Ak's split,
+ * Jal-ImKot's dig, Jal-Zek's revive, ...). IN3: JalTok-Jad's attacks and healers ([InfernoJads]). IN4: TzKal-Zuk's fight
+ * ([InfernoZuk]: the Ancestral Glyph, the sets, the Jad and the MejJaks), the pet, and TzHaar-Ket-Keh's Exchange.
  *
  * GUESSED until recorded: the monsters' spots ([InfernoSpot]) and which monster takes which (World.random); where the
  * player comes in ([ARRIVAL], north of the exit), comes back after a login ([MIDDLE]), and comes out ([OUTSIDE], south of
@@ -67,6 +68,16 @@ class Inferno(private val world: World) {
 
         /** The wave's monsters still in the world, the dead ones until their bodies go. */
         val monsters: MutableList<Npc> = ArrayList()
+
+        /** The tick the wave being fought came in on. */
+        var waveStartTick: Long = 0
+            internal set
+
+        /** A Jal-Ak's smaller selves that couldn't come in yet (the world full of NPCs), by type and tile: the wave waits. */
+        internal val splitsOwed: MutableList<Pair<Int, Tile>> = ArrayList()
+
+        /** The wave's monsters that died and a Jal-Zek can bring back, by type, first dead first ([InfernoMonsters]). */
+        val slain: MutableList<Int> = ArrayList()
 
         /** The rocky supports still standing. */
         val pillars: MutableList<InfernoPillars.Pillar> = ArrayList()
@@ -101,8 +112,20 @@ class Inferno(private val world: World) {
 
     val pillars = InfernoPillars(world)
 
+    /** The monsters' own mechanics (Inferno step IN2). */
+    val monsterMechanics = InfernoMonsters(world)
+
+    /** The JalTok-Jads and their healers (Inferno step IN3). */
+    val jads = InfernoJads(world)
+
+    /** TzKal-Zuk's fight, wave 69 (Inferno step IN4). */
+    val zuk = InfernoZuk(world)
+
     fun register() {
         pillars.register(this)
+        monsterMechanics.register(this)
+        jads.register(this)
+        zuk.register()
         KetKeh.register(world, this)
         world.handlers.onLoc(ENTRANCE, JUMP_IN) { enter(player) }
         world.handlers.onLoc(EXIT, LEAVE) { leave(player) }
@@ -111,7 +134,8 @@ class Inferno(private val world: World) {
             val run = runAt(zuk.x, zuk.z) ?: return@onDeath
             // A shot landing after they died isn't a win: their death stays the safe one (Codex review on #829).
             world.onlinePlayers.firstOrNull { it.saveKey == run.owner }
-                ?.takeIf { !it.dead && it.hitpoints > 0 && !run.died && run.instance.contains(it.x, it.z) }?.let { victory(it, run) }
+                ?.takeIf { !it.dead && it.hitpoints > 0 && !run.died && run.instance.contains(it.x, it.z) }
+                ?.let { victory(it, run, world.slayer.onTask(it, zuk)) }
         }
         val multi = world.multiCombat.dynamic
         world.multiCombat.dynamic = { level, x, z -> runAt(x, z) != null || multi(level, x, z) }
@@ -184,6 +208,8 @@ class Inferno(private val world: World) {
     /** The Inferno's part of a tick, in the NPC phase after the fights: logins, waves in, waves done, runs ended. */
     fun process() {
         pillars.process()
+        jads.process()
+        zuk.process()
         if (resuming.isNotEmpty()) resume()
         if (runs.isEmpty()) return
         for (run in runs.values.toList()) {
@@ -200,8 +226,19 @@ class Inferno(private val world: World) {
             }
             run.monsters.removeAll { world.npcs[it.index] !== it }
             pillars.tick(run, player)
+            if (run.wave == InfernoWaves.ZUK_WAVE) zuk.tick(this, run, player)
+            for (npc in run.monsters.toList()) {
+                // A set or the Jad at the glyph is the Zuk fight's until the player attacks it.
+                if (zuk.onGlyph(run, npc)) continue
+                if (monsterMechanics.scripted(npc.type.id)) monsterMechanics.tick(this, run, npc, player)
+                if (npc.type.id in InfernoJads.JADS) jads.tick(this, run, npc, player)
+            }
             if (run.nextWaveTick >= 0) {
                 if (world.tick >= run.nextWaveTick) spawnWave(player, run)
+            } else if (run.splitsOwed.isNotEmpty()) {
+                for (owed in run.splitsOwed.toList()) {
+                    if (spawn(player, run, owed.first, owed.second) != null) run.splitsOwed.remove(owed)
+                }
             } else if (run.monsters.none { !it.dead }) {
                 waveDone(player, run)
             }
@@ -214,6 +251,11 @@ class Inferno(private val world: World) {
             resuming -= key
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
             if (player.dead || runs.containsKey(key) || world.instances.at(player.x, player.z) != null) continue
+            // In a test setup the saved run waits for a login after ::reset, or the kit would fight it (exploit review R45B-2).
+            if (player.scenario != null) {
+                if (saved(player) != null) world.message(player, InfernoLines.IN_SCENARIO)
+                continue
+            }
             val wave = saved(player) ?: continue
             start(player, wave, MIDDLE, RESUME_TICKS, fresh = false)
         }
@@ -222,10 +264,13 @@ class Inferno(private val world: World) {
     private fun spawnWave(player: Player, run: Run) {
         run.nextWaveTick = -1
         run.pausing = false
+        run.waveStartTick = world.tick
+        run.slain.clear()
         world.message(player, InfernoLines.WAVE, "wave" to run.wave)
         val monsters = InfernoWaves.monsters(run.wave)
         val spots = InfernoSpot.entries.toMutableList()
         var nibblers = 0
+        val spawned = ArrayList<Npc>()
         for (monster in monsters) {
             val tile = when (monster) {
                 InfernoMonster.NIBBLER -> nibblerTile(nibblers++)
@@ -233,15 +278,19 @@ class Inferno(private val world: World) {
                 else -> spots.removeAt(world.random.nextInt(spots.size)).tile
             }
             // Nibblers go for the supports while any stand ([InfernoPillars]); the rest for the player.
-            if (spawn(player, run, monster.type, run.at(tile), fight = monster != InfernoMonster.NIBBLER || (run.pillars.isEmpty() && run.pillarsOwed.isEmpty())) == null) {
+            val npc = spawn(player, run, monster.type, run.at(tile), fight = monster != InfernoMonster.NIBBLER || (run.pillars.isEmpty() && run.pillarsOwed.isEmpty()))
+            if (npc == null) {
                 // A monster that couldn't come in (the world full of NPCs) isn't a kill: the wave goes and comes again.
                 logger.warn { "${run.owner}: inferno wave ${run.wave} couldn't spawn ${monster.type}; trying again" }
-                for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
+                for (m in run.monsters) if (world.npcs[m.index] === m) world.removeNpc(m)
                 run.monsters.clear()
                 run.nextWaveTick = world.tick + WAVE_GAP_TICKS
                 return
             }
+            spawned += npc
         }
+        jads.waveIn(run, spawned.filter { it.type.id == InfernoMonster.JAD.type })
+        spawned.firstOrNull { it.type.id == InfernoMonster.ZUK.type }?.let { zuk.waveIn(this, run, player, it) }
         logger.debug { "${run.owner}: inferno wave ${run.wave} in, ${monsters.joinToString()}" }
     }
 
@@ -260,9 +309,10 @@ class Inferno(private val world: World) {
         val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, 0, source = SOURCE, respawns = false)) ?: return null
         npc.unleashed = true
         npc.huntsAnywhere = true
-        // A Nibbler's swings are its own ([InfernoPillars]): at a support, or, with none left, at the player. TzKal-Zuk
-        // stands still and holds his attack until his fight is built (Inferno step IN4).
-        npc.scriptedAttacks = typeId == InfernoMonster.NIBBLER.type || typeId == InfernoMonster.ZUK.type
+        // A Nibbler's swings are its own ([InfernoPillars]): at a support, or, with none left, at the player. TzKal-Zuk,
+        // the glyph and the MejJaks are [InfernoZuk]'s, the Jads [InfernoJads]'.
+        npc.scriptedAttacks = typeId == InfernoMonster.NIBBLER.type || typeId in InfernoJads.JADS || typeId in ZUK_FIGHT ||
+            monsterMechanics.scripted(typeId)
         run.monsters += npc
         if (fight) world.meleeCombat.aggress(npc, player, world.tick)
         return npc
@@ -283,12 +333,24 @@ class Inferno(private val world: World) {
     }
 
     /** TzKal-Zuk is dead: out with the infernal cape and the TokKul, and TzHaar-Ket-Keh's thanks. */
-    private fun victory(player: Player, run: Run) {
+    private fun victory(player: Player, run: Run, onTask: Boolean) {
         end(run)
         forget(player)
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
-        world.objTypes[INFERNAL_CAPE]?.let { world.groundObjs.give(player, it, 1) }
+        world.fightCaves.reward(player, INFERNAL_CAPE, 1)
+        world.collectionLog.add(player, INFERNAL_CAPE, 1)
         pay(player, WIN_TOKKUL)
+        // Jal-Nib-Rek: 1 in 100, 1 in 75 on a Slayer task (the Wiki's Jal-Nib-Rek). Ours is the item alone: no followers yet.
+        if (world.random.chance(1, if (onTask) InfernoZuk.PET_ODDS_ON_TASK else InfernoZuk.PET_ODDS)) {
+            // A player who owns Jal-Nib-Rek gets the message instead of a second one, as live (exploit review R45B-3).
+            if (KetKeh.ownsPet(player)) {
+                world.message(player, FightCaveLines.PET_OWNED)
+            } else {
+                world.fightCaves.reward(player, InfernoZuk.PET, 1)
+                world.collectionLog.add(player, InfernoZuk.PET, 1)
+                world.message(player, FightCaveLines.PET)
+            }
+        }
         if (player.vars.types.varpCount > VARP_ZUK_KILLS) player.vars[VARP_ZUK_KILLS] = player.vars[VARP_ZUK_KILLS] + 1
         KetKeh.victory(world, player, WIN_TOKKUL)
         logger.info { "${player.username} beat the inferno" }
@@ -349,10 +411,17 @@ class Inferno(private val world: World) {
     private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) = world.fightCaves.pay(player, tokkul, bankOverflow)
 
     /** Ends [run]: its monsters and supports go, and its Inferno once nobody is in it (the world ends empty instances). */
+    /** Ends [player]'s run, if any, leaving their saved one as it is: `::reset` does this first (exploit review R45B-5). */
+    fun endRun(player: Player) {
+        runs[player.saveKey]?.let(::end)
+    }
+
     internal fun end(run: Run) {
         if (runs[run.owner] === run) runs.remove(run.owner)
         // A shot on its way would land outside after the run is over, where a death is no longer safe.
         world.meleeCombat.dropShotsFromWithin { x, z -> run.instance.contains(x, z) }
+        jads.dropHitsWithin { x, z -> run.instance.contains(x, z) }
+        zuk.end(run)
         for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
         run.monsters.clear()
         for (pillar in run.pillars) {
@@ -385,6 +454,9 @@ class Inferno(private val world: World) {
         /** The most TokKul the Inferno pays (the Wiki's Inferno, Rewards), for TzKal-Zuk's death. */
         const val WIN_TOKKUL = 16_440
 
+        /** The Zuk fight's own NPCs, which fight through [InfernoZuk]. */
+        private val ZUK_FIGHT = setOf(InfernoMonster.ZUK.type, InfernoZuk.GLYPH, InfernoZuk.MEJJAK)
+
         /** The Inferno's locs whose handlers work in a copy of it. */
         val INSTANCE_LOCS: Set<Int> = setOf(EXIT)
 
@@ -409,6 +481,7 @@ class Inferno(private val world: World) {
         private val NIBBLER_OFFSETS = listOf(0 to 0, 1 to 0, -1 to 0, 0 to 1, 0 to -1, 1 to 1)
 
         const val FIRST_WAVE_TICKS = FightCaves.FIRST_WAVE_TICKS
+
         const val WAVE_GAP_TICKS = FightCaves.WAVE_GAP_TICKS
         const val RESUME_TICKS = FightCaves.RESUME_TICKS
 

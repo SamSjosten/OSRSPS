@@ -340,6 +340,68 @@ expect_status 0
 [[ ! -e $tmp/vm/.git/logs/HEAD.lock ]] || fail "the stale .git/logs lock is still there"
 expect_checkout "$head"
 
+# A process named git that only waits, to stand for a git running in some folder: a script, whose process takes the
+# script's name (a copy of sleep can't stand in: on a multi-call coreutils it answers "unknown program 'git'"). The loop
+# keeps the shell from handing its process over to sleep.
+mkdir -p "$tmp/fakegit" "$tmp/elsewhere"
+printf '#!/bin/sh\nwhile :; do sleep 1; done\n' >"$tmp/fakegit/git"
+chmod +x "$tmp/fakegit/git"
+
+step="the stand-in git runs under the name git"
+(cd "$tmp/elsewhere" && exec "$tmp/fakegit/git") &
+sleeper=$!
+sleep 0.3
+[[ $(ps -o comm= -p "$sleeper") == git ]] || fail "the stand-in runs as '$(ps -o comm= -p "$sleeper")', not git"
+kill "$sleeper" 2>/dev/null || true
+wait "$sleeper" 2>/dev/null || true
+
+step="a stale lock is cleared while a git runs in another folder"
+merge src/main/Elsewhere.kt=16
+touch -d '-20 minutes' "$tmp/vm/.git/HEAD.lock"
+(cd "$tmp/elsewhere" && exec "$tmp/fakegit/git") &
+sleeper=$!
+sleep 0.3
+deploy
+kill "$sleeper" 2>/dev/null || true
+wait "$sleeper" 2>/dev/null || true
+expect_status 0
+[[ ! -e $tmp/vm/.git/HEAD.lock ]] || fail "a git in another folder kept the stale lock"
+expect_checkout "$head"
+
+step="a stale lock is left while a git runs in this checkout"
+merge src/main/Here.kt=17
+touch -d '-20 minutes' "$tmp/vm/.git/HEAD.lock"
+(cd "$tmp/vm" && exec "$tmp/fakegit/git") &
+sleeper=$!
+sleep 0.3
+deploy
+kill "$sleeper" 2>/dev/null || true
+wait "$sleeper" 2>/dev/null || true
+expect_status 1
+[[ -e $tmp/vm/.git/HEAD.lock ]] || fail "a lock was removed while a git ran in the checkout"
+expect_no_calls
+rm -f "$tmp/vm/.git/HEAD.lock"
+deploy --force
+expect_status 0
+expect_checkout "$head"
+
+step="a git command of staging.sh holding .deploy/git.lock: the deploy waits, gives up, and the next run deploys"
+merge src/main/GitLock.kt=18
+touch -d '-20 minutes' "$tmp/vm/.git/gc.pid.lock"
+flock -x "$tmp/vm/.deploy/git.lock" sleep 3 &
+sleep 0.5
+OSRSPS_GIT_LOCK_WAIT=1 deploy
+expect_status 1
+grep -q "held .deploy/git.lock for 1 s" "$tmp/out" || fail "the log doesn't say the git lock was held"
+[[ -e $tmp/vm/.git/gc.pid.lock ]] || fail "a lock was removed while another git command held .deploy/git.lock"
+expect_no_calls
+wait
+deploy
+expect_status 0
+[[ ! -e $tmp/vm/.git/gc.pid.lock ]] || fail "the stale lock wasn't cleared once .deploy/git.lock was free"
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_checkout "$head"
+
 step="with too little memory the server stops for the build, then the new one starts"
 merge src/main/Tight.kt=20
 echo "MemAvailable:     700000 kB" >"$tmp/meminfo"

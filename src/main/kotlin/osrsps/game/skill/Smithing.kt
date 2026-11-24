@@ -325,10 +325,12 @@ class Smithing(private val world: World) {
 
         /**
          * Furnaces by gameval name: fai_falador_furnace (Lumbridge's and Al Kharid's, Smelt is op2), furnace and
-         * varrock_diary_furnace (Edgeville's). Anvils: the rusted anvil north of Lumbridge Castle and the plain anvil.
+         * varrock_diary_furnace (Edgeville's), and tzhaar_lava_forge (Mor Ul Rek's lava forges, 11978: the Wiki's Lava
+         * forge page calls it a furnace; Smelt is its op2). Anvils: the rusted anvil north of Lumbridge Castle and the plain anvil.
          */
         const val FURNACE = 24009
-        val FURNACES = setOf(FURNACE, 2030, 16469)
+        val FURNACES = setOf(FURNACE, 2030, 16469, LAVA_FORGE)
+        const val LAVA_FORGE = 11978
         const val RUSTED_ANVIL = 39620
         const val ANVIL = 2097
         val ANVILS = setOf(RUSTED_ANVIL, ANVIL)

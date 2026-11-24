@@ -1,0 +1,31 @@
+{
+  "about": "The Escape Caves (Wilderness step W4.11): 8 grizzly bears and 18 poison spiders where the OSRS Wiki's locations maps pin them (read 2026-11-15); mejrs's NPCList_OSRS has none in the caves. Their wander ranges are guessed until recorded.",
+  "spawns": [
+    {"npc": "wbr_bear", "x": 3333, "z": 10269, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3342, "z": 10256, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3346, "z": 10292, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3355, "z": 10270, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3363, "z": 10247, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3371, "z": 10293, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3376, "z": 10256, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_bear", "x": 3379, "z": 10283, "wander": 5, "source": "OSRS Wiki, Grizzly bear (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3335, "z": 10264, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3336, "z": 10277, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3338, "z": 10282, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3339, "z": 10258, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3347, "z": 10251, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3349, "z": 10265, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3357, "z": 10248, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3357, "z": 10294, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3358, "z": 10277, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3360, "z": 10286, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3365, "z": 10267, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3368, "z": 10248, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3369, "z": 10293, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3373, "z": 10262, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3375, "z": 10289, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3380, "z": 10261, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3381, "z": 10265, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"},
+    {"npc": "wbr_cave_poisonspider", "x": 3382, "z": 10278, "wander": 5, "source": "OSRS Wiki, Poison spider (Escape Caves), its locations map; wander guessed"}
+  ]
+}
