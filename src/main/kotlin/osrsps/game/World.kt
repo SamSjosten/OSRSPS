@@ -136,6 +136,7 @@ import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
+import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -1225,6 +1226,7 @@ class World(
         registerDigsiteDigs(this)
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
+        registerDigsiteCamp(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)

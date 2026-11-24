@@ -371,6 +371,7 @@ object DialogueLines {
         BargeLines,
         DigsiteSignLines,
         DigsiteDigLines,
+        DigsiteCampLines,
         ExamCentreLines,
         TerryLines,
         DigsiteDungeonLines,
