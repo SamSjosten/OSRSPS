@@ -13,12 +13,18 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
+import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.construction.EstateAgent
+import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.FurnitureData
+import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.zone.ZoneLoc
@@ -41,6 +47,9 @@ class HeadlessHouseTest {
     private fun hotspot(id: Int, name: String, width: Int = 1) =
         LocType(id, name, ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = width, length = width, interactType = 0))
 
+    private fun built(id: Int, name: String) =
+        LocType(id, name, ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0))
+
     private fun door(id: Int, op: String) = LocType(id, "Door", ops = listOf(op, null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
 
     private val types = listOf(
@@ -50,8 +59,17 @@ class HeadlessHouseTest {
         hotspot(House.DOOR_HOTSPOT_LEFT, "Door hotspot"),
         hotspot(House.DOOR_HOTSPOT_RIGHT, "Door hotspot"),
         hotspot(CHAIR_SPACE, "Chair space"),
+        hotspot(RUG_MIDDLE_SPACE, "Rug space"), hotspot(RUG_SIDE_SPACE, "Rug space"), hotspot(RUG_CORNER_SPACE, "Rug space"),
+        LocType(BROWN_RUG_CORNER, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(BROWN_RUG_SIDE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(BROWN_RUG_MIDDLE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        hotspot(BOOKCASE_SPACE, "Bookcase space"), hotspot(SCROLL_SPACE, "Bookcase space"),
+        hotspot(FIREPLACE_SPACE, "Fireplace space"), hotspot(CURTAIN_SPACE, "Curtain space"),
+        built(WOODEN_BOOKCASE, "Wooden bookcase"), built(WOODEN_SCROLLS, "Wooden bookcase"),
+        built(CLAY_FIREPLACE, "Clay fireplace"), built(TORN_CURTAINS, "Torn curtains"),
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
+        LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
 
@@ -66,8 +84,16 @@ class HeadlessHouseTest {
     }
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(EstateAgent.GUIDE_BOOK + 1)
+        val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
+        objs[PLANK] = ObjType(PLANK, "Plank")
+        objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
+        objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
+        objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
+        objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
+        objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
+        objs[HAMMER] = ObjType(HAMMER, "Hammer")
+        objs[SAW] = ObjType(SAW, "Saw")
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
@@ -88,14 +114,41 @@ class HeadlessHouseTest {
                 add(ZoneLoc(House.CENTREPIECE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, garden.templateX + 3, garden.templateZ + 3, 0))
                 doors(garden.templateX, garden.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
                 add(ZoneLoc(CHAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 2, parlour.templateZ + 4, 0))
+                // A small rug: a corner, a side and the middle, one tile each (the cache's rug is bigger).
+                add(ZoneLoc(RUG_CORNER_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 1, parlour.templateZ + 1, 0))
+                add(ZoneLoc(RUG_SIDE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 1, 0))
+                add(ZoneLoc(RUG_MIDDLE_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 2, parlour.templateZ + 2, 0))
+                // A bookcase with its scroll rack beside it, a fireplace, and curtains on two windows of the north wall.
+                add(ZoneLoc(BOOKCASE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 6, parlour.templateZ + 2, 0))
+                add(ZoneLoc(SCROLL_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 6, parlour.templateZ + 3, 0))
+                add(ZoneLoc(FIREPLACE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 4, parlour.templateZ + 6, 0))
+                add(ZoneLoc(CURTAIN_SPACE, LocShape.WALL_STRAIGHT, 1, parlour.templateX + 2, parlour.templateZ + 7, 0))
+                add(ZoneLoc(CURTAIN_SPACE, LocShape.WALL_STRAIGHT, 1, parlour.templateX + 5, parlour.templateZ + 7, 0))
                 doors(parlour.templateX, parlour.templateZ, listOf(0, 2, 3)).forEach(::add)
                 // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
                 add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
             },
+            // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
+            varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
+            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains))),
         )
     }
+
+    /** The chair spaces' first two choices, as the cache's furniture table has them (rows 5517 and 5518). */
+    private val chairs = listOf(
+        FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
+        FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
+    )
+
+    /** The rug space's first choice (row 5524). */
+    private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
+
+    /** The other parlour places' first choices (rows 5529, 5532 and 5535), with the Wiki's materials and levels. */
+    private val bookcases = listOf(FurnitureOption(WOODEN_BOOKCASE_ROW, "Wooden bookcase", 8319, listOf(PLANK to 4, Furniture.ANY_NAILS to 4), level = 4))
+    private val fireplaces = listOf(FurnitureOption(CLAY_FIREPLACE_ROW, "Clay fireplace", 8325, listOf(SOFT_CLAY to 3), level = 3))
+    private val curtains = listOf(FurnitureOption(TORN_CURTAINS_ROW, "Torn curtains", 8322, listOf(PLANK to 3, BOLT_OF_CLOTH to 3, Furniture.ANY_NAILS to 3), level = 2))
 
     private fun HeadlessClient.ready() = await("the login rebuild") { position }
 
@@ -315,8 +368,11 @@ class HeadlessHouseTest {
                 assertEquals(RoomType.KITCHEN to 1, kitchen.type to kitchen.rotation)
 
                 // Out of building mode it is drawn turned, and the parlour's east doorway is a door onto it.
+                assertEquals(1, player.vars.getVarbit(House.BUILDING_MODE_VARBIT))
                 client.locOp(House.EXIT_PORTAL, px + 3, pz - 8 + 3, House.EXIT_ENTER)
                 client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                // Leaving turns building mode's varbit off again (exploit review R43B-2).
+                client.await("building mode off") { if (player.vars.getVarbit(House.BUILDING_MODE_VARBIT) == 0) Unit else null }
                 val home = client.goIn(House.HOME)
                 val again = assertNotNull(server.world.instances.at(home.x, home.z))
                 val hx = again.baseX + (House.STARTER_X shl 3)
@@ -344,8 +400,216 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `building mode builds a chair on its space from the creation menu, and removes it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + (House.STARTER_X shl 3) + 2
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                val player = server.world.playerNamed("dave")!!
+                fun menuOpen() = client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+
+                // No hammer or saw: the menu opens, both choices crossed out, and building is refused.
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the tools refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_tools]" } }
+
+                // With the tools and materials: each slot is drawn by the client's own script, the wooden chair crossed out
+                // (level 8), and the list laid out for two.
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 2")
+                client.command("item $BRONZE_NAILS 3")
+                client.await("the materials") { if (client.count(BRONZE_NAILS) == 3) Unit else null }
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                val scripts = client.await("the menu's slots") { client.clientScripts().filter { it.id == Furniture.ENTRY_SCRIPT }.takeIf { it.size >= 4 } }
+                assertEquals(listOf<Any>(1, CRUDE_CHAIR_ROW, 1, "2 x Plank|2 x Nails", 1), scripts[2].args)
+                assertEquals(listOf<Any>(2, WOODEN_CHAIR_ROW, 8, "3 x Plank|3 x Nails", 0), scripts[3].args)
+                assertEquals(listOf<Any>(2, 0), client.clientScripts().last { it.id == Furniture.LAYOUT_SCRIPT }.args)
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 2)
+                client.await("the level refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_level level=8]" } }
+
+                // The crude wooden chair: the planks go, and the steel nails before the bronze; 58 XP; built and saved.
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the chair") { if (client.shown(CRUDE_CHAIR, cx, cz)) Unit else null }
+                assertEquals(listOf(0, 0, 3), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == 58 } }
+                assertEquals(CRUDE_CHAIR, player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!.built[CHAIR_SPACE])
+
+                // Out of building mode the chair is there; in it again, Remove asks, and yes puts the space back.
+                client.locOp(House.EXIT_PORTAL, at.x, at.z + 1, House.EXIT_ENTER)
+                client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val home = client.goIn(House.HOME)
+                val homeInstance = assertNotNull(server.world.instances.at(home.x, home.z))
+                val hx = homeInstance.baseX + (House.STARTER_X shl 3) + 2
+                val hz = homeInstance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                client.await("the chair at home") { if (client.shown(CRUDE_CHAIR, hx, hz)) Unit else null }
+                client.locOp(House.EXIT_PORTAL, home.x, home.z + 1, House.EXIT_ENTER)
+                client.await("outside again") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val back = client.goIn(House.BUILD_MODE)
+                val third = assertNotNull(server.world.instances.at(back.x, back.z))
+                val rx = third.baseX + (House.STARTER_X shl 3) + 2
+                val rz = third.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                client.locOp(CRUDE_CHAIR, rx, rz, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the space back") { if (client.shown(CHAIR_SPACE, rx, rz)) Unit else null }
+                assertNull(player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!.built[CHAIR_SPACE])
+
+                // The three bronze nails left over and one steel make the next chair's two: the steel first, then one bronze,
+                // as the menu counts every kind together (Codex review on #869).
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 1")
+                client.await("more materials") { if (client.count(STEEL_NAILS) == 1 && client.count(PLANK) == 2) Unit else null }
+                client.locOp(CHAIR_SPACE, rx, rz, House.BUILD)
+                client.await("the creation menu again") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the second chair") { if (client.shown(CRUDE_CHAIR, rx, rz)) Unit else null }
+                assertEquals(listOf(0, 0, 2), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
+            }
+        }
+    }
+
+    @Test
+    fun `a rug is built on every rug space at once, each tile its own part, and mixed nails make up a chair`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val px = instance.baseX + (House.STARTER_X shl 3)
+                val pz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val player = server.world.playerNamed("erin")!!
+                client.command("setlevel construction 2")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $BOLT_OF_CLOTH 2")
+                client.await("the cloth") { if (client.count(BOLT_OF_CLOTH) == 2) Unit else null }
+                val xp = client.await("level 2") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 2 } }.xp
+
+                // Build on the side tile: the corner, the side and the middle each become their part of the brown rug.
+                client.locOp(RUG_SIDE_SPACE, px + 2, pz + 1, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                val parts = listOf(Triple(BROWN_RUG_CORNER, px + 1, pz + 1), Triple(BROWN_RUG_SIDE, px + 2, pz + 1), Triple(BROWN_RUG_MIDDLE, px + 2, pz + 2))
+                client.await("the rug") { if (parts.all { (id, x, z) -> client.shown(id, x, z) }) Unit else null }
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 30 } }
+                val room = player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!
+                assertEquals(mapOf(RUG_CORNER_SPACE to BROWN_RUG_CORNER, RUG_SIDE_SPACE to BROWN_RUG_SIDE, RUG_MIDDLE_SPACE to BROWN_RUG_MIDDLE), room.built)
+                assertEquals(0, client.count(BOLT_OF_CLOTH))
+
+                // Remove on the middle takes the whole rug up.
+                client.locOp(BROWN_RUG_MIDDLE, px + 2, pz + 2, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                val spaces = listOf(Triple(RUG_CORNER_SPACE, px + 1, pz + 1), Triple(RUG_SIDE_SPACE, px + 2, pz + 1), Triple(RUG_MIDDLE_SPACE, px + 2, pz + 2))
+                client.await("the spaces back") { if (spaces.all { (id, x, z) -> client.shown(id, x, z) }) Unit else null }
+                assertEquals(emptyMap(), room.built)
+
+                // One steel nail and one bronze make the crude chair's two, the steel taken first.
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 1")
+                client.command("item $BRONZE_NAILS 1")
+                client.await("the materials") { if (client.count(BRONZE_NAILS) == 1 && client.count(PLANK) == 2) Unit else null }
+                client.locOp(CHAIR_SPACE, px + 2, pz + 4, House.BUILD)
+                client.await("the creation menu again") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the chair") { if (client.shown(CRUDE_CHAIR, px + 2, pz + 4)) Unit else null }
+                assertEquals(listOf(0, 0, 0), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
+            }
+        }
+    }
+
+    @Test
+    fun `a bookcase builds with its scroll rack, a fireplace on its own, and curtains on every window at once`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val px = instance.baseX + (House.STARTER_X shl 3)
+                val pz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val room = server.world.playerNamed("finn")!!.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!
+                client.command("setlevel construction 4")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 7")
+                client.command("item $STEEL_NAILS 7")
+                client.command("item $BOLT_OF_CLOTH 3")
+                client.command("item $SOFT_CLAY 3")
+                client.await("the materials") { if (client.count(SOFT_CLAY) == 3 && client.count(BOLT_OF_CLOTH) == 3) Unit else null }
+                var xp = client.await("level 4") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 4 } }.xp
+
+                fun build(space: Int, x: Int, z: Int, gain: Int, vararg shown: Triple<Int, Int, Int>) {
+                    client.locOp(space, x, z, House.BUILD)
+                    client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                    client.await("$space built") { if (shown.all { (id, sx, sz) -> client.shown(id, sx, sz) }) Unit else null }
+                    xp += gain
+                    client.await("the XP for $space") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp } }
+                }
+
+                // The bookcase and, on the space beside it, its scroll rack.
+                build(BOOKCASE_SPACE, px + 6, pz + 2, 115, Triple(WOODEN_BOOKCASE, px + 6, pz + 2), Triple(WOODEN_SCROLLS, px + 6, pz + 3))
+                assertEquals(mapOf(BOOKCASE_SPACE to WOODEN_BOOKCASE, SCROLL_SPACE to WOODEN_SCROLLS), room.built)
+                build(FIREPLACE_SPACE, px + 4, pz + 6, 30, Triple(CLAY_FIREPLACE, px + 4, pz + 6))
+                // One build hangs curtains on both windows.
+                build(CURTAIN_SPACE, px + 2, pz + 7, 132, Triple(TORN_CURTAINS, px + 2, pz + 7), Triple(TORN_CURTAINS, px + 5, pz + 7))
+                assertEquals(TORN_CURTAINS, room.built[CURTAIN_SPACE])
+                assertEquals(listOf(0, 0, 0, 0), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BOLT_OF_CLOTH), client.count(SOFT_CLAY)))
+
+                // Remove on the scroll rack takes the bookcase down too; Remove on the far window takes both curtains.
+                client.locOp(WOODEN_SCROLLS, px + 6, pz + 3, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the bookcase spaces back") { if (client.shown(BOOKCASE_SPACE, px + 6, pz + 2) && client.shown(SCROLL_SPACE, px + 6, pz + 3)) Unit else null }
+                client.locOp(TORN_CURTAINS, px + 5, pz + 7, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the curtain spaces back") { if (client.shown(CURTAIN_SPACE, px + 2, pz + 7) && client.shown(CURTAIN_SPACE, px + 5, pz + 7)) Unit else null }
+                assertEquals(mapOf(FIREPLACE_SPACE to CLAY_FIREPLACE), room.built)
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
+        const val CRUDE_CHAIR = 6752
+        const val CRUDE_CHAIR_ROW = 5517
+        const val WOODEN_CHAIR_ROW = 5518
+        const val PLANK = 960
+        const val BOLT_OF_CLOTH = 8790
+        const val RUG_MIDDLE_SPACE = 4518
+        const val RUG_SIDE_SPACE = 4519
+        const val RUG_CORNER_SPACE = 4520
+        const val BROWN_RUG_ROW = 5524
+        const val BROWN_RUG_CORNER = 6759
+        const val BROWN_RUG_SIDE = 6760
+        const val BROWN_RUG_MIDDLE = 6761
+        const val BOOKCASE_SPACE = 4521
+        const val SCROLL_SPACE = 4522
+        const val FIREPLACE_SPACE = 4523
+        const val CURTAIN_SPACE = 4524
+        const val WOODEN_BOOKCASE_ROW = 5529
+        const val CLAY_FIREPLACE_ROW = 5532
+        const val TORN_CURTAINS_ROW = 5535
+        const val WOODEN_BOOKCASE = 6768
+        const val WOODEN_SCROLLS = 6771
+        const val CLAY_FIREPLACE = 6780
+        const val TORN_CURTAINS = 6774
+        const val SOFT_CLAY = 1761
+        const val STEEL_NAILS = 1539
+        const val BRONZE_NAILS = 4819
+        const val HAMMER = 2347
+        const val SAW = 8794
 
         /** The kitchen's `poh_larder` space; its size here is the test's own. */
         const val LARDER_SPACE = 15403

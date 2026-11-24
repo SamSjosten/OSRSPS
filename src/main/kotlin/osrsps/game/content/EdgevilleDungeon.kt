@@ -41,7 +41,7 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
  * - The zombies, skeletons, hobgoblins, rats and giant spiders fight and drop as npc-combat.json and npc-drops.json
  *   have them (npc-spawns/edgeville-dungeon.json); the mine's rocks mine by type ([osrsps.game.skill.Mining]), the
  *   crates and sacks search by type. Vannaka stands by the gate without talk until Slayer is built, and the obstacle
- *   pipes are Agility shortcuts left out with the rest of Agility's shortcuts.
+ *   pipes (to the Varrock Sewers, and the south one to the hobgoblins) are Agility shortcuts in skills/agility.json.
  *
  * The hill giants' room (Edgeville piece step 11, map square 48,153):
  *

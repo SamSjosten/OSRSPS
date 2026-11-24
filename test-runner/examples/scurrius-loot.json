@@ -1,0 +1,21 @@
+{
+ "name": "Scurrius step 3: his loot. A private lair (always the MVP there), ::kill him, and the MVP table's two always items land on his centre tile; the kill count message comes (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario scurrius", "expectMessage": "Started scenario scurrius.", "comment": "the sewer side of the broken bars; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "locOption", "locId": 14203, "option": "Climb-through (private)", "x": 3282, "y": 9867},
+  {"step": "waitTicks", "ticks": 3, "comment": "the lair's region drawn"},
+  {"step": "command", "text": "::kill Scurrius", "expectMessage": "Killed Scurrius"},
+  {"step": "assertMessage", "contains": "scurrius.kill_count", "timeoutMs": 10000, "comment": "::kill hits him for all he has left, as the player"},
+  {"step": "assertGroundItem", "item": "Big bones", "timeoutMs": 20000},
+  {"step": "assertGroundItem", "item": "Raw rat meat", "timeoutMs": 10000, "comment": "the MVP table's alone"},
+  {"step": "locOption", "locId": 14204, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3281, "y": 9867, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

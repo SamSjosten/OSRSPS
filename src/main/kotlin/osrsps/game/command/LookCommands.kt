@@ -5,7 +5,7 @@ import osrsps.game.World
 
 /** `::look`, a testing tool that shows and sets the player's look ([PlayerLook]) without a makeover screen. */
 fun CommandRegistry.registerLookCommands(world: World) {
-    val usage = "::look [body a|b] [kit part id] [colour part n] [reset]"
+    val usage = "::look [body a|b] [kit part id] [colour part n] [reset] [design]"
     register("look", usage) {
         val look = player.look
         val parts = PlayerLook.BodyPart.NAMES
@@ -16,6 +16,13 @@ fun CommandRegistry.registerLookCommands(world: World) {
                 return@register
             }
             "reset" -> PlayerLook.DEFAULT
+            // The Character Creator a new account gets at its first login, for testing it on an old one.
+            "design" -> {
+                if (!world.designScreen.available()) fail("The cache has no makeover pages for the Character Creator")
+                world.designScreen.open(player)
+                reply("Opened the Character Creator")
+                return@register
+            }
             "body" -> {
                 val bodyType = when (args.getOrNull(1)?.lowercase()) {
                     "a" -> PlayerLook.BODY_TYPE_A
@@ -56,5 +63,6 @@ private fun describe(look: PlayerLook): String {
     val body = if (look.bodyType == PlayerLook.BODY_TYPE_A) "A" else "B"
     val kits = PlayerLook.BodyPart.NAMES.zip(look.kits).joinToString { (part, kit) -> "$part $kit" }
     val colours = PlayerLook.ColourPart.entries.zip(look.colours).joinToString { (part, colour) -> "${part.name.lowercase()} $colour" }
-    return "Look: body type $body; kits $kits; colours $colours"
+    val pronoun = listOf("he/him", "she/her", "they/them")[look.pronoun]
+    return "Look: body type $body; kits $kits; colours $colours; pronouns $pronoun"
 }

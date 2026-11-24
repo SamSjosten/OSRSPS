@@ -80,8 +80,18 @@ class StashUnits(private val world: World, data: TrailData) {
         if (!built(player, stash.loc)) return
         val stored = player.trails.stashes[stash.loc]
         if (stored != null) {
+            // Every item must come out, or none does: a full stack or an id the cache no longer has keeps the lot in the
+            // unit rather than losing one (exploit review 49, R49A-4).
+            val types = stored.map { world.objTypes[it] ?: return world.message(player, StashLines.NO_SPACE) }
             if (player.inventory.freeSlots < stored.size) return world.message(player, StashLines.NO_SPACE)
-            for (id in stored) world.objTypes[id]?.let { player.inventory.add(it, 1) }
+            val added = ArrayList<Int>()
+            for (type in types) {
+                if (player.inventory.add(type, 1) < 1) {
+                    for (id in added) removeId(player, id, 1)
+                    return world.message(player, StashLines.NO_SPACE)
+                }
+                added += type.id
+            }
             player.trails.stashes.remove(stash.loc)
             return world.message(player, StashLines.TAKEN)
         }

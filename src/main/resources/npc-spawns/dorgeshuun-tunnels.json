@@ -1,0 +1,9 @@
+{
+  "about": "The tunnels between Lumbridge Castle's cellar, the Dorgeshuun mines and the water mill cellar after The Lost Tribe and Death to the Dorgeshuun (post-quest step 6, DorgeshuunTunnels.kt): the three guides and Nardok. Each is the cache's multinpc, which shows its after-quest form. Tiles from each NPC's OSRS Wiki map (read 2026-11-19); none wanders (Kazgar and Dartog stand guard; Mistag and Nardok guessed).",
+  "spawns": [
+    {"npc": "lost_tribe_guide", "x": 3230, "z": 9611, "source": "Kazgar, in the tunnel by Lumbridge Castle's cellar. OSRS Wiki, Kazgar (3230,9611)"},
+    {"npc": "lost_tribe_mistag", "x": 3320, "z": 9615, "source": "Mistag, in the Dorgeshuun mines. OSRS Wiki, Mistag (3320,9615)"},
+    {"npc": "dttd_maze_guide", "x": 3246, "z": 9648, "source": "Dartog, at the tunnel to the water mill cellar. OSRS Wiki, Dartog (3246,9648)"},
+    {"npc": "dttd_bone_dealer", "x": 3322, "z": 9608, "source": "Nardok, in the Dorgeshuun mines by Dorgesh-Kaan's door. OSRS Wiki, Nardok (3322,9608)"}
+  ]
+}

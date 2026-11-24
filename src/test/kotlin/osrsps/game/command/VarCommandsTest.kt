@@ -56,7 +56,7 @@ class VarCommandsTest {
                 "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2) = 1",
                 "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2): 1 -> 1, varp 5000 is now 5",
                 "Varbit lodestone.varrock holds 0 to 1",
-                "Usage: ::varbit id|name [value] ('lodestone.nowhere' is not a number or one of lodestone.al_kharid, lodestone.draynor, lodestone.edgeville, lodestone.lumbridge, lodestone.previous, lodestone.varrock)",
+                "Usage: ::varbit id|name [value] ('lodestone.nowhere' is not a number or one of lodestone.al_kharid, lodestone.draynor, lodestone.edgeville, lodestone.karamja, lodestone.lumbridge, lodestone.previous, lodestone.varrock)",
             ),
             replies,
         )
@@ -74,7 +74,7 @@ class VarCommandsTest {
         assertEquals(
             listOf(
                 "Usage: ::varp id|name [value]",
-                "Usage: ::varp id|name [value] ('abc' is not a number or one of banana_crate, fight_cave, giant_lairs, harlan.claimed, inferno, lodestones, white_tree, wilderness_lair_visit)",
+                "Usage: ::varp id|name [value] ('abc' is not a number or one of banana_crate, fight_cave, giant_lairs, harlan.claimed, inferno, lodestones, mor_ul_rek_access, white_tree, wilderness_lair_visit)",
                 "Varps are 0 to 4999",
                 "Usage: ::varp id|name [value] ('x' is not a number)",
                 "No varbit 1 in the cache",

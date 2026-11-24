@@ -135,6 +135,9 @@ class Quests(val all: List<Quest>) {
             // (ent) shows Travel, Talk-to and Last-destination from 2, the lowest value whose form has them (inferred;
             // [osrsps.game.content.SpiritTrees]).
             598 to 2,
+            // The Restless Ghost: the Wizards' Tower basement's altar (restless_ghost_altar) bare, the skull back in the
+            // coffin (1, restless_ghost_altar_no_skull).
+            2130 to 1,
         )
 
         val NONE = Quests(emptyList())

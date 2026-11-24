@@ -25,9 +25,9 @@ import osrsps.game.ObjTypes
 class Bank(
     private val objTypes: ObjTypes,
     /**
-     * Items the bank refuses, which content names; none yet. Not param 59, which RSMod's rev 233 table names no_bank:
-     * the 241 cache sets it on 2,687 items, the coal bag, gem bag, Falador shield, Ardougne cloak and Karamja gloves
-     * among them, which live banks. Its 241 meaning is unknown (just param_59 in the osrs-dumps symbols).
+     * Items the bank refuses, which content names (the Gravedigger's coffins). Not param 59, which RSMod's rev 233
+     * table names no_bank: the 241 cache sets it on 2,687 items, the coal bag, gem bag, Falador shield, Ardougne cloak
+     * and Karamja gloves among them, which live banks. Its 241 meaning is unknown (just param_59 in the osrs-dumps symbols).
      */
     private val notBankable: Set<Int> = emptySet(),
 ) {
