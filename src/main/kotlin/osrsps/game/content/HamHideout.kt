@@ -238,6 +238,7 @@ fun registerHamHideout(world: World) = with(HamHideout) {
         delay(1)
         player.charges[CONCUSSIONS] = 0
         world.teleport(player, INSIDE.first, INSIDE.second, INSIDE.third)
+        world.diaries.complete(player, DiaryTask.LUMBRIDGE_EASY_12)
     }
     world.handlers.onLoc(TRAPDOOR, OP_CLOSE) {
         arriveDelay()

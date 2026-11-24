@@ -160,6 +160,7 @@ class Pickpocketing(private val world: World) {
         player.skills.addTenths(Skill.THIEVING, pocket.xpTenths)
         give(player, pocket)
         player.message(text[PickpocketLines.SUCCESS, "who" to pocket.who])
+        world.diaries.pickpocketed(player, npc)
         if (pocket.heatDamage > 0 && player.equipment[WearPos.HANDS]?.id != ICE_GLOVES) {
             // No source: the heat is no blow, so it starts no retaliation.
             world.meleeCombat.hitPlayer(player, null, pocket.heatDamage, tick)

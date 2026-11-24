@@ -344,7 +344,9 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
             when {
                 // Nothing rolled against her shield either, so no XP for it.
                 npc.type.id == BOSS && shielded(world, npc) -> 0
-                npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player) -> npc.hitpoints
+                // Melee only: a bounce or a chinchompa's splash runs this hook as it lands, not as it is thrown, so an
+                // axe wielded in between would count (exploit review round 43, R43C-1).
+                npc.type.id == GROWTHLING && type in MELEE_TYPES && wieldsCutter(world, player) -> npc.hitpoints
                 else -> rolledOn(player, npc, type, rolled)
             }
         }

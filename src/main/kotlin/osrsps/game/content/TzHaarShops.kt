@@ -111,6 +111,8 @@ fun registerTzHaarShops(world: World) {
     with(TzHaarShops) {
         for (keeper in listOf(HUR_TEL, HUR_LEK, MEJ_ROH, HUR_ZAL, HUR_RIN)) {
             world.handlers.onNpc(keeper, TALK_TO) { op ->
+                // TzHaar-Hur-Rin won't deal with a player who just stole from her counters (Thieving).
+                if (world.thieving.refuses(player, op.npc!!, tick)) return@onNpc
                 var trade = false
                 world.dialogues.start(this, op.npc) { trade = shopkeeper(player, mej = keeper == MEJ_ROH) }
                 if (trade) world.shopTypes.ofNpc(keeper)?.let { world.shopScreen.open(player, it) }

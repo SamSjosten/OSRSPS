@@ -1,0 +1,96 @@
+{
+ "name": "Achievement diaries: a task done shows in the side panel and the Lumbridge & Draynor journal (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge."
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6311,
+   "value": 0,
+   "comment": "lumbridge_easy_count"
+  },
+  {
+   "step": "command",
+   "text": "::diary complete lumbridge easy 5",
+   "expectMessage": "diary.task_done"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6311,
+   "value": 1,
+   "comment": "the panel's count for Lumbridge easy"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4453,
+   "value": 1,
+   "comment": "started_lumbridge_diary: the row goes yellow"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 629,
+   "component": 18,
+   "comment": "the quest tab's Achievement Diaries button"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the page build its rows"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 259,
+   "component": 2,
+   "slot": 6,
+   "op": 1,
+   "comment": "Open Lumbridge & Draynor Journal"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 741
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 741,
+   "component": 4,
+   "contains": "diary_lumbridge.title"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 741,
+   "contains": "diary_lumbridge_tasks.easy_5",
+   "comment": "the done task's line (struck through on screen)"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge."
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6311,
+   "value": 0
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}
