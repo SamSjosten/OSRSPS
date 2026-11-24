@@ -29,8 +29,8 @@ object BarnabyLines : Lines("barnaby", "Transcript:Captain Barnaby") {
  * - **Captain Barnaby** stands on each dock (3650, which shows as 9250, at East Ardougne; 8764 at Brimhaven; 8763 at
  *   Rimmington) and takes a player to either of the other two for 30 coins, 15 wearing Karamja gloves, from his talk or
  *   his two right-click options.
- * - **The trip:** the coins go, the box says where the ship sails, and the player lands on the ship's deck at the other
- *   dock, to leave by its gangplank. Each ship's gangplanks cross between deck and dock both ways.
+ * - **The trip:** the coins go, the player lands on the ship's deck at the other dock (to leave by its gangplank), and
+ *   the box says where the ship sailed. Each ship's gangplanks cross between deck and dock both ways.
  *
  * East Ardougne and Rimmington are built only as far as their docks (Kandarin and Asgarnia aren't built yet), so no
  * lodestone comes with them; Brimhaven has Karamja's. Inferred: Karamja gloves halving his fare as the Karamja boat's
@@ -105,10 +105,13 @@ object BarnabyShip {
         to
     }
 
-    /** The trip, once paid: the box, then the player on [to]'s deck. */
+    /**
+     * The trip, once paid: the player on [to]'s deck, then the box. The teleport comes first so that closing the box
+     * (walking off, logging out) can't take the fare without the trip.
+     */
     internal suspend fun ScriptContext.sailTo(world: World, to: Dock) {
-        world.dialogues.start(this) { mesbox(to.sail) }
         world.teleport(player, to.deck.x, to.deck.z, to.deck.level)
+        world.dialogues.start(this) { mesbox(to.sail) }
     }
 }
 
