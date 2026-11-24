@@ -272,6 +272,7 @@ class Houses(private val world: World) {
             inside -= player
             world.poison.curePoison(player)
             setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
+            dropHouseOnly(player)
         }
     }
 
@@ -281,6 +282,12 @@ class Houses(private val world: World) {
         // Off before the save, whichever way they leave (exploit review R43B-2).
         setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
         if (houseAt(player.x, player.z) != null) world.poison.curePoison(player)
+        dropHouseOnly(player)
+    }
+
+    /** What the kitchen gives that can't leave the house ([Kitchen.HOUSE_ONLY]) goes as its taker does (Codex review on #906). */
+    private fun dropHouseOnly(player: Player) {
+        for ((slot, obj) in player.inventory.contents()) if (obj.id in Kitchen.HOUSE_ONLY) player.inventory.remove(slot)
     }
 
     /**

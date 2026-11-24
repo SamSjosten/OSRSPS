@@ -1,5 +1,5 @@
 {
- "name": "Construction step CON4b: in building mode, a kitchen added off the garden takes a wooden larder from its larder space for the Wiki's 228 XP, and Search on the larder gives tea leaves from its supplies, again and again (::keys on)",
+ "name": "Construction step CON4b: in building mode, a kitchen added off the garden takes a wooden larder from its larder space for the Wiki's 228 XP, and Search on the larder gives tea leaves from its supplies, again and again; then a firepit cooks a shrimp, a pump and drain fills a bucket, the shelves give a kettle, and leaving the house takes the kettle and tea leaves (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -240,6 +240,188 @@
    "item": "Tea leaves",
    "count": 2,
    "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 2353 6",
+   "expectMessage": "Steel bar",
+   "comment": "1 for the firepit, 5 for the pump and drain"
+  },
+  {
+   "step": "command",
+   "text": "::item 1761 2",
+   "expectMessage": "Soft clay",
+   "comment": "the firepit"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 3",
+   "expectMessage": "Plank",
+   "comment": "wooden shelves 1: 3 planks and 3 nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 3",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "locOption",
+   "locId": 15398,
+   "option": "Build",
+   "comment": "the stove space (poh_kitchen_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the firepit"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 1237,
+   "timeoutMs": 5000,
+   "comment": "the firepit's 40"
+  },
+  {
+   "step": "locOption",
+   "locId": 15399,
+   "option": "Build",
+   "comment": "the shelf space (poh_kitchen_2)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: wooden shelves 1, with their crockery"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 1324,
+   "timeoutMs": 5000,
+   "comment": "the shelves' 87"
+  },
+  {
+   "step": "locOption",
+   "locId": 15404,
+   "option": "Build",
+   "comment": "the sink space (poh_kitchen_6)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the pump and drain"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 1424,
+   "timeoutMs": 5000,
+   "comment": "the pump's 100"
+  },
+  {
+   "step": "command",
+   "text": "::item 317 1",
+   "expectMessage": "Raw shrimps"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Raw shrimps",
+   "locId": 13528,
+   "comment": "the firepit (poh_stove_1) cooks as a fire; one shrimp needs no Make-X box"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Raw shrimps",
+   "count": 0,
+   "timeoutMs": 10000,
+   "comment": "cooked or burnt"
+  },
+  {
+   "step": "command",
+   "text": "::item 1925 1",
+   "expectMessage": "Bucket"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Bucket",
+   "locId": 13559,
+   "comment": "the pump and drain (poh_sink_1)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bucket of water",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 13545,
+   "option": "Search",
+   "comment": "wooden shelves 1 (poh_kitchen_shelves_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 10000,
+   "comment": "their supplies in the Make-X box (GUESSED)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the first: a kettle"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Kettle",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0",
+   "comment": "out of the house, by the Rimmington portal"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "assertInventory",
+   "item": "Kettle",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "the house's own supplies stay in the house"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Tea leaves",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bucket of water",
+   "count": 1,
+   "comment": "an ordinary bucket of water goes along"
   },
   {
    "step": "command",

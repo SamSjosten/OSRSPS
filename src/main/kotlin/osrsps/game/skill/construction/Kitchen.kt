@@ -81,6 +81,14 @@ class Kitchen(private val world: World, private val houses: Houses) {
         private val T1 = O2 + POT
         private val T2 = listOf(KETTLE, GILT_TEAPOT, GILT_CUP, BEER_GLASS, CAKE_TIN, BOWL, PIE_DISH, POT, CHEFS_HAT)
 
+        /**
+         * The supplies that stay in the house: taken from a player as they leave it, by any way, or log out inside. Tea
+         * leaves are the Wiki's ("cannot be taken outside a player-owned house"); the rest are INFERRED from their
+         * house-only gameval names (poh_kettle_empty, poh_teapot_*, poh_*cup_empty, poh_beer_glass). Milk, eggs, flour
+         * and the rest of the ordinary ingredients and tools leave with the player.
+         */
+        val HOUSE_ONLY: Set<Int> = setOf(TEA_LEAVES, KETTLE, CLAY_TEAPOT, PORCELAIN_TEAPOT, GILT_TEAPOT, CLAY_CUP, PORCELAIN_CUP, GILT_CUP, BEER_GLASS)
+
         /** What each larder (poh_larder_1 to 3) and each shelves (poh_kitchen_shelves_1 to 7, and their crockery) gives. */
         val SUPPLIES: Map<Int, List<Int>> = buildMap {
             put(13565, listOf(TEA_LEAVES, MILK))
