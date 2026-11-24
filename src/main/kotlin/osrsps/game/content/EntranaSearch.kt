@@ -46,7 +46,7 @@ object EntranaSearch {
 
     /** The page's items with bonuses that may still go. */
     private val ALLOWED = listOf(
-        "magic secateurs", "wizard", "zamorak monk", "ham shirt", "ham robe", "ham hood", "ham cloak", "ham logo",
+        "magic secateurs", "wizard", "black robe", "blue skirt", "black skirt", "zamorak monk", "ham shirt", "ham robe", "ham hood", "ham cloak", "ham logo",
         "ham gloves", "ham boots", "gloves of silence", "ice gloves", "penance gloves", "twitcher's gloves",
         "leather gloves", "ghostly gloves", "ghostly boots", "leather boots", "boots of lightness", "climbing boots",
         "rock-shell boots", "boots of stone", "spiked boots", "saradomin cloak", "guthix cloak", "zamorak cloak",
