@@ -8,7 +8,7 @@
     {"step": "command", "text": "::tele 2947 3146 0", "expectMessage": "Teleported to 2947, 3146, 0", "comment": "by the dock, near the Karamja man's spawn"},
     {"step": "npcOption", "npcId": 3652, "option": "Examine", "timeoutMs": 20000, "comment": "the man (Karamja version)"},
     {"step": "assertMessage", "contains": "[examine.npc_3652]"},
-    {"step": "command", "text": "::tele 2884 3152 0", "expectMessage": "Teleported to 2884, 3152, 0", "comment": "among the snakes west of the general store"},
+    {"step": "command", "text": "::tele 2874 3166 0", "expectMessage": "Teleported to 2874, 3166, 0", "comment": "by the northernmost snake west of the general store (spawn 2875,3164), away from the other three so that no other snake is already fighting the player when Attack is clicked"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "npcOption", "npcId": 2845, "option": "Examine", "timeoutMs": 20000},
     {"step": "assertMessage", "contains": "[examine.npc_2845]"},

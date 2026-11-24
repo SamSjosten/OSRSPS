@@ -1,0 +1,29 @@
+{
+ "name": "Treasure Trails step TT9: a shrimp caught with every skilling clue roll hitting gives a scroll box of each tier, beginner to elite (::clue lucky on, ::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::clue lucky on", "expectMessage": "Every skilling clue roll hits."},
+
+  {"step": "command", "text": "::item net", "expectMessage": "Added 1 x Small fishing net"},
+  {"step": "command", "text": "::tele 3087 3228 0", "comment": "the Draynor shore by the Net/Bait spots"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you.", "comment": "the young dark wizards nearby"},
+  {"step": "npcOption", "npcId": 1525, "option": "Small Net"},
+  {"step": "assertInventory", "item": "Raw shrimps", "timeoutMs": 90000},
+  {"step": "assertInventory", "item": "Scroll box (beginner)", "comment": "one, or two if another shrimp came meanwhile"},
+  {"step": "assertInventory", "item": "Scroll box (easy)", "comment": "one, or two if another shrimp came meanwhile"},
+  {"step": "assertInventory", "item": "Scroll box (medium)", "comment": "one, or two if another shrimp came meanwhile"},
+  {"step": "assertInventory", "item": "Scroll box (hard)", "comment": "one, or two if another shrimp came meanwhile"},
+  {"step": "assertInventory", "item": "Scroll box (elite)", "comment": "one, or two if another shrimp came meanwhile"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue lucky off", "expectMessage": "Skilling clue rolls as the Wiki's."},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

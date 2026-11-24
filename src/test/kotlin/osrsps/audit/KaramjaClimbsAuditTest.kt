@@ -2,6 +2,8 @@ package osrsps.audit
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import osrsps.game.content.BarnabyShip
 import osrsps.game.content.Destination
 import osrsps.game.content.KaramjaVolcano
 import osrsps.game.content.MorUlRek
@@ -22,5 +24,15 @@ class KaramjaClimbsAuditTest {
             }
         }
         for ((id, at) in expected) assertEquals<List<Destination>>(listOf(at), found[id].orEmpty(), "placements of loc $id")
+    }
+
+    @Test
+    fun `Captain Barnaby's gangplanks stand where their handlers expect`() {
+        val loaded = RealMap.load()
+        val expected = BarnabyShip.Dock.entries.flatMap { listOf(it.plankOn to it.plankOnAt, it.plankOff to it.plankOffAt) }
+        for ((id, at) in expected) {
+            val there = loaded.map.locs.at(at.x, at.z, at.level).any { it.id == id }
+            assertTrue(there, "gangplank $id at $at")
+        }
     }
 }

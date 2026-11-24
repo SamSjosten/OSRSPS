@@ -8,10 +8,11 @@ import osrsps.game.trail.TrailTier
  * a new trail, at the step named (`map:107`, as `::clue` and saves name steps) or a random built one; `::clue <tier>
  * steps` lists the tier's built steps with their tiles; `::clue <tier> done <count>` sets the caskets of the tier
  * opened (so the next casket's milestone can be tried); `::clue clear` drops every trail, and `::clue reset` the
- * counts and opened scroll cases too. Tests and runner scripts start a trail anywhere with it.
+ * counts and opened scroll cases too; `::clue lucky on|off` makes every skilling clue roll hit for the typing player.
+ * Tests and runner scripts start a trail anywhere with it.
  */
 fun CommandRegistry.registerTrailCommands(world: World) {
-    val usage = "::clue [<tier> [step | steps | done <count>] | clear | reset]"
+    val usage = "::clue [<tier> [step | steps | done <count>] | clear | reset | lucky on|off]"
     register("clue", usage) {
         val trails = world.trails
         val first = args.firstOrNull()?.lowercase()
@@ -24,6 +25,15 @@ fun CommandRegistry.registerTrailCommands(world: World) {
             first == "clear" -> {
                 for (tier in TrailTier.entries) player.trails[tier] = null
                 reply("No trail.")
+            }
+            first == "lucky" -> {
+                val on = when (args.getOrNull(1)?.lowercase()) {
+                    "on" -> true
+                    "off" -> false
+                    else -> fail("Usage: $usage")
+                }
+                if (on) trails.skilling.lucky += player.saveKey else trails.skilling.lucky -= player.saveKey
+                reply(if (on) "Every skilling clue roll hits." else "Skilling clue rolls as the Wiki's.")
             }
             first == "reset" -> {
                 player.trails.replaceWith(osrsps.game.trail.TrailProgress())

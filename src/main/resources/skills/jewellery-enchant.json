@@ -1,0 +1,35 @@
+{
+  "source": "Levels, runes and the spell objs: the 242 cache (07_enchant_amulet_lvl1 to 93_enchant_amulet_lvl7, params 604 and 365 to 370). XP and each spell's items: OSRS Wiki, Lvl-1 Enchant to Lvl-7 Enchant and Jewellery Enchantments (read 2026-11-19). Item gameval names: the 242 cache. Left out: the Silvthrill rod (a quest item with no use here). The charged results are their fullest form (Games necklace(8), Ring of dueling(8) and so on), the dragonstone ones uncharged, as the Wiki lists them.",
+  "enchants": [
+    { "spell": "07_enchant_amulet_lvl1", "xp": 17.5, "items": [
+      ["sapphire_ring", "ring_of_recoil"], ["jewl_sapphire_bracelet", "jewl_bracelet_of_clay"],
+      ["sapphire_necklace", "necklace_of_minigames_8"], ["strung_sapphire_amulet", "amulet_of_magic"],
+      ["opal_ring", "ring_of_pursuit"], ["opal_bracelet", "expeditious_bracelet"],
+      ["opal_necklace", "dodgy_necklace"], ["strung_opal_amulet", "amulet_of_bounty"] ] },
+    { "spell": "27_enchant_amulet_lvl2", "xp": 37, "items": [
+      ["emerald_ring", "ring_of_dueling_8"], ["emerald_necklace", "magic_emerald_necklace"],
+      ["jewl_emerald_bracelet", "jewl_castlewars_bracelet3"], ["strung_emerald_amulet", "amulet_of_defence"],
+      ["magic_strung_emerald_amulet", "nature_amulet"], ["silver_sickle_emerald", "silver_sickle_enchanted"],
+      ["jade_ring", "ring_of_returning_5"], ["jade_bracelet", "flamtaer_bracelet"],
+      ["jade_necklace", "necklace_of_passage_5"], ["strung_jade_amulet", "amulet_of_chemistry"] ] },
+    { "spell": "49_enchant_amulet_lvl3", "xp": 59, "items": [
+      ["ruby_ring", "ring_of_forging"], ["ruby_necklace", "necklace_of_digsite_5"],
+      ["jewl_ruby_bracelet", "jewl_bracelet_of_innoculation"], ["strung_ruby_amulet", "amulet_of_strength"],
+      ["silver_sickle_ruby", "silver_sickle_ruby_enchanted"],
+      ["topaz_ring", "vampyre_ring"], ["topaz_bracelet", "bracelet_of_slaughter"],
+      ["topaz_necklace", "necklace_of_faith"], ["strung_topaz_amulet", "burning_amulet_5"] ] },
+    { "spell": "57_enchant_amulet_lvl4", "xp": 67, "items": [
+      ["diamond_ring", "ring_of_life"], ["diamond_necklace", "jewl_necklace_of_phoenix"],
+      ["jewl_diamond_bracelet", "jewl_runerunning_bracelet_5"], ["strung_diamond_amulet", "amulet_of_power"],
+      ["silver_sickle_diamond", "silver_sickle_diamond_enchanted"] ] },
+    { "spell": "68_enchant_amulet_lvl5", "xp": 78, "items": [
+      ["dragonstone_ring", "ring_of_wealth"], ["dragonstone_necklace", "jewl_necklace_of_skills"],
+      ["jewl_dragonstone_bracelet", "jewl_bracelet_of_combat"], ["strung_dragonstone_amulet", "amulet_of_glory"] ] },
+    { "spell": "87_enchant_amulet_lvl6", "xp": 97, "items": [
+      ["onyx_ring", "enchanted_onyx_ring"], ["onyx_necklace", "jewl_beserker_necklace"],
+      ["jewl_onyx_bracelet", "jewl_bracelet_regen"], ["strung_onyx_amulet", "enchanted_onyx_amulet"] ] },
+    { "spell": "93_enchant_amulet_lvl7", "xp": 110, "items": [
+      ["zenyte_ring", "zenyte_ring_enchanted"], ["zenyte_necklace", "zenyte_necklace_enchanted"],
+      ["zenyte_bracelet", "zenyte_bracelet_enchanted"], ["zenyte_amulet", "zenyte_amulet_enchanted"] ] }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+ "name": "Achievement diaries: an easy lamp rubbed for 2,500 Mining XP (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel mining 30"
+  },
+  {
+   "step": "command",
+   "text": "::item 13145 1",
+   "comment": "an easy diary lamp"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "itemOption",
+   "item": "Antique lamp",
+   "option": "Rub"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 240
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 240,
+   "component": 26,
+   "contains": "antique_lamp.title"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 240,
+   "component": 17,
+   "op": 1,
+   "comment": "the Mining icon"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 240,
+   "component": 27,
+   "op": 1,
+   "comment": "Confirm: Mining"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "antique_lamp.granted"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 240,
+   "absent": true
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

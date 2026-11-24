@@ -194,6 +194,7 @@ suspend fun ScriptContext.teleportToEssenceMine(
     val to = EssenceMine.freeTileNear(landing, 1, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
     EssenceMine.sentFrom(player, returnTo)
     world.teleport(player, to.x, to.z, 0)
+    if (npc.type.id == EssenceMine.SEDRIDOR) world.diaries.complete(player, DiaryTask.LUMBRIDGE_EASY_3)
 }
 
 fun registerEssenceMine(world: World) {
