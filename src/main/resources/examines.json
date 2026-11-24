@@ -53,7 +53,8 @@
     "NPCs and locs: random events step 12 (2026-11-19): Molly (her 20 looks, one examine), the suspects (20 looks, one examine), Postie Pete's Evil twin form (6738), the claw control panel (20813) and the evil claw (20811), from each page's infobox.",
     "NPCs: random events step 13 (2026-11-19): the Kiss the frog frogs (312 and 5429-5432, one examine in their infobox), the Frog Prince (13445) and the Frog Princess (13446), from their infoboxes.",
     "NPCs and locs: random events step 14 (2026-11-19): the Mysterious Old Man's maze form (6752) shares his examine; the strange shrine (14985) and the maze chests (14986 closed, 14988 opened), from their infoboxes.",
-    "NPCs and locs of the tunnels between Lumbridge Castle's cellar, the Dorgeshuun mines and the water mill cellar (post-quest step 6, DorgeshuunTunnels.kt): the guides and Nardok, with the types their multi-NPCs show; the cellar's two hole multilocs, the water mill cellar's trapdoor, ladder and tunnels and Death to the Dorgeshuun's crates (the 242 cache, 2026-11-19)."
+    "NPCs and locs of the tunnels between Lumbridge Castle's cellar, the Dorgeshuun mines and the water mill cellar (post-quest step 6, DorgeshuunTunnels.kt): the guides and Nardok, with the types their multi-NPCs show; the cellar's two hole multilocs, the water mill cellar's trapdoor, ladder and tunnels and Death to the Dorgeshuun's crates (the 242 cache, 2026-11-19).",
+    "Locs of the Digsite camp's leftovers (post-quest step 7, DigsiteCamp.kt): the barrel's and the tablet's multilocs and the chest open (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -3270,6 +3271,9 @@
     {"loc": 15746, "name": "Ladder"},
     {"loc": 15763, "name": "Tunnel", "wiki": "the maze side's multiloc, showing 15748 after Death to the Dorgeshuun"},
     {"loc": 15764, "name": "Tunnel", "wiki": "the water mill cellar side's multiloc, showing 15750 after Death to the Dorgeshuun"},
-    {"loc": 15765, "name": "Trapdoor", "wiki": "Trapdoor (Water mill cellar) page, infobox, open (the multiloc shows 15753 after Death to the Dorgeshuun)"}
+    {"loc": 15765, "name": "Trapdoor", "wiki": "Trapdoor (Water mill cellar) page, infobox, open (the multiloc shows 15753 after Death to the Dorgeshuun)"},
+    {"loc": 2359, "name": "Barrel", "wiki": "Barrel (Digsite) page, infobox, closed (the map's multiloc, showing 17296 sealed and 17297 open)"},
+    {"loc": 2360, "name": "Chest", "wiki": "Chest (Chemical powder) page, infobox, opened"},
+    {"loc": 17369, "name": "Stone Tablet", "wiki": "the map's multiloc, showing the tablet (17367) after The Dig Site; Stone tablet (The Dig Site) has the item's examine only"}
   ]
 }
