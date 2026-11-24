@@ -46,6 +46,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
+import osrsps.game.skill.magic.JewelleryEnchantLines
 import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
@@ -102,6 +103,7 @@ object DialogueLines {
         AlKharidShopKeeperLines,
         AliMorrisaneLines,
         AltarLines,
+        AntiqueLampLines,
         ApothecaryLines,
         ApothecaryPotionsLines,
         ArchiveBankerLines,
@@ -131,8 +133,15 @@ object DialogueLines {
         BoltEnchantLines,
         AlchemyLines,
         SuperheatLines,
+        JewelleryEnchantLines,
         BorkLines,
+        BrutusLines,
         DagonhaiLines,
+        DiaryLines,
+        DiaryLumbridgeLines,
+        DiaryLumbridgeTaskLines,
+        DiaryVarrockLines,
+        DiaryVarrockTaskLines,
         DreadnothLines,
         OcellusLines,
         ArchiveVaultLines,
@@ -238,6 +247,7 @@ object DialogueLines {
         FairyRingLines,
         FarmerBeaLines,
         SpiritTreeLines,
+        BalloonLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
@@ -362,6 +372,7 @@ object DialogueLines {
         BargeLines,
         DigsiteSignLines,
         DigsiteDigLines,
+        DigsiteCampLines,
         ExamCentreLines,
         TerryLines,
         DigsiteDungeonLines,

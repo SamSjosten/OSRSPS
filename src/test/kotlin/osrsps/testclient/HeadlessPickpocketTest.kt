@@ -86,6 +86,7 @@ class HeadlessPickpocketTest {
                         client.awaitTicks(Pickpocketing.ATTEMPT_TICKS)
                     } else {
                         lost = true
+                        if (!won) assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "a failed pick does no task")
                         client.await("the stun's message") { if (client.seen("[pickpocket.stunned]") > 0) Unit else null }
                         client.await("the hit") { client.stat(HITPOINTS)?.takeIf { it.level == hp - 1 } }
                         assertTrue(server.world.statusEffects.isStunned(server.world.playerNamed("alice")!!))
@@ -102,6 +103,8 @@ class HeadlessPickpocketTest {
                     }
                 }
                 assertTrue(won && lost, "40 tries at level 1 (70.7%) both work and fail")
+                // A man picked in Lumbridge is the Lumbridge & Draynor easy diary's task, said once however many work.
+                assertEquals(1, client.messages().count { it.text.startsWith("[diary.task_done") })
             }
         }
     }

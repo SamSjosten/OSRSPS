@@ -222,6 +222,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
         val FILES = listOf(
             "agility",
             "artisan-2",
+            "brutus",
             "bryophyta",
             "construction",
             "farming",

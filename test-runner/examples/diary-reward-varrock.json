@@ -1,0 +1,216 @@
+{
+ "name": "Achievement diaries: Toby gives Varrock armour 1 and the easy lamp, opens the diary tab and gives the armour again (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::diary complete varrock easy all",
+   "expectMessage": "task(s) done in varrock"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3226 3416 0",
+   "expectMessage": "Teleported to 3226, 3416, 0",
+   "comment": "by Toby's house north of the square (he stands at 3225 3415)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5525,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.claim_easy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.well_done]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.armour_easy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.wow_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Varrock armour 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4519,
+   "value": 1,
+   "comment": "the easy Varrock reward claimed"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.who]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.who]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.who_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.who_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.diary_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 259,
+   "comment": "the Achievement Diaries tab, opened in the quest side panel"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.diary_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.bye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.bye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.bye_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5525,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.another_platebody]",
+   "comment": "offered now the armour is gone"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.another_platebody]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.another_platebody_given]",
+   "comment": "the item box showing the armour"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Varrock armour 1"
+  },
+  {
+   "step": "walk",
+   "x": 3228,
+   "y": 3418,
+   "comment": "a step away shuts his menu"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

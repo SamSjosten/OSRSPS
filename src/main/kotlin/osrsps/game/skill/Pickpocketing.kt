@@ -44,7 +44,8 @@ class PocketLoot(val obj: Int, val min: Int, val max: Int, val weight: (farming:
  * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; a catch stuns for
  * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]). [extra] comes with every
  * success beside the pouch (a paladin's chaos runes, a watchman's bread). [heatDamage] hits on a success too, unless ice
- * gloves are worn (the TzHaar-Hur's heat).
+ * gloves are worn (the TzHaar-Hur's heat). [clue] is a clue scroll rolled on its own at 1 in [clueChance] (0 for none),
+ * the Wiki's tertiary clue; it comes as its tier's scroll box (Treasure Trails step TT9).
  */
 class Pocket(
     val npcs: Collection<Int>,
@@ -68,6 +69,8 @@ class Pocket(
     val heatDamage: Int = 0,
     /** Ticks from the attempt's message to its outcome, and to the next attempt after one that works. */
     val attemptTicks: Int = Pickpocketing.ATTEMPT_TICKS,
+    val clue: Int = -1,
+    val clueChance: Int = 0,
 ) {
     /** The coin pouch it gives, from its own pouch or its table. */
     val anyPouch: Int? get() = pouch ?: lootPouch
@@ -157,6 +160,7 @@ class Pickpocketing(private val world: World) {
         player.skills.addTenths(Skill.THIEVING, pocket.xpTenths)
         give(player, pocket)
         player.message(text[PickpocketLines.SUCCESS, "who" to pocket.who])
+        world.diaries.pickpocketed(player, npc)
         if (pocket.heatDamage > 0 && player.equipment[WearPos.HANDS]?.id != ICE_GLOVES) {
             // No source: the heat is no blow, so it starts no retaliation.
             world.meleeCombat.hitPlayer(player, null, pocket.heatDamage, tick)
@@ -213,15 +217,18 @@ class Pickpocketing(private val world: World) {
         return worst.all { (obj, count) -> fits(obj, count) }
     }
 
-    private fun give(player: Player, pocket: Pocket) {
+    internal fun give(player: Player, pocket: Pocket) {
         for (extra in pocket.extra) world.objTypes[extra.obj]?.let { player.inventory.add(it, extra.min) }
         if (pocket.pouch != null) {
             world.objTypes[pocket.pouch]?.let { player.inventory.add(it, 1) }
-            return
+        } else {
+            val (obj, count) = pick(pocket, player.skills.currentLevel(Skill.FARMING))
+            // A clue scroll in the table (the H.A.M. members' and guards', the wealthy citizens') comes as its scroll box.
+            if (obj >= 0) world.objTypes[obj]?.let { world.trails.give(player, it, count) }
         }
-        val (obj, count) = pick(pocket, player.skills.currentLevel(Skill.FARMING))
-        if (obj < 0) return
-        world.objTypes[obj]?.let { player.inventory.add(it, count) }
+        // The tertiary clue last: the space check counts only the pocket's own loot, so a full backpack sends the clue
+        // to the floor, not the loot (Codex review on #907).
+        if (pocket.clueChance > 0 && world.random.nextInt(pocket.clueChance) == 0) world.objTypes[pocket.clue]?.let { world.trails.give(player, it, 1) }
     }
 
     /** One item and how many from [pocket]'s table, by weight at [farming]. */
@@ -410,8 +417,8 @@ class Pickpocketing(private val world: World) {
         /** The Wiki's Bandit (Bandit Camp) table, out of 7. */
         val DESERT_BANDIT_LOOT = listOf(line(DESERT_BANDIT_POUCH, 5), line(179, 1), line(1523, 1)) // pouch, antipoison(1), lockpick
 
-        /** The Wiki's Wealthy citizen table, out of 85: the 1/85 left (an easy clue, left out) gives nothing. */
-        val WEALTHY_CITIZEN_LOOT = listOf(line(WEALTHY_CITIZEN_POUCH, 79), line(29325, 5), line(-1, 1)) // pouch, house keys
+        /** The Wiki's Wealthy citizen table, out of 85: the 1/85 left is an easy clue. */
+        val WEALTHY_CITIZEN_LOOT = listOf(line(WEALTHY_CITIZEN_POUCH, 79), line(29325, 5), line(CLUE_EASY, 1)) // pouch, house keys, clue
 
         /** The Wiki's Vyre table, out of 132. */
         val VYRE_LOOT = listOf(
@@ -455,13 +462,13 @@ class Pickpocketing(private val world: World) {
             line(ROGUE_POUCH, 123), line(556, 9, 8, 8), line(1993, 6), line(1523, 5), line(1219, 1), // pouch, air runes, jug of wine, lockpick, iron dagger(p)
         )
 
-        /** The Wiki's Gnome table, out of 128; the medium clue (1/150) left out with Treasure Trails. */
+        /** The Wiki's Gnome table, out of 128; the medium clue (1/150) is the pocket's own roll. */
         val GNOME_LOOT = listOf(
             line(52, 56, 4, 2), line(GNOME_POUCH, 30), line(2150, 24), line(444, 8), line(557, 5), line(2162, 3), line(569, 2),
             // arrow shafts 2 to 4, pouch, swamp toad, gold ore, earth rune, king worm, fire orb
         )
 
-        /** The Wiki's Hero table, out of 128; the elite clue (1/900) left out with Treasure Trails. */
+        /** The Wiki's Hero table, out of 128; the elite clue (1/900) is the pocket's own roll. */
         val HERO_LOOT = listOf(
             line(HERO_POUCH, 105), line(560, 8, 2, 2), line(1993, 6), line(565, 5), line(1601, 1), line(569, 2), line(444, 1),
             // pouch, 2 death runes, jug of wine, blood rune, diamond, fire orb, gold ore
@@ -500,10 +507,16 @@ class Pickpocketing(private val world: World) {
         /** The H.A.M. table's slots: the Wiki's 102nds times 11, so the herbs' 561sts are whole. */
         const val HAM_SLOTS = 1122
 
+        /** Clue scrolls (easy to elite), which pickpocketing gives as their scroll boxes. */
+        const val CLUE_EASY = 2677
+        const val CLUE_MEDIUM = 2801
+        const val CLUE_HARD = 2722
+        const val CLUE_ELITE = 12073
+
         /**
          * The Wiki's H.A.M. Member pickpocket table (read 2026-11-10), each x/102 as 11x/1122 and each herb's x/561 as
-         * 2x/1122. The easy clue (1/50) is left out (no Treasure Trails yet) and counted as nothing, as the Wiki says a
-         * clue that can't be given is; nothing is 2/102 with it. Left out: Rocky, the higher robe rate during Death to
+         * 2x/1122. The easy clue (1/50) is the Wiki's nothing line, 2/102 (22/1122, 1 in 51): the Wiki counts a clue that
+         * can't be given as nothing, so the two share it (inferred). Left out: Rocky, the higher robe rate during Death to
          * the Dorgeshuun.
          */
         val HAM_LOOT = listOf(
@@ -523,7 +536,7 @@ class Pickpocketing(private val world: World) {
             ham(697, 44), ham(686, 44), // damaged armour, rusty sword
             ham(1627, 22), // uncut jade
             ham(199, 12), ham(201, 6), ham(203, 4), // grimy guam, marrentill, tarromin
-            ham(-1, 22), // nothing (and the left-out clue)
+            ham(CLUE_EASY, 22), // the easy clue (nothing when it can't be given)
         )
 
         private fun option(iops: List<String?>, name: String): Int? =
@@ -651,16 +664,19 @@ class Pickpocketing(private val world: World) {
             Pocket(WATCHMEN, "watchman", 65, 1375, 15, 160, 3, PickpocketLines.CAUGHT_CITIZEN, WATCHMAN_POUCH, 60, extra = listOf(line(2309, 1))),
             Pocket(
                 PALADINS, "paladin", 70, 1318, 40, 170, 3, PickpocketLines.CAUGHT_CITIZEN, PALADIN_POUCH, 80, stunTicks = STUN_4_8_SECONDS,
-                extra = listOf(line(562, 1, 2, 2)),
+                extra = listOf(line(562, 1, 2, 2)), clue = CLUE_HARD, clueChance = 500,
             ),
-            Pocket(GNOME_MEN, "gnome", 75, 1333, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300, lootPouch = GNOME_POUCH),
+            Pocket(
+                GNOME_MEN, "gnome", 75, 1333, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300, lootPouch = GNOME_POUCH,
+                clue = CLUE_MEDIUM, clueChance = 150,
+            ),
             Pocket(
                 GNOME_WOMEN_AND_CHILDREN, "gnome", 75, 1335, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300,
-                lootPouch = GNOME_POUCH,
+                lootPouch = GNOME_POUCH, clue = CLUE_MEDIUM, clueChance = 150,
             ),
             Pocket(
                 HEROES, "hero", 80, 1633, 39, 160, 3, PickpocketLines.CAUGHT_CITIZEN, loot = HERO_LOOT, coins = 200, coinsMax = 300, lootPouch = HERO_POUCH,
-                stunTicks = STUN_6_SECONDS,
+                stunTicks = STUN_6_SECONDS, clue = CLUE_ELITE, clueChance = 900,
             ),
             Pocket(
                 CAVE_GOBLINS, "cave goblin", 36, 400, 75, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = CAVE_GOBLIN_LOOT, coins = 10, coinsMax = 50,

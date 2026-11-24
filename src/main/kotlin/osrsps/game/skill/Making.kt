@@ -216,6 +216,7 @@ class Making(private val world: World) {
         }
         // Supplies made in a raid run from what the player brought count as brought (R26A-1, Codex review on #636).
         world.archiveRaids.supplies.made(player, recipe.inputs.map { it.obj to it.count * units }, outputs.map { (t, n) -> t.id to n })
+        for ((output, count) in outputs) world.diaries.made(player, output.id, count)
         val line = if (failed) chance!!.failedLine else recipe.made
         player.skills.addTenths(recipe.skill, (if (failed) chance!!.failedXpTenths else recipe.xpTenths) * units)
         player.message(world.textFor(player).get(line, *args(recipe, line, made)))

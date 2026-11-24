@@ -223,6 +223,7 @@ class Teleports(private val world: World, private val data: TeleportData) {
         player.spotanim(CAST_SPOTANIM, CAST_HEIGHT)
         delay(CAST_TICKS)
         land(spell)
+        world.diaries.teleported(player, spell.obj)
         player.anim(-1)
     }
 

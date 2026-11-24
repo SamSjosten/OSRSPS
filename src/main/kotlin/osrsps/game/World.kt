@@ -36,6 +36,7 @@ import net.rsprot.protocol.channel.hostAddress
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
+import osrsps.game.command.registerDiaryCommands
 import osrsps.game.command.registerLookCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
@@ -108,6 +109,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
+import osrsps.game.content.Diaries
 import osrsps.game.content.Examines
 import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
@@ -134,6 +136,7 @@ import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
+import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -160,6 +163,8 @@ import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
+import osrsps.game.content.registerDiaries
+import osrsps.game.content.registerAntiqueLamps
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
@@ -358,6 +363,8 @@ class World(
     val scenarios: Scenarios = Scenarios.NONE,
     /** The dialogue font's widths, for counting a dialogue's lines; see [ChatFont]. */
     chatFont: ChatFont = ChatFont.APPROXIMATE,
+    /** The journal scroll's font (p12_full), for wrapping the diaries' task lines as the client draws them. */
+    scrollFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
     /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
@@ -504,6 +511,9 @@ class World(
     /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
     val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
 
+    /** Brutus's fields, one a player ([osrsps.game.content.BrutusPens]). */
+    val brutusPens = osrsps.game.content.BrutusPens(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -528,6 +538,9 @@ class World(
 
     val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+
+    /** What [player] carries in grams now, from their backpack and worn items, rather than at the last tick's update. */
+    fun weightNow(player: Player): Int = itemWeights.total(player)
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
@@ -685,6 +698,7 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.content.Brutus.INSTANCE_LOCS ||
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
@@ -727,7 +741,10 @@ class World(
         hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
-        npcKilled = { npc, killer -> slayer.killed(npc, killer) },
+        npcKilled = { npc, killer ->
+            slayer.killed(npc, killer)
+            killer?.let { diaries.killed(it, npc) }
+        },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
@@ -986,6 +1003,9 @@ class World(
     /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
     val spiritTrees = osrsps.game.content.SpiritTrees(this)
 
+    /** The balloon transport system; see [osrsps.game.content.Balloons]. */
+    val balloons = osrsps.game.content.Balloons(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1065,6 +1085,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Lvl-1 to Lvl-7 Enchant; see [osrsps.game.skill.magic.JewelleryEnchant]. */
+    val jewelleryEnchant = osrsps.game.skill.magic.JewelleryEnchant(this, osrsps.game.skill.magic.JewelleryEnchantData.load(objTypes))
+
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
 
@@ -1105,6 +1128,9 @@ class World(
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
+    /** The achievement diaries; see [Diaries]. */
+    val diaries = Diaries(this, scrollFont)
+
     val lodestones = LodestoneNetwork(
         customVars,
         homeTeleport,
@@ -1123,6 +1149,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerDiaryCommands(this@World)
         registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerShootingStarCommands(this@World)
@@ -1209,6 +1236,7 @@ class World(
         registerDigsiteDigs(this)
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
+        registerDigsiteCamp(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1256,6 +1284,8 @@ class World(
         registerBarnabyShip(this)
         registerBrimhavenTown(this)
         registerVarrock(this)
+        registerDiaries(this)
+        registerAntiqueLamps(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
         archiveRaids.register()
@@ -1266,6 +1296,7 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1288,6 +1319,7 @@ class World(
         canoes.register()
         fairyRings.register()
         spiritTrees.register()
+        balloons.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1311,6 +1343,7 @@ class World(
         boltEnchant.register()
         alchemy.register()
         superheat.register()
+        jewelleryEnchant.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -2433,6 +2466,7 @@ class World(
         player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
         Kudos.login(player)
+        diaries.login(player)
         lodestones.login(player)
         fightCaves.login(player)
         collectionLog.login(player)
@@ -3710,6 +3744,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            balloons.forget(player)
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
