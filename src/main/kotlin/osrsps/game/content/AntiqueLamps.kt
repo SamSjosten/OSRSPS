@@ -38,10 +38,6 @@ object AntiqueLamps {
         HARD(13147, 15_000, 50),
         ELITE(13148, 50_000, 70),
         ;
-
-        companion object {
-            fun forObj(obj: Int): Lamp? = entries.firstOrNull { it.obj == obj }
-        }
     }
 
     /** The skill for each slot the screen sends (enum_681 from key 1, so slot 0 is Attack); Sailing is 23. */
@@ -78,7 +74,7 @@ object AntiqueLamps {
         world.interfaces.sendVarpNow(player, VARP_SKILLS)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, SCREEN)
         world.interfaces.setText(player, SCREEN, SCREEN_TITLE, world.textFor(player)[AntiqueLampLines.TITLE])
-        world.interfaces.setEvents(player, SCREEN, SCREEN_UNIVERSE, 0, SLOT_SKILLS.size - 1, Chatbox.EVENT_PAUSE_BUTTON)
+        world.interfaces.setEvents(player, SCREEN, SCREEN_UNIVERSE, 0, SLOT_SKILLS.size - 1, 0, Chatbox.EVENT_PAUSE_BUTTON)
         val chosen = pauseButton(SCREEN, SCREEN_UNIVERSE, 0 until SLOT_SKILLS.size)
         world.interfaces.closeModals(player)
         val skill = SLOT_SKILLS[chosen]
@@ -120,7 +116,7 @@ object DestroyItem {
         val text = world.textFor(player)
         world.interfaces.openChatModal(player, BOX, Chatbox.UNCLAMP_INFINITE)
         world.interfaces.runClientScript(player, INIT_SCRIPT, listOf(obj, 1, text[title], text[warning]))
-        world.interfaces.setEvents(player, BOX, BOX_UNIVERSE, NO, YES, Chatbox.EVENT_PAUSE_BUTTON)
+        world.interfaces.setEvents(player, BOX, BOX_UNIVERSE, NO, YES, 0, Chatbox.EVENT_PAUSE_BUTTON)
         val answer = pauseButton(BOX, BOX_UNIVERSE, NO..YES)
         return answer == YES && player.inventory[slot]?.id == obj
     }
