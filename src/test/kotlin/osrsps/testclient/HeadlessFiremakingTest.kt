@@ -135,6 +135,26 @@ class HeadlessFiremakingTest {
         }
     }
 
+    @Test
+    fun `oak logs lit in Lumbridge do the easy diary task, and plain logs don't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${Firemaking.TINDERBOX}")
+                client.command("setlevel firemaking 43")
+                client.command("item $LOGS")
+                client.slotOf(LOGS)
+                client.use(Firemaking.TINDERBOX, LOGS)
+                client.seen("[firemaking.catches]", timeoutMillis = 30_000)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "plain logs do no task")
+                client.command("item $OAK_LOGS")
+                client.slotOf(OAK_LOGS)
+                client.use(Firemaking.TINDERBOX, OAK_LOGS)
+                client.await("the diary task", 30_000) { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
+            }
+        }
+    }
+
     private companion object {
         const val LOGS = 1511
         const val OAK_LOGS = 1521
