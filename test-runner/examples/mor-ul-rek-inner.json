@@ -6,6 +6,7 @@
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts it back"},
     {"step": "command", "text": "::varp mor_ul_rek_access 0", "expectMessage": "Varp mor_ul_rek_access", "comment": "no access yet, whatever an earlier run left; set back to 0 at the end"},
+    {"step": "command", "text": "::varbit 5646 0", "comment": "inferno_sacrificed_firecape: not given to TzHaar-Ket-Keh, which would count as access too; ::reset puts it back"},
     {"step": "command", "text": "::tele 2436 5121 0", "expectMessage": "Teleported to 2436, 5121, 0", "comment": "north of the west hot vent door, by its guard"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "locOption", "locId": 30266, "option": "Pass", "x": 2436, "y": 5120},
