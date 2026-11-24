@@ -160,6 +160,29 @@ class HeadlessDigsiteCampTest {
     }
 
     @Test
+    fun `walking off while the filled vial is shown still puts the barrel's lid back`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3363, 3378)
+                client.command("item ${DigsiteCamp.TROWEL} 1")
+                client.command("item ${DigsiteCamp.VIAL} 2")
+                client.locTarget(barrel.id, barrel.x, barrel.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slot(DigsiteCamp.TROWEL), DigsiteCamp.TROWEL)
+                client.chat(DigsiteCampLines.BARREL_OPENED.key)
+                client.over()
+                client.await("the barrel open") { if (client.varp(BARREL_VARP) and 1 == 1) Unit else null }
+                client.locTarget(barrel.id, barrel.x, barrel.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slot(DigsiteCamp.VIAL), DigsiteCamp.VIAL)
+                client.awaitDialogue("the filled vial") { it is DialogueView.Other }
+                client.walk(3360, 3378)
+                client.await("the walk off") { client.position?.takeIf { it.x == 3360 } }
+                client.await("the lid back") { if (client.varp(BARREL_VARP) and 1 == 0) Unit else null }
+                assertEquals(1, client.count(DigsiteCamp.UNIDENTIFIED_LIQUID))
+                assertEquals(1, client.count(DigsiteCamp.VIAL))
+            }
+        }
+    }
+
+    @Test
     fun `the barrel opens with a trowel and fills a vial, and the tablet is taken once`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->

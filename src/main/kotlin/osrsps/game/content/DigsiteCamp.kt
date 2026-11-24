@@ -131,11 +131,12 @@ object DigsiteCamp {
         val liquid = world.objTypes[UNIDENTIFIED_LIQUID] ?: return
         player.inventory.remove(slot, 1)
         player.inventory.add(liquid, 1)
+        // The lid goes back with the swap, so walking off during the talk can't leave the barrel open.
+        player.vars.setVarbit(BARREL_VARBIT, 0)
         world.dialogues.start(this) {
             objbox(UNIDENTIFIED_LIQUID, DigsiteCampLines.BARREL_FILL)
             chatPlayer(ChatAnim.NEUTRAL, DigsiteCampLines.BARREL_CAREFUL)
         }
-        player.vars.setVarbit(BARREL_VARBIT, 0)
         world.message(player, DigsiteCampLines.BARREL_LID)
     }
 
