@@ -204,6 +204,7 @@ class Mining(private val world: World) {
                 if (emptied) deplete(loc, rock)
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
+                world.diaries.made(player, ore.id, 1)
                 player.message(text[MiningLines.GET_ORE, "ore" to oreName])
                 if (emptied) return stop()
                 // Crystals with ore left: the swing goes on (a full backpack ends it on the next run).
@@ -252,6 +253,7 @@ class Mining(private val world: World) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
+                world.diaries.made(player, ore.id, 1)
                 player.message(text[MiningLines.GET_ORE, "ore" to type.key])
                 stop()
                 taken(npc)

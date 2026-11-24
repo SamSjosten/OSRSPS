@@ -165,7 +165,9 @@ object AvaDevicesShop {
         val amount = wanted(op)
         val count = if (amount < 0) countDialog() else amount
         if (count < 1 || player.modals[FrameSlot.MAINMODAL] != INTERFACE) return
-        buy(player, device, count, world.textFor(player), world.objTypes, player::message)
+        val bought = buy(player, device, count, world.textFor(player), world.objTypes, player::message)
+        // "Purchase an upgraded device from Ava": inferred, the accumulator or the assembler (the Wiki's task links the accumulator).
+        if (bought > 0 && device.from != null) world.diaries.complete(player, DiaryTask.LUMBRIDGE_MEDIUM_3)
     }
 
     fun register(world: World) {

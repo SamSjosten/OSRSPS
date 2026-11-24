@@ -7,6 +7,8 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.npc.Npc
+import osrsps.game.skill.AgilityLines
 
 private val logger = KotlinLogging.logger {}
 
@@ -244,6 +246,31 @@ class Diaries(private val world: World, private val font: ChatFont) {
         return true
     }
 
+    /** [count] of [obj] made or gathered at once: any task it does ([DiaryHooks.MADE]). */
+    fun made(player: Player, obj: Int, count: Int) = DiaryHooks.made(DiaryHooks.MADE, player, obj, count).forEach { complete(player, it) }
+
+    /** [log] lit by the player ([DiaryHooks.BURNED]). */
+    fun burned(player: Player, log: Int) = DiaryHooks.made(DiaryHooks.BURNED, player, log, 1).forEach { complete(player, it) }
+
+    /** An NPC the player killed ([DiaryHooks.KILLED]). */
+    fun killed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.KILLED, player, npc.type.name).forEach { complete(player, it) }
+
+    /** An NPC the player pickpocketed ([DiaryHooks.PICKPOCKETED]). */
+    fun pickpocketed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.PICKPOCKETED, player, npc.type.name).forEach { complete(player, it) }
+
+    /** A teleport spell cast (not a tablet broken), by its spell obj. */
+    fun teleported(player: Player, spellObj: Int) {
+        if (spellObj == LUMBRIDGE_TELEPORT_SPELL) complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+    }
+
+    /** A lap of the course whose lap message is [lapLine]. */
+    fun lap(player: Player, lapLine: Line) {
+        when (lapLine) {
+            AgilityLines.DRAYNOR_LAPS -> complete(player, DiaryTask.LUMBRIDGE_EASY_1)
+            AgilityLines.ALKHARID_LAPS -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_1)
+        }
+    }
+
     /**
      * Takes [task] back off, for `::diary reset`; the tier's flag goes with it, and its claimed reward, so a test can
      * claim it again (an admin's command only, so the second lamp is no dupe a player can reach).
@@ -372,6 +399,9 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
         /** Client script that sizes journalscroll's text layer for a line count (`script6845` in osrs-dumps). */
         const val LINE_COUNT_SCRIPT = 6845
+
+        /** `31_lumbridge_teleport`, the standard book's Lumbridge Teleport. */
+        const val LUMBRIDGE_TELEPORT_SPELL = 3289
 
         /** The text layer's width: each line is as wide (the cache's qj components). */
         const val LINE_WIDTH = 404

@@ -77,6 +77,7 @@ class CombinationRunes(private val world: World) {
         removeCount(inventory, recipe.input, pairs)
         removeCount(inventory, recipe.talisman, 1)
         if (made > 0) inventory.add(runeType, made)
+        if (made > 0) world.diaries.made(player, recipe.rune, made)
         player.anim(RuneCrafting.ANIM)
         player.spotanim(RuneCrafting.SPOTANIM, RuneCrafting.SPOTANIM_HEIGHT)
         if (made > 0) player.skills.addTenths(Skill.RUNECRAFT, recipe.xpTenths * made)
