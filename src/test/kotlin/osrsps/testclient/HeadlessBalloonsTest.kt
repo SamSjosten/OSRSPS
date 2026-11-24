@@ -56,6 +56,7 @@ class HeadlessBalloonsTest {
                 ObjType(ANCHOR, "Anchor", weight = 39_500),
                 ObjType(PLATEBODY, "Rune platebody", wearpos1 = WearPos.BODY, params = mapOf(STAB_DEFENCE to 82), weight = 9979),
                 ObjType(FIRE_CAPE, "Fire cape", wearpos1 = WearPos.CAPE, params = mapOf(STAB_DEFENCE to 11), weight = 1814),
+                ObjType(HAM_JOINT, "Ham joint", wearpos1 = WearPos.WEAPON, weight = 500),
             ),
             npcTypes = NpcTypes.of(serf, auguste),
             npcSpawns = listOf(NpcSpawn(serf, 3298, 3483, wander = 0, source = "test")),
@@ -172,26 +173,28 @@ class HeadlessBalloonsTest {
                 client.await("the dialogue closed") { if (client.dialogueView == null) Unit else null }
                 assertEquals(here, client.position)
                 assertEquals(2L, client.inventory(BACKPACK).filterNotNull().filter { it.id == BalloonStation.ENTRANA.log }.sumOf { it.count.toLong() })
-                // A cape with a defence bonus is armour too (the Wiki's Entrana page).
+                // A cape with a defence bonus is armour too, and the ham joint is barred with none (the Wiki's Entrana page).
+                for (barred in listOf(FIRE_CAPE, HAM_JOINT)) {
+                    client.command("empty")
+                    client.command("item ${BalloonStation.ENTRANA.log}")
+                    client.command("item $barred")
+                    client.await("item $barred") { client.inventory(BACKPACK).firstOrNull { it?.id == barred } }
+                    client.npcOp(npc.index, Balloons.FLY)
+                    client.await("the map for $barred") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
+                    client.ifButton(Balloons.MAP, BalloonStation.ENTRANA.button, 1)
+                    client.awaitDialogue("$barred's search") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_SEARCH.key}]" }
+                    client.continueDialogue()
+                    client.awaitDialogue("$barred searched") { it is DialogueView.Message && it.text == "[${BalloonLines.SEARCHED.key}]" }
+                    client.continueDialogue()
+                    client.awaitDialogue("$barred refused") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_REFUSE.key}]" }
+                    client.continueDialogue()
+                    client.await("$barred's refusal closed") { if (client.dialogueView == null) Unit else null }
+                    assertEquals(here, client.position)
+                }
+                // Without them, Fly goes straight to the map and the search lets the player through.
                 client.command("empty")
                 client.command("item ${BalloonStation.ENTRANA.log}")
-                client.command("item $FIRE_CAPE")
-                client.await("the cape") { client.inventory(BACKPACK).firstOrNull { it?.id == FIRE_CAPE } }
-                client.npcOp(npc.index, Balloons.FLY)
-                client.await("the map for the cape") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
-                client.ifButton(Balloons.MAP, BalloonStation.ENTRANA.button, 1)
-                client.awaitDialogue("the cape's search") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_SEARCH.key}]" }
-                client.continueDialogue()
-                client.awaitDialogue("the cape searched") { it is DialogueView.Message && it.text == "[${BalloonLines.SEARCHED.key}]" }
-                client.continueDialogue()
-                client.awaitDialogue("the cape refused") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_REFUSE.key}]" }
-                client.continueDialogue()
-                client.await("the refusal closed") { if (client.dialogueView == null) Unit else null }
-                assertEquals(here, client.position)
-                // Without either, Fly goes straight to the map and the search lets the player through.
-                client.command("empty")
-                client.command("item ${BalloonStation.ENTRANA.log}")
-                client.await("the cape gone") { if (client.inventory(BACKPACK).none { it?.id == FIRE_CAPE || it?.id == PLATEBODY }) Unit else null }
+                client.await("the joint gone") { if (client.inventory(BACKPACK).none { it?.id == HAM_JOINT }) Unit else null }
                 client.npcOp(npc.index, Balloons.FLY)
                 client.await("the map again") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
                 client.ifButton(Balloons.MAP, BalloonStation.ENTRANA.button, 1)
@@ -229,6 +232,7 @@ class HeadlessBalloonsTest {
         const val ANCHOR = 10_000
         const val PLATEBODY = 1127
         const val FIRE_CAPE = 6570
+        const val HAM_JOINT = 23360
         const val STAB_DEFENCE = 5
         const val BACKPACK = 93
     }
