@@ -20,6 +20,9 @@ import osrsps.game.shop.ShopScreen
 import osrsps.game.social.Clans
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.House
+import osrsps.game.skill.construction.RoomType
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.script.ScriptContext
@@ -510,6 +513,19 @@ internal class HeadlessGame(
             client.resumePause(interfaceId, component, quantity)
             return null
         }
+        if (interfaceId == Furniture.MENU && component - Furniture.FIRST_SLOT_COMPONENT + 1 in 1..Furniture.MAX_SLOTS) {
+            // Stand-in for the creation menu's own click script (cs2 poh_furniture_creation_op): a slot's Build resumes
+            // the menu's contents with the slot.
+            client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, component - Furniture.FIRST_SLOT_COMPONENT + 1)
+            return null
+        }
+        if (interfaceId == House.ADD_ROOM) {
+            // Stand-in for the add-room menu's own click script (cs2 poh_add_room_op): a room's button resumes the list
+            // with the room's type as the slot.
+            val type = RoomType.entries.firstOrNull { it.listed && it.button == component } ?: return "212:$component is no room's button"
+            client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, type.id)
+            return null
+        }
         if ((interfaceId shl 16 or component) == FRIENDS_CHAT_JOIN_LEAVE) {
             // Inferred stand-in: the friends chat panel's one button is Leave Chat in a channel, which leaves with no
             // more asked, and Join Chat out of one, which opens the owner's name prompt.
@@ -608,6 +624,16 @@ internal class HeadlessGame(
         val index = npcIndex(npc, npcId)
         if (index < 0) return "no NPC " + (if (npc != null) "\"$npc\"" else "id $npcId") + " in view"
         client.npcTarget(index, interfaceId, component)
+        return null
+    }
+
+    override fun castOnItem(interfaceId: Int, component: Int, item: String?, itemId: Int): String? {
+        val client = c() ?: return "not logged in"
+        if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open"
+        val items = client.inventory(Inventory.INV)
+        val slot = inventorySlot(items, item, itemId, -1)
+        if (slot < 0) return "no ${describeItem(item, itemId)} in the inventory"
+        client.ifButtonT(interfaceId, component, -1, -1, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, items[slot]!!.id)
         return null
     }
 

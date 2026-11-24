@@ -55,7 +55,7 @@ class Poison(
     fun poison(player: Player, severity: Int): Boolean {
         require(severity in 1 until VENOM) { "A poison severity is 1 to ${VENOM - 1}, not $severity" }
         val value = value(player)
-        if (value < 0 || value >= severity) return false
+        if (value < 0 || value >= severity || player.poisonBlockTicks > 0) return false
         player.vars[VARP] = severity
         if (value == 0) message(player, words(player)[PoisonLines.POISONED])
         return true
@@ -64,7 +64,7 @@ class Poison(
     /** Envenoms [player], unless they are immune to venom or envenomed already. Poison immunity alone doesn't stop it. */
     fun envenom(player: Player): Boolean {
         val value = value(player)
-        if (value < VENOM_IMMUNE || value >= VENOM) return false
+        if (value < VENOM_IMMUNE || value >= VENOM || player.poisonBlockTicks > 0) return false
         player.vars[VARP] = VENOM
         if (value <= 0) message(player, words(player)[PoisonLines.ENVENOMED])
         return true
@@ -79,19 +79,41 @@ class Poison(
         player.vars[VARP] = if (value >= VENOM) damage(value) * 5 else minOf(value, 0, -periods)
     }
 
+    /**
+     * Stops poison and venom being put on [player] for [ticks], without the immunity a potion gives: the strange fruit
+     * (Mod Ash, on the Wiki's Strange fruit page: "not traditional immunity"). Not saved; guessed to count down while an
+     * interface is open too.
+     */
+    fun block(player: Player, ticks: Int) {
+        player.poisonBlockTicks = maxOf(player.poisonBlockTicks, ticks)
+    }
+
     /** An anti-venom's dose: cures venom and poison and leaves [player] immune for [periods], as [cure]. */
     fun cureVenom(player: Player, periods: Int) {
         player.vars[VARP] = minOf(value(player), 0, -periods)
     }
 
-    /** Ends poison, venom and immunity on [player]: death, or a scenario starting. */
-    fun clear(player: Player) {
+    /**
+     * Ends [player]'s poison, if they are poisoned, leaving venom and immunity as they are: leaving a player-owned house
+     * (the Wiki's Player-owned house, Trivia: "exiting the POH in any way will remove this debuff").
+     */
+    fun curePoison(player: Player) {
+        val value = value(player)
+        if (value <= 0 || value >= VENOM) return
         player.vars[VARP] = 0
         player.poisonTicks = -1
     }
 
+    /** Ends poison, venom, immunity and a strange fruit's block on [player]: death, or a scenario starting. */
+    fun clear(player: Player) {
+        player.vars[VARP] = 0
+        player.poisonTicks = -1
+        player.poisonBlockTicks = 0
+    }
+
     /** Counts [player]'s timer down by a tick, hitting them or wearing the immunity off when it runs out. */
     fun process(player: Player) {
+        if (player.poisonBlockTicks > 0) player.poisonBlockTicks--
         if (player.dead) return
         val value = value(player)
         if (value == 0) {

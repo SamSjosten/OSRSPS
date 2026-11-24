@@ -95,6 +95,11 @@ data class NpcCombatDef(
      * with, as [magicAttack] is for its spells.
      */
     val rangedAttack: Int = 0,
+    /**
+     * The Wiki's melee attack bonus, for a magic or ranged NPC that also swings in reach (the Inferno's Jal-Ak): what a
+     * melee attack of its rolls with.
+     */
+    val meleeAttack: Int = 0,
     /** The Wiki's elemental weakness, null for "No elemental weakness". */
     val weakness: ElementalWeakness? = null,
     /** The poison severity its attacks give ([Poison]), 0 for none: five times the Wiki's starting damage. */
@@ -123,6 +128,8 @@ data class NpcCombatDef(
     val spell: NpcMeleeSpell? = null,
     /** A dragon's dragonfire, breathed in reach now and then instead of a swing ([Dragonfire]). */
     val dragonfire: NpcDragonfire? = null,
+    /** Typeless attacks, which no protection prayer blocks or cuts (`"typeless": true`; the Escape Caves' bears and spiders). */
+    val typeless: Boolean = false,
     /**
      * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
      * The Fractured Archive/Strategies).
@@ -138,6 +145,12 @@ data class NpcCombatDef(
      * refused ([Combat.slayerGated]).
      */
     val slayerLevel: Int = 0,
+    /**
+     * The share of its melee damage, in percent, that a protection prayer against it lets through ([MeleeCombat.swingAt]):
+     * 0 for most, which a prayer blocks fully; 25 for Scurrius's giant rats ("the prayer reduces their overall damage by
+     * 75%", OSRS Wiki, Giant rat (Scurrius)).
+     */
+    val prayerPasses: Int = 0,
     /** Ticks between the hitpoints it gets back ([MeleeCombat]): [MeleeCombat.REGEN_TICKS] for most, 5 for cave bugs and crawlers. */
     val regenTicks: Int = MeleeCombat.REGEN_TICKS,
     /**
@@ -152,8 +165,11 @@ data class NpcCombatDef(
  * Magic defence) instead of swinging, while its drain has taken less than [stopPercent] of the stat's base level plus
  * [stopFlat]; past that it only swings. The Catablepon's Weaken "will stop casting once 8% + 3 of your total strength
  * level has been drained", "but casts before this threshold can still bring you lower" (OSRS Wiki, Catablepon).
+ * One that [countersPrayer] picks the style a protection prayer doesn't block: always the spell against Protect from
+ * Melee, never against Protect from Magic, else the [chance] roll (the Saradomin wizard, OSRS Wiki: "They will change
+ * attack styles between Melee and Magic to counter protection prayers").
  */
-data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0) {
+data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0, val countersPrayer: Boolean = false) {
     /** Whether it still casts at a player whose drained stat is at [current] of [base]. */
     fun casts(base: Int, current: Int): Boolean = base - current < base * stopPercent / 100 + stopFlat
 }
@@ -212,19 +228,20 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
+         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"meleeAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom", "freeze"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
          * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
-         * takes it below, for a rockslug).
+         * takes it below, for a rockslug), `"prayerPasses": 25` (the share of its melee damage, in percent, that a
+         * protection prayer lets through) and `"typeless": true` (no protection prayer blocks its attacks).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
          * A melee NPC may add a `"spell"` it casts in reach now and then: one such attack plus `"chance"` (1 in that
-         * many turns) and `"stopsAt": { "percent": 8, "flat": 3 }` ([NpcMeleeSpell]); a drain there may be
+         * many turns), `"stopsAt": { "percent": 8, "flat": 3 }` and `"countersPrayer": true` ([NpcMeleeSpell]); a drain there may be
          * `"stacks": true`. A dragon adds `"dragonfire": { "chance": 6, "anim": "dragon_firebreath_attack", "cast": 1 }`
          * ([NpcDragonfire]).
          *
@@ -287,6 +304,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                 magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
                 rangedAttack = entry["rangedAttack"]?.jsonPrimitive?.int ?: 0,
+                meleeAttack = entry["meleeAttack"]?.jsonPrimitive?.int ?: 0,
                 weakness = entry["weakness"]?.jsonObject?.let { weakness ->
                     ElementalWeakness(
                         Element.parse(weakness.required("element").jsonPrimitive.content),
@@ -301,11 +319,13 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
+                typeless = entry["typeless"]?.jsonPrimitive?.boolean ?: false,
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
                 range = (entry["range"]?.jsonPrimitive?.int ?: 1).also { require(it in 1..MAX_RANGE) { "range $it" } },
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {
                     require(it.isEmpty() || attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "attacks on a $attackType NPC" }
                 },
+                prayerPasses = (entry["prayerPasses"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "$it% through a prayer" } },
                 xpBonusTenths = (entry["xpBonus"]?.jsonPrimitive?.double ?: 0.0).let { percent ->
                     require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
                     Math.round(percent * 10).toInt()
@@ -318,6 +338,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         spell.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a spell chance of 1 in $it" } },
                         stops?.get("percent")?.jsonPrimitive?.int ?: 0,
                         stops?.get("flat")?.jsonPrimitive?.int ?: 0,
+                        spell["countersPrayer"]?.jsonPrimitive?.boolean ?: false,
                     )
                 },
                 dragonfire = entry["dragonfire"]?.jsonObject?.let { fire ->
@@ -350,8 +371,11 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
             )
         }
 
-        /** The farthest an NPC attacks from here: a spell's 10 tiles (OSRS Wiki, Attack range). */
-        const val MAX_RANGE = 10
+        /**
+         * The farthest an NPC attacks from here: 15 tiles, the Fight Cave's Tok-Xil, Ket-Zek and TzTok-Jad (OSRS Wiki,
+         * their pages: "a range of 15 tiles"); most stop at a spell's 10 (OSRS Wiki, Attack range).
+         */
+        const val MAX_RANGE = 15
 
         private fun attack(entry: JsonObject, seqs: SeqNames): NpcRangedAttack {
             fun id(key: String) = entry[key]?.jsonPrimitive?.int ?: -1

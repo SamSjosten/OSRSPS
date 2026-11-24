@@ -1,0 +1,32 @@
+{
+  "name": "TzHaar in a test setup (exploit review R45B-3, R45B-4): TzHaar-Mej-Jal's Exchange fire cape and TzHaar-Ket-Keh's fire cape sacrifice both refuse with their in_scenario message and leave the cape in the backpack; ::reset puts the account back (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a test setup: no cape earned in it may pay out or open the Inferno"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::item 6570 1"},
+    {"step": "command", "text": "::tele 2438 5168 0", "expectMessage": "Teleported to 2438, 5168, 0"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "TzHaar-Mej-Jal", "option": "Exchange fire cape"},
+    {"step": "assertMessage", "contains": "[mej_jal.in_scenario]"},
+    {"step": "assertInventory", "itemId": 6570, "count": 1},
+    {"step": "assertInventory", "itemId": 6529, "count": 0, "comment": "no TokKul paid for it"},
+    {"step": "command", "text": "::varbit 5646 0", "comment": "inferno_sacrificed_firecape: not given, as a setup may keep the account's own value; ::reset puts it back"},
+    {"step": "command", "text": "::tele 2496 5121 0", "expectMessage": "Teleported to 2496, 5121, 0", "comment": "beside TzHaar-Ket-Keh (2496,5115)"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "TzHaar-Ket-Keh", "option": "Talk-to"},
+    {"step": "assertDialogue", "contains": "[ket_keh.greeting caste=JalYt-", "speaker": "TzHaar-Ket-Keh"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[ket_keh.help]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "contains": "[ket_keh.prove]", "speaker": "TzHaar-Ket-Keh"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "contains": "[ket_keh.take_word]", "speaker": "TzHaar-Ket-Keh"},
+    {"step": "continueDialogue"},
+    {"step": "assertMessage", "contains": "[ket_keh.in_scenario]"},
+    {"step": "assertInventory", "itemId": 6570, "count": 1, "comment": "the sacrifice refused: the cape is kept"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

@@ -5,8 +5,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.InvObj
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -20,6 +22,7 @@ import osrsps.game.combat.DropItem
 import osrsps.game.combat.DropSlot
 import osrsps.game.combat.DropTable
 import osrsps.game.combat.GraveFees
+import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.Spells
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.LodestoneMap
@@ -143,10 +146,16 @@ class HeadlessArchiveRaidTest {
                 *chestTypes.toTypedArray(),
             ),
             // tfa_vault_own_chest, where the 241.4 cache has it.
-            // And tfa_has_claimable_loot.
+            // And tfa_has_claimable_loot; and the loot notification settings, the untradeable one on a varp of its own.
             varTypes = VarTypes(
                 6_000,
-                mapOf(ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3), ArchiveChestWindow.CLAIMABLE to VarbitType(CLAIMABLE_VARP, 10, 10)),
+                mapOf(
+                    ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3),
+                    ArchiveChestWindow.CLAIMABLE to VarbitType(CLAIMABLE_VARP, 10, 10),
+                    LootNotifications.VARBIT_ON to AllSettings.VARBITS.getValue(LootNotifications.VARBIT_ON),
+                    LootNotifications.VARBIT_VALUE to AllSettings.VARBITS.getValue(LootNotifications.VARBIT_VALUE),
+                    LootNotifications.VARBIT_UNTRADEABLE to VarbitType(LOOT_UNTRADEABLE_VARP, 0, 0),
+                ),
             ),
             cycleMillis = millis,
         )
@@ -517,6 +526,76 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a leader away from the lobby doesn't hold the party at the Archive Door`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("erin").use { erin ->
+                    for (client in listOf(carol, erin)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                    erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val world = server.world
+                    // Carol, the leader, is where she logged in, far from the lobby (exploit review R42C-1): Erin goes in.
+                    assertFalse(world.archiveRaids.inLobby(world.playerNamed("carol")!!), "Carol away from the lobby")
+                    val run = erin.enter(server, "erin")
+                    assertNotNull(run)
+                    assertTrue(erin.messages().none { it.text.contains("tfa_run.leader_first") }, "Erin held back")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the leader goes first through the Archive Door and each way on, and the rest are told as they do`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("erin").use { erin ->
+                    for (client in listOf(carol, erin)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                    erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val party = assertNotNull(world.parties.of(world.playerNamed("carol")!!))
+                    fun firstRefused(client: HeadlessClient) {
+                        val box = client.awaitDialogue("the leader must go first") { it is DialogueView.Message } as DialogueView.Message
+                        assertEquals("[tfa_run.leader_first name=carol]", box.text)
+                        client.continueDialogue()
+                    }
+                    // Erin first at the lobby's Archive Door, with Carol in the lobby too: Carol must go first, and no
+                    // run is opened.
+                    carol.tele(ArchiveRaids.LOBBY_X + 2, ArchiveRaids.LOBBY_Z)
+                    erin.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                    erin.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                    firstRefused(erin)
+                    assertNull(raids.of(party), "no run opened by Erin")
+                    // Carol opens it, and Erin is told to step inside; then in she goes.
+                    val run = carol.enter(server, "carol")
+                    erin.await("Carol's line") { erin.messages().lastOrNull { it.text == "[tfa_run.entered_archive name=carol]" } }
+                    assertEquals(run, erin.enter(server, "erin"))
+                    assertTrue(carol.messages().none { it.text.contains("tfa_run.entered_archive") }, "Carol not told of herself")
+                    // The Guardian's hall, done at once with no Guardian here.
+                    carol.command("raid tp guardian")
+                    erin.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                    // Erin at Bork's door before Carol: refused, and the row's still unchosen.
+                    val room = ArchiveRoom.BORK
+                    val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+                    erin.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                    firstRefused(erin)
+                    erin.awaitTicks(ArchiveRaids.MOVE_DELAY + 1)
+                    assertNull(run.chosen[room.stage], "the row not chosen by Erin")
+                    assertFalse(raids.inRoom(run, room, erin.position!!.x, erin.position!!.z), "Erin not in Bork's room")
+                    // Carol goes through: Erin is told, and follows.
+                    carol.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                    erin.await("Carol's line at the door") { erin.messages().lastOrNull { it.text == "[tfa_run.proceeded_bork name=carol]" } }
+                    carol.awaitAt(raids.tile(run, room.entryX, room.entryZ), "Carol in ${room.boss}'s room")
+                    erin.locOp(room.door, door.x, door.z, ArchiveRaids.QUICK_ENTER)
+                    erin.await("Erin in ${room.boss}'s room") { erin.position?.takeIf { raids.inRoom(run, room, it.x, it.z) } }
+                    assertTrue(carol.messages().none { it.text.contains("tfa_run.proceeded") }, "Carol not told of herself")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `the run's end pays the members in it by their contribution, and each opens only their own chest, the Rift it leaves there a tick on`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { carol ->
@@ -596,6 +675,11 @@ class HeadlessArchiveRaidTest {
                             assertEquals("Travelling to the reward vault.", client.commandReply("raid travel") { it.contains("ravel") })
                             client.awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
                         }
+                        // Both tell of untradeable loot, the axes, as a drop's notification does.
+                        for (client in listOf(carol, dave)) {
+                            client.commandReply("varbit ${LootNotifications.VARBIT_ON} 1") { it.startsWith("Varbit") }
+                            client.commandReply("varbit ${LootNotifications.VARBIT_UNTRADEABLE} 1") { it.startsWith("Varbit") }
+                        }
                         carol.await("Carol's own chest, the first") { carol.varp(OWN_CHEST_VARP).takeIf { it and 15 == 1 } }
                         dave.await("Dave's own chest, the third") { dave.varp(OWN_CHEST_VARP).takeIf { it and 15 == 3 } }
                         // Beside her chest, on the island: Open, and it is the Rift a tick later.
@@ -618,7 +702,15 @@ class HeadlessArchiveRaidTest {
                         val rift = run.chests.getValue(0)
                         assertEquals(ArchiveChests.chestType(0, open = true), rift.type.id)
                         assertEquals(Triple(own.x, own.z, ArchiveRaids.REWARD_LEVEL), Triple(rift.x, rift.z, rift.level))
+                        // Her chest's window opens by itself, WINDOW_AFTER ticks on, with nothing clicked.
+                        assertEquals(mapOf(0 to world.tick + ArchiveChests.WINDOW_AFTER), run.revealing.toMap(), "the window to come")
+                        assertTrue(ArchiveChestWindow.ID !in carol.openInterfaces(), "the window before its time")
+                        carol.stepTicks(ArchiveChests.WINDOW_AFTER)
+                        assertTrue(run.revealing.isEmpty(), "revealing: ${run.revealing}")
                         carol.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.await("her chest's window, by itself") { (ArchiveChestWindow.ID in carol.openInterfaces()).takeIf { it } }
+                        carol.closeModal()
+                        carol.await("her window closed") { (ArchiveChestWindow.ID !in carol.openInterfaces()).takeIf { it } }
                         carol.await("her chest the Rift in view") {
                             carol.npcs().let { seen -> seen.any { it.id == ArchiveChests.chestType(0, true) } && seen.none { it.id == ArchiveChests.chestType(0, false) } }.takeIf { it }
                         }
@@ -633,9 +725,23 @@ class HeadlessArchiveRaidTest {
                         dave.command("raid tp ${ArchiveChests.SLOTS[2].first + 1} ${ArchiveChests.SLOTS[2].second}")
                         dave.awaitAt(Tile(third.x + 1, third.z), "beside his chest", ArchiveRaids.REWARD_LEVEL)
                         val seen = dave.await("his chest in view") { dave.npcs().firstOrNull { it.id == ArchiveChests.chestType(2, false) } }
+                        // He is asked a question in the chatbox while it opens (exploit review R42C-3, Codex on PR 800):
+                        // the window coming doesn't shut it.
+                        val him = world.playerNamed("dave")!!
+                        dave.commandReply("pause") { it.contains("aused after tick") }
                         dave.npcOp(seen.index, ArchiveChests.OPEN)
-                        dave.await("his chest open") { if (run.opened == setOf(0, 2)) Unit else null }
+                        dave.stepTicks(1)
+                        assertEquals(setOf(2), run.opening.keys, "his opening")
+                        world.scripts.start(him) { world.dialogues.start(this, run.chests.getValue(2)) { choice("[test.yes]", "[test.no]") } }
+                        assertTrue(him.chatModal >= 0, "his question")
+                        dave.stepTicks(ArchiveChests.OPEN_TICKS + ArchiveChests.WINDOW_AFTER)
+                        assertTrue(run.opened == setOf(0, 2) && run.revealing.isEmpty(), "open: ${run.opened}, revealing: ${run.revealing}")
                         assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
+                        assertTrue(him.chatModal >= 0, "his question still open")
+                        assertFalse(world.archiveChestWindow.isOpen(him), "the window over his question")
+                        dave.commandReply("resume") { it.startsWith("Resumed") }
+                        dave.closeModal()
+                        dave.await("his question closed") { if (him.chatModal < 0) Unit else null }
 
                         // Raid step 29b. Each one's loot waits as theirs, the Wheelbarrow's varbit set; the one without
                         // the unique has the thirty axes, and takes them from the window their Rift's Search opens.
@@ -643,6 +749,9 @@ class HeadlessArchiveRaidTest {
                         for (client in listOf(carol, dave)) client.await("loot to claim") { claimable(client).takeIf { it == 1 } }
                         val (taker, takerSlot) = if (finder == carolKey) dave to 2 else carol to 0
                         val (finding, findingSlot) = if (finder == carolKey) carol to 0 else dave to 2
+                        // The axes were told of as their window opened; the pickaxe, worth nothing, wasn't.
+                        taker.await("the axes told of") { taker.messages().firstOrNull { it.text == "[loot.untradeable item=30 x Bronze axe]" } }
+                        assertTrue(finding.messages().none { it.text.startsWith("[loot.") }, "the finder told of loot")
                         // The other's Rift isn't theirs to search.
                         val others = taker.await("the other's Rift in view") { taker.npcs().firstOrNull { it.id == ArchiveChests.chestType(findingSlot, true) } }
                         taker.npcOp(others.index, ArchiveChests.SEARCH)
@@ -1482,6 +1591,9 @@ class HeadlessArchiveRaidTest {
 
         /** The varp tfa_has_claimable_loot is bit 10 of; the Loot Wheelbarrow closed, and where the lobby has it (241.4 cache). */
         const val CLAIMABLE_VARP = 5912
+
+        /** A varp nothing else in this test uses, for the untradeable loot notification setting. */
+        const val LOOT_UNTRADEABLE_VARP = 5930
         const val WHEELBARROW_CLOSED = 63300
         const val WHEELBARROW_X = 4136
         const val WHEELBARROW_Z = 5551

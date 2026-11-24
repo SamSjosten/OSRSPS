@@ -36,9 +36,9 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
  * The rotten potato (obj 5733), live's J-Mod tool, as an admins' tool here: Eat (iop1) opens a menu of testing tools,
  * which run the `::` commands, so each is logged and refused to non-admins as typed ones are. The cache gives the
  * potato Eat, Slice, Peel and Mash; Eat's options are from the OSRS Wiki's page (read 2026-10-30). Live's third, Setup
- * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares or random events, Teleport
+ * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares, Teleport
  * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out. Slice (iop2),
- * live's random events, holds our testing tools. Mash (iop4) keeps Kick me out and Kill me; there is no idle logout
+ * live's random events, holds our testing tools; `::randomevent` starts random events instead. Mash (iop4) keeps Kick me out and Kill me; there is no idle logout
  * for Keep me logged in to turn off, and no Transmogrify me yet. Using any item on the potato, or the potato on it, deletes
  * the item; using the potato on a player lists their inventory in the chatbox.
  */
@@ -60,8 +60,8 @@ object RottenPotato {
     const val ITEM_PROMPT = "Spawn item, id|name [count]:"
 
     /**
-     * Slice's menu, all ours: live's Slice starts random events (AMEs), which there are none of, so it holds the testing
-     * tools instead.
+     * Slice's menu, all ours: live's Slice starts random events (AMEs), which `::randomevent` does here, so it holds the
+     * testing tools instead.
      */
     const val GOD = "God mode on/off"
     const val SURE = "Sure hits on/off"

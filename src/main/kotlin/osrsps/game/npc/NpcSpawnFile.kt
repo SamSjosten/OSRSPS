@@ -100,6 +100,23 @@ object NpcSpawnFile {
         "wilderness-49-56.json",
         "kbd-lair.json",
         "raid-tester.json",
+        "construction.json",
+        "hunters-end.json",
+        "karamja-ships.json",
+        "clan-hub.json",
+        "skeletal-tomb.json",
+        "scurrius-lair.json",
+        "fight-cave.json",
+        "inferno.json",
+        "shooting-stars.json",
+        "misthalin-post-quest.json",
+        "web-chasm.json",
+        "escape-caves.json",
+        "karamja-musa-point.json",
+        "karamja-volcano.json",
+        "crandor.json",
+        "mor-ul-rek.json",
+        "dorgeshuun-tunnels.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

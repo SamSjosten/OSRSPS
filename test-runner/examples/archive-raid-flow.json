@@ -249,8 +249,8 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "You're in the reward vault, at 4127, 5779 of the raid",
-   "comment": "where the party comes in, at the south end of the vault's walk (tsps capture notes)"
+   "expectMessage": "You're in the reward vault, at 4125, 5773 of the raid",
+   "comment": "where the party comes in, at the south end of the vault's walk (Sam's recording of 16 November 2026)"
   },
   {
    "step": "command",
@@ -260,9 +260,9 @@
   },
   {
    "step": "command",
-   "text": "::locs 2",
+   "text": "::locs 6",
    "expectMessage": "62775 ",
-   "comment": "tfa_vault_scoreboard, the Merit scroll, which the server puts on the walk's east wall (4129,5778); its angle is a guess"
+   "comment": "tfa_vault_scoreboard, the Merit scroll, which the server puts on the walk's east wall (4129,5778), five tiles from where the party comes in; its angle is a guess"
   },
   {
    "step": "command",
@@ -323,6 +323,11 @@
    "comment": "open, the Rift it leaves there"
   },
   {
+   "step": "assertInterface",
+   "interfaceId": 973,
+   "comment": "tfa_chests, the chest's window, open by itself two ticks after the Rift with nothing clicked (Sam's recordings of 16 November 2026: about 2 to 3 ticks)"
+  },
+  {
    "step": "command",
    "text": "::npcs 2",
    "expectMessage": "(16737)",
@@ -334,6 +339,11 @@
    "option": "Search",
    "timeoutMs": 20000,
    "comment": "raid step 29b: Search on the Rift one's own chest leaves, which the client sees as tfa_rewards_chest_vault_open_mine (16735)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "Search's own turn: the window that opened by itself closes as the player acts on the Rift and opens again with Search, so a click before then lands on a shut window"
   },
   {
    "step": "assertInterface",
@@ -388,7 +398,7 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": " 700. You're in the reward vault, at 4127, 5779 of the raid",
+   "expectMessage": " 700. You're in the reward vault, at 4125, 5773 of the raid",
    "comment": "up again at the vault's arrival tile, the run still there: nothing between the points and the place, so nobody down and no death counted (a guess: what such a death costs on live isn't known)"
   },
   {
@@ -415,6 +425,12 @@
    "comment": "the client's scene after the move"
   },
   {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the Rift's question is checked by its keys, so it passes with or without its words on the server"
+  },
+  {
    "step": "npcOption",
    "npcId": 16690,
    "option": "Leave",
@@ -422,9 +438,20 @@
    "comment": "the Rift out, 3 by 3 in the island's middle (4126,5796): Leave, back to the lobby"
   },
   {
+   "step": "chooseOption",
+   "text": "[tfa_run.leave_yes]",
+   "timeoutMs": 20000,
+   "comment": "Leave asks whether we're ready to leave the Fractured Archive (Sam's recordings of 16 November 2026) once we've walked to it: Yes"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
    "step": "waitTicks",
-   "ticks": 14,
-   "comment": "the walk to the Rift and the move"
+   "ticks": 4,
+   "comment": "the move comes on Yes, then the client's scene in the lobby"
   },
   {
    "step": "command",

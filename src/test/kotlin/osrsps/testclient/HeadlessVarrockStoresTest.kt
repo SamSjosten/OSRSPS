@@ -111,7 +111,7 @@ class HeadlessVarrockStoresTest {
                 client.walkThrough(
                     thessalia.id, "thessalia", true, line("greeting"), pick(1, "what_got", "buy", "no_thanks"), line("what_got"),
                     line("offer"), pick(1, "more", "buy", "no_thanks"), line("more"), line("more_1"), line("more_2"), line("more_3"),
-                    line("more_4"), pick(1, "buy", "no_thanks"),
+                    line("more_4"), pick(3, "top", "legwear", "buy", "no_thanks"),
                 )
                 val asyffOpening = arrayOf(line("greeting"), line("what"), line("just_saying"), line("materials_too"))
                 client.walkThrough(asyff.id, "asyff", true, *asyffOpening, pick(1, "stock", "leave", "materials"), line("stock"))
@@ -144,7 +144,7 @@ class HeadlessVarrockStoresTest {
                 client.walkThrough(
                     thessalia.id, "thessalia", false, line("greeting"), pick(1, "what_got", "buy", "no_thanks"), line("what_got"),
                     line("offer"), pick(1, "more", "buy", "no_thanks"), line("more"), line("more_1"), line("more_2"), line("more_3"),
-                    line("more_4"), pick(2, "buy", "no_thanks"), line("no_thanks"), line("return"),
+                    line("more_4"), pick(4, "top", "legwear", "buy", "no_thanks"), line("no_thanks"), line("return"),
                 )
                 client.walkThrough(
                     asyff.id, "asyff", false, line("greeting"), line("what"), line("just_saying"), line("materials_too"),

@@ -22,6 +22,7 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
+import osrsps.game.skill.ArceuusRunecraft
 
 private val logger = KotlinLogging.logger {}
 
@@ -30,7 +31,9 @@ private val logger = KotlinLogging.logger {}
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
  * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
  * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
- * the run's copy of it; -1 for where they fell.
+ * the run's copy of it; -1 for where they fell. A [safe] death keeps everything and costs no Hardcore status: a
+ * player-owned house's, or a safe minigame's (the Fight Cave; the Wiki's Ironman Mode, Hardcore Ironman: "Safe deaths,
+ * such as those in minigames, will not cause the player to become a standard Ironman").
  */
 data class DeathPlace(
     val keepItems: Boolean,
@@ -41,6 +44,12 @@ data class DeathPlace(
     val toZ: Int,
     val toLevel: Int,
     val coord: Int = -1,
+    val safe: Boolean = false,
+    /**
+     * Only where they come back is changed, as by Krystilia's Edgeville respawn: the death is otherwise as anywhere, so
+     * a Wilderness one still counts as PvP, its items going to the killer (exploit review round 49, R49C-1).
+     */
+    val respawnOnly: Boolean = false,
 )
 
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
@@ -153,6 +162,8 @@ class Deaths(
     },
     /** The player has just fallen, before their death animation: a raid counts the death then ([osrsps.game.raid.ArchiveRaids.fell]). */
     private val fell: (Player) -> Unit = {},
+    /** Takes a random event's own items off the player ([EventAreas.takePlaceItems]), before anything is sorted. */
+    private val takePlaceItems: (Player) -> Unit = {},
     /** Who killed the player, by save key, if it is a PvP death ([PvpCombat.killerOf]); null for any other. */
     private val killerOf: (Player) -> String? = { null },
     /**
@@ -208,11 +219,11 @@ class Deaths(
     /**
      * Whether [player]'s death can be a PvP one, its loot for a killer: only on a tile where players may fight
      * ([osrsps.game.Wilderness.pvpLevel] above 0, so not the safe rows or Ferox Enclave), outside any instance or raid
-     * ([placeOf] null), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
+     * ([placeOf] null, or one that only moves the respawn), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
      * with the death somewhere else is a death like any other (exploit review round 36, R36A-1 and R36A-2).
      */
     private fun pvpDeath(player: Player): Boolean =
-        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player) == null && player.scenario == null
+        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player).let { it == null || it.respawnOnly } && player.scenario == null
 
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */
     fun process() {
@@ -239,8 +250,10 @@ class Deaths(
         // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
         if (!player.dead) die(player)
         player.deathTick = -1
-        loseHardcore(player)
-        val keep = place?.keepItems == true
+        // A random event's own items stay in its place, out of what is kept or lost, the grave included.
+        takePlaceItems(player)
+        if (place?.safe != true) loseHardcore(player)
+        val keep = place?.keepItems == true || place?.safe == true
         if (!keep) {
             // A skull goes with a death that loses items (guessed), and with it the hit-back rights it gave those
             // attacked first (Skulls); a raid death that keeps everything keeps both (exploit review round 36, R36A-3).
@@ -262,6 +275,9 @@ class Deaths(
         player.pvpDamage.clear()
         val forKiller = ArrayList<InvObj>()
         val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        // Guessed: fragments lost with their obj are gone, not put in the grave as anything. Checked after toKiller,
+        // which can hand a deep-Wilderness death's fragments obj back to the backpack (exploit review round 42, R42A-1).
+        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         if (killer != null) {
             val fee = forfeit(player)
             if (fee > 0) forKiller += InvObj(COINS, fee)
@@ -404,6 +420,12 @@ class Deaths(
     private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?, x: Int = player.x, z: Int = player.z, level: Int = player.level) {
         val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(x, z, level)
         val existing = graveOf(player)
+        // A death in a scenario never goes into the grave from before it: that grave stays after ::reset, so the
+        // scenario's items would come out real (exploit review 40, R40C-3). They're the scenario's, so they go.
+        if (player.scenario != null && existing != null && !existing.scenario) {
+            logger.info { "${player.username} died in scenario ${player.scenario} with a grave from before it: ${lost.size} scenario items gone" }
+            return
+        }
         val grave = existing ?: if (place == null) raise(player, x, z, level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
         if (existing != null) {
             grave!!.merged = true

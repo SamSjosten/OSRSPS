@@ -1,0 +1,12 @@
+{
+  "about": "The Port Sarim to Musa Point boat (Karamja step K1.1): Captain Tobias, Seaman Lorris and Seaman Thresnor on Port Sarim's dock and the customs officer on Musa Point's. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live). The rest of Port Sarim waits for an Asgarnia piece. Captain Barnaby on his three docks (Karamja step K3.1): East Ardougne, Brimhaven and Rimmington, the same source.",
+  "spawns": [
+    {"npc": "captain_tobias", "x": 3028, "z": 3216, "wander": 0, "source": "Captain Tobias, Port Sarim's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "seaman_lorris", "x": 3028, "z": 3221, "wander": 0, "source": "Seaman Lorris, Port Sarim's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "seaman_thresnor", "x": 3026, "z": 3217, "wander": 0, "source": "Seaman Thresnor, Port Sarim's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "customs_officer", "x": 2953, "z": 3147, "wander": 0, "source": "The customs officer, Musa Point's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "captain_barnaby", "x": 2679, "z": 3275, "wander": 0, "source": "Captain Barnaby, East Ardougne's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "captain_barnaby_karamja", "x": 2773, "z": 3229, "wander": 0, "source": "Captain Barnaby, Brimhaven's dock. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "captain_barnaby_rimmington", "x": 2916, "z": 3225, "wander": 0, "source": "Captain Barnaby, Rimmington's dock. mejrs NPCList_OSRS; standing still guessed"}
+  ]
+}

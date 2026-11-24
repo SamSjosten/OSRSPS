@@ -156,6 +156,19 @@
    "step": "assertInterface",
    "interfaceId": 300,
    "comment": "the Pelters' Veg Stall opens"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "shopmain:frame's close button, as in slayer-rewards-shop.json, so no window is left open for the next script's commands. A walk click lands on the stall (rerun 2026-11-18)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true
   }
  ]
 }

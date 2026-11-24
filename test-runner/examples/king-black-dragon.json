@@ -9,15 +9,14 @@
     {"step": "locOption", "locId": 1816, "option": "Commune", "x": 3067, "y": 10253},
     {"step": "assertMessage", "contains": "[kbd.commune count=", "timeoutMs": 10000},
     {"step": "locOption", "locId": 1816, "option": "Pull", "x": 3067, "y": 10253},
-    {"step": "waitTicks", "ticks": 6},
-    {"step": "assertLocation", "x": 2271, "y": 4680, "plane": 0},
+    {"step": "assertLocation", "x": 2271, "y": 4680, "plane": 0, "timeoutMs": 15000},
     {"step": "npcOption", "npc": "King Black Dragon", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "King Black Dragon", "timeoutMs": 30000},
     {"step": "command", "text": "::kill", "expectMessage": "Killed King Black Dragon #"},
     {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=King Black Dragon count=", "timeoutMs": 15000},
     {"step": "locOption", "locId": 1817, "option": "Pull", "x": 2271, "y": 4680},
-    {"step": "waitTicks", "ticks": 6},
-    {"step": "assertLocation", "x": 3067, "y": 10253, "plane": 0},
+    {"step": "assertLocation", "x": 3067, "y": 10253, "plane": 0, "timeoutMs": 15000, "comment": "the fight may have moved the player off the lever's tile, so the walk back adds to the pull's ticks"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

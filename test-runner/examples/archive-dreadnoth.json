@@ -205,6 +205,37 @@
   },
   {
    "step": "command",
+   "text": "::setlevel attack 99",
+   "expectMessage": "Attack set to level 99",
+   "comment": "no level-up box from the punches that follow"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel strength 99",
+   "expectMessage": "Strength set to level 99",
+   "comment": "an unarmed max hit of more than 1, so a held punch shows"
+  },
+  {
+   "step": "command",
+   "text": "::sure max",
+   "expectMessage": "Your attacks can't miss and your melee hits deal their max now"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Dreadnoth the Jellied",
+   "option": "Attack",
+   "timeoutMs": 20000,
+   "comment": "punching him while the wave's jelly stands"
+  },
+  {
+   "step": "assertHitsplat",
+   "npc": "Dreadnoth the Jellied",
+   "amount": 1,
+   "timeoutMs": 20000,
+   "comment": "a max punch held to 1 while the jelly stands (inferred from Sam's recording of 2026-11-16)"
+  },
+  {
+   "step": "command",
    "text": "::hit 75 tfa_jelly_minion",
    "expectMessage": "0/75 hp, dead"
   },
@@ -219,15 +250,30 @@
    "comment": "jelly on the floor where it fell"
   },
   {
+   "step": "assertHitsplat",
+   "npc": "Dreadnoth the Jellied",
+   "types": [
+    43,
+    48
+   ],
+   "timeoutMs": 20000,
+   "comment": "damage_max_me (shown as 48 with the max hit toggle on): with the jelly gone the punches land their max again"
+  },
+  {
+   "step": "command",
+   "text": "::sure off",
+   "expectMessage": "Your attacks can miss again"
+  },
+  {
    "step": "command",
    "text": "::hit 1260 tfa_jelly_boss",
-   "expectMessage": "525/2100 hp",
-   "comment": "down to 25%: his enrage (20b)"
+   "expectMessage": "Hit Dreadnoth the Jellied",
+   "comment": "down past 25% (the punches took a little off first): his enrage (20b)"
   },
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "enrage: enrage at 525 hp"
+   "expectMessage": "enrage: enrage at "
   },
   {
    "step": "assertAnimation",

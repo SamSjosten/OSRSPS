@@ -807,7 +807,7 @@ class HeadlessOcellusTest {
                 alice.awaitLine(run, "his final stand", 30_000) { it.endsWith("third: final stand in SW") }
                 assertEquals(listOf(Ocellus.Quadrant.NW, Ocellus.Quadrant.NE, Ocellus.Quadrant.SE), Ocellus.fallen(boss))
                 assertFalse(boss.dead)
-                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.commandReply("kill ${boss.index}") { it.startsWith("Killed ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
             }
@@ -1288,10 +1288,27 @@ class HeadlessOcellusTest {
                 val again = alice.awaitLine(run, "his second rise", 30_000) { it.endsWith("rises, Deflect Melee, void round him") && tickOf(it) > risen }
                 assertEquals(risen + Ocellus.FINAL_LOOP, tickOf(again))
                 assertEquals(2, Ocellus.finalState(boss)?.third)
-                // To the end of his bar: he dies, and the room is done.
-                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                // A hit of hers that would end his bar does nothing (Sam's runs of 16 November 2026, inferred): his bar
+                // is held, run out, and he lives on.
+                val her = server.world.playerNamed("alice")!!
+                assertEquals(0, server.world.combat.rolledOn(her, boss, AttackType.RANGED, boss.maxHitpoints))
+                assertTrue(Ocellus.barRunOut(boss), "his bar run out")
+                assertFalse(boss.dead)
+                alice.awaitLine(run, "his bar run out") { it.endsWith("third: final: his bar run out, held till a rift is destroyed") }
+                // Damage not rolled against him (here a command's) leaves him at HELD_AT, never under.
+                alice.commandReply("hit ${boss.maxHitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                assertFalse(boss.dead)
+                assertTrue(boss.hitpoints >= Ocellus.HELD_AT, "${boss.hitpoints}")
+                // A Rift destroyed then ends him, and the room is done. Healed past HELD_AT (as Soul Split can), the
+                // rest of his bar counts for nobody's points: the Rift's destroyer gets HELD_AT (exploit review round
+                // 43, R43C-2).
+                boss.hitpoints = Ocellus.HELD_AT + 50
+                val before = run.damage[ArchiveRoom.OCELLUS].orEmpty()[her.saveKey] ?: 0
+                val rift = Ocellus.flares(boss).first { it.type.id == Ocellus.Flare.RIFT.id && !it.dead }
+                alice.commandReply("hit ${rift.hitpoints} ${rift.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+                assertEquals(before + Ocellus.HELD_AT, run.damage[ArchiveRoom.OCELLUS].orEmpty()[her.saveKey] ?: 0)
                 // The chat as his room is won: challenge complete, her first, so a personal best; then the raid's
                 // total time, a best too, and her completed count, the first.
                 val said = alice.await("his challenge complete and the two lines after") {
@@ -1417,7 +1434,7 @@ class HeadlessOcellusTest {
                 assertEquals(again.stolen, heals.substringAfter("heals him ").toInt())
                 assertEquals(before + again.stolen, boss.hitpoints)
                 assertTrue(Ocellus.orbs(boss).isEmpty())
-                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.commandReply("kill ${boss.index}") { it.startsWith("Killed ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
             }
         }

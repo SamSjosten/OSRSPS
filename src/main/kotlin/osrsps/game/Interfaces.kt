@@ -137,6 +137,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun openJournalTab(player: Player, tab: JournalTab) {
         journalTabVarbit(player)?.let { player.vars.setVarbit(it, tab.value) }
         send(player, IfOpenSub(JournalTab.SIDE_JOURNAL, JournalTab.TAB_CONTAINER, tab.interfaceId, OVERLAY))
+        // The summary's Collection Log row: its two ops need events (collection log step 2).
+        if (tab == JournalTab.SUMMARY) send(player, osrsps.game.collection.CollectionLogWindow.SUMMARY_EVENTS)
     }
 
     /** Null when the cache has no such varbit (tests); the tab then still opens but isn't remembered. */
@@ -305,13 +307,16 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfOpenSub(Chatbox.CHATBOX, Chatbox.CHATMODAL, interfaceId, MODAL))
     }
 
-    /** Closes the dialogue in the chatbox, if any; a script waiting on it is dropped. */
-    fun closeChatModal(player: Player) {
+    /**
+     * Closes the dialogue in the chatbox, if any; a script waiting on it is dropped, unless [dropScript] is false (the
+     * script has gone on to wait on something else, see [osrsps.game.dialogue.Dialogues.resume]).
+     */
+    fun closeChatModal(player: Player, dropScript: Boolean = true) {
         if (player.chatModal >= 0) {
             sendClose(player, Chatbox.CHATBOX, Chatbox.CHATMODAL)
             player.chatModal = -1
         }
-        dropDialogueScript(player)
+        if (dropScript) dropDialogueScript(player)
     }
 
     /**

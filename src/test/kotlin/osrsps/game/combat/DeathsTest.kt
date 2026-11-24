@@ -26,6 +26,8 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
+import osrsps.game.skill.ArceuusRunecraft
+import osrsps.game.skill.EssencePouches
 import osrsps.map.CollisionMap
 
 class DeathsTest {
@@ -426,6 +428,25 @@ class DeathsTest {
     }
 
     @Test
+    fun `a safe minigame's death leaves a Hardcore Ironman one`() {
+        val types = osrsps.game.VarTypes(600, mapOf(osrsps.game.SettingsSide.VARBIT_IRONMAN to osrsps.game.VarbitType(499, 3, 5)))
+        val dave = Player(4, "dave", 3212, 3210, 0, types)
+        online += dave
+        dave.vars.setVarbit(osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.HARDCORE_IRONMAN)
+        dave.hitpoints = 0
+        deaths.die(dave)
+        // The Fight Cave's place: everything kept, out by the entrance, and safe.
+        deaths.respawn(dave, DeathPlace(keepItems = true, 2438, 5168, 0, 2438, 5168, 0, safe = true))
+        assertTrue(varbits.none { it.first == dave }, "the status kept")
+        assertTrue(messages.none { it.first == dave && it.second == "[combat.hardcore_lost]" })
+        // A place that keeps the items but isn't safe (a raid's) still costs the status.
+        dave.hitpoints = 0
+        deaths.die(dave)
+        deaths.respawn(dave, DeathPlace(keepItems = true, 2438, 5168, 0, 2438, 5168, 0))
+        assertEquals(Triple(dave, osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.IRONMAN), varbits.last())
+    }
+
+    @Test
     fun `a click on the items with the gravestone closed does nothing`() {
         val grave = aliceDies()
         button(alice, Deaths.FREEITEMS, sub = 0)
@@ -541,6 +562,33 @@ class DeathsTest {
         tick(Deaths.DEATH_TICKS)
         assertEquals(InvObj(pipe.id, 1), bob.equipment[WearPos.WEAPON])
         assertEquals(500, bob.charges[Blowpipe.DARTS])
+    }
+
+    private fun pouchPlayer(index: Int, name: String): Player {
+        val types = osrsps.game.VarTypes(4_000, EssencePouches.POUCHES.flatMap { listOf(it.countVarbit, it.typeVarbit) }.withIndex().associate { (i, id) -> id to osrsps.game.VarbitType(486 + i, 0, 9) })
+        val player = Player(index, name, 3212, 3210, 0, varTypes = types)
+        online += player
+        val small = EssencePouches.POUCHES.first()
+        player.vars.setVarbit(small.countVarbit, 3)
+        player.vars.setVarbit(small.typeVarbit, 1)
+        player.inventory.add(ObjType(small.obj, "Small pouch", cost = 1), 1)
+        player.inventory.add(ObjType(ArceuusRunecraft.FRAGMENTS, "Dark essence fragments", cost = 0), 1)
+        player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 40
+        player.inventory.add(lobster, 3)
+        return player
+    }
+
+    @Test
+    fun `a pouch in the grave keeps its essence, and dark essence fragments go with their obj`() {
+        val carol = pouchPlayer(3, "carol")
+        val small = EssencePouches.POUCHES.first()
+        deaths.die(carol)
+        tick(Deaths.DEATH_TICKS)
+        // The lobsters are kept; the pouch went to the grave still holding its essence, as the Wiki's Medium pouch
+        // page says one got back from the gravestone does (exploit review round 40, R40A-1: no change).
+        assertEquals(1L, deaths.graveOf(carol)!!.items.count(small.obj))
+        assertEquals(3, carol.vars.getVarbit(small.countVarbit))
+        assertEquals(0, carol.charges[ArceuusRunecraft.FRAGMENT_CHARGES])
     }
 
     @Test

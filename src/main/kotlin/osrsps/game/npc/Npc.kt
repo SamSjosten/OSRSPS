@@ -97,6 +97,12 @@ class Npc(
     /** Ticks until it changes back to its spawn's type. */
     internal var transformTicks: Int = 0
 
+    /**
+     * Told the moment it changes back on its own ([Npcs.countDownTransforms]), at the tick's start before any hit lands:
+     * a boss fight sets it to arm its normal form at once (Calvar'ion's calm-down). Null for most.
+     */
+    var transformEnded: (() -> Unit)? = null
+
     /** The south-west tile it covers; it covers [NpcType.size] tiles along each side from here. */
     var x: Int = spawn.x
         internal set
@@ -196,6 +202,13 @@ class Npc(
      * never gives up on them for being far from home, as a boss does in its own room (Ezekiel walking after his tank).
      */
     var unleashed: Boolean = false
+
+    /**
+     * Its whole instance is its room: it chases its target past [Npcs.FOLLOW_RANGE] and never retreats for being hit from
+     * outside its aggression range of its spawn (a Fight Cave monster, which goes for the player wherever in the cave
+     * they are). Set with [unleashed].
+     */
+    var huntsAnywhere: Boolean = false
 
     /**
      * It walks through other NPCs, and they don't stop it: Dreadnoth and his jellies, which stack on one tile and never

@@ -1,0 +1,139 @@
+{
+  "about": "A Fight Cave of your own from wave 1 in a random rotation, with a strong ranged kit and 99 combat.",
+  "notes": "Testing only, not live content. The loadout is ours, a guess at a strong ranged run as the Wiki's TzHaar Fight Cave/Strategies page recommends ranged (read 2026-11-17): the tfa-ranged worn set (Masori, a Twisted bow and Dragon arrows), 8 Saradomin brews, 8 Super restores, a Ranging potion and Manta rays, 99 in the combat skills and Prayer for the protection prayers. Items by gameval name, which the cache audit (ScenarioCacheAuditTest) checks. The minigame key puts the player in a Fight Cave of their own (FightCaves.kt) at the wave given; the position is outside the cave entrance, where the run ends.",
+  "position": {
+    "x": 2438,
+    "z": 5168,
+    "level": 0
+  },
+  "skills": {
+    "attack": 99,
+    "strength": 99,
+    "defence": 99,
+    "hitpoints": 99,
+    "ranged": 99,
+    "magic": 99,
+    "prayer": 99
+  },
+  "run": true,
+  "minigame": {
+    "name": "fight-cave",
+    "wave": 1
+  },
+  "inventory": [
+    {
+      "item": "4doserangerspotion"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    }
+  ],
+  "equipment": [
+    {
+      "item": "masori_mask_fortified"
+    },
+    {
+      "item": "masori_body_fortified"
+    },
+    {
+      "item": "masori_chaps_fortified"
+    },
+    {
+      "item": "zenyte_necklace_enchanted"
+    },
+    {
+      "item": "avas_assembler"
+    },
+    {
+      "item": "twisted_bow"
+    },
+    {
+      "item": "zaryte_vambraces"
+    },
+    {
+      "item": "pegasian_boots"
+    },
+    {
+      "item": "venator_ring"
+    },
+    {
+      "item": "dragon_arrow",
+      "count": 2000
+    }
+  ]
+}

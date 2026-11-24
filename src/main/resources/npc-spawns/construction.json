@@ -1,0 +1,6 @@
+{
+  "about": "Construction step CON1: the estate agent in Varrock who sells the starter house (EstateAgent.kt). The other estate agents (Falador, Seers' Village, East Ardougne, Hosidius) wait for their towns.",
+  "spawns": [
+    {"npc": "poh_estate_agent", "x": 3240, "z": 3476, "wander": 0, "source": "Estate agent, Varrock. The Wiki's Estate agent page, its Locations table (x:3240,y:3476); stands still (guessed)"}
+  ]
+}

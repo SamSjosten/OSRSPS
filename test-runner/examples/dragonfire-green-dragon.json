@@ -14,6 +14,7 @@
     {"step": "itemOption", "item": "Anti-dragon shield", "option": "Wear", "comment": "the cache's option for 1540 is Wear, not Wield (nightly 2026-11-16)"},
     {"step": "assertEquipment", "slot": "shield", "item": "Anti-dragon shield"},
     {"step": "assertMessage", "contains": "[dragonfire.shield]", "timeoutMs": 120000, "comment": "the next breath, taken on the shield"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

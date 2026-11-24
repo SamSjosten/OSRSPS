@@ -9,6 +9,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.combat.Teleblock
+import osrsps.game.tzhaar.FightCaveWaves
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
@@ -52,12 +53,27 @@ internal fun startScenario(world: World, player: Player, scenario: Scenario): St
 internal fun resetScenario(world: World, player: Player): String {
     val before = player.beforeScenario ?: refuse("Nothing to reset: you haven't started a ::scenario since the last ::reset.")
     val name = player.scenario
+    // An open trade ends first, its offer back in the backpack, so nothing is restored under it: the raid tester puts
+    // back without ::reset's own interrupt (World.onCommand). Exploit review 40, R40C-5.
+    if (player.trade != null) world.trades.interrupt(player)
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
     // A stopped Hunter run's traps come down too, so none stands for the next script.
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
+    // A Fight Cave or Inferno run of the setup's ends first, keeping the run saved from before: ended later, by the
+    // process seeing them leave, it would forget the run restoreTo just put back (exploit review R45B-5).
+    world.fightCaves.endRun(player)
+    world.inferno.endRun(player)
+    // The account's random event timer and its ::randomevent off stay as they are now, as starting the setup kept
+    // them: the snapshot's would wind the timer back, so an event could be had per setup (exploit review R50A-1). An
+    // event NPC out goes, so none crosses into the account.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
+    world.randomEvents.end(player)
     before.restoreTo(player)
+    for ((name, value) in kept) player.charges[name] = value
+    // A trail being followed ends, and the restored varbits show none of its footprints.
+    world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
     // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
     // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
@@ -107,8 +123,19 @@ private fun start(world: World, player: Player, scenario: Scenario) {
 
     // Traps laid before a first scenario come back to the backpack first, so its snapshot (and ::reset) keeps them;
     // an earlier scenario's own traps just come down.
+    // An open trade ends first, its offer back in the backpack, so the snapshot holds it (R40C-5).
+    if (player.trade != null) world.trades.interrupt(player)
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    world.hunter.tracking.forget(player)
+    // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
+    // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
+    player.archiveChest.clear()
+    // Nor Treasure Trails: STASH contents, casket counts, scroll cases and trails are in the snapshot, which puts them
+    // back, so a STASH emptied during the scenario would come back full (exploit review 49, R49A-1 and R49A-3).
+    player.trails.replaceWith(osrsps.game.trail.TrailProgress())
+    // The lobby's Loot Wheelbarrow reads its varbit, which goes with the chest (Codex review on #783).
+    world.archiveChestWindow.showClaimable(player)
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
     world.deaths.dropScenarioGrave(player)
     // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
@@ -137,8 +164,14 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     for ((slot, obj) in loadout.inventory) player.inventory[slot] = obj
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
-    // A scenario's charged items start empty.
+    // A scenario's charged items start empty, and its essence pouches too.
+    // The account's random event timer and its ::randomevent off aren't the scenario's to reset.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
+    // An event NPC out goes too, so none from the account pays into the setup (R50A-1).
+    world.randomEvents.end(player)
     player.charges.clear()
+    for ((name, value) in kept) player.charges[name] = value
+    world.essencePouches.emptyAll(player)
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
     // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.
@@ -154,6 +187,24 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     world.prayers.deactivateAll(player)
     world.teleport(player, scenario.x, scenario.z, scenario.level)
     player.scenario = scenario.name
+    scenario.minigame?.let { startMinigame(world, player, scenario, it) }
+}
+
+/** Puts [player] in [scenario]'s minigame; the rest of the scenario stands if it can't start. */
+private fun startMinigame(world: World, player: Player, scenario: Scenario, minigame: Scenario.ScenarioMinigame) {
+    when (minigame.name) {
+        Scenario.ScenarioMinigame.FIGHT_CAVE -> {
+            val wave = minigame.wave.takeIf { it in 1..FightCaveWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the fight cave has no wave ${minigame.wave}")
+            val rotation = minigame.rotation ?: world.fightCaves.randomRotation()
+            if (rotation !in 1..FightCaveWaves.ROTATIONS) refuse("Scenario ${scenario.name}: the fight cave has no rotation $rotation")
+            if (!world.fightCaves.start(player, wave, rotation)) refuse("Scenario ${scenario.name}: no room for another fight cave")
+        }
+        Scenario.ScenarioMinigame.INFERNO -> {
+            val wave = minigame.wave.takeIf { it in 1..osrsps.game.tzhaar.InfernoWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the Inferno has no wave ${minigame.wave}")
+            world.inferno.sacrifice(player)
+            if (!world.inferno.start(player, wave, fresh = true)) refuse("Scenario ${scenario.name}: no room for another Inferno")
+        }
+    }
 }
 
 /**

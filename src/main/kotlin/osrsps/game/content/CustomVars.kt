@@ -60,15 +60,51 @@ class CustomVars(
      */
     val lairVisitVarp: Int = firstVarp + 3
 
+    /**
+     * The TzHaar Fight Cave run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.FightCaves.State]): the wave to start at their next login and the rotation, 0 for none. Live
+     * keeps this somewhere we haven't found; ours is guessed.
+     */
+    val fightCaveVarp: Int = firstVarp + 4
+
+    /**
+     * The Inferno run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.Inferno]): the wave to start at their next login, 0 for none. Live keeps this somewhere we
+     * haven't found; ours is guessed.
+     */
+    val infernoVarp: Int = firstVarp + 5
+
+    /**
+     * The farming tick ([osrsps.game.skill.farming.Farming.tickOf]) the White Tree in Varrock Palace's garden last grew
+     * a fruit from, 0 while it bears all four ([PalaceGarden]). Live keeps this somewhere we haven't found; ours is
+     * guessed.
+     */
+    val whiteTreeVarp: Int = firstVarp + 6
+
+    /**
+     * Luthas's banana crate: the bananas in it (bits 0 to 3, 0 to [MusaPoint.CRATE_SIZE]) and whether the player took his
+     * job (bit 4) ([MusaPoint]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val bananaCrateVarp: Int = firstVarp + 7
+
+    /**
+     * 1 once the player has shown a fire cape to a TzHaar-Ket at Mor Ul Rek's barriers, which lets them through the hot
+     * vent doors for good and makes them Xo ([MorUlRekInner]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val morUlRekAccessVarp: Int = firstVarp + 8
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS] and [LAIR_VISIT]. */
-    val varpNames: Map<String, Int> = mapOf(LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp)
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE] and [MOR_UL_REK_ACCESS]. */
+    val varpNames: Map<String, Int> = mapOf(
+        LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
+        FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
+    )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
     val varbitNames: Map<String, Int> = Lodestones.SITES.associate { it.name.key to lodestoneVarbit(it) } + (LODESTONE_PREVIOUS to lodestonePreviousVarbit)
@@ -103,6 +139,21 @@ class CustomVars(
 
         /** The Wilderness lairs' visit varp's name. */
         const val LAIR_VISIT = "wilderness_lair_visit"
+
+        /** The Fight Cave run's varp's name. */
+        const val FIGHT_CAVE = "fight_cave"
+
+        /** The Inferno run's varp's name. */
+        const val INFERNO = "inferno"
+
+        /** The White Tree's regrowth varp's name. */
+        const val WHITE_TREE = "white_tree"
+
+        /** Luthas's banana crate's varp's name. */
+        const val BANANA_CRATE = "banana_crate"
+
+        /** Mor Ul Rek's inner city access varp's name. */
+        const val MOR_UL_REK_ACCESS = "mor_ul_rek_access"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

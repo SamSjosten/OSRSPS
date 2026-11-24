@@ -14,6 +14,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
 import osrsps.game.Skill
+import osrsps.game.combat.AttackType
 import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
@@ -259,6 +260,10 @@ class HeadlessDreadnothTest {
                 val aimed = shoots.substringAfter(" on ").split(',').map(String::toInt).let { (x, z) -> Tile(x, z) }
                 val theJelly = jellies(run).single()
                 assertEquals(aimed, Tile(theJelly.spawn.x, theJelly.spawn.z))
+                // While it stands, a hit on him does at most 1 (Sam's recordings of 2026-11-16, inferred).
+                val her = world.playerNamed("alice")!!
+                assertEquals(Dreadnoth.SHIELDED_HIT, world.combat.rolledOn(her, boss(run), AttackType.CRUSH, 30))
+                assertEquals(0, world.combat.rolledOn(her, boss(run), AttackType.CRUSH, 0))
                 // She stands still: it comes out from under her and hits her, draining her prayer by its roll.
                 val hit = alice.awaitLine(run, "the jelly hitting her") { it.contains("fight: a jelly hits alice for ") }
                 val drained = hit.substringAfter("draining ").substringBefore(' ').toInt()
@@ -267,6 +272,8 @@ class HeadlessDreadnothTest {
                 // It falls: jelly on its tile, burning her when she stands in it.
                 alice.commandReply("hit 75 ${theJelly.index}") { it.startsWith("Hit ") }
                 val falls = alice.awaitLine(run, "the jelly falling") { it.contains("fight: a jelly falls at ") }
+                // Gone, it shields him no more.
+                assertEquals(30, world.combat.rolledOn(her, boss(run), AttackType.CRUSH, 30))
                 val fell = falls.substringAfter(" at ").split(',').map(String::toInt).let { (x, z) -> Tile(x, z) }
                 alice.tele(fell.x, fell.z)
                 val burnt = alice.awaitLine(run, "jelly burning her") { it.contains("fight: jelly burns alice for ") }
@@ -376,7 +383,7 @@ class HeadlessDreadnothTest {
                 val dealt = crushed.substringAfter(" for ").substringBefore(',').toInt()
                 assertTrue(dealt in Dreadnoth.CRUSH_MIN..Dreadnoth.CRUSH_MAX, crushed)
                 assertTrue(lines(run).none { it.contains("heals off alice") }, lines(run).toString())
-                // The jelly beside her was under him: absorbed, healing him 85 to 145 (Sam's recording of 2026-11-10),
+                // The jelly beside her was under him: absorbed, healing him 18 to 145 (Sam's recordings of 2026-11-10 and -16),
                 // not its 75 hitpoints left. At 25% his bar can't cap it.
                 assertNotNull(theJelly)
                 val absorbed = lines(run).single { it.contains("enrage: absorbs a jelly: heals ") }

@@ -32,7 +32,6 @@
     {"step": "assertMessage", "contains": "_dark_crab]", "timeoutMs": 20000, "comment": "cooking.cooked_dark_crab, or burnt_dark_crab now and then even at 99"},
     {"step": "assertInventory", "item": "Raw dark crab", "count": 0, "timeoutMs": 20000},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

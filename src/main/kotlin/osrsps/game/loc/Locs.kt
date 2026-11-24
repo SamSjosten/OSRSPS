@@ -38,8 +38,11 @@ class Locs(
     /** By tile and layer: what is there now where it differs from the cache. A null value is a removed cache loc. */
     private val changes = HashMap<Long, ZoneLoc?>()
 
-    /** By tile and layer: the locs the world added for good ([addPermanent]), which a restore puts back. */
-    private val permanent = HashMap<Long, ZoneLoc>()
+    /**
+     * By tile and layer: the locs the world added for good ([addPermanent], [setPermanent]), which a restore puts back.
+     * A null value is a cache loc taken away for good.
+     */
+    private val permanent = HashMap<Long, ZoneLoc?>()
 
     /** By tile and layer: when to put the tile back how it was, and what it was. */
     private val reverts = HashMap<Long, Revert>()
@@ -68,6 +71,9 @@ class Locs(
     /** Whether any layer of a tile has a timed change still to run, such as a picked crop waiting to grow back. */
     fun reverting(x: Int, z: Int, level: Int): Boolean = (0 until LAYERS).any { slot(x, z, level, it) in reverts }
 
+    /** The tick [loc]'s tile next changes on its own (its timed change's first step), or null if nothing is timed there. */
+    fun revertDue(loc: ZoneLoc): Long? = reverts[slot(loc.x, loc.z, loc.level, loc.layer)]?.dueTick
+
     /** Whether [loc] is still in the world, exactly as given. */
     fun exists(loc: ZoneLoc): Boolean = get(loc.x, loc.z, loc.level, loc.layer) == loc
 
@@ -85,6 +91,17 @@ class Locs(
     fun addPermanent(loc: ZoneLoc) {
         permanent[slot(loc.x, loc.z, loc.level, loc.layer)] = loc
         change(loc.x, loc.z, loc.level, loc.layer, loc, 0)
+    }
+
+    /**
+     * Makes a tile's [layer] [loc] for good, or bare for good with null, as [addPermanent] does: what a house shows on
+     * its copies of the cache's room templates ([osrsps.game.skill.construction.Houses]), so a door's respawn clock or
+     * `::resetlocs` puts the house's own loc back, never the template's hotspot. In an instance, [forgetArea] drops it.
+     */
+    fun setPermanent(x: Int, z: Int, level: Int, layer: Int, loc: ZoneLoc?) {
+        require(loc == null || (loc.x == x && loc.z == z && loc.level == level && loc.layer == layer)) { "$loc isn't on $x, $z, $level layer $layer" }
+        permanent[slot(x, z, level, layer)] = loc
+        change(x, z, level, layer, loc, 0)
     }
 
     /** Takes [loc] away. Returns false, changing nothing, if it isn't there. */
@@ -178,6 +195,7 @@ class Locs(
         }
         changes.keys.removeIf(inArea)
         reverts.keys.removeIf(inArea)
+        permanent.keys.removeIf(inArea)
     }
 
     /** Tiles that differ from the cache now, for ::locs and tests. */
@@ -185,7 +203,7 @@ class Locs(
 
     /** How a tile's [layer] starts: the world's own loc there for good, else the cache's. */
     private fun baseline(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? =
-        permanent[slot(x, z, level, layer)] ?: static.at(x, z, level, layer)
+        slot(x, z, level, layer).let { if (it in permanent) permanent[it] else static.at(x, z, level, layer) }
 
     private fun change(x: Int, z: Int, level: Int, layer: Int, loc: ZoneLoc?, revertAfter: Int) {
         require(revertAfter >= 0) { "Can't revert after $revertAfter ticks" }

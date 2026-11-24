@@ -37,6 +37,9 @@ import osrsps.game.bank.Bank
  * stack, anything else one per slot. A skill's level is its XP level; `current` sets a boost or drain. Bank items each
  * take one slot, as the bank stacks everything, in bank tab `tab` (1 to 9) or the main tab when it is left out; the
  * tabs come out in order, whatever order the file lists them in.
+ *
+ * `"minigame": { "name": "fight-cave", "wave": 63, "rotation": 5 }` then puts the player in a minigame of their own
+ * from that wave ([ScenarioMinigame]); the rotation may be left out for a random one.
  */
 class Scenario(
     val name: String,
@@ -53,7 +56,21 @@ class Scenario(
     val varps: Map<Int, Int>,
     val varbits: Map<Int, Int>,
     val bank: List<ScenarioObj> = emptyList(),
+    val minigame: ScenarioMinigame? = null,
 ) {
+    /**
+     * A minigame the scenario starts the player in once the rest is set: [name] is one of [NAMES] (`fight-cave`, the
+     * TzHaar Fight Cave; `inferno`, the Inferno, every support standing and the fire cape counted as given), at [wave],
+     * in [rotation] (null for a random one; the Inferno has none).
+     */
+    class ScenarioMinigame(val name: String, val wave: Int, val rotation: Int?) {
+        companion object {
+            const val FIGHT_CAVE = "fight-cave"
+            const val INFERNO = "inferno"
+            val NAMES: Set<String> = setOf(FIGHT_CAVE, INFERNO)
+        }
+    }
+
     class ScenarioSkill(val level: Int, val current: Int)
 
     /** An item as the file names it; [ObjTypes] turns it into a type when the scenario starts. */
@@ -142,7 +159,14 @@ class Scenario(
                 val varps = ids(root, "varps")
                 val varbits = ids(root, "varbits")
                 val about = (root["about"] as? JsonPrimitive)?.content
-                return Scenario(name, about, x, z, level, skills, runEnergy, run, inventory, equipment, varps, varbits, bank)
+                val minigame = root["minigame"]?.jsonObject?.let { entry ->
+                    val game = entry.required("name").jsonPrimitive.content
+                    require(game in ScenarioMinigame.NAMES) { "no minigame '$game' (${ScenarioMinigame.NAMES.joinToString()})" }
+                    val wave = entry.required("wave").jsonPrimitive.int
+                    require(wave >= 1) { "minigame wave $wave" }
+                    ScenarioMinigame(game, wave, entry["rotation"]?.jsonPrimitive?.int)
+                }
+                return Scenario(name, about, x, z, level, skills, runEnergy, run, inventory, equipment, varps, varbits, bank, minigame)
             } catch (e: Exception) {
                 throw IllegalArgumentException("Scenario $name: ${e.message}", e)
             }
@@ -199,10 +223,17 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "agility",
             "artisan-2",
             "bryophyta",
+            "construction",
             "farming",
+            "fight-cave",
+            "fight-cave-jad",
+            "fight-cave-wave31",
             "fishing-cooking",
             "gathering",
             "hunter",
+            "inferno",
+            "inferno-wave66",
+            "inferno-zuk",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
@@ -215,6 +246,8 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "obor",
             "pvp",
             "runecraft",
+            "scurrius",
+            "shooting-stars",
             "tfa-magic",
             "tfa-melee",
             "tfa-ranged",

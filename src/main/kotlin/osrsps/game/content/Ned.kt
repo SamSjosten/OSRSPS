@@ -177,6 +177,9 @@ fun registerNed(world: World) {
     val give: (Player, Int) -> Unit = { player, obj ->
         world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No item $obj in the cache" }
     }
+    // The yak hair talk gives a free rope after any try at buying one, coins or not (the Wiki's transcript), so rope
+    // costs nothing from him: the GE bot market pays nothing for it either (exploit review 45, R45A-1).
+    world.grandExchange.npcSells(Ned.ROPE_ITEM, 0)
     world.handlers.onNpc(Ned.ID, Ned.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Ned) { talk(give) } }
     }

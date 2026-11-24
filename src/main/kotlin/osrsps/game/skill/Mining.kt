@@ -108,6 +108,9 @@ class Mining(private val world: World) {
     val tools = SkillTools(Skill.MINING, PICKAXES.map { it.tool })
     private val pickaxes = PICKAXES.associateBy { it.tool.obj }
 
+    /** The pickaxe a [SkillTools] check found. */
+    internal fun pickaxe(tool: SkillTool): Pickaxe = pickaxes.getValue(tool.obj)
+
     /** Ores left in each part-mined rock that lasts more than one ore, by tile; at most one entry per such rock. */
     private val yieldsLeft = HashMap<Long, Int>()
 
@@ -164,7 +167,7 @@ class Mining(private val world: World) {
         if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
             player.anim(tool.anim)
             val guild = inGuild(loc.x, loc.z, loc.level)
-            val level = player.skills.currentLevel(Skill.MINING) + if (guild) GUILD_BOOST else 0
+            val level = player.skills.currentLevel(Skill.MINING) + (if (guild) GUILD_BOOST else 0) + celestialBoost(player)
             val glory = wearsChargedGlory(player)
             if (type.gemRock) {
                 val low = if (glory) type.low * GLORY_GEM_ROCK_MULTIPLIER else type.low
@@ -245,7 +248,7 @@ class Mining(private val world: World) {
         val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
         if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
             player.anim(tool.anim)
-            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING))) {
+            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING) + celestialBoost(player))) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
@@ -259,7 +262,7 @@ class Mining(private val world: World) {
     }
 
     /** The mining gem table's roll: 1/256, and with a charged glory a second 3/256 when that misses. */
-    private fun gemTableRoll(glory: Boolean): Boolean =
+    internal fun gemTableRoll(glory: Boolean): Boolean =
         world.random.chance(GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR) ||
             (glory && world.random.chance(GLORY_GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR))
 
@@ -311,7 +314,7 @@ class Mining(private val world: World) {
     }
 
     /** Ticks until the next roll with [pickaxe]: dragon and crystal sometimes take one fewer. */
-    private fun interval(pickaxe: Pickaxe): Int =
+    internal fun interval(pickaxe: Pickaxe): Int =
         if (pickaxe.fastNumerator > 0 && world.random.chance(pickaxe.fastNumerator, pickaxe.fastDenominator)) pickaxe.ticks - 1
         else pickaxe.ticks
 
@@ -426,6 +429,18 @@ class Mining(private val world: World) {
         const val GLORY_GEM_ROCK_MULTIPLIER = 3
 
         fun wearsChargedGlory(player: Player): Boolean = player.equipment[WearPos.NECK]?.id in CHARGED_GLORIES
+
+        /**
+         * The celestial ring and signet, charged or not: an invisible +4 to every mining roll (not to the level a rock
+         * needs), stacking with other boosts (OSRS Wiki, Celestial ring, read 2026-11-19; shooting stars step 2).
+         */
+        val CELESTIAL_RINGS = setOf(
+            25539, 25541, // celestial_ring, celestial_ring_charged
+            25543, 25545, // celestial_signet, celestial_signet_charged
+        )
+        const val CELESTIAL_BOOST = 4
+
+        fun celestialBoost(player: Player): Int = if (player.equipment[WearPos.RING]?.id in CELESTIAL_RINGS) CELESTIAL_BOOST else 0
 
         /** blankrunestone, the rune essence mine's four outcrops. */
         const val ESSENCE_ROCK = 34773

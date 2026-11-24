@@ -62,6 +62,8 @@ class ShopTest {
         // The Champions' Guild's shops.
         1093 to 64000, 1079 to 64000, 1432 to 14400, 1113 to 50000, 1303 to 32000, 1289 to 20800, 1099 to 3900, 1065 to 2500, 1169 to 200,
         1021 to 32, 1165 to 1056, 1123 to 16640,
+        // Dusuri's Star Shop: the values are the prices in stardust.
+        25539 to 2000, 25547 to 3000, 25537 to 300, 25533 to 150,
         // Grace's Graceful Clothing: the values are the prices in marks of grace.
         11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
         // Construction supplies.
@@ -77,8 +79,24 @@ class ShopTest {
         // The Hunter shops (the 242 cache's values).
         10010 to 20, 10012 to 1, 10025 to 600, 10150 to 4, 10006 to 5, 10008 to 32, 10029 to 50, 596 to 4, 10031 to 15, 34631 to 32,
         12740 to 505, 12742 to 3200, 12744 to 60000,
+        // The Sheared Ram, which sells at its own prices and buys nothing back: the values only stand in.
+        1917 to 2, 5763 to 2, 2142 to 4,
+        // The Culinaromancer's Chest's food and items stores (the 242 cache; the Wiki's prices at 130% agree).
+        1973 to 10, 1985 to 4, 1982 to 4, 1955 to 1, 1987 to 1, 1933 to 10, 2283 to 4, 1944 to 4, 1927 to 6, 2130 to 2, 6697 to 4,
+        2007 to 230, 2313 to 3, 1980 to 2,
+        7453 to 50, 7454 to 100, 7455 to 250, 7456 to 500, 7457 to 1000, 7458 to 1500, 7459 to 2500, 7460 to 5000, 7461 to 100000,
+        7462 to 100000, 7433 to 35, 7435 to 50, 7437 to 325, 7439 to 1920, 7441 to 1660, 7443 to 3200, 7445 to 14400, 7447 to 8000,
+        7449 to 41500, 7451 to 25600,
+        // Nardok's Bone Weapons (the 242 cache's values; the Wiki's prices at 100% agree).
+        5018 to 600, 5016 to 600, 8872 to 2000, 8880 to 2000, 8882 to 3, 13193 to 350,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
+        // Zembo's beer and Karamjan rum (the 242 cache's values).
+        1917 to 2, 431 to 30,
+        // Mor Ul Rek's Tokkul shops (the 242 cache's values; the gems and runes are with Al Kharid's and Varrock's).
+        6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
+        438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
+        9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430, 21298 to 56320, 21301 to 84000, 21304 to 67000,
     )
 
     /**
@@ -86,7 +104,11 @@ class ShopTest {
      * the cabbage cape to the rainbow scarf, and the Oculus orb.
      */
     private val untradeable = setOf(
+        // The Culinaromancer's Chest's gloves.
+        7453, 7454, 7455, 7456, 7457, 7458, 7459, 7460, 7461, 7462,
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+        // Dusuri's stock.
+        25539, 25547, 25537, 25533,
         // Grace's graceful pieces and amylase pack.
         11850, 11854, 11856, 11858, 11860, 11852, 12641,
         // Slayer Equipment's untradeables (the 242 cache).
@@ -104,6 +126,7 @@ class ShopTest {
             NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
             NpcType(10619, "Bob", internalName = "bob"),
             NpcType(16806, "Feoras", internalName = "lumbridge_blacksmith"),
+            NpcType(7546, "Bartender", internalName = "ram_bartender"),
             NpcType(1260, "Fortunato", internalName = "rag_wine_merchant"),
             NpcType(500, "Olivia", internalName = "seed_merchant"),
             NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
@@ -140,6 +163,7 @@ class ShopTest {
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
             NpcType(1601, "Lundail", internalName = "magearena_runeshop"),
+            NpcType(10631, "Dusuri", internalName = "star_trader_2op"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
             NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
             NpcType(13619, "Aya", internalName = "slayer_master_1_aya"),
@@ -149,6 +173,7 @@ class ShopTest {
             NpcType(404, "Chaeldar", internalName = "slayer_master_4"),
             NpcType(6798, "Steve", internalName = "slayer_master_steve"),
             NpcType(13623, "Kuradal", internalName = "slayer_master_5_kuradal"),
+            NpcType(7663, "Krystilia", internalName = "slayer_master_7"),
             NpcType(2674, "Dreven", internalName = "farming_gardener_bush_1"),
             NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
             NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
@@ -157,6 +182,15 @@ class ShopTest {
             NpcType(1350, "Artimeus", internalName = "hunting_shop_owner_nardah"),
             NpcType(14832, "Elder Strom", internalName = "tortugan_strom_2ops"),
             NpcType(3218, "Bea", internalName = "baw_bea_3ops"),
+            NpcType(2825, "Shop keeper", internalName = "generalshopkeeper7"),
+            NpcType(2826, "Shop assistant", internalName = "generalassistant7"),
+            NpcType(13655, "Zembo", internalName = "zembo"),
+            NpcType(2183, "TzHaar-Hur-Tel", internalName = "tzhaar_merchant_equipment"),
+            NpcType(2184, "TzHaar-Hur-Lek", internalName = "tzhaar_merchant_oreandgem"),
+            NpcType(2185, "TzHaar-Mej-Roh", internalName = "tzhaar_merchant_rune"),
+            NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
+            NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
+            NpcType(996, "Nardok", internalName = "dttd_bone_dealer"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -171,6 +205,8 @@ class ShopTest {
         "lumbridge_blacksmith" to listOf(
             1 to 0, 10 to 6, 26 to 15, 40 to 24, 48 to 28, 60 to 36, 35 to 21, 91 to 54, 140 to 84, 168 to 100, 210 to 126,
         ),
+        // The Sheared Ram's Bartender (Trade new in 242.1), read 2026-11-19: it buys nothing back.
+        "sheared_ram" to listOf(2 to 0, 2 to 0, 4 to 0),
         // Read 2026-10-30.
         "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300),
         "draynor_seed_market" to listOf(
@@ -220,6 +256,8 @@ class ShopTest {
         // The Champions' Guild's, read 2026-11-02.
         "scavvos_rune_store" to listOf(64000, 64000, 14400, 50000, 32000, 20800, 3900, 2500, 200),
         "valaines_shop_of_champions" to listOf(41, 1372, 2496, 21632),
+        // Dusuri's Star Shop, read 2026-11-19: in stardust.
+        "dusuris_star_shop" to listOf(2000, 3000, 300, 150),
         // Grace's Graceful Clothing, read 2026-11-02: in marks of grace.
         "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
         // The Lumber Yard's Sawmill, read 2026-11-11.
@@ -237,6 +275,20 @@ class ShopTest {
         "beas_hunting_gear" to listOf(1, 780, 5, 6, 41, 65, 5, 19, 41, 656, 4160, 78000),
         // Lundail's Arena-side Rune Shop., read 2026-11-15.
         "lundails_arena_side_rune_shop" to listOf(4, 4, 4, 4, 3, 3, 180, 90, 240, 50, 180, 430, 430, 430, 430, 330, 9950),
+        // Musa Point's shops, read 2026-11-17.
+        "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
+        "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
+        // The Culinaromancer's Chest with Recipe for Disaster finished, read 2026-11-19.
+        "culinaromancers_chest_food" to listOf(13, 5, 5, 1, 1, 13, 5, 5, 7, 2, 5, 299, 3, 13, 5, 1, 182, 1, 2, 2, 650),
+        "culinaromancers_chest_items" to listOf(65, 130, 325, 650, 1300, 1950, 3250, 6500, 130000, 130000, 45, 65, 422, 2496, 2158, 4160, 18720, 10400, 53950, 33280),
+        // Mor Ul Rek's Tokkul shops, read 2026-11-18: 150% of each value, in Tokkul.
+        "tzhaar_hur_tels_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500),
+        "tzhaar_hur_leks_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        "tzhaar_mej_rohs_rune_store" to listOf(6, 6, 6, 6, 4, 4, 135, 270, 645, 645, 645, 645),
+        "tzhaar_hur_zals_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500, 84480, 126000, 100500),
+        "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        // Nardok's Bone Weapons, read 2026-11-19.
+        "nardoks_bone_weapons" to listOf(600, 600, 2000, 2000, 3, 350),
     )
 
     @Test
@@ -244,7 +296,7 @@ class ShopTest {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
         assertEquals(
-            listOf("lumbridge_general_store", "bobs_brilliant_axes", "lumbridge_blacksmith", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop", "avas_odds_and_ends") +
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "lumbridge_blacksmith", "sheared_ram", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop", "avas_odds_and_ends") +
                 wikiSoldAt.keys,
             shops.all.map { it.key },
         )
@@ -267,11 +319,33 @@ class ShopTest {
         assertEquals(shops.ofNpc(5919), grace)
         assertEquals(11849, grace.currency)
         assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
-        assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
-        // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies buys nothing; no other shop refuses anything.
+        // Dusuri is paid in stardust and buys back at 80% (the Wiki's 1,600, 2,400, 240 and 120).
+        val dusuri = shops["dusuris_star_shop"]!!
+        assertEquals(shops.ofNpc(10631), dusuri)
+        assertEquals(25527, dusuri.currency)
+        assertEquals(listOf(1600, 2400, 240, 120), dusuri.stock.map { Shop(dusuri).sellPrice(it.type.id, it.type.cost, it.count) })
+        // Mor Ul Rek's shops are paid in Tokkul, and buy back at 15% (the Wiki's 9,000 for the obsidian cape).
+        val tzhaar = listOf(
+            "tzhaar_hur_tels_equipment_store", "tzhaar_hur_leks_ore_and_gem_store", "tzhaar_mej_rohs_rune_store", "tzhaar_hur_zals_equipment_store",
+            "tzhaar_hur_rins_ore_and_gem_store",
+        )
+        assertEquals(listOf(2183, 2184, 2185, 7688, 7689).map { shops.ofNpc(it) }, tzhaar.map { shops[it] })
+        assertTrue(tzhaar.all { shops[it]!!.currency == 6529 })
+        val equipment = shops[tzhaar[0]]!!
+        assertEquals(9000, Shop(equipment).sellPrice(6568, 60000, 1))
+        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key && it.key !in tzhaar }.all { it.currency == ShopScreen.COINS })
+        // Her sales alone go in the collection log (its Rooftop Agility page).
+        assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
+        // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies and the Sheared
+        // Ram buy nothing; no other shop refuses anything.
         val farmingSupplies = shops["farming_supplies"]!!
         assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
-        assertEquals(mapOf("al_kharid_general_store" to setOf(950), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        val shearedRam = shops["sheared_ram"]!!
+        assertEquals(shearedRam, shops.ofNpc(7546))
+        assertEquals(
+            mapOf("al_kharid_general_store" to setOf(950), "karamja_wines_spirits_and_beers" to setOf(431), "sheared_ram" to setOf(1917, 5763, 2142), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()),
+            shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses },
+        )
         // Slayer Equipment buys back its witchwood icon, which no one can trade, at 60% (no buy=N/A on the Wiki's line).
         val slayerShop = shops["slayer_equipment"]!!
         assertEquals(mapOf("slayer_equipment" to setOf(8923)), shops.all.filter { it.buysBack.isNotEmpty() }.associate { it.key to it.buysBack })

@@ -1,0 +1,39 @@
+{
+  "name": "Karamja step K1.4: down the Karamja Volcano's rocks into the dungeon, through the wall to the Crandor side and back, up the rope again, then Crandor's hole down and its rope up, and Crandor's King Scorpions where its spawn file puts them",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "the skeletons and bats by the rope are aggressive"},
+    {"step": "command", "text": "::tele 2856 3166 0", "expectMessage": "Teleported to 2856, 3166, 0", "comment": "south of the rocks at the top of the volcano"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 11441, "option": "Climb-down", "x": 2856, "y": 3168},
+    {"step": "assertLocation", "x": 2856, "y": 9570, "plane": 0, "timeoutMs": 10000, "comment": "beside the climbing rope below"},
+    {"step": "waitTicks", "ticks": 3},
+
+    {"step": "command", "text": "::tele 2836 9599 0", "expectMessage": "Teleported to 2836, 9599, 0", "comment": "south of the wall, past the deadly red spiders"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 2606, "option": "Open", "x": 2836, "y": 9600},
+    {"step": "assertLocation", "x": 2836, "y": 9600, "plane": 0, "timeoutMs": 10000, "comment": "the Crandor side"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "locOption", "locId": 2606, "option": "Open", "x": 2836, "y": 9600},
+    {"step": "assertLocation", "x": 2836, "y": 9599, "plane": 0, "timeoutMs": 10000, "comment": "back on the Karamja side"},
+
+    {"step": "command", "text": "::tele 2856 9570 0", "expectMessage": "Teleported to 2856, 9570, 0"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 18969, "option": "Climb", "x": 2856, "y": 9569},
+    {"step": "assertLocation", "x": 2856, "y": 3167, "plane": 0, "timeoutMs": 10000, "comment": "back at the top of the volcano"},
+
+    {"step": "command", "text": "::tele 2834 3254 0", "expectMessage": "Teleported to 2834, 3254, 0", "comment": "Crandor, by the hole at the top of its volcano"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 25154, "option": "Enter", "x": 2833, "y": 3255},
+    {"step": "assertLocation", "x": 2834, "y": 9656, "plane": 0, "timeoutMs": 10000, "comment": "beside the climbing rope below Crandor"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 25213, "option": "Climb", "x": 2833, "y": 9657},
+    {"step": "assertLocation", "x": 2834, "y": 3254, "plane": 0, "timeoutMs": 10000},
+
+    {"step": "command", "text": "::tele 2851 3294 0", "expectMessage": "Teleported to 2851, 3294, 0", "comment": "among Crandor's King Scorpions"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::npcs 10", "expectMessage": " King Scorpion ", "comment": "lists King Scorpion"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"}
+  ]
+}

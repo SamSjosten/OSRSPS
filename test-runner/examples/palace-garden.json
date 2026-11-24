@@ -1,0 +1,247 @@
+{
+ "name": "Post-quest step 1: Varrock Palace garden grown, the White Tree's four fruit picked and regrown, the trellis climbed both ways, Marlo's house mended",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario farming",
+   "expectMessage": "Started scenario farming.",
+   "comment": "99 Farming; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::farmclock pause",
+   "expectMessage": "Farming clock paused",
+   "comment": "the fruit grows only by ::farmtick"
+  },
+  {
+   "step": "command",
+   "text": "::farmtick 4",
+   "expectMessage": "Farming clock moved on 4 ticks",
+   "comment": "whatever an earlier run left, four farming ticks fill the tree again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3473 0",
+   "expectMessage": "Teleported to 3229, 3473, 0",
+   "comment": "south of the White Tree (garden_white_tree_patch, 3229-3230, 3474-3475)"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "room for the fruit"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 12,
+   "timeoutMs": 5000,
+   "comment": "the White Tree with four fruit"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 983,
+   "value": 7,
+   "timeoutMs": 5000,
+   "comment": "Garden of Tranquillity done: the snowdrops fully grown"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 963,
+   "value": 2,
+   "timeoutMs": 5000,
+   "comment": "the Statue of Saradomin on its plinth"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 964,
+   "value": 2,
+   "timeoutMs": 5000,
+   "comment": "the king's statue here, so Lumbridge's plinth is bare"
+  },
+  {
+   "step": "locOption",
+   "locId": 9209,
+   "option": "Pick-fruit",
+   "x": 3229,
+   "y": 3474,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 11,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 9209,
+   "option": "Pick-fruit",
+   "x": 3229,
+   "y": 3474,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 10,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 9209,
+   "option": "Pick-fruit",
+   "x": 3229,
+   "y": 3474,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 9,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 9209,
+   "option": "Pick-fruit",
+   "x": 3229,
+   "y": 3474,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 8,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "White tree fruit",
+   "count": 4,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[palace_garden.picked]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::farmtick 1",
+   "expectMessage": "Farming clock moved on 1 tick",
+   "comment": "one farming tick grows one fruit"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 9,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::farmtick 3",
+   "expectMessage": "Farming clock moved on 3 ticks",
+   "comment": "full again for the next run"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 985,
+   "value": 12,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 35",
+   "expectMessage": "35",
+   "comment": "the trellis's level"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3470 0",
+   "expectMessage": "Teleported to 3228, 3470, 0",
+   "comment": "outside the garden's south fence"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trellis",
+   "option": "Climb",
+   "x": 3228,
+   "y": 3471,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3471,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "in the garden"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: a click while the shortcut's script runs is dropped"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trellis",
+   "option": "Climb",
+   "x": 3228,
+   "y": 3471,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3470,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back out"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3239 3394 0",
+   "expectMessage": "Teleported to 3239, 3394, 0",
+   "comment": "in Marlo's house, south-west Varrock"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 10569,
+   "value": 3,
+   "timeoutMs": 5000,
+   "comment": "Daddy's Home done: the carpet mended"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 10568,
+   "value": 3,
+   "timeoutMs": 5000,
+   "comment": "and the bed"
+  },
+  {
+   "step": "command",
+   "text": "::farmclock run",
+   "comment": "the clock back to real time"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

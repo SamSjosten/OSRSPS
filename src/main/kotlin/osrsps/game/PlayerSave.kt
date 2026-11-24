@@ -23,6 +23,10 @@ import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Tolerance
 import osrsps.game.skill.farming.FarmingSaves
 import osrsps.game.skill.farming.FarmingState
+import osrsps.game.skill.construction.HouseSaves
+import osrsps.game.skill.construction.HouseState
+import osrsps.game.trail.TrailProgress
+import osrsps.game.trail.TrailSaves
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
@@ -105,6 +109,14 @@ class PlayerSave(
     val archiveChest: Map<Int, InvObj> = emptyMap(),
     /** The farming patches and clock ([osrsps.game.skill.farming.FarmingState]), a copy of the player's. */
     val farming: FarmingState = FarmingState(),
+    /** The player's house ([osrsps.game.skill.construction.HouseState]), a copy of theirs; null until they buy one. */
+    val house: HouseState? = null,
+    /** The player's trails under way ([osrsps.game.trail.TrailProgress]), a copy of theirs. */
+    val trails: TrailProgress = TrailProgress(),
+    /** The collection log's record, item to count, in the order first logged ([Player.collectionLog]). */
+    val collectionLog: Map<Int, Int> = emptyMap(),
+    /** How the player looks ([Player.look]); in the header, as ::reset doesn't change it. */
+    val look: PlayerLook = PlayerLook.DEFAULT,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -138,6 +150,7 @@ class PlayerSave(
         player.lastTrade = lastTrade
         player.friendsChat = friendsChat
         player.friendsChatOwner = friendsChatOwner
+        player.look = look
         applyState(player)
     }
 
@@ -160,6 +173,7 @@ class PlayerSave(
         player.equipment.clear()
         player.bank.clear()
         player.archiveChest.clear()
+        player.collectionLog.clear()
         player.charges.clear()
         player.sessionCharges.clear()
         player.ge.clear()
@@ -211,6 +225,7 @@ class PlayerSave(
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((slot, obj) in archiveChest) player.archiveChest[slot] = obj
+        player.collectionLog.putAll(collectionLog)
         // Pick timers older saves kept, now in Player.sessionCharges, are left behind.
         for ((name, count) in charges) if (name !in NO_LONGER_SAVED) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
@@ -218,6 +233,8 @@ class PlayerSave(
         for (use in geSellLimits) player.ge.sellLimits[use.item] = use
         player.ge.history.addAll(geHistory)
         player.farming.replaceWith(farming)
+        player.house = house?.copy()
+        player.trails.replaceWith(trails)
     }
 
     fun toJson(username: String): String {
@@ -268,6 +285,15 @@ class PlayerSave(
                 }
             }
             if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
+            // The look too, which is the player's rather than a scenario's.
+            if (look != PlayerLook.DEFAULT) {
+                putJsonObject("look") {
+                    put("bodyType", look.bodyType)
+                    putJsonArray("kits") { for (kit in look.kits) add(kit) }
+                    putJsonArray("colours") { for (colour in look.colours) add(colour) }
+                    put("pronoun", look.pronoun)
+                }
+            }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -306,8 +332,11 @@ class PlayerSave(
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
+        if (collectionLog.isNotEmpty()) putJsonObject("collectionLog") { for ((item, count) in collectionLog) put(item.toString(), count) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
         if (!farming.isUntouched) put("farming", FarmingSaves.toJson(farming))
+        house?.let { put("house", HouseSaves.toJson(it)) }
+        if (!trails.isEmpty) put("trails", TrailSaves.toJson(trails))
         if (geOffers.isNotEmpty()) {
             putJsonArray("geOffers") {
                 for ((slot, offer) in geOffers.toSortedMap()) {
@@ -423,6 +452,10 @@ class PlayerSave(
                 customVars = customVars,
                 archiveChest = player.archiveChest.contents().toMap(),
                 farming = FarmingState().apply { replaceWith(player.farming) },
+                house = player.house?.copy(),
+                trails = player.trails.copy(),
+                collectionLog = LinkedHashMap(player.collectionLog),
+                look = player.look,
             )
         }
 
@@ -508,6 +541,10 @@ class PlayerSave(
                     customVars = state.customVars,
                     archiveChest = state.archiveChest,
                     farming = state.farming,
+                    house = state.house,
+                    trails = state.trails,
+                    collectionLog = state.collectionLog,
+                    look = readLook(root),
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -602,7 +639,35 @@ class PlayerSave(
                 archiveChest = root.objs("archiveChest", "Archive chest", osrsps.game.raid.ArchiveChestWindow.SLOTS),
                 // Optional: saves from before Farming, and saves of players who never farmed, have none.
                 farming = root["farming"]?.jsonObject?.let(FarmingSaves::fromJson) ?: FarmingState(),
+                // Optional: saves from before Construction, and saves of players without a house, have none.
+                house = root["house"]?.jsonObject?.let(HouseSaves::fromJson),
+                // Optional: saves from before Treasure Trails, and saves with no trail under way, have none.
+                trails = root["trails"]?.jsonObject?.let(TrailSaves::fromJson) ?: TrailProgress(),
+                // Optional: saves from before the collection log, and saves of players who logged nothing, have none.
+                collectionLog = readCollectionLog(root),
             )
+        }
+
+        /** Optional: saves from before looks were kept, and saves with the default look, have none. */
+        private fun readLook(root: JsonObject): PlayerLook {
+            val look = root["look"]?.jsonObject ?: return PlayerLook.DEFAULT
+            return PlayerLook(
+                look.int("bodyType"),
+                look.getValue("kits").jsonArray.map { it.jsonPrimitive.int },
+                look.getValue("colours").jsonArray.map { it.jsonPrimitive.int },
+                look.int("pronoun"),
+            )
+        }
+
+        private fun readCollectionLog(root: JsonObject): Map<Int, Int> {
+            val log = LinkedHashMap<Int, Int>()
+            for ((key, value) in root["collectionLog"]?.jsonObject.orEmpty()) {
+                val item = requireNotNull(key.toIntOrNull()) { "Collection log item $key isn't a number" }
+                val count = value.jsonPrimitive.int
+                require(item >= 0 && count > 0) { "Collection log item $item has count $count" }
+                log[item] = count
+            }
+            return log
         }
 
         /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */

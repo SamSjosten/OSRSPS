@@ -160,6 +160,30 @@ class Combat(
     var immune: (Npc) -> Boolean = { false }
 
     /**
+     * Set by content: why [Player]'s weapon can't be used on [Npc], as the line that tells them, or null when it can: the
+     * rat bone weapons, which work on rats alone ([osrsps.game.content.RatBoneWeapons]). Asked with [barred].
+     */
+    var weaponBarred: (Player, Npc) -> Line? = { _, _ -> null }
+
+    /**
+     * Set by content: why [Player]'s weapon can't be used on another player, as [weaponBarred] for an NPC: the rat bone
+     * weapons, rats only. Asked by [PvpCombat] at every attempt, so a weapon swapped mid-fight counts.
+     */
+    var weaponBarredOnPlayer: (Player) -> Line? = { null }
+
+    /**
+     * Set by content: what is added to [Player]'s max hit on [Npc], with any style, after every other bonus: the rat
+     * bone weapons' +10 against rats ([osrsps.game.content.RatBoneWeapons]).
+     */
+    var maxHitAdded: (Player, Npc) -> Int = { _, _ -> 0 }
+
+    /**
+     * Set by content: whether [Player]'s attack on [Npc] leaves them free to attack again on the next tick, whatever
+     * their weapon's speed: the rat bone weapons on Scurrius's giant rats ([osrsps.game.content.RatBoneWeapons]).
+     */
+    var noCooldown: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.
@@ -167,7 +191,7 @@ class Combat(
     fun barred(player: Player, npc: Npc): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
-        else -> notYours(player, npc)
+        else -> weaponBarred(player, npc) ?: notYours(player, npc)
     }
 
     /**
@@ -257,7 +281,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))),
+            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))) + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -328,7 +352,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = maxHit,
+            maxHit = maxHit + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }
@@ -420,7 +444,8 @@ class Combat(
         return MagicMatchup(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = maxHit,
+            // A spell with no damage (Bind) stays harmless: no bonus to make it roll damage XP (Codex, PR 878).
+            maxHit = if (spell.maxHit == 0) 0 else maxHit + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }
@@ -483,7 +508,7 @@ class Combat(
             type == def.attackType -> def.attackBonus
             type == AttackType.MAGIC -> def.magicAttack
             type == AttackType.RANGED -> def.rangedAttack
-            else -> 0
+            else -> def.meleeAttack
         }
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, type), bonus),
@@ -500,14 +525,14 @@ class Combat(
     }
 
     /**
-     * [npc]'s melee max hit: its file's, less what its drained Strength takes off by [CombatMath.npcMaxHit], so the file
-     * still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
+     * [npc]'s melee max hit: [base] (its file's unless a swing names its own), less what its drained Strength takes off
+     * by [CombatMath.npcMaxHit], so the file still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
      * loses the same as the formula would.
      */
-    private fun npcMaxHit(npc: Npc, def: NpcCombatDef): Int {
-        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return def.maxHit
+    internal fun npcMaxHit(npc: Npc, def: NpcCombatDef, base: Int = def.maxHit): Int {
+        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return base
         val lost = CombatMath.npcMaxHit(npc.type.stats.strength, def.strengthBonus) - CombatMath.npcMaxHit(npc.level(NpcStat.STRENGTH), def.strengthBonus)
-        return (def.maxHit - lost).coerceAtLeast(0)
+        return (base - lost).coerceAtLeast(0)
     }
 
     companion object {

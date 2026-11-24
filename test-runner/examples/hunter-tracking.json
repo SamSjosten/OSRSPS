@@ -1,0 +1,23 @@
+{
+ "name": "Hunter step 8: tracking polar kebbits in the Rellekka Hunter area (level 1). Inspect on the south hole shows the first footprints of a trail of the player's own; a hollow log away from where they lead shows nothing; a snow drift is empty while the trail goes on. The trail is random, so follow the rest by eye: Inspect the connectors where the footprints stop until one shows more, then Attack the snow drift where they end with the noose wand wielded (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "the scenario's noose wand; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 2717 3817 1", "comment": "south of the south hole (hunting_trail_spawn_polar2 at 2717, 3819)"},
+  {"step": "assertLocation", "x": 2717, "y": 3817, "plane": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the client loads the new region first; a click sent while it does is lost (nightly 2026-11-16)"},
+  {"step": "itemOption", "item": "Noose wand", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 10150},
+  {"step": "locOption", "locId": 19641, "option": "Inspect", "x": 2717, "y": 3819},
+  {"step": "assertAnimation", "id": 5216, "comment": "hunting_searching_bushes (guessed)"},
+  {"step": "assertMessage", "contains": "hunter.track_found", "timeoutMs": 15000},
+  {"step": "locOption", "locId": 19425, "option": "Inspect", "x": 2713, "y": 3827, "comment": "the hollow log between the north hole and the east drift: no segment from this hole's node leads there"},
+  {"step": "assertMessage", "contains": "hunter.track_nothing", "timeoutMs": 20000},
+  {"step": "locOption", "locId": 19435, "option": "Attack", "x": 2716, "y": 3827, "comment": "a trail from the south hole passes at least three nodes, so it hasn't ended yet"},
+  {"step": "assertMessage", "contains": "hunter.track_empty", "timeoutMs": 15000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

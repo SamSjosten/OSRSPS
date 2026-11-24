@@ -1,0 +1,73 @@
+{
+ "name": "Treasure Trails step TT1: a scroll box opens into an easy clue, Read shows a map, a cryptic and a coordinate, and Dig solves the Champions' Guild map and the Lumbridge Castle cryptic (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
+
+  {"step": "command", "text": "::item 24362 2", "comment": "league_clue_box_easy, Scroll box (easy)"},
+  {"step": "itemOption", "itemId": 24362, "option": "Open"},
+  {"step": "assertInventory", "itemId": 24362, "count": 1},
+  {"step": "command", "text": "::clue", "expectMessage": "easy: ", "comment": "a trail under way at a built easy step"},
+  {"step": "itemOption", "itemId": 24362, "option": "Open"},
+  {"step": "assertMessage", "contains": "trail.box_refuses"},
+  {"step": "assertInventory", "itemId": 24362, "count": 1},
+  {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
+
+  {"step": "command", "text": "::item 952", "comment": "a spade"},
+  {"step": "command", "text": "::clue easy map:107", "expectMessage": "Clue (easy): map:107", "comment": "trail_clue_easy_map001, the Champions' Guild"},
+  {"step": "itemOption", "itemId": 2713, "option": "Read"},
+  {"step": "assertInterface", "interfaceId": 346, "comment": "trail_map01"},
+  {"step": "clickWidget", "interfaceId": 346, "component": 48, "comment": "btn_close"},
+  {"step": "itemOption", "itemId": 2713, "option": "Check steps"},
+  {"step": "assertMessage", "contains": "trail.check_steps"},
+
+  {"step": "command", "text": "::tele 3170 3370 0"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "itemId": 952, "option": "Dig"},
+  {"step": "assertAnimation", "id": 830, "comment": "human_dig"},
+  {"step": "assertMessage", "contains": "game.nothing_interesting"},
+  {"step": "assertInventory", "itemId": 2713, "count": 1},
+
+  {"step": "command", "text": "::tele 3167 3361 0", "comment": "a tile east of the spot, 3166 3361: close enough"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "itemId": 952, "option": "Dig"},
+  {"step": "assertInventory", "itemId": 2713, "count": 0, "comment": "swapped for the next easy clue"},
+  {"step": "assertWidgetText", "interfaceId": 193, "component": 2, "contains": "trail.another_clue", "comment": "the item box"},
+  {"step": "continueDialogue", "comment": "close the item box, or ::empty waits behind it"},
+  {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
+
+  {"step": "command", "text": "::item 952"},
+  {"step": "command", "text": "::clue easy cryptic:846", "expectMessage": "Clue (easy): cryptic:846", "comment": "trail_easy_vague_exp13, dug at the Lumbridge spawn point (3221 3219)"},
+  {"step": "itemOption", "itemId": 19814, "option": "Read"},
+  {"step": "assertInterface", "interfaceId": 203, "comment": "trail_cluetext, with the cache's words"},
+  {"step": "clickWidget", "interfaceId": 203, "component": 1, "comment": "btn_close"},
+  {"step": "command", "text": "::tele 3221 3219 0"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "itemId": 952, "option": "Dig"},
+  {"step": "assertInventory", "itemId": 19814, "count": 0},
+  {"step": "assertWidgetText", "interfaceId": 193, "component": 2, "contains": "trail.another_clue", "comment": "the item box"},
+  {"step": "continueDialogue", "comment": "close the item box, or ::empty waits behind it"},
+  {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
+
+  {"step": "command", "text": "::clue medium coordinate:391", "expectMessage": "Clue (medium): coordinate:391", "comment": "trail_clue_medium_sextant025, 00.20S 23.15E"},
+  {"step": "itemOption", "itemId": 7313, "option": "Read"},
+  {"step": "assertWidgetText", "interfaceId": 203, "component": 2, "contains": "trail.coordinate"},
+  {"step": "clickWidget", "interfaceId": 203, "component": 1},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue beginner map:101", "expectMessage": "Clue (beginner): map:101", "comment": "the beginner Champions' Guild map, on the shared beginner scroll"},
+  {"step": "itemOption", "itemId": 23182, "option": "Read"},
+  {"step": "assertInterface", "interfaceId": 346},
+  {"step": "clickWidget", "interfaceId": 346, "component": 48},
+
+  {"step": "command", "text": "::clue clear", "expectMessage": "No trail."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
