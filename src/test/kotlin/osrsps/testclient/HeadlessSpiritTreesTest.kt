@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.GameRandom
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -88,7 +89,10 @@ class HeadlessSpiritTreesTest {
         await("the travel menu") { if (SpiritTrees.MENU in openInterfaces()) Unit else null }
         val script = await("the menu's script") { clientScripts().lastOrNull { it.id == SpiritTrees.MENU_SCRIPT } }
         assertEquals(SpiritTreeSpot.entries.map { "[${it.label.key}]" }, (script.args[1] as String).split('|'))
+        val before = clientScripts().size
         resumePause(SpiritTrees.MENU, SpiritTrees.MENU_ENTRIES, spot.ordinal)
+        // The menu stopped the chat's input; its closing gives it back.
+        await("the chat's input back") { clientScripts().drop(before).firstOrNull { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT } }
     }
 
     /** Continues the bark box, then waits for the landing at [to]. */
@@ -179,7 +183,8 @@ class HeadlessSpiritTreesTest {
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
                 // Every account has finished Tree Gnome Village: bolren_got_orbs at 2, where the tree's options show.
-                assertEquals(2, (client.varp(TREES_VARP) ushr 8) and 7)
+                // The varps come after the rebuild, so wait for it rather than read it at once.
+                client.await("bolren_got_orbs at 2") { if ((client.varp(TREES_VARP) ushr 8) and 7 == 2) Unit else null }
                 client.tele(SpiritTreeSpot.TREE_GNOME_VILLAGE.landing!!)
                 client.locOp(SpiritTrees.BIG_TREE, village.x, village.z, SpiritTrees.TALK)
                 client.treeSays(SpiritTreeLines.GREETING)
