@@ -37,7 +37,7 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
     val ELITE_REWARDS = line("elite_rewards", "the elite tier: her answer")
     val THANKS = line("thanks", "after a tier: the player's thanks")
     val FINISH_TASKS = line("finish_tasks", "how to claim: her answer")
-    val ANOTHER_RING = line("another_ring", "first menu, option 1 once a ring is earned and none is carried, worn or banked: which the player then says")
+    val ANOTHER_RING = line("another_ring", "first menu, option 1 once a ring is earned and the highest earned isn't carried, worn or banked: which the player then says")
     val ANOTHER_RING_GIVEN = line("another_ring_given", "after another ring: the box beside the ring")
     val CLAIM_EASY = line("claim_easy", "a claim: the player has done every easy task (\"Achievement Diary\" capitalised)")
     val CLAIM_MEDIUM = line("claim_medium", "a claim: every medium task (\"achievement diary\" in lower case, as for hard and elite)")
@@ -62,7 +62,7 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
  * order. She says nothing before the first menu. Guessed: every chathead expression; that a claim runs as soon as
  * Talk-to is clicked, in place of her silence, and her first menu follows; that a tier whose earlier tiers aren't all
  * done can't be claimed and says nothing (the Wiki has no words for it); that "Can I have another ring?" shows once a
- * ring is earned and none is carried, worn or banked, and gives the highest tier earned; that a full inventory doesn't
+ * ring is earned and the highest tier earned isn't carried, worn or banked, and gives that tier; that a full inventory doesn't
  * stop a claim (the ring and lamp land on the floor; Toby's transcript checks for space, hers doesn't); and that the
  * diary menu comes back after "what is the diary". Goodbye brings her first menu back, as the Wiki's transcript has
  * it after "See you later." (from either menu), so the talk ends only when the player walks away.

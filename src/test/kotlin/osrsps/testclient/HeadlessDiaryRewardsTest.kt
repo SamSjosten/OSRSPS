@@ -25,7 +25,7 @@ import osrsps.map.CollisionMap
 
 /**
  * Claiming diary rewards through the headless client: Mikasi gives the easy ring and lamp once every easy task is done,
- * then not again, and gives the ring back once it's gone; a hard tier with medium undone isn't offered. Toby turns a
+ * then not again, and gives the highest ring back once it's gone, even with a lower one kept; a hard tier with medium undone isn't offered. Toby turns a
  * claim down without two free spaces (ending the talk), gives the armour and lamp with room, refuses the elite with the
  * medium and hard undone, and "Who are you?" opens the Achievement Diaries tab.
  */
@@ -113,6 +113,33 @@ class HeadlessDiaryRewardsTest {
                 client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 1)
                 client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
                 assertEquals(0, client.count(AntiqueLamps.Lamp.EASY.obj), "the lamp isn't given again")
+                client.closeModal()
+
+                // A kept lower ring doesn't stop the highest one being given back.
+                client.done("diary complete lumbridge medium all")
+                client.talk(Mikasi.ID)
+                client.chat("[mikasi.claim_medium]", "[mikasi.want_reward]", "[mikasi.yes_please]", "[mikasi.ring_medium]", "[mikasi.wow_thanks]")
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[1], 1)
+                client.closeModal()
+                // Hard was done above, so with medium claimed it's claimed next.
+                client.talk(Mikasi.ID)
+                client.chat("[mikasi.claim_hard]", "[mikasi.want_reward]", "[mikasi.yes_please]", "[mikasi.ring_hard]", "[mikasi.wow_thanks]")
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[2], 1)
+                client.closeModal()
+                client.command("empty")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[2], 0)
+                client.command("item ${DiaryArea.LUMBRIDGE.rewards[0]} 1")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 1)
+                client.talk(Mikasi.ID)
+                client.menu("[mikasi.another_ring]", "[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.chooseOption(1)
+                client.chat("[mikasi.another_ring]")
+                client.objbox()
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[2], 1)
+                assertEquals(1, client.count(DiaryArea.LUMBRIDGE.rewards[0]), "the easy ring isn't given again")
+                assertEquals(0, client.count(DiaryArea.LUMBRIDGE.rewards[1]), "nor the medium one")
             }
         }
     }

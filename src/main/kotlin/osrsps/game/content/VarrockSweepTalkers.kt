@@ -37,7 +37,7 @@ object TobyLines : Lines("toby", "Transcript:Toby") {
     val CLAIM_1 = line("claim_1", "claim: complete the tasks, then come back")
     val BYE = line("bye", "either menu's last option, which the player then says")
     val BYE_1 = line("bye_1", "his farewell")
-    val ANOTHER_PLATEBODY = line("another_platebody", "top menu option 1 once an armour is earned and none is carried, worn or banked: which the player then says")
+    val ANOTHER_PLATEBODY = line("another_platebody", "top menu option 1 once an armour is earned and the highest earned isn't carried, worn or banked: which the player then says")
     val ANOTHER_PLATEBODY_GIVEN = line("another_platebody_given", "after another platebody: the box")
     val CLAIM_EASY = line("claim_easy", "a claim: the player has done every easy task (\"Achievement Diary\" capitalised)")
     val CLAIM_MEDIUM = line("claim_medium", "a claim: every medium task (\"achievement diary\" in lower case, as for hard and elite)")
@@ -109,7 +109,7 @@ object MeredithLines : Lines("meredith", "Transcript:Meredith") {
  *   Diaries tab, as the Wiki has it. Guessed: a claim runs as soon as Talk-to is clicked, in place of his Hello, and his
  *   first menu follows; a medium or hard claim with an earlier tier not done says nothing (the Wiki's words are
  *   missing), while an elite one gets his "easy, medium and hard tasks too" line; "Can I have another Varrock
- *   platebody?" shows once an armour is earned and none is carried, worn or banked, and gives the highest tier earned.
+ *   platebody?" shows once an armour is earned and the highest earned isn't carried, worn or banked, and gives the highest tier earned.
  * - James (`bond_james_bond` 5885, shown as `bond_james_visible` 8193): every answer returns to his menu, which has no
  *   way out but closing it, as the Wiki has it.
  * - Meredith (10733) in the Games Zone: her answers; the board games themselves aren't built. Her games menu has no

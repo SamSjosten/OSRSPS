@@ -299,9 +299,15 @@ class Diaries(private val world: World, private val font: ChatFont) {
         highestClaimed(player, area)?.let { give(player, area.rewards[it.ordinal]) }
     }
 
-    /** Whether the player has any of [area]'s reward items carried, worn or banked. */
-    fun ownsReward(player: Player, area: DiaryArea): Boolean =
-        area.rewards.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0 }
+    /**
+     * Whether the player has the highest claimed tier's item carried, worn or banked; earlier tiers' items don't count,
+     * so a banked Explorer's ring 1 doesn't stop a lost ring 4 being given back (guessed: the Wiki says only that the
+     * taskmaster replaces a lost reward).
+     */
+    fun ownsReward(player: Player, area: DiaryArea): Boolean {
+        val obj = area.rewards[(highestClaimed(player, area) ?: return false).ordinal]
+        return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
+    }
 
     private fun give(player: Player, obj: Int) {
         val type = world.objTypes[obj] ?: return logger.warn { "No item $obj in the cache" }
