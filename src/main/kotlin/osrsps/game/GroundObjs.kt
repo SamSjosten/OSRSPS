@@ -436,6 +436,26 @@ class GroundObjs(
         return true
     }
 
+    /**
+     * Takes at most [count] of [obj] for [player] and destroys the rest of its stack, as scroll boxes past their tier's
+     * cap are on pickup. Like [take], it must still be there for them; a [count] of 0 only destroys it. Returns false,
+     * after telling them why, if nothing happened.
+     */
+    fun takeUpTo(player: Player, obj: ZoneObj, count: Int): Boolean {
+        if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) {
+            message(player, words(player)[GameLines.TOO_LATE])
+            return false
+        }
+        if (count <= 0) return remove(obj)
+        val type = objTypes[obj.id] ?: return false
+        if (!fits(player.inventory, type, minOf(count, obj.count))) {
+            message(player, words(player)[GameLines.NO_SPACE])
+            return false
+        }
+        if (count < obj.count) zones.setObjCount(obj, count)
+        return take(player, obj)
+    }
+
     /** Whether all of [count] of [type] would go into [inventory]. */
     private fun fits(inventory: Inventory, type: ObjType, count: Int): Boolean {
         if (!type.stackable) return inventory.freeSlots >= count

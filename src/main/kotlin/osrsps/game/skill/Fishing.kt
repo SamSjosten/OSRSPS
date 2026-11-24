@@ -4,6 +4,7 @@ import osrsps.game.InvObj
 import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.trail.SkillingClues
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
@@ -338,6 +339,7 @@ class Fishing(private val world: World) {
             }
             player.inventory.add(type, fish.amount(level))
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+            world.trails.skilling.rolled(player, Skill.FISHING, SkillingClues.FISHING[fish.obj])
             player.message(world.textFor(player)[fish.line])
             return
         }
@@ -356,6 +358,7 @@ class Fishing(private val world: World) {
             val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
             player.inventory.add(type, 1)
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+            world.trails.skilling.rolled(player, Skill.FISHING, SkillingClues.FISHING[fish.obj])
             player.message(text[fish.line])
         }
     }
@@ -376,6 +379,7 @@ class Fishing(private val world: World) {
         val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+        world.trails.skilling.rolled(player, Skill.FISHING, SkillingClues.FISHING[fish.obj])
         player.message(text[fish.line])
     }
 

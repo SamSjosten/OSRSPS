@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.trail.SkillingClues
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -171,6 +172,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
                 val logs = world.objTypes[tree.logs] ?: error("No obj type ${tree.logs} for ${tree.key} logs")
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
+                world.trails.skilling.rolled(player, Skill.WOODCUTTING, SkillingClues.WOODCUTTING[tree.key])
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
                 if (tree.birdNests) nests.roll(player)
                 if (timer == null || timer.left <= 0) {

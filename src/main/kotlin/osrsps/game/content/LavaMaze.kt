@@ -176,7 +176,8 @@ private suspend fun ScriptContext.openChest(world: World, loc: ZoneLoc) {
     world.message(player, LavaMazeLines.CHEST_UNLOCK)
     world.locs.replace(loc, LavaMaze.CHEST_OPEN, revertAfter = LavaMaze.CHEST_OPEN_TICKS)
     val loot = world.npcDrops.chests[LavaMaze.CHEST_TABLE]?.roll(world.random).orEmpty()
-    for (drop in loot) {
+    for (rolled in loot) {
+        val drop = world.trails.dropFor(player, rolled.type)?.let { rolled.copy(type = it) } ?: continue
         val over = drop.count - player.inventory.add(drop.type, drop.count)
         if (over > 0) {
             world.groundObjs.addPrivate(drop.type, over, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
