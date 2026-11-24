@@ -259,7 +259,8 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         setState(player, station, TREE)
         delay(TRIP_TICKS)
         world.teleport(player, destination.x, destination.z, 0)
-        if (station == CanoeStation.LUMBRIDGE && destination == CanoeDestination.EDGEVILLE) {
+        // "Travel from Lumbridge to Edgeville on a Waka canoe": a stable dugout reaches Edgeville too, but isn't a waka.
+        if (state - 10 == CanoeType.WAKA.number && station == CanoeStation.LUMBRIDGE && destination == CanoeDestination.EDGEVILLE) {
             world.diaries.complete(player, DiaryTask.LUMBRIDGE_HARD_4)
         }
         val text = world.textFor(player)
