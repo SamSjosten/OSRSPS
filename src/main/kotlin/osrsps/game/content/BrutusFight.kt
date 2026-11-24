@@ -118,7 +118,13 @@ object BrutusFight {
     private fun EncounterContext.tick() {
         val fight = fight(boss)
         if (fight.basicsLeft < 0) fight.basicsLeft = roll(BASICS_MIN, BASICS_MAX)
-        if (world.tick < fight.busyUntil) return
+        if (world.tick < fight.busyUntil) {
+            // The 15 ticks out of reach run on through a special too, so running off while he stomps doesn't put off
+            // the *huff*; it comes once the special is over.
+            val held = heldTarget()
+            if (held != null) fight.outOfReach = if (world.meleeCombat.reaches(boss, held)) 0 else fight.outOfReach + 1
+            return
+        }
         val target = heldTarget() ?: nearest() ?: return
         boss.face(target)
         val reaches = world.meleeCombat.reaches(boss, target)

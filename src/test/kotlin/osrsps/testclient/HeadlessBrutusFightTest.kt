@@ -12,7 +12,10 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
 import osrsps.game.VarTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.content.Brutus
 import osrsps.game.content.BrutusFight
@@ -51,8 +54,11 @@ class HeadlessBrutusFightTest {
     private fun server(dir: Path, seed: Long = 5) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
         val npcTypes = NpcTypes.of(brutus)
+        val objs = arrayOfNulls<ObjType>(protectFromMelee.id + 1)
+        objs[protectFromMelee.id] = protectFromMelee
+        val objTypes = ObjTypes(objs)
         World(
-            crcs, map, random = GameRandom(seed), locTypes = types,
+            crcs, map, random = GameRandom(seed), locTypes = types, objTypes = objTypes, prayerList = Prayers.load(objTypes),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Brutus.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3262, 3294, 0))
                 add(ZoneLoc(Brutus.GATE_RIGHT, LocShape.WALL_STRAIGHT, 1, 3263, 3294, 0))
@@ -61,12 +67,18 @@ class HeadlessBrutusFightTest {
         )
     }
 
+    // Shaped like the cache's prayer obj for Protect from Melee, as HeadlessPvpMeleeTest has it.
+    private val protectFromMelee = ObjType(
+        20817, "Null", internalName = "placeholder_xmas16_marionette_blue",
+        params = mapOf(630 to 14, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MELEE), 1752 to "Protect from Melee", 1753 to 43, 1755 to 2676),
+    )
+
     private class InField(val boss: Npc, val fight: Encounter, val inside: (Int, Int) -> Tile)
 
     /** In through the gate (no menu: no don't-ask varbit here, so it asks), then to [x], [z] of the real field. */
-    private fun HeadlessClient.goIn(server: TestServer, name: String, x: Int, z: Int): InField {
+    private fun HeadlessClient.goIn(server: TestServer, name: String, x: Int, z: Int, god: Boolean = true): InField {
         await("the login rebuild") { position }
-        commandReply("god") { it.startsWith("You can") }
+        if (god) commandReply("god on") { it.startsWith("You can") }
         command("tele ${Brutus.OUTSIDE.x} ${Brutus.OUTSIDE.z} 0")
         await("outside the gate") { position?.takeIf { it == Coord(Brutus.OUTSIDE.x, Brutus.OUTSIDE.z, 0) } }
         locOp(Brutus.GATE_LEFT, 3262, 3294, Brutus.RELEASE)
@@ -169,6 +181,82 @@ class HeadlessBrutusFightTest {
         }
     }
 
+    /** The damage of every special that has landed on [name] so far: the charge's hits and the stomps'. */
+    private fun specialHits(field: InField, name: String): Pair<List<Int>, List<Int>> {
+        val lines = field.fight.lines.toList()
+        fun dealt(prefix: String) = lines.filter { it.contains("$prefix $name for ") && (prefix != "hit" || !it.contains("hazard hit")) }
+            .map { it.substringAfterLast(" for ").trim().toInt() }
+        return dealt("hit") to dealt("hazard hit")
+    }
+
+    @Test
+    fun `without god mode his charge and stomps land 15 to 19 through Protect from Melee`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("setlevel prayer 99") { true }
+                client.await("hitpoints at 99") { Unit.takeIf { client.stat(HITPOINTS)?.level == 99 } }
+                client.ifButton(Prayers.PRAYERBOOK, PROTECT_FROM_MELEE, 1)
+                client.await("Protect from Melee on") { Unit.takeIf { client.varp(Prayers.VARP_PRAYERS) == 1 shl 14 } }
+                val erin = server.world.playerNamed("erin")!!
+                val field = client.goIn(server, "erin", 3262, 3270, god = false)
+                assertTrue(!erin.god)
+                val range = BrutusFight.specialDamage(erin)
+                assertEquals(BrutusFight.SPECIAL_MIN..BrutusFight.SPECIAL_MAX, range)
+                val hits = client.await("a charge hit and a stomp hit", timeoutMillis = 90_000) {
+                    specialHits(field, "erin").takeIf { (charge, stomp) -> charge.isNotEmpty() && stomp.isNotEmpty() }
+                }
+                assertTrue(server.world.prayers.protects(erin, osrsps.game.combat.AttackType.CRUSH), "still praying")
+                for (dealt in hits.first + hits.second) assertTrue(dealt in range, "$dealt in $range through the prayer: ${field.fight.lines}")
+                assertTrue(erin.hitpoints < 99, "they hurt")
+            }
+        }
+    }
+
+    @Test
+    fun `without god mode a low Hitpoints player takes less from a special`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 30") { true }
+                client.await("hitpoints at 30") { Unit.takeIf { client.stat(HITPOINTS)?.level == 30 } }
+                val finn = server.world.playerNamed("finn")!!
+                val field = client.goIn(server, "finn", 3262, 3270, god = false)
+                val range = BrutusFight.specialDamage(finn)
+                // 30% to 40% of 30.
+                assertEquals(9..12, range)
+                val hits = client.await("the first special's hit", timeoutMillis = 60_000) {
+                    specialHits(field, "finn").let { it.first + it.second }.takeIf { it.isNotEmpty() }
+                }
+                assertTrue(hits.first() in range, "${hits.first()} in $range: ${field.fight.lines}")
+            }
+        }
+    }
+
+    @Test
+    fun `ticks out of reach during a special count toward the huff`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gwen").use { client ->
+                val field = client.goIn(server, "gwen", 3262, 3270)
+                val state = BrutusFight.fight(field.boss)
+                // Wait for his first special to start, then run off and hold him where he stands.
+                client.await("a special", timeoutMillis = 60_000) { state.specials.firstOrNull() }
+                val busyFor = (state.busyUntil - server.world.tick).toInt()
+                val huffs = state.huffs
+                server.world.npcs.freeze(field.boss, 100)
+                val far = Tile(field.boss.x + 1, field.boss.z - 8)
+                val started = server.world.tick
+                client.command("tele ${far.x} ${far.z} 0")
+                client.await("the huff", timeoutMillis = 30_000) { Unit.takeIf { state.huffs > huffs } }
+                val took = server.world.tick - started
+                assertTrue(busyFor >= 3, "the special keeps him busy a while: $busyFor")
+                // Counted from the tick she ran, the special's ticks included, not from the special's end.
+                assertTrue(took <= BrutusFight.OUT_OF_REACH_TICKS + 2, "the huff $took ticks after she ran, $busyFor of them in the special: ${field.fight.lines}")
+            }
+        }
+    }
+
     @Test
     fun `a stomp's tiles are the side the player is beside, or the corner's L`() {
         // Brutus's south-west tile on 10,10, 3 by 3: 10-12 on both axes.
@@ -178,5 +266,10 @@ class HeadlessBrutusFightTest {
         assertEquals(setOf(Tile(13, 10), Tile(13, 11), Tile(13, 12), Tile(12, 10), Tile(12, 11), Tile(12, 12)), east)
         val northWest = BrutusFight.stompTiles(10, 10, 3, -1 to 1).toSet()
         assertEquals(setOf(Tile(9, 13), Tile(10, 13), Tile(9, 12), Tile(10, 12)), northWest)
+    }
+
+    private companion object {
+        const val PROTECT_FROM_MELEE = 23
+        const val HITPOINTS = 3
     }
 }
