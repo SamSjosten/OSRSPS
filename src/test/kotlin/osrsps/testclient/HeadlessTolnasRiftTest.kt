@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.World
 import osrsps.game.content.TolnasRift
@@ -64,6 +65,8 @@ class HeadlessTolnasRiftTest {
                 client.tele(3308, 3452)
                 client.locOp(rope.id, rope.x, rope.z, TolnasRift.ENTER)
                 client.awaitAt("in the lobby", TolnasRift.LOBBY.x, TolnasRift.LOBBY.z)
+                // Entering is the Varrock medium diary's task.
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
 
                 client.locOp(ropeUp.id, ropeUp.x, ropeUp.z, TolnasRift.CLIMB_UP)
                 client.awaitAt("back at the top", TolnasRift.TOP.x, TolnasRift.TOP.z)
@@ -85,6 +88,7 @@ class HeadlessTolnasRiftTest {
                 client.locOp(hole.id, hole.x, hole.z, TolnasRift.ENTER)
                 client.await("the rope line") { if (client.messages().any { it.text == "[tolna_rift.rope_only]" }) Unit else null }
                 client.awaitAt("still at the top", 3305, 3450)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "not entered, no task")
             }
         }
     }

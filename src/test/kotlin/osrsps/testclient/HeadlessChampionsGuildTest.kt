@@ -122,6 +122,8 @@ class HeadlessChampionsGuildTest {
                 client.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
                 client.chat("guildmaster.welcome")
                 client.awaitAt(3191, 3362)
+                // Coming in is the Varrock medium diary's task.
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
                 val world = server.world
                 client.await("the door shut again") { world.locs[3191, 3363, 0, 0]?.takeIf { it.id == VarrockChampionsGuild.DOOR } }
                 client.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
@@ -133,6 +135,7 @@ class HeadlessChampionsGuildTest {
                 client.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
                 client.chat("guildmaster.welcome")
                 client.awaitAt(3191, 3362)
+                assertEquals(1, client.messages().count { it.text.startsWith("[diary.task_done") }, "the task is said once")
             }
         }
     }
