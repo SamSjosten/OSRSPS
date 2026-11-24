@@ -42,6 +42,10 @@ class EntranaSearchTest {
         assertFalse(EntranaSearch.prohibited(item("Saradomin cloak", WearPos.CAPE, 3)))
         assertTrue(EntranaSearch.prohibited(item("Ardougne cloak 1", WearPos.CAPE, 1)))
         assertTrue(EntranaSearch.prohibited(item("Imbued saradomin cape", WearPos.CAPE, 15)))
+        assertFalse(EntranaSearch.prohibited(item("Fremennik grey shirt", WearPos.BODY, 1)))
+        assertTrue(EntranaSearch.prohibited(item("Fremennik blade", WearPos.WEAPON, 30)))
+        assertTrue(EntranaSearch.prohibited(item("Fremennik shield", WearPos.SHIELD, 20)))
+        assertTrue(EntranaSearch.prohibited(item("Fremennik helm", WearPos.HEAD, 10)))
     }
 
     private companion object {
