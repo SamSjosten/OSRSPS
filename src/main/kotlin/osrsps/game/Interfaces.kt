@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.TriggerOnDialogAbort
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.content.Diaries
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.script.ScriptContext
 import osrsps.game.social.Clans
@@ -137,6 +138,11 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun openJournalTab(player: Player, tab: JournalTab) {
         journalTabVarbit(player)?.let { player.vars.setVarbit(it, tab.value) }
         send(player, IfOpenSub(JournalTab.SIDE_JOURNAL, JournalTab.TAB_CONTAINER, tab.interfaceId, OVERLAY))
+        // The diary rows' click boxes are made by the page's onload script; their first op, "Open <diary> Journal",
+        // needs the server's events. Inferred: live enables only that one (the second, Wiki, opens a web page).
+        if (tab == JournalTab.DIARIES) {
+            setEvents(player, Diaries.PANEL, Diaries.PANEL_TASKBOX, 0, Diaries.PANEL_ROWS - 1, 1 shl (Diaries.PANEL_OPEN - 1))
+        }
         // The summary's Collection Log row: its two ops need events (collection log step 2).
         if (tab == JournalTab.SUMMARY) send(player, osrsps.game.collection.CollectionLogWindow.SUMMARY_EVENTS)
     }
