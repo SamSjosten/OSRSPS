@@ -1,0 +1,38 @@
+{
+ "name": "Treasure Trails step TT5: build the beginner STASH outside Bob's Brilliant Axes, stash its leather boots and bronze axe, and take them back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back, the unit's varbit too"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel construction 12", "expectMessage": "Construction set to level 12"},
+  {"step": "command", "text": "::tele 3231 3204 0", "comment": "a tile north of the unit (hh_beginner003, 3231, 3203)"},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "locOption", "loc": "Inconspicuous bush (beginner)", "option": "Build", "x": 3231, "y": 3203},
+  {"step": "assertMessage", "contains": "[stash.tools]", "comment": "no hammer or saw"},
+  {"step": "command", "text": "::item 2347 1", "comment": "hammer"},
+  {"step": "command", "text": "::item 8794 1", "comment": "saw"},
+  {"step": "command", "text": "::item 960 2", "comment": "planks"},
+  {"step": "command", "text": "::item 4819 10", "comment": "bronze nails"},
+  {"step": "locOption", "loc": "Inconspicuous bush (beginner)", "option": "Build", "x": 3231, "y": 3203},
+  {"step": "assertMessage", "contains": "[stash.built]", "timeoutMs": 10000},
+  {"step": "assertVarbit", "id": 8256, "value": 1, "comment": "hh_constructed_beginner003"},
+
+  {"step": "locOption", "loc": "STASH (beginner)", "option": "Search", "x": 3231, "y": 3203},
+  {"step": "assertMessage", "contains": "[stash.missing]"},
+  {"step": "command", "text": "::item 1061 1", "comment": "leather boots"},
+  {"step": "command", "text": "::item 1351 1", "comment": "bronze axe"},
+  {"step": "locOption", "loc": "STASH (beginner)", "option": "Search", "x": 3231, "y": 3203},
+  {"step": "assertMessage", "contains": "[stash.stored]"},
+  {"step": "assertInventory", "item": "Leather boots", "count": 0},
+  {"step": "locOption", "loc": "STASH (beginner)", "option": "Search", "x": 3231, "y": 3203},
+  {"step": "assertMessage", "contains": "[stash.taken]"},
+  {"step": "assertInventory", "item": "Leather boots", "count": 1},
+  {"step": "assertInventory", "item": "Bronze axe", "count": 1},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

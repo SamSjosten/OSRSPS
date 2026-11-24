@@ -1,0 +1,21 @@
+{
+  "name": "Looks step 3: the All Settings window's Pronouns (Gameplay row 1, dropdown 387) changes the look's pronoun",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::varp 2855 0", "expectMessage": "Varp 2855", "comment": "settings_tracking: Activities, not searching"},
+    {"step": "command", "text": "::look reset", "expectMessage": "pronouns he/him", "comment": "the default look, which sets settings_transmit_pronouns (bits 24-25 of 2855) back to 0"},
+    {"step": "clickWidget", "interfaceId": 548, "component": 52, "comment": "toplevel:stone11, the settings tab, in the fixed frame the VM's client uses"},
+    {"step": "clickWidget", "interfaceId": 116, "component": 32, "comment": "settings_side:settings_open, All Settings"},
+    {"step": "assertInterface", "interfaceId": 134},
+    {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 5, "comment": "categories_clickzone child 5: Gameplay (enum 422's struct_923)"},
+    {"step": "assertVarbit", "id": 9656, "value": 5},
+    {"step": "clickWidget", "interfaceId": 134, "component": 20, "slot": 1, "comment": "Gameplay row 1's Select, Pronouns (struct_994 in enum 1564)"},
+    {"step": "clickWidget", "interfaceId": 134, "component": 29, "slot": 8, "comment": "They/them, option 2 (children 3n to 3n + 2; the last has the op)"},
+    {"step": "waitTicks", "ticks": 3, "comment": "past setting_dropdown_synch's timer, after which the row reads the varbit again"},
+    {"step": "assertVarbit", "id": 10988, "value": 2, "comment": "settings_transmit_pronouns"},
+    {"step": "command", "text": "::look", "expectMessage": "pronouns they/them", "comment": "the look's own pronoun, which the appearance block carries"},
+    {"step": "command", "text": "::look reset", "expectMessage": "pronouns he/him", "comment": "the account back as it was"},
+    {"step": "assertVarbit", "id": 10988, "value": 0}
+  ]
+}

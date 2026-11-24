@@ -347,7 +347,7 @@ class LodestoneNetworkTest {
         assertNotNull(world.handlers.find(Op.button(map, LodestoneMap.CLOSE, LodestoneMap.CLOSE_OP)))
         val command = world.commands.all.first { it.name == "lodestone" }
         assertFalse(command.admin, "every player may use it: it follows the game's rules")
-        assertEquals("::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]", command.usage)
+        assertEquals("::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville|karamja]", command.usage)
         assertEquals(Lodestones.AL_KHARID, Lodestones.site("Al_Kharid"))
         assertEquals(null, Lodestones.site("falador"))
 
@@ -373,8 +373,8 @@ class LodestoneNetworkTest {
         assertEquals(
             listOf(
                 "You can't use ::lodestone with an interface open or in the middle of something.",
-                "Usage: ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]",
-                "No lodestone called 'falador': ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]",
+                "Usage: ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville|karamja]",
+                "No lodestone called 'falador': ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville|karamja]",
             ),
             replies.drop(3),
         )

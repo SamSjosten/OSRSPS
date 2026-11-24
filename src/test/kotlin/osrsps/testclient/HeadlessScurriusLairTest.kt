@@ -154,6 +154,13 @@ class HeadlessScurriusLairTest {
                 bob.attackedTick = server.world.tick
                 client.locOp(Scurrius.FOOD_PILE, 3307, 9867, Scurrius.EAT)
                 client.seen(ScurriusLairLines.EAT_COMBAT)
+
+                // Just attacked something, untouched: refused too.
+                bob.attackedTick = -1
+                bob.attackedNpcTick = server.world.tick
+                client.locOp(Scurrius.FOOD_PILE, 3307, 9867, Scurrius.EAT)
+                client.await("refused again") { client.messages().count { it.text.contains(ScurriusLairLines.EAT_COMBAT.key) }.takeIf { it >= 2 } }
+                assertEquals(3, bob.skills.currentLevel(Skill.HITPOINTS))
             }
         }
     }

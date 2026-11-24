@@ -36,6 +36,12 @@
   },
   {
    "step": "command",
+   "text": "::boost agility 120",
+   "expectMessage": "Agility is now 120/40",
+   "comment": "the clothes line and the wall never fail from 98 (225 to 255 of 256 in agility.json), so no fall stops the script at random (about one run in seven at 40); the lap XP and count don't depend on the boost"
+  },
+  {
+   "step": "command",
    "text": "::tele 3222 3414 0",
    "expectMessage": "Teleported to 3222, 3414, 0",
    "comment": "east of the general store, below the rough wall"

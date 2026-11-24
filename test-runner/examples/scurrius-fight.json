@@ -1,0 +1,16 @@
+{
+ "name": "Scurrius step 2: his fight. Into a private lair and he swipes (npc_rat_boss_attack_melee_01), then out by the sewage water. The food piles, the centre, bricks and rats are in HeadlessScurriusFightTest, which sets his hitpoints",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario scurrius", "expectMessage": "Started scenario scurrius.", "comment": "the sewer side of the broken bars; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "locOption", "locId": 14203, "option": "Climb-through (private)", "x": 3282, "y": 9867},
+  {"step": "waitTicks", "ticks": 3, "comment": "the lair's region drawn"},
+  {"step": "assertAnimation", "npc": "Scurrius", "id": 10692, "timeoutMs": 30000, "comment": "he comes to the player, aggressive, and swipes in phase one (a stomp, 10698, may come first)"},
+  {"step": "locOption", "locId": 14204, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3281, "y": 9867, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

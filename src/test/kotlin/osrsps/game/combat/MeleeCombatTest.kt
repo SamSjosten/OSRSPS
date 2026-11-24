@@ -592,6 +592,34 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a shot prayed on landing asks the prayer as it lands, not as it fires`() {
+        val npc = spawn(x = 3216)
+        val shot = NpcRangedAttack(maxHit = 1)
+        /** 40 shots, the prayer [atFire] as each fires and [atLand] from then on; what each landing showed. */
+        fun volley(atFire: Boolean, atLand: Boolean): List<Int> {
+            val taken = ArrayList<Int>()
+            repeat(40) {
+                alice.hitpoints = 10
+                protectFromMelee = atFire
+                melee.fireAt(npc, alice, tick, shot, AttackType.CRUSH, prayedOnLanding = true)
+                protectFromMelee = atLand
+                repeat(6) {
+                    tick()
+                    alice.effects.pendingHits.forEach { taken += it.value }
+                    alice.effects.flush({}, { _, _ -> }, {}, {})
+                }
+            }
+            return taken
+        }
+        // Prayed only after it fired: every landing blocked.
+        val late = volley(atFire = false, atLand = true)
+        assertTrue(late.isNotEmpty() && late.all { it == 0 }, "$late")
+        // Prayed as it fired but off before it landed: hits get through.
+        val dropped = volley(atFire = true, atLand = false)
+        assertTrue(dropped.any { it > 0 }, "$dropped")
+    }
+
+    @Test
     fun `auto retaliate turns a hit player on the NPC with half their weapon's delay`() {
         val npc = spawn()
         attack(alice, npc)

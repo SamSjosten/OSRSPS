@@ -313,13 +313,16 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfOpenSub(Chatbox.CHATBOX, Chatbox.CHATMODAL, interfaceId, MODAL))
     }
 
-    /** Closes the dialogue in the chatbox, if any; a script waiting on it is dropped. */
-    fun closeChatModal(player: Player) {
+    /**
+     * Closes the dialogue in the chatbox, if any; a script waiting on it is dropped, unless [dropScript] is false (the
+     * script has gone on to wait on something else, see [osrsps.game.dialogue.Dialogues.resume]).
+     */
+    fun closeChatModal(player: Player, dropScript: Boolean = true) {
         if (player.chatModal >= 0) {
             sendClose(player, Chatbox.CHATBOX, Chatbox.CHATMODAL)
             player.chatModal = -1
         }
-        dropDialogueScript(player)
+        if (dropScript) dropDialogueScript(player)
     }
 
     /**

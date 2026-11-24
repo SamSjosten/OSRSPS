@@ -51,7 +51,7 @@ class ScriptRunner(
      * delayed is dropped; inferred from live, where clicks do nothing during an agility obstacle.
      */
     fun trigger(player: Player, op: Op): Boolean {
-        val handler = handlers.find(op) ?: return false
+        val handler = handlers.find(op, player) ?: return false
         if (player.scripts.delayed) {
             logger.debug { "Dropping $op for ${player.username}: delayed until tick ${player.scripts.delayedUntil}" }
             return true

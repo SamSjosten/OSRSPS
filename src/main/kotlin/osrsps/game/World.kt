@@ -37,6 +37,7 @@ import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
 import osrsps.game.command.registerDiaryCommands
+import osrsps.game.command.registerLookCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
@@ -58,8 +59,11 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
+import osrsps.game.command.registerRandomEventCommands
+import osrsps.game.content.registerXpLamp
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
+import osrsps.game.command.registerTrailCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -123,7 +127,10 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.EdgevilleRespawn
+import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -171,11 +178,20 @@ import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
+import osrsps.game.content.registerSpindel
+import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
+import osrsps.game.content.registerKaramjaVolcano
+import osrsps.game.content.registerMorUlRek
+import osrsps.game.content.registerMorUlRekInner
+import osrsps.game.content.registerInfernalEels
+import osrsps.game.content.registerTzHaarShops
+import osrsps.game.content.RunePacks
+import osrsps.game.content.registerMusaPoint
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
@@ -190,6 +206,7 @@ import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
+import osrsps.game.content.registerMartinTheMasterGardener
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
@@ -356,6 +373,8 @@ class World(
     clansClock: () -> java.time.Instant = java.time.Instant::now,
     /** The real time crops grow by, ms since 1970 ([osrsps.game.skill.farming.FarmingClock]); tests move it. */
     farmingClock: () -> Long = System::currentTimeMillis,
+    /** The real time random events fall due by, ms since 1970 ([osrsps.game.content.randomevents.RandomEvents]); tests move it. */
+    randomEventClock: () -> Long = System::currentTimeMillis,
     /** Whether crops fall ill on their own; tests of other farming turn it off and make crops ill with `::farmdisease`. */
     farmingDiseases: Boolean = true,
     /** Who may run the commands that change the world for everyone. */
@@ -410,10 +429,22 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** The fairy ring codes, from the cache's `fairyring` table ([osrsps.cache.FairyRingLoader]); tests that travel pass their own. */
+    fairyRingCodes: osrsps.game.content.FairyRingCodes = osrsps.game.content.FairyRingCodes.NONE,
+    /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
+    trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
+    /** What reward caskets give, from trail-rewards.json. */
+    val trailRewards: osrsps.game.trail.TrailRewards = osrsps.game.trail.TrailRewards.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
+    /** Construction's furniture, from the cache ([osrsps.cache.FurnitureLoader]); tests that build pass their own. */
+    furnitureData: osrsps.game.skill.construction.FurnitureData = osrsps.game.skill.construction.FurnitureData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
+    /** The cache's identity kits, which ::look and the makeover screens check kits against. */
+    val idkTypes: IdkTypes = IdkTypes.NONE,
+    /** The makeover screen's pages, from the cache; tests that open it pass their own. */
+    val makeoverCatalog: osrsps.game.look.MakeoverCatalog = osrsps.game.look.MakeoverCatalog.NONE,
 ) : GameConnectionHandler<Player> {
     /**
      * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
@@ -473,8 +504,12 @@ class World(
     /** Scurrius's lairs, public and private ([osrsps.game.content.ScurriusLairs]). */
     val scurriusLairs = osrsps.game.content.ScurriusLairs(this)
 
+    /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
+    val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
+    val escapeCaves = osrsps.game.content.EscapeCaves()
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
@@ -535,7 +570,8 @@ class World(
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
-    val bank = Bank(objTypes)
+    // The Gravedigger's coffins can't be banked: the graveyard's mausoleum is a deposit box (Codex review on #890).
+    val bank = Bank(objTypes, notBankable = osrsps.game.content.randomevents.Gravedigger.COFFINS.toSet())
 
     val bankScreen = BankScreen(
         bank, objTypes, scripts, interfaces::openModal,
@@ -557,7 +593,13 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
-    private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
+    private val allSettings = AllSettings(
+        settings, interfaces, scripts, words = ::textFor,
+        pronounsPicked = { player, pronoun ->
+            if (pronoun != player.look.pronoun) setLook(player, player.look.copy(pronoun = pronoun))
+            makeoverScreen.pronounPicked(player, pronoun)
+        },
+    )
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
@@ -646,7 +688,15 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
-                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
+                it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS
         },
     )
 
@@ -690,6 +740,7 @@ class World(
             archiveRaids.damaged(npc, player, dealt)
             slayer.damaged(npc, player, dealt)
             wildernessBosses.damaged(npc, player, dealt)
+            scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -748,6 +799,7 @@ class World(
         },
         placeOf = ::deathPlace,
         fell = { archiveRaids.fell(it) },
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -776,7 +828,8 @@ class World(
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
      * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
-     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
+     * ([KingBlackDragon.graveTile]); elsewhere, Edgeville for a player who bought
+     * Krystilia's respawn there ([EdgevilleRespawn]), else null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
@@ -784,7 +837,7 @@ class World(
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
         inferno.deathPlace(player)?.let { return it }
-        val instance = instances.at(player.x, player.z) ?: return null
+        val instance = instances.at(player.x, player.z) ?: return EdgevilleRespawn.deathPlace(this, player)
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
@@ -880,6 +933,14 @@ class World(
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         recolour = osrsps.game.content.ClanHub::recolour,
+        weapon = { player -> player.equipment[WearPos.WEAPON]?.id ?: -1 },
+        acceptsAid = { player -> player.vars.getVarbitIfKnown(SettingsSide.VARBIT_ACCEPT_AID) == 1 },
+        inCombat = { player -> inCombat(player) },
+        ask = { player, title, answer ->
+            scripts.start(player) {
+                dialogues.start(this) { answer(choice(ClanLines.CONFIRM_YES, ClanLines.CONFIRM_NO, title = title) == 1) }
+            }
+        },
         pickMotif = { player, current, picked ->
             // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
             if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
@@ -922,6 +983,12 @@ class World(
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)
 
+    /** The fairy rings; see [osrsps.game.content.FairyRings]. */
+    val fairyRings = osrsps.game.content.FairyRings(this, fairyRingCodes)
+
+    /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
+    val spiritTrees = osrsps.game.content.SpiritTrees(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -943,6 +1010,9 @@ class World(
     /** Player-owned houses: the estate agent, the house portals and each house's instance; see [osrsps.game.skill.construction.Houses]. */
     val houses = osrsps.game.skill.construction.Houses(this)
 
+    /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
+    val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -961,6 +1031,12 @@ class World(
 
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
+
+    /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
+    val trails = osrsps.game.trail.TreasureTrails(this, trailData)
+
+    /** Random events: when each player's is due, and the event NPCs out. */
+    val randomEvents = osrsps.game.content.randomevents.RandomEvents(this, randomEventClock)
 
     /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
@@ -991,6 +1067,9 @@ class World(
 
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
+
+    /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
+    val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1051,6 +1130,7 @@ class World(
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
         registerDiaryCommands(this@World)
+        registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
@@ -1070,6 +1150,8 @@ class World(
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
         registerSocialCommands(this@World)
+        registerRandomEventCommands(this@World)
+        registerLookCommands(this@World)
     }
 
     init {
@@ -1082,6 +1164,8 @@ class World(
         registerCombatTutors(this)
         registerBones(this)
         registerRottenPotato(this)
+        registerXpLamp(this)
+        osrsps.game.content.randomevents.registerRandomEvents(this)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
@@ -1091,6 +1175,7 @@ class World(
         registerDraynorVillage(this)
         registerAxeLogs(this)
         registerDraynorMarket(this)
+        registerMartinTheMasterGardener(this)
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
@@ -1122,12 +1207,14 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerGertrudesCat(this)
         registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
@@ -1155,6 +1242,8 @@ class World(
         registerKingBlackDragon(this)
         registerArtio(this)
         registerCalvarion(this)
+        registerSpindel(this)
+        registerEscapeCaves(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1164,6 +1253,13 @@ class World(
         registerHaystacks(this)
         registerLodestones(this)
         registerKaramjaShips(this)
+        registerMusaPoint(this)
+        registerKaramjaVolcano(this)
+        registerMorUlRek(this)
+        registerTzHaarShops(this)
+        RunePacks.register(this)
+        registerMorUlRekInner(this)
+        registerInfernalEels(this)
         registerVarrock(this)
         registerDiaries(this)
         registerArchiveLobby(this)
@@ -1176,11 +1272,15 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerScurriusFight(this)
+        osrsps.game.content.registerRatBoneWeapons(this)
+        npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
+        registerMisthalinOptionPack(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -1192,6 +1292,8 @@ class World(
         woodcutting.register()
         farming.register()
         canoes.register()
+        fairyRings.register()
+        spiritTrees.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1214,6 +1316,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         alchemy.register()
+        superheat.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1221,6 +1324,7 @@ class World(
         arceuusRunecraft.register()
         ourania.register()
         houses.register()
+        furniture.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -1575,6 +1679,7 @@ class World(
         inferno.process()
         thieving.process()
         slayer.superiors.process()
+        randomEvents.processNpcs()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
         hunter.process()
         npcs.process()
@@ -1597,7 +1702,10 @@ class World(
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
             perPlayer(player, "farming") { farming.process(player) }
+            perPlayer(player, "random events") { randomEvents.process(player) }
+            perPlayer(player, "White Tree") { osrsps.game.content.PalaceGarden.process(this, player) }
         }
+        trails.process()
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
@@ -1662,6 +1770,7 @@ class World(
     private fun sendWilderness(player: Player) {
         val inside = Wilderness.inside(player.x, player.z)
         WildernessLairFee.update(player)
+        escapeCaves.tick(this, player)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
@@ -2017,7 +2126,8 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
-            player, inventory, bank,
+            // A random event's place keeps its own items: a player saved there leaves without them.
+            player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
             held = held,
         )
@@ -2315,9 +2425,9 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        // Default male look. Guessed, not checked against live. Worn items and the stance go with the first flush.
-        DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
-        for (slot in 0 until 5) appearance.setColour(slot, 0)
+        // The saved look. Worn items and the stance go with the first flush.
+        sendLook(player)
+        syncPronounSetting(player)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
         player.attackOp = false
@@ -2336,6 +2446,7 @@ class World(
         inferno.login(player)
         prayers.login(player)
         cooking.wine.login(player)
+        randomEvents.login(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
@@ -2351,7 +2462,34 @@ class World(
             // does the tutorial, so a new account gets them at its first login.
             interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
             interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
+            // Where Tutorial Island starts on live: the Character Creator, for the look the new account will have.
+            designScreen.open(player)
         }
+    }
+
+    /** Gives [player] [look] and shows it to everyone who can see them, the player included, with the next flush. */
+    fun setLook(player: Player, look: PlayerLook) {
+        player.look = look
+        sendLook(player)
+        syncPronounSetting(player)
+    }
+
+    /** The All Settings window's Pronouns shows the look's pronoun (settings_transmit_pronouns). */
+    private fun syncPronounSetting(player: Player) {
+        if (varTypes.varbit(AllSettings.VARBIT_PRONOUNS) == null) return
+        if (player.vars.getVarbit(AllSettings.VARBIT_PRONOUNS) != player.look.pronoun) player.vars.setVarbit(AllSettings.VARBIT_PRONOUNS, player.look.pronoun)
+    }
+
+    /**
+     * Puts [look] (the player's own by default) in [player]'s appearance block without keeping it, as a makeover's
+     * preview does; RSProt sends it only when something in it changed.
+     */
+    fun sendLook(player: Player, look: PlayerLook = player.look) {
+        val appearance = player.infos.playerInfo.avatar.extendedInfo
+        appearance.setBodyType(look.bodyType)
+        appearance.setPronoun(look.pronoun)
+        look.kits.forEachIndexed { part, kit -> appearance.setIdentKit(part, kit) }
+        look.colours.forEachIndexed { part, colour -> appearance.setColour(part, colour) }
     }
 
     /**
@@ -2556,13 +2694,16 @@ class World(
         }
     }
 
-    /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
-    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+    /**
+     * A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]; [sub] is the sub-option, -1 for
+     * none. [ctrl] flips walk and run.
+     */
+    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean, sub: Int = -1) = act(player) {
         trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return@act
         npcInteractions.leave(player)
-        locInteractions.click(player, id, x, z, option, ctrl)
+        locInteractions.click(player, id, x, z, option, ctrl, sub)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
         follows.clickedElsewhere(player)
     }
@@ -2651,6 +2792,8 @@ class World(
         player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
+        // Out of a random event's place by any way, its own items stay there.
+        randomEvents.areas.moving(player, x, z)
         player.x = x
         player.z = z
         player.level = level
@@ -2762,6 +2905,8 @@ class World(
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
+        if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
+        if (designScreen.click(player, interfaceId, componentId, sub)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -2896,6 +3041,11 @@ class World(
             player.logoutRequested = true
             return@act
         }
+        // A window's op button that a script waits on as a pause (the Certer's answers, the Sandwich lady's tray, the
+        // Quiz Master's chat box window): only in a window that is open, main or chat box, and dropped while delayed, as onResumePauseButton does (exploit review R50A-2).
+        if (op == 1 && !player.scripts.delayed && (interfaceId in player.modals.values || interfaceId == player.chatModal) &&
+            scripts.resumePauseButton(player, Op.packButton(interfaceId, componentId), sub)
+        ) return@act
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
@@ -2930,6 +3080,7 @@ class World(
         }
         if (bankScreen.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
         if (depositBox.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
+        if (osrsps.game.content.randomevents.Beekeeper.drag(this, player, interfaceId, componentId, toInterfaceId, toComponentId)) return@act
         logger.info { "${player.username} dragged $interfaceId:$componentId sub $fromSub onto $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
@@ -3002,6 +3153,15 @@ class World(
         },
     )
 
+    /** The makeover screen; see [osrsps.game.look.MakeoverScreen]. Thessalia's line after a Confirm is hers. */
+    val makeoverScreen = osrsps.game.look.MakeoverScreen(
+        { makeoverCatalog }, interfaces, show = { player, look -> sendLook(player, look) }, keep = ::setLook,
+        confirmed = { player, _, by -> (by as? Npc)?.let { osrsps.game.content.VarrockStores.compliment(this, player, it) } },
+    )
+
+    /** The Character Creator a new account gets at its first login; see [osrsps.game.look.DesignScreen]. */
+    val designScreen = osrsps.game.look.DesignScreen({ makeoverCatalog }, interfaces, keep = ::setLook, switchBodyType = makeoverScreen::switchBodyType)
+
     /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
     val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
         collectionLog, interfaces::openModal, interfaces::closeModals, interfaces::runClientScript, interfaces::setVarbitNow,
@@ -3011,6 +3171,7 @@ class World(
                 interfaces.sendVarpNow(player, id)
             }
         },
+        now = { tick },
     )
 
     /**
@@ -3037,8 +3198,12 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
+        // A Treasure Trails key step's key goes down with the loot, as the death animation ends.
+        trails.fights.dropKey(npc, killer)
         // A Wilderness boss with group loot puts its own down, split by damage.
         if (wildernessBosses.loot(npc)) return
+        // Scurrius's goes to his most damage and the rest apart.
+        if (scurriusLoot.loot(npc)) return
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
@@ -3048,7 +3213,10 @@ class World(
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
-        for (drop in drops) {
+        for (rolled in drops) {
+            // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
+            val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
+            val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)
@@ -3087,6 +3255,8 @@ class World(
         npcInteractions.removed(npc, players.asIterable())
         slayer.removed(npc)
         wildernessBosses.removed(npc)
+        randomEvents.removed(npc)
+        scurriusLoot.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
@@ -3546,7 +3716,10 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            fairyRings.forget(player)
+            makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
+            randomEvents.leaving(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
@@ -3643,7 +3816,6 @@ class World(
         /** wildy_hub_buffer (10530): 1 inside Ferox Enclave, where the Wilderness overlay shows "Level: --". */
         const val VARBIT_WILDY_HUB_BUFFER = 10530
 
-        private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
 }
 

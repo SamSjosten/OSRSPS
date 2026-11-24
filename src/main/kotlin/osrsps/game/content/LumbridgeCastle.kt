@@ -21,8 +21,8 @@ import osrsps.game.World
  * ([Doomsayer]), Mikasi ([Mikasi]) and the Lumbridge Guide ([LumbridgeGuide]) talk, as they do once every
  * quest is done.
  *
- * Searching: the crates, sacks, chest and drawers (see [Searching]). Not done yet, for want of a source: the Lost Tribe
- * chest (`lost_tribe_chest` 6910, next to the Duke's room) after the quest, and the winch on the top floor.
+ * Searching: the crates, sacks, chest and drawers (see [Searching]). Sigmund's chest (`lost_tribe_chest` 6910) is
+ * [DorgeshuunTunnels]'s (post-quest step 6). Not done yet, for want of a source: the winch on the top floor.
  */
 object LumbridgeCastle {
     /** spiralstairsbottom_3, 2x2: Climb-up, and Top-floor straight to the top. */
@@ -98,6 +98,8 @@ fun registerLumbridgeCastle(world: World) {
     registerDoomsayer(world)
     registerMikasi(world)
     registerLumbridgeGuide(world)
+    registerCulinaromancersChest(world)
+    registerDorgeshuunTunnels(world)
     with(LumbridgeCastle) {
         for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)
         registerSearch(world, SACKS, 1, SearchLines.SACKS_EMPTY)

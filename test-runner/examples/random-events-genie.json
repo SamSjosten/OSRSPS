@@ -1,0 +1,28 @@
+{
+  "name": "Random events: the Genie comes on command, gives a lamp, and the lamp gives Agility XP",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script; it stays off for this account afterwards, as a test account should.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
+    {"step": "command", "text": "::setlevel agility 30", "expectMessage": "Agility"},
+    {"step": "command", "text": "::randomevent genie", "expectMessage": "Started random event genie"},
+    {"step": "npcOption", "npc": "Genie", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Genie", "contains": "[genie.lamp", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "assertInventory", "item": "Lamp", "count": 1},
+    {"step": "itemOption", "item": "Lamp", "option": "Rub"},
+    {"step": "assertInterface", "interfaceId": 240},
+    {"step": "assertWidgetText", "interfaceId": 240, "component": 26, "contains": "[xp_lamp.title]"},
+    {"comment": "xpreward:agility, then xpreward:confirm", "step": "clickWidget", "interfaceId": 240, "component": 10},
+    {"step": "clickWidget", "interfaceId": 240, "component": 27},
+    {"step": "assertStat", "skill": "Agility", "level": 30, "xp": 13663},
+    {"step": "assertInventory", "item": "Lamp", "count": 0},
+    {"step": "assertInterface", "interfaceId": 240, "absent": true}
+  ]
+}

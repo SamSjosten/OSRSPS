@@ -1,0 +1,27 @@
+{
+  "name": "Wilderness step W4.10: the Web Chasm's way in (Check-Fee, then Enter paying the lairs' fee from the backpack) down to level 2, Spindel fought under ::god and killed with ::kill, her kill count's key, and the way out (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 28 outside, 29 inside"},
+    {"step": "command", "text": "::tele 3184 3743 0", "expectMessage": "Teleported to 3184, 3743, 0", "comment": "south of the way in at 3183,3744"},
+    {"step": "locOption", "locId": 47078, "option": "Check-Fee", "x": 3183, "y": 3744},
+    {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
+    {"step": "locOption", "locId": 47078, "option": "Enter", "x": 3183, "y": 3744},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 1631, "y": 11557, "plane": 2},
+    {"step": "npcOption", "npc": "Spindel", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Spindel", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Spindel #"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Spindel count=", "timeoutMs": 15000},
+    {"step": "locOption", "locId": 47000, "option": "Exit", "x": 1630, "y": 11527},
+    {"step": "waitTicks", "ticks": 6},
+    {"step": "assertLocation", "x": 3184, "y": 3743, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

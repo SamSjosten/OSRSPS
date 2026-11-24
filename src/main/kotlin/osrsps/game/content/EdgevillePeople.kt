@@ -121,9 +121,8 @@ object LucienLines : Lines("lucien", "Transcript:Lucien") {
     val LEAVE = line("leave", "he tells the player to leave")
 }
 
-/** Edgeville's lines for the places in step 3 that aren't built yet: ours, not live's. The Wilderness lever is built (WildernessLevers, step W3.2). */
+/** Edgeville's lines for the places in step 3 that aren't built yet: ours, not live's. The Wilderness lever (WildernessLevers, step W3.2) and the fairy ring (FairyRings) are built. */
 object EdgevilleClosedLines : Lines("edgeville_closed", "Edgeville") {
-    val FAIRY_RING = line("fairy_ring", "any option on the fairy ring: ours, the fairy rings aren't built yet")
     val SOUL_WARS = line("soul_wars", "Enter on the Soul Wars portal: ours, Soul Wars isn't built yet")
     val DEATHS_DOMAIN = line("deaths_domain", "Enter on Death's Domain: ours, Death's Domain isn't built yet")
 }
@@ -171,7 +170,6 @@ object EdgevillePeople {
     const val HOUSE_Z = 3493
 
     const val LEVER = 26761
-    const val FAIRY_RING = 29495
     const val SOUL_WARS_PORTAL = 40474
     const val DEATHS_DOMAIN = 39547
 
@@ -414,7 +412,6 @@ fun registerEdgevillePeople(world: World) {
             world.teleport(player, HOUSE_X, HOUSE_Z, op.loc!!.level)
         }
 
-        for (option in 1..4) world.handlers.onLoc(FAIRY_RING, option) { world.message(player, EdgevilleClosedLines.FAIRY_RING) }
         world.handlers.onLoc(SOUL_WARS_PORTAL, 1) { world.message(player, EdgevilleClosedLines.SOUL_WARS) }
         world.handlers.onLoc(DEATHS_DOMAIN, 1) { world.message(player, EdgevilleClosedLines.DEATHS_DOMAIN) }
     }

@@ -1,0 +1,24 @@
+{
+  "name": "Wilderness step W4.11: the Escape Caves' southern surface cave (Check-Fee, then Enter paying the lairs' fee from the backpack) down into the caves by their southern way out, and Exit on it back up (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 32 outside, the caves' bears and spiders below"},
+    {"step": "command", "text": "::varp 172 1", "comment": "auto retaliate off, so the caves' spiders don't draw the player off the arrival tile"},
+    {"step": "command", "text": "::tele 3283 3773 0", "expectMessage": "Teleported to 3283, 3773, 0", "comment": "south of the cave at 3282,3774"},
+    {"step": "locOption", "locId": 47175, "option": "Check-Fee", "x": 3282, "y": 3774},
+    {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
+    {"step": "locOption", "locId": 47175, "option": "Enter", "x": 3282, "y": 3774},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3359, "y": 10246, "plane": 0},
+    {"step": "locOption", "locId": 47147, "option": "Exit", "x": 3358, "y": 10244},
+    {"step": "waitTicks", "ticks": 4},
+    {"step": "assertLocation", "x": 3283, "y": 3773, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

@@ -337,7 +337,7 @@ class MeleeCombat(
             player.interaction = next
             return
         }
-        player.nextAttackTick = tick + combat.attackSpeed(player)
+        player.nextAttackTick = if (combat.noCooldown(player, npc)) tick + 1 else tick + combat.attackSpeed(player)
         val spec = special(player)
         if (spec?.against != null) matchup = combat.matchup(player, npc, spec.against)!!
         if (spec == null) {
@@ -413,8 +413,15 @@ class MeleeCombat(
      */
     private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile, val finisher: Boolean)
 
-    /** A magic or ranged NPC's [attack] on its way to [player], landing on [landTick] for [damage] if [hit] and not [blocked]. */
-    private class Shot(val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long)
+    /**
+     * A magic or ranged NPC's [attack] on its way to [player], landing on [landTick] for [damage] if [hit] and not [blocked].
+     * With [prayedOnLanding], a protection prayer against [type] is asked as it lands instead, [damage] being what lands
+     * through none.
+     */
+    private class Shot(
+        val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long,
+        val type: AttackType = AttackType.MAGIC, val prayedOnLanding: Boolean = false,
+    )
 
     private val shots = ArrayList<Shot>()
 
@@ -722,8 +729,11 @@ class MeleeCombat(
      * boss's own swings ([Npc.scriptedAttacks]); [anim] is the swing's animation, -1 for its combat definition's. A
      * ranged or magic NPC that also punches in reach (the Fight Cave's Tok-Xil and Ket-Zek) names its melee [type] and
      * [maxHit]; with no [type] the swing is of its definition's type, and may be its spell or dragonfire instead.
+     * [prayerPasses] is the percent of the hit that gets through a protection prayer (Spindel's spiderlings, Wilderness
+     * step W4.10).
      */
-    fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1, type: AttackType? = null, maxHit: Int? = null) {
+    fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1, type: AttackType? = null, maxHit: Int? = null, prayerPasses: Int = 0) {
+        require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
         // A hidden NPC fights no one, whoever asks: a boss fight's steps go on while its boss is out of sight.
         if (npc.hidden) return
@@ -731,7 +741,7 @@ class MeleeCombat(
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
-        if (type == null && spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        if (type == null && spell != null && spellCasts(spell, player) && castsNow(spell, def, player)) return cast(npc, player, spell.attack, tick)
         val fire = def.dragonfire
         if (type == null && fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
@@ -744,7 +754,9 @@ class MeleeCombat(
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        hitPlayer(player, npc, if (protects(player, swingType)) 0 else blocked, tick)
+        // The caller's share through a prayer, or the definition's own (Scurrius's giant rats).
+        val passes = if (prayerPasses > 0) prayerPasses else def.prayerPasses
+        hitPlayer(player, npc, if (!def.typeless && protects(player, swingType)) blocked * passes / 100 else blocked, tick)
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
@@ -803,9 +815,14 @@ class MeleeCombat(
      * calls it for its boss's own shots ([Npc.scriptedAttacks]), and can name the [attack] and its [type] (the Smorks'
      * ranged bones or magic potions, raid step 18a); without them, one of its file's by weight, of its file's type. Does
      * nothing for an NPC with no such attacks. A protection prayer against it blocks it all, unless [prayerPasses] says
-     * what share of the damage, in percent, still lands through one (Obor's rocks, half).
+     * what share of the damage, in percent, still lands through one (Obor's rocks, half). The prayer counts as it fires,
+     * or with [prayedOnLanding] as it lands (Scurrius's: "they will only deal damage on impact, so players can pray
+     * against them even after the projectile is launched", OSRS Wiki, Perfect Scurrius).
      */
-    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null, prayerPasses: Int = 0) {
+    fun fireAt(
+        npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null, prayerPasses: Int = 0,
+        prayedOnLanding: Boolean = false,
+    ) {
         require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
         if (npc.hidden) return
@@ -826,12 +843,25 @@ class MeleeCombat(
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = shot.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val prayed = protects(player, shotType)
+        val prayed = !def.typeless && protects(player, shotType)
         val blocked = prayed && prayerPasses == 0
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
         val bulwarked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         val reduced = if (prayed) bulwarked * prayerPasses / 100 else bulwarked
-        shots += Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+        shots += if (prayedOnLanding) {
+            Shot(npc, player, shot, hit, false, bulwarked, tick + delay, shotType, prayedOnLanding = true)
+        } else {
+            Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+        }
+    }
+
+    /** Whether a melee NPC's [spell] goes this turn: against the player's protection prayer if it counters one, else a roll. */
+    private fun castsNow(spell: NpcMeleeSpell, def: NpcCombatDef, player: Player): Boolean {
+        if (spell.countersPrayer) {
+            if (protects(player, def.attackType)) return true
+            if (protects(player, AttackType.MAGIC)) return false
+        }
+        return random.chance(1, spell.chance)
     }
 
     private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {
@@ -899,13 +929,16 @@ class MeleeCombat(
             val player = shot.player
             if (player.loggedOut || player.dead || player.hitpoints <= 0) continue
             if (!shotLands(shot.npc, player)) continue
-            if (shot.blocked && shot.attack.maxHit != 0) {
+            val prayed = shot.prayedOnLanding && protects(player, shot.type)
+            val blocked = shot.blocked || prayed
+            val damage = if (prayed) 0 else shot.damage
+            if (blocked && shot.attack.maxHit != 0) {
                 // The prayer shows a 0, hit or miss.
                 hitPlayer(player, shot.npc, 0, tick)
                 shotPoison(shot)
                 continue
             }
-            if (!shot.hit || shot.blocked) {
+            if (!shot.hit || blocked) {
                 player.effects.spotanim(0, SPLASH, IMPACT_HEIGHT, 0)
                 attackedWithoutHit(player, shot.npc, tick)
                 continue
@@ -915,7 +948,7 @@ class MeleeCombat(
             if (shot.attack.maxHit == 0) {
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
-                hitPlayer(player, shot.npc, shot.damage, tick)
+                hitPlayer(player, shot.npc, damage, tick)
                 shotPoison(shot)
             }
         }

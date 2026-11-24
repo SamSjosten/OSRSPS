@@ -40,8 +40,7 @@ object WebLines : Lines("web", "Web") {
  * Left out:
  * - the Wilderness swords and the 50% least for slash swords;
  * - the Aranea boots;
- * - the obstacle pipe shortcut, which is the Agility thread's;
- * - (Bryophyta's gate is [Bryophyta]'s.)
+ * - (Bryophyta's gate is [Bryophyta]'s; the obstacle pipe to Edgeville Dungeon is an Agility shortcut in skills/agility.json.)
  */
 object VarrockSewers {
     const val MANHOLE = 881

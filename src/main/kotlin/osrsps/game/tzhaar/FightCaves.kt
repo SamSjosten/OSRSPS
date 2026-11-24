@@ -25,6 +25,7 @@ object FightCaveLines : Lines("fight_cave", "TzHaar Fight Cave") {
     val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (Transcript:TzHaar-Mej-Jal)")
     val ENTERED = line("entered", "TzHaar-Mej-Jal as the player goes in by the entrance (Transcript:TzHaar-Mej-Jal, Upon entering the fight cave)")
     val JAD_COMING = line("jad_coming", "TzHaar-Mej-Jal as wave 63 comes in (Transcript:TzHaar-Mej-Jal, Before TzTok-Jad appears)")
+    val PET_OWNED = line("pet_owned", "A pet roll won by a player who already owns that pet: the Wiki's Pet page message for it")
     val PET = line("pet", "As TzRek-Jad goes into the backpack after TzTok-Jad's death: ours has no followers yet, so the Wiki's Pet page message for a pet that goes to the inventory")
     val NO_ROOM = line("no_room", "Enter on the cave entrance when no cave can be made (ours: the server's instances are all taken)")
     val IN_SCENARIO = line("in_scenario", "Enter on the cave entrance in a test setup (::scenario, the Leagues Tutor's kits): ours, as its kit would earn real rewards; ::reset first")
@@ -252,6 +253,11 @@ class FightCaves(private val world: World) {
             resuming -= key
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
             if (player.dead || runs.containsKey(key) || world.instances.at(player.x, player.z) != null) continue
+            // In a test setup the saved run waits for a login after ::reset, or the kit would fight it (exploit review R45B-2).
+            if (player.scenario != null) {
+                if (saved(player) != null) world.message(player, FightCaveLines.IN_SCENARIO)
+                continue
+            }
             val saved = saved(player) ?: continue
             start(player, saved.wave, saved.rotation, MIDDLE, RESUME_TICKS)
         }
@@ -312,11 +318,12 @@ class FightCaves(private val world: World) {
         forget(player)
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
         pay(player, FightCaveWaves.tokkul(FightCaveWaves.WAVES) + JAD_TOKKUL)
-        world.objTypes[FIRE_CAPE]?.let { world.groundObjs.give(player, it, 1) }
+        reward(player, FIRE_CAPE, 1)
         // The Fight Caves page of the collection log: the cape as it is handed over, and the pet below.
         world.collectionLog.add(player, FIRE_CAPE, 1)
         // The pet: 1 in 200, 1 in 100 on a Slayer task (the Wiki's TzRek-Jad). Ours is the item alone: no followers yet.
-        if (world.random.chance(1, petOdds(run.jadOnTask))) givePet(player)
+        // A player who owns TzRek-Jad gets the message instead of a second one, as live (exploit review R45B-3).
+        if (world.random.chance(1, petOdds(run.jadOnTask))) petWon(player)
         mejJal(player, FightCaveLines.VICTORIOUS)
         logger.info { "${player.username} beat the fight cave (rotation ${run.rotation})" }
     }
@@ -324,9 +331,14 @@ class FightCaves(private val world: World) {
     /** The 1 in N for TzRek-Jad: [onTask] when TzTok-Jad died on the player's Slayer task. */
     internal fun petOdds(onTask: Boolean): Int = if (onTask) PET_ODDS_ON_TASK else PET_ODDS
 
+    /** A won roll at TzRek-Jad: the pet, or only the message for a player who already owns it. */
+    internal fun petWon(player: Player) {
+        if (MejJal.ownsPet(player)) world.message(player, FightCaveLines.PET_OWNED) else givePet(player)
+    }
+
     /** TzRek-Jad for [player]: the item (no followers yet), its collection log entry and the message. */
     internal fun givePet(player: Player) {
-        world.objTypes[PET]?.let { world.groundObjs.give(player, it, 1) }
+        reward(player, PET, 1)
         world.collectionLog.add(player, PET, 1)
         world.message(player, FightCaveLines.PET)
         logger.info { "${player.username} got TzRek-Jad" }
@@ -398,9 +410,26 @@ class FightCaves(private val world: World) {
      */
     internal fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
         val type = world.objTypes[TOKKUL] ?: return
-        if (!bankOverflow) return world.groundObjs.give(player, type, tokkul)
+        if (!bankOverflow && player.scenario == null) return world.groundObjs.give(player, type, tokkul)
         val left = tokkul - give(player, tokkul)
-        if (left > 0) setOwed(player, owed(player) + left)
+        // A test setup's run pays the kit's backpack and bank only, which ::reset puts back (exploit review R45B-4).
+        if (left > 0 && player.scenario == null) setOwed(player, owed(player) + left)
+    }
+
+    /**
+     * Gives [count] of item [id], what won't fit on the ground; in a test setup, into the backpack then the bank only,
+     * the rest lost, so nothing outlives ::reset on the floor (exploit review R45B-4).
+     */
+    internal fun reward(player: Player, id: Int, count: Int) {
+        val type = world.objTypes[id] ?: return
+        if (player.scenario == null) return world.groundObjs.give(player, type, count)
+        val left = count - player.inventory.add(type, count)
+        if (left > 0) world.bankItems(player, id, left)
+    }
+
+    /** Ends [player]'s run, if any, leaving their saved one as it is: `::reset` does this first (exploit review R45B-5). */
+    fun endRun(player: Player) {
+        runs[player.saveKey]?.let(::end)
     }
 
     /** TzHaar-Mej-Jal says [line], his head beside it, as he does as a run ends. */
