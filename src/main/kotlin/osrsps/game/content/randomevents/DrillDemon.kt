@@ -214,8 +214,12 @@ object DrillDemon : RandomEvent("drill_demon", 6743) {
     }
 
     private fun leave(world: World, player: Player, away: EventAreas.Away) {
-        for (varbit in POST_VARBITS) setVarbit(player, varbit, 0)
         world.randomEvents.areas.bringBack(player, away)
+    }
+
+    /** The signs are put back however they leave, a teleport or a death too (R51 A-2), not only by his way back. */
+    override fun leftPlace(world: World, player: Player) {
+        for (varbit in POST_VARBITS) setVarbit(player, varbit, 0)
     }
 
     private fun owns(player: Player, id: Int) = player.inventory.count(id) > 0 || player.equipment.count(id) > 0 || player.bank.count(id) > 0

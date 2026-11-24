@@ -18,6 +18,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocShape
 import osrsps.map.Tile
@@ -45,13 +46,15 @@ class HeadlessEvilTwinTest {
     private val door = Tile(EvilTwin.DOOR_X, 5137)
     private val panel = Tile(1870, 5135)
 
-    private fun server(dir: Path) = TestServer(dir, 30) { crcs, millis ->
+    /** With [blockSpots], every failed-catch spot can't be stood on (R51 C-3). */
+    private fun server(dir: Path, blockSpots: Boolean = false) = TestServer(dir, 30) { crcs, millis ->
         World(
             crcs,
             CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(29, 80)
                 for ((x, z) in EvilTwin.FAIL_SPOTS) markLoaded(x shr 6, z shr 6)
+                if (blockSpots) for ((x, z, level) in EvilTwin.FAIL_SPOTS) set(x, z, level, CollisionFlag.LOC)
             },
             npcTypes = NpcTypes.of(*npcs.toTypedArray()), objTypes = ObjTypes.of(*objs.toTypedArray()),
             locTypes = LocTypes(locs.associateBy { it.id }),
@@ -209,8 +212,15 @@ class HeadlessEvilTwinTest {
     }
 
     @Test
-    fun `get stuffed sends him off, grabbing by hand is refused, and two civilians bring a teleport elsewhere`(@TempDir dir: Path) {
-        server(dir).use { server ->
+    fun `get stuffed sends him off, grabbing by hand is refused, and two civilians bring a teleport elsewhere`(@TempDir dir: Path) =
+        twoCivilians(dir, blockSpots = false) { spot -> spot in EvilTwin.FAIL_SPOTS.map { (x, z, level) -> Coord(x, z, level) } }
+
+    @Test
+    fun `with every failed-catch spot blocked, two civilians send the player back where they came from`(@TempDir dir: Path) =
+        twoCivilians(dir, blockSpots = true) { spot -> spot == Coord(3222, 3218, 0) }
+
+    private fun twoCivilians(dir: Path, blockSpots: Boolean, sentTo: (Coord) -> Boolean) {
+        server(dir, blockSpots).use { server ->
             server.login("bob").use { client ->
                 client.ready()
                 client.command("randomevent ${EvilTwin.key}")
@@ -262,8 +272,7 @@ class HeadlessEvilTwinTest {
                 client.chat("[molly.sorry]")
                 client.chat("[molly.incompetence]")
                 client.chat("[molly.out_of_my_sight]")
-                val spots = EvilTwin.FAIL_SPOTS.map { (x, z, level) -> Coord(x, z, level) }
-                client.await("somewhere else") { client.position?.takeIf { it in spots } }
+                client.await("somewhere else") { client.position?.takeIf(sentTo) }
                 assertTrue(client.inventory(Inventory.INV).all { it == null })
                 client.await("the rooms ended") { if (server.world.instances.all.isEmpty()) Unit else null }
             }

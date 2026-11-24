@@ -81,7 +81,13 @@ class HeadlessRandomEventsTrayTest {
                     client.await("his greeting") { client.npcSaid().firstOrNull { it.index == npc.index && it.text == "[certer.greeting name=alice]" } }
                     client.npcOp(npc.index, RandomEvents.TALK_TO)
                     client.await("the window") { if (Certers.INTERFACE in client.openInterfaces()) Unit else null }
-                    val shown = Certers.TEXTS.map { client.await("answer $it") { client.text(Certers.INTERFACE, it) } }
+                    // The window's texts arrive one by one and the last show's can still be there for a moment: wait
+                    // for a whole set of three, then check it.
+                    val shown = runCatching {
+                        client.await("the three answers") {
+                            Certers.TEXTS.map { t -> client.text(Certers.INTERFACE, t) }.takeIf { s -> s.all { it in answers } && s.toSet().size == 3 }
+                        }
+                    }.getOrElse { Certers.TEXTS.map { t -> client.text(Certers.INTERFACE, t) } }
                     assertTrue(shown.all { it in answers } && shown.toSet().size == 3, "three different answers: $shown")
                     val before = client.items()
                     client.ifButton(Certers.INTERFACE, Certers.BUTTONS[0], 1)
@@ -123,8 +129,11 @@ class HeadlessRandomEventsTrayTest {
                 client.continueDialogue()
                 client.await("the tray") { if (SandwichLady.INTERFACE in client.openInterfaces()) Unit else null }
                 client.ifButton(SandwichLady.INTERFACE, SandwichLady.KEY_BUTTON, 1)
-                client.await("the key") { if (client.hidden(SandwichLady.INTERFACE, SandwichLady.KEY_LAYER) == false) Unit else null }
-                assertEquals(true, client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER))
+                // The two layers' hides come as two packets: wait for both, as the client may have read only the first.
+                client.await("the key, the tray hidden") {
+                    if (client.hidden(SandwichLady.INTERFACE, SandwichLady.KEY_LAYER) == false &&
+                        client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER) == true) Unit else null
+                }
                 client.ifButton(SandwichLady.INTERFACE, SandwichLady.BACK_BUTTON, 1)
                 client.await("the tray again") { if (client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER) == false) Unit else null }
                 client.ifButton(SandwichLady.INTERFACE, button, 1)

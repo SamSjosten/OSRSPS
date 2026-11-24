@@ -2138,10 +2138,13 @@ class World(
         val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
+        // A random event's place sends them back by the way back's own rule (R51 C-4).
+        val (x, z, level) = randomEvents.areas.awayOf(player)?.let { randomEvents.areas.backOf(it) }
+            ?: Triple(instance?.exitX ?: SPAWN_X, instance?.exitZ ?: SPAWN_Z, instance?.exitLevel ?: SPAWN_LEVEL)
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
             player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
-            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            x = x, z = z, level = level,
             held = held,
         )
     }
