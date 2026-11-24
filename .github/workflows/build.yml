@@ -176,3 +176,19 @@ jobs:
           name: test-runner-jar
           path: test-runner/build/libs/*.jar
           if-no-files-found: error
+
+  # A dispatched build (the queue's, on a batch or on a pull request's branch after merging main in) was started with
+  # the workflow's token, so its end starts no workflow_run and the queue doesn't look again until some other event
+  # comes along. With the 15-minute schedule hours apart, a finished batch could sit for an hour (2026-11-24: 18:54Z
+  # and 19:49Z, each until a label was added by hand). This starts the queue once everything else here has finished.
+  # The queue leaves this job's check out (OWN in automerge.js), so it doesn't wait on the job that started it.
+  wake-queue:
+    needs: [build, deploy-script, mergeable-script, friend-page, launch-scripts, tick-recorder, test-runner]
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run automerge.yml --repo "$GITHUB_REPOSITORY" --ref main
