@@ -50,6 +50,9 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
+            "thzaar_unarmed_attack" to 2609, "thzaar_armed_attack" to 2610, "thzaar_magic_attack" to 2613,
+            "thzaar_parry" to 2605, "thzaar_staff_parry" to 2606, "thzaar_death" to 2607, "thzaar_staff_death" to 2608,
             "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "fear_attack" to 3812, "fear_parry" to 3811, "fear_death" to 3813,
@@ -1022,6 +1025,16 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Scurrius's giant rats slash for 4, and a quarter of it comes through Protect from Melee`() {
+        val ratTypes = NpcTypes.of(NpcType(7223, "Giant rat", internalName = "rat_boss_giant_rat", stats = NpcStats(attack = 100, strength = 25, defence = 10, hitpoints = 15)))
+        val def = NpcCombat.load(ratTypes, seqs)[ratTypes.find("rat_boss_giant_rat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 4, 25), listOf(def.attackSpeed, def.maxHit, def.prayerPasses))
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), def.anims)
+        assertNotNull(def.aggression)
+    }
+
+    @Test
     fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
         // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
         val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)), NpcType(2834, "Giant bat", internalName = "bat"))
@@ -1065,6 +1078,24 @@ class NpcCombatTest {
         assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
         assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
         assertTrue(def.aggression != null)
+    }
+
+    @Test
+    fun `Musa Point's snakes stab for 1 at speed 4, aggressive, back after 30 ticks, and its two men fight as men`() {
+        val types = NpcTypes.of(
+            NpcType(2845, "Snake", internalName = "snake", stats = NpcStats(strength = 5)),
+            NpcType(3106, "Man", internalName = "man"),
+            NpcType(3110, "Man", internalName = "man4_for_musa_point"),
+            NpcType(3652, "Man", internalName = "karamja_man"),
+        )
+        val combat = NpcCombat.load(types, seqs)
+        val snake = combat[types.find("snake")!!]!!
+        assertEquals(CombatMath.npcMaxHit(5, snake.strengthBonus), snake.maxHit)
+        assertEquals(listOf(4, 1, 30), listOf(snake.attackSpeed, snake.maxHit, snake.respawnTicks))
+        assertTrue(snake.aggression != null)
+        val man = combat[types.find("man")!!]!!
+        assertEquals(man, combat[types.find("man4_for_musa_point")!!])
+        assertEquals(man, combat[types.find("karamja_man")!!])
     }
 
     @Test

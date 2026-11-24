@@ -1,0 +1,32 @@
+{
+  "name": "Random events: Kiss the frog, the swamp of frogs, a top-hat frog's line, and a kiss for a frog token",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "command", "text": "::randomevent kiss_the_frog", "expectMessage": "Started random event kiss_the_frog"},
+    {"comment": "Look that a frog in a pointy hat appears beside the player with its greeting overhead.", "step": "npcOption", "npcId": 5429, "option": "Talk-to", "timeoutMs": 20000},
+    {"comment": "The swamp: look that eight frogs stand in a ring around the player, one with a crown.", "step": "waitTicks", "ticks": 3},
+    {"step": "assertNoDialogue"},
+    {"step": "npcOption", "npcId": 5430, "option": "Talk-to", "timeoutMs": 20000},
+    {"comment": "A frog in a top hat: one of its two lines, for the prince or the princess.", "step": "assertDialogue", "speaker": "Frog", "contains": "[kiss_the_frog.", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "npcOption", "npcId": 5431, "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Frog", "contains": "[kiss_the_frog.please_help]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"comment": "Look that the menu shows a touch and a refusal in either order, then a kiss.", "step": "chooseOption", "text": "[kiss_the_frog.kiss_"},
+    {"step": "assertDialogue", "contains": "[kiss_the_frog.kiss_"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Frog", "contains": "[kiss_the_frog.yes]"},
+    {"step": "continueDialogue"},
+    {"comment": "Look that the player and the frog kiss and the frog turns into the prince or princess.", "step": "assertDialogue", "contains": "[kiss_the_frog.thank_you", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000},
+    {"step": "assertInventory", "item": "Frog token", "count": 1}
+  ]
+}

@@ -60,6 +60,13 @@ object GameFrameCheck {
             Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES, SlayerRewards.CACHE_NAMES, osrsps.game.ge.ItemSetsScreen.CACHE_NAMES, osrsps.game.ge.PriceGuides.CACHE_NAMES,
             osrsps.game.skill.Canoes.CACHE_NAMES, GameFrame.PVP_ICONS_CACHE_NAMES, osrsps.game.content.WildernessDitch.CACHE_NAMES,
             osrsps.game.content.XpLamp.CACHE_NAMES,
+            osrsps.game.content.randomevents.Certers.CACHE_NAMES,
+            osrsps.game.content.randomevents.SandwichLady.CACHE_NAMES,
+            osrsps.game.content.randomevents.CaptArnav.CACHE_NAMES,
+            osrsps.game.content.randomevents.EvilBob.CACHE_NAMES,
+            osrsps.game.content.randomevents.PrisonPete.CACHE_NAMES,
+            osrsps.game.content.randomevents.EvilTwin.CACHE_NAMES,
+            osrsps.game.content.randomevents.Maze.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */

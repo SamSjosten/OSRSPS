@@ -116,6 +116,20 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `musa-point.json` (Karamja step K1.2, for test on 215: the banana crate emptied with `::varp banana_crate 0`, Luthas's employment option, Pick on the banana tree at 2930,3155 and `[musa_point.banana_picked]` with the tree then 2074, ten bananas from `::item`, one used on his crate (2072 at 2939,3149) and `[musa_point.pack_one]`, Search and `[musa_point.crate_has count=1 s=]`, Fill and nine more gone, Search's full box, his pay of 30 coins, and Zembo's yes opening his shop (300)) needs 0.15.0 for `useItemOnLoc` (and `assertLoc`, `assertInventory`).
 
+`musa-point-people.json` (Karamja step K1.3, for test on 215: under `::god`, Examine under `::keys on` on the Karamja man by Musa Point's dock (3652) and on a snake west of the general store (2845), each read off its `examine.` key, then Attack on the snake, a hitsplat, `::kill` and its bones on the floor) needs 0.5.0 for `assertHitsplat` (and `assertGroundItem`).
+
+`karamja-lodestone.json` (Karamja step K1.1b, for test on 215: `::varp lodestones 0`, Activate on the Karamja stone at 2759,3146 south of Brimhaven and `[lodestone.activated name=[lodestone.karamja]]`, `::varbit lodestone.karamja` reading bit 5 set, the stone redrawn with Teleport, then from Lumbridge `::lodestone karamja` landing on 2760,3147) needs 0.4.2 for `assertLoc`.
+
+`karamja-volcano.json` (Karamja step K1.4, for test on 215: under `::god`, Climb-down on the volcano's rocks (11441 at 2856,3168) to 2856,9570, Open on the wall (2606 at 2836,9600) both ways, Climb on the rope below (18969) back to 2856,3167, Enter on Crandor's hole (25154 at 2833,3255) to 2834,9656 and Climb on its rope (25213) back to 2834,3254, then `::npcs 10` among Crandor's King Scorpions) needs nothing newer than `assertLocation`.
+
+`mor-ul-rek.json` (Karamja step K2.1, for test on 215: two Karamjan rums (431) from `::item` under `::god`, Enter on the cave entrance (11835 at 2863,9571) to 2480,5175 with `[mor_ul_rek.rum_explodes]` and the rum gone, TzHaar-Ket-Zuh's greeting naming the player `JalYt-...`, his what-did-you-call-me option, Bank opening the bank (12), Smelt on the lava forge (11978 at 2446,5152) opening the Make-X box and making a bronze bar, a raw shrimp used on a sulphur vent (11851 at 2451,5171) cooking, and Enter on the cave exit (11836 at 2479,5176) back to 2862,9572) needs nothing newer than `assertDialogue`.
+
+`tzhaar-shops.json` (Karamja step K2.2, for test on 215: 1,000 Tokkul (6529) from `::item`, Trade on TzHaar-Hur-Tel (2183) and a Toktz-xil-ul bought for 375 Tokkul and sold back, TzHaar-Hur-Lek's (2184) talk into his shop, and TzHaar-Mej-Roh's (2185) talk through the castes) needs nothing newer than `assertDialogue`.
+
+`mor-ul-rek-inner.json` (Karamja step K2.3, for test on 215: `::varp mor_ul_rek_access 0`, Pass on the west hot vent door (30266 at 2436,5120) refused with `[tzhaar_guard.no_pass]`, a fire cape (6570) from `::item` shown to the barrier guard through his talk, his next greeting naming the player `...-Xo-...`, the door both ways (2436,5119 and 2436,5121), TzHaar-Ket-Yil's Bank, TzHaar-Hur-Zal's Trade and TzHaar-Mej-Dir's talk) needs nothing newer than `assertDialogue`.
+
+`mor-ul-rek-eels.json` (Karamja step K2.4, for test on 215: Fishing 80 by `::setlevel`, an oily fishing rod (1585), bait, a hammer and ice gloves (1580) from `::item`, Bait on the west infernal eel spot (7676 at 2446,5104) refused with `[fishing.no_ice_gloves]`, the gloves worn, an eel caught, and the hammer used on it until none are left) needs nothing newer than `useItemOnItem`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
@@ -443,6 +457,15 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
   again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
   Bea's supplies for 35, and the bag opened, with `::reset` at the end.
+- `culinaromancers-chest.json`: post-quest step 5 (with `::keys on`): the Culinaromancer's Chest's Bank (interface 12),
+  Collect (402), Buy-food and Buy-items (300) in Lumbridge Castle's cellar, then the Wizards' Tower basement's altar bare
+  (varbit 2130 at 1) and its Search's `[game.nothing_interesting]`.
+- `dorgeshuun-tunnels.json`: post-quest step 6 (with `::scenario lumbridge-bare` and `::keys on`): Lumbridge Castle
+  cellar's hole refused at Agility 12 and squeezed through both ways at 13, Kazgar's Mines, Mistag's talk with no ore
+  and then buying 3 iron and a silver for 100 coins, Nardok's Trade (interface 300), Mistag's Watermill, the tunnel to
+  the water mill cellar both ways, its ladder up to Groats' farm, an empty machine-part crate there and the trapdoor
+  back down, Dartog's talk to the cellar, the hole between the Goblin Maze and the Swamp Caves both ways, and Sigmund's
+  chest's `[lost_tribe.chest_found]`, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
@@ -724,6 +747,58 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `random-events-genie.json`: random events step 1 (with `::keys on`): turns the account's random events off, sends the
   Genie with `::randomevent genie`, takes his lamp, rubs it and picks Agility in the experience reward window, for 300
   XP at level 30.
+- `random-events-talk.json`: random events step 2 (with `::keys on`): Dr Jekyll asks for the torstol over the guam leaf
+  and gives a Stamina potion(4) for it, the Drunken Dwarf gives a kebab and a beer, and the Strange plant, once grown,
+  gives a strange fruit that is then eaten; Count Check gives a lamp, Rick Turpentine a gift, and the Mysterious Old
+  Man, with the backpack full of beer, says his gift went on the ground.
+- `random-events-certer.json`: random events step 3 (with `::keys on`): Miles (sent with `::randomevent certer 5437`)
+  opens macro_certer, and an answer (the first, right or wrong as the item falls) ends it.
+- `random-events-sandwich-lady.json`: random events step 3 (with `::keys on`): the Sandwich lady names a food and opens
+  her tray; Key shows the names, Back hides them, and a pick (the baguette, right or wrong as her pick falls) ends it.
+- `random-events-freaky-forester.json`: random events step 4 (with `::keys on`): the Freaky Forester takes the player to
+  his forest, a pheasant is killed and its carcass handed in, and the exit portal brings them back to 3222,3218 with a
+  Lederhosen piece (or a lamp for an account that has all three).
+- `random-events-drill-demon.json`: random events step 5 (with `::keys on`): Sergeant Damien takes the player to his
+  camp and orders an exercise; one go on a mat brings his next order, and "I want to leave." sends them back to
+  3222,3218 with nothing. The four-in-a-row reward needs the signs read, so the headless test does that part.
+- `random-events-gravedigger.json`: random events step 6 (with `::keys on`): Leo takes the player to his graveyard; a
+  gravestone is read and a coffin taken and checked (look at both windows' pictures), "Remind me" repeats the task, and
+  "I want to leave now." sends them back to 3222,3218 with the coffin gone. Solving it needs the pictures matched, so
+  the headless test does that part.
+- `random-events-mime.json`: random events step 7 (with `::keys on`): the Mysterious Old Man takes the player to the
+  mime's stage; the mime does an emote, the window of eight opens, and two picks (Think, then Dance) each close it, the
+  player cheering or crying as the pick falls. Four right in a row needs the mime's emote read, so the headless test
+  does that part, and the script leaves by `::tele`.
+- `random-events-beekeeper.json`: random events step 8 (with `::keys on`): the Bee keeper takes the player to his
+  field and opens the beehive window; Confirm with the slots empty is wrong, Close and talking to him reopen it, and six
+  wrong builds send the player back to 3222,3218 with nothing. Dragging the parts right is the headless test's part
+  (and worth one try by hand while watching).
+- `random-events-capt-arnav.json`: random events step 9 (with `::keys on`): Capt' Arnav's lock opens, its arrows roll
+  the columns, and two Unlocks that are wrong (by chance; rerun if the first is right) bring his explanation, then send
+  him off with nothing. Matching the words is the headless test's part; the words themselves are still held empty.
+- `random-events-evil-bob.json`: random events step 10 (with `::keys on`): Evil Bob takes the player to his island, his
+  servant's cutscene turns the camera to a statue (look that it does, and comes back), a net from the beach catches a
+  fishlike thing at the nearest spot, Eat is refused, the uncooking pot makes it raw, one of his talks plays, and the
+  portal takes the player home with nothing and without the island's net and fish. Feeding him (no runner step uses
+  an item on an NPC yet) and the XP are the headless test's part.
+- `random-events-prison-pete.json`: random events step 11 (with `::keys on`): Evil Bob's prison form takes the player to
+  ScapeRune's prison, Pete explains, the main door is refused, the lever opens the balloon window (look that it shows
+  one spinning animal), a popped balloon's key is tried (right only by chance), and asking to leave takes the player
+  home with nothing. Three right keys, the walk out and the present are the headless test's part.
+- `random-events-evil-twin.json`: random events step 12 (with `::keys on`): Postie Pete's message takes the player to
+  Molly's room (look that five suspects stand in the pen, one dressed like her), the door stops them until Molly has
+  explained, her briefing and the controls' explanation, the control panel opens the claw controls (look that the claw
+  and its mark move two tiles east), and asking to leave from the control room takes the player home with nothing.
+  Catching suspects, the gems and the failure teleport are the headless test's part.
+- `random-events-kiss-the-frog.json`: random events step 13 (with `::keys on`): the pointy-hat frog takes the player to
+  the swamp (look that eight frogs stand in a ring, one crowned), a top-hat frog's line, and the crowned frog's question
+  (look that a touch and a refusal show in either order, then a kiss); the kiss turns it into the prince or princess
+  (look at the kiss and the change), who gives a frog token and sends the player home. The touch, the polite no and
+  Frogland are the headless test's part.
+- `random-events-maze.json`: random events step 14 (with `::keys on`): the Mysterious Old Man's maze form takes the
+  player to a corner of the maze (look at the cube walls and the chests), the timer window shows the reward left (look
+  that it drops about a point every three seconds), and a teleport out closes it. The chests, the shrine, its rewards and
+  running out of time are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

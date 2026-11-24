@@ -20,6 +20,9 @@ import osrsps.game.shop.ShopScreen
 import osrsps.game.social.Clans
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.House
+import osrsps.game.skill.construction.RoomType
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.script.ScriptContext
@@ -508,6 +511,19 @@ internal class HeadlessGame(
             val setup = client.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
             val quantity = setup?.args?.lastOrNull() as? Int ?: return "the Make-X box's setup script hasn't come"
             client.resumePause(interfaceId, component, quantity)
+            return null
+        }
+        if (interfaceId == Furniture.MENU && component - Furniture.FIRST_SLOT_COMPONENT + 1 in 1..Furniture.MAX_SLOTS) {
+            // Stand-in for the creation menu's own click script (cs2 poh_furniture_creation_op): a slot's Build resumes
+            // the menu's contents with the slot.
+            client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, component - Furniture.FIRST_SLOT_COMPONENT + 1)
+            return null
+        }
+        if (interfaceId == House.ADD_ROOM) {
+            // Stand-in for the add-room menu's own click script (cs2 poh_add_room_op): a room's button resumes the list
+            // with the room's type as the slot.
+            val type = RoomType.entries.firstOrNull { it.listed && it.button == component } ?: return "212:$component is no room's button"
+            client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, type.id)
             return null
         }
         if ((interfaceId shl 16 or component) == FRIENDS_CHAT_JOIN_LEAVE) {

@@ -1,0 +1,21 @@
+{
+  "name": "Random events: a Certer brother shows an item with three answers, and an answer ends the event",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
+    {"comment": "Miles (5437) of the three brothers, so the script knows whose name to look for.", "step": "command", "text": "::randomevent certer 5437", "expectMessage": "Started random event certer"},
+    {"step": "npcOption", "npc": "Miles", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 184, "timeoutMs": 20000},
+    {"comment": "The item and the right answer's place are random, so this is macro_certer_a either way: right or wrong, he answers and goes.", "step": "clickWidget", "interfaceId": 184, "component": 8},
+    {"step": "assertDialogue", "contains": "[certer.", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"step": "assertInterface", "interfaceId": 184, "absent": true}
+  ]
+}

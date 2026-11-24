@@ -2086,7 +2086,12 @@ object Ocellus {
                 if (flare.dead && kind == Flare.RIFT && state.barRunOut && !boss.dead) {
                     // His bar run out, a Rift destroyed ends him (see [barHeld]); nothing more of his fight this tick.
                     log("final: a rift destroyed with his bar run out: he dies")
-                    world.meleeCombat.hit(boss, flare.attacker?.takeIf { !it.dead && players.any { p -> p === it } }, boss.hitpoints, world.tick, finishing = true)
+                    // The finishing hit is nobody's: what Soul Split healed him past [HELD_AT] would otherwise count for
+                    // the Rift's destroyer's points. They get the [HELD_AT] his bar held back (exploit review round 43,
+                    // R43C-2). Guessed.
+                    val destroyer = flare.attacker?.takeIf { !it.dead && players.any { p -> p === it } }
+                    if (destroyer != null) world.archiveRaids.creditTo(destroyer, boss, minOf(boss.hitpoints, HELD_AT))
+                    world.meleeCombat.hit(boss, null, boss.hitpoints, world.tick, finishing = true)
                     return
                 }
                 continue
@@ -2471,7 +2476,8 @@ object Ocellus {
                 val dealt = strike(player, if (prayed) roll(BLAST_PRAYED_MIN, BLAST_PRAYED_MAX) else roll(BLAST_MIN, BLAST_MAX))
                 dealtAll += dealt
                 log("${blast.name.lowercase()} blast hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
-                // A player's Retribution as they die can kill him: nothing more (Codex, PR 585).
+                // Kept as a guard (Codex, PR 585): in his final stand a player's Retribution as they die holds him at
+                // [HELD_AT], and only a destroyed Rift ends him.
                 if (boss.dead) return@after
             }
             if (state.soulSplit && dealtAll >= SOUL_SPLIT_SHARE) {

@@ -62,6 +62,18 @@ class ScenarioItemsTest {
     }
 
     @Test
+    fun `a STASH filled before a scenario is empty in it and holds one copy after (R49A-1)`() {
+        player.trails.stashes[34_740] = listOf(379)
+        player.trails.setCompleted(osrsps.game.trail.TrailTier.EASY, 3)
+        run("scenario kit")
+        assertTrue(player.trails.stashes.isEmpty(), "nothing to take out of the STASH in the scenario")
+        assertEquals(0, player.trails.completed(osrsps.game.trail.TrailTier.EASY))
+        run("reset")
+        assertEquals(mapOf(34_740 to listOf(379)), player.trails.stashes.toMap())
+        assertEquals(3, player.trails.completed(osrsps.game.trail.TrailTier.EASY))
+    }
+
+    @Test
     fun `a scenario death leaves the grave from before it as it was`() {
         for (slot in 0 until 6) player.inventory[slot] = InvObj(1351, 1)
         dieHere()

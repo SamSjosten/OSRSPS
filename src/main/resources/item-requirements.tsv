@@ -1981,6 +1981,7 @@ dinhs_bulwark_ornament	attack=75 defence=75	Dinh's blazing bulwark
 toxic_blowpipe_ornament	ranged=75	Blazing blowpipe
 toxic_blowpipe_loaded_ornament	ranged=75	Blazing blowpipe
 league_executioner_weapon	ranged=60	Sage's axe
+rat_bone_bow	ranged=50	Bone shortbow
 rat_bone_mace	attack=50	Bone mace
 rat_bone_staff	magic=50	Bone staff
 zombie_axe	attack=65	Zombie axe

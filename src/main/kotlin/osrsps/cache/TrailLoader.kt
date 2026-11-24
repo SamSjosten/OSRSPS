@@ -35,6 +35,7 @@ object TrailLoader {
     const val TARGET_KILL = 20
     const val CHALLENGE_QUESTION = 25
     const val CHALLENGE_BOX = 26
+    const val COMBAT_ENCOUNTER = 27
     const val OUTFIT = 28
 
     /**
@@ -51,16 +52,16 @@ object TrailLoader {
     private const val ID = 0
     private const val DIFFICULTY = 1
 
-    /** The column holding the clue text, the target list, the fight and the challenge, by step type (-1 for none). */
-    private class Columns(val text: Int, val target: Int, val combat: Int = -1, val challenge: Int = -1, val emote: Int = -1, val outfit: Int = -1)
+    /** The column holding the clue text, the target list, the fight, the challenge, the emotes, the outfits and the STASH unit, by step type (-1 for none). */
+    private class Columns(val text: Int, val target: Int, val combat: Int = -1, val challenge: Int = -1, val emote: Int = -1, val outfit: Int = -1, val stash: Int = -1)
 
     private val COLUMNS = mapOf(
         StepType.ANAGRAM to Columns(text = 2, target = 3, challenge = 4),
         StepType.MAP to Columns(text = -1, target = 2),
         StepType.CIPHER to Columns(text = 2, target = 3, challenge = 4),
         StepType.COORDINATE to Columns(text = 2, target = 3, combat = 5),
-        StepType.CRYPTIC to Columns(text = 2, target = 3, challenge = 5),
-        StepType.EMOTE to Columns(text = 2, target = 3, combat = 9, emote = 4, outfit = 6),
+        StepType.CRYPTIC to Columns(text = 2, target = 3, challenge = 5, outfit = 7, stash = 8),
+        StepType.EMOTE to Columns(text = 2, target = 3, combat = 9, emote = 4, outfit = 6, stash = 7),
         StepType.FAIRY_RING to Columns(text = 2, target = 5),
         StepType.FALO to Columns(text = 2, target = 3),
         StepType.HOT_COLD to Columns(text = -1, target = 2, combat = 4),
@@ -70,7 +71,7 @@ object TrailLoader {
 
     fun load(library: CacheLibrary, objTypes: ObjTypes): TrailData {
         val rows = HashMap<Int, DbRow>()
-        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX + OUTFIT
+        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX + COMBAT_ENCOUNTER + OUTFIT
         for (file in library.index(2)?.archive(38)?.files().orEmpty()) {
             val row = DbRows.decode(file.data ?: continue)
             if (row.table in tables) rows[file.id] = row
@@ -109,10 +110,13 @@ object TrailLoader {
                 targets = targets,
                 items = items,
                 combat = columns.combat >= 0 && row.columns[columns.combat].orEmpty().isNotEmpty(),
+                // cluehelper_combat_encounter: description, then the NPCs that fight.
+                combatNpcs = if (columns.combat >= 0) row.int(columns.combat)?.let { rows[it] }?.takeIf { it.table == COMBAT_ENCOUNTER }?.ints(1).orEmpty() else emptyList(),
                 challenge = if (columns.challenge >= 0) row.int(columns.challenge)?.let { challenge(rows, it) } else null,
                 challengeItem = challengeScrolls.firstOrNull() ?: -1,
                 emotes = if (columns.emote >= 0) row.ints(columns.emote) else emptyList(),
                 outfits = if (columns.outfit >= 0) row.ints(columns.outfit).mapNotNull { outfit(rows, it) } else emptyList(),
+                stash = if (columns.stash >= 0) row.int(columns.stash) ?: -1 else -1,
             )
         }
         logger.info { "Loaded ${steps.size} Treasure Trail steps: ${steps.groupingBy { it.tier.key }.eachCount()}" }

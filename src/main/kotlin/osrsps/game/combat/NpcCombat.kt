@@ -145,6 +145,12 @@ data class NpcCombatDef(
      * refused ([Combat.slayerGated]).
      */
     val slayerLevel: Int = 0,
+    /**
+     * The share of its melee damage, in percent, that a protection prayer against it lets through ([MeleeCombat.swingAt]):
+     * 0 for most, which a prayer blocks fully; 25 for Scurrius's giant rats ("the prayer reduces their overall damage by
+     * 75%", OSRS Wiki, Giant rat (Scurrius)).
+     */
+    val prayerPasses: Int = 0,
     /** Ticks between the hitpoints it gets back ([MeleeCombat]): [MeleeCombat.REGEN_TICKS] for most, 5 for cave bugs and crawlers. */
     val regenTicks: Int = MeleeCombat.REGEN_TICKS,
     /**
@@ -159,8 +165,11 @@ data class NpcCombatDef(
  * Magic defence) instead of swinging, while its drain has taken less than [stopPercent] of the stat's base level plus
  * [stopFlat]; past that it only swings. The Catablepon's Weaken "will stop casting once 8% + 3 of your total strength
  * level has been drained", "but casts before this threshold can still bring you lower" (OSRS Wiki, Catablepon).
+ * One that [countersPrayer] picks the style a protection prayer doesn't block: always the spell against Protect from
+ * Melee, never against Protect from Magic, else the [chance] roll (the Saradomin wizard, OSRS Wiki: "They will change
+ * attack styles between Melee and Magic to counter protection prayers").
  */
-data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0) {
+data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0, val countersPrayer: Boolean = false) {
     /** Whether it still casts at a player whose drained stat is at [current] of [base]. */
     fun casts(base: Int, current: Int): Boolean = base - current < base * stopPercent / 100 + stopFlat
 }
@@ -226,12 +235,13 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
          * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
-         * takes it below, for a rockslug) and `"typeless": true` (no protection prayer blocks its attacks).
+         * takes it below, for a rockslug), `"prayerPasses": 25` (the share of its melee damage, in percent, that a
+         * protection prayer lets through) and `"typeless": true` (no protection prayer blocks its attacks).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
          * A melee NPC may add a `"spell"` it casts in reach now and then: one such attack plus `"chance"` (1 in that
-         * many turns) and `"stopsAt": { "percent": 8, "flat": 3 }` ([NpcMeleeSpell]); a drain there may be
+         * many turns), `"stopsAt": { "percent": 8, "flat": 3 }` and `"countersPrayer": true` ([NpcMeleeSpell]); a drain there may be
          * `"stacks": true`. A dragon adds `"dragonfire": { "chance": 6, "anim": "dragon_firebreath_attack", "cast": 1 }`
          * ([NpcDragonfire]).
          *
@@ -315,6 +325,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {
                     require(it.isEmpty() || attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "attacks on a $attackType NPC" }
                 },
+                prayerPasses = (entry["prayerPasses"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "$it% through a prayer" } },
                 xpBonusTenths = (entry["xpBonus"]?.jsonPrimitive?.double ?: 0.0).let { percent ->
                     require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
                     Math.round(percent * 10).toInt()
@@ -327,6 +338,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         spell.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a spell chance of 1 in $it" } },
                         stops?.get("percent")?.jsonPrimitive?.int ?: 0,
                         stops?.get("flat")?.jsonPrimitive?.int ?: 0,
+                        spell["countersPrayer"]?.jsonPrimitive?.boolean ?: false,
                     )
                 },
                 dragonfire = entry["dragonfire"]?.jsonObject?.let { fire ->

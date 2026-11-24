@@ -1,6 +1,6 @@
 {
   "about": [
-    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river, the Al Kharid tropical tree behind the roof's edge wall and the Varrock wall with no floor beside it on the 241 map: a click walks to the nearest route's start).",
+    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, failLine (the message a failure gives), safeAtHp (the hitpoints at or below which it can't fail), and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river, the Al Kharid tropical tree behind the roof's edge wall and the Varrock wall with no floor beside it on the 241 map: a click walks to the nearest route's start).",
     "A route: from ([x, z, level], where the player starts), at (the [x, z, level] tiles of the locs this route is for, when the obstacle is several locs; none for every loc), moves, and fail (the moves of a failure, for an obstacle that can fail). Of the routes for the loc clicked, the one starting nearest the player is taken.",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick), xp (tenths: XP partway across, with no wait).",
     "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
@@ -9,10 +9,12 @@
     "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands.",
     "Varrock Rooftop Course: locs, tiles and options from the 241 cache's map (roofs on levels 1 and 3: the first gap lands on level 1 and the wall climbs back to 3); level 30, each obstacle's XP (269.7 a lap, the edge's 143.7 holding the lap's) and the clothes line failing for 3 to 8, the wall for 2 to 5 from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table, two moved onto the nearest floor tile (the clothes shop ledge to 3196,3416 on level 1, the tavern roof to 3220,3402). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names, the wall's route along its top, every tick count and exact move timing, the fail chances and where a fall lands.",
     "Gnome Stronghold Agility Course: locs, tiles and options from the 241 cache's map (the nets climb to level 1, the first branch to the level 2 platform, the second branch back down to the ground); level 1, each obstacle's XP and the 50 XP lap bonus (110.5 a lap) from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rebalance; the pipe's own page says 10 XP but the course page's 7.5 is the one that adds up to 110.5); its one mark spot from the Wiki's spawns table (2486,3422, before the branch down) moved onto the platform's nearest floor tile (2486,3421 on level 2). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_walk_logbalance for the log and the rope, human_reachforladder for the nets and branches, human_doublepipesqueeze for the pipe), every tick count and exact move timing. Not built: the gnome trainers' shouts.",
-    "Misthalin shortcuts (on no course): locs, tiles and options from the 241 cache's map; levels and XP from the OSRS Wiki's Shortcuts page and each shortcut's page (read 2026-11-02): the Varrock south fence (13, no XP), the Grand Exchange underwall tunnel (21, no XP), the Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, with damage and 1 XP), the Draynor underwall tunnel (42, no XP), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones (52, 5 XP a crossing: 2.5 on the first stone and 2.5 on the third). Both stones are jumped onto from the bank, as their sides are water. Inferred from the map: each side's tile (the fences' two sides of their wall, the tunnels' ends either side of the city or manor wall, the river banks either side of the stones). Guessed until recorded: the animations by their cache names (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall, human_walk_logbalance_stumble for a stone's fall), every tick count and exact move timing, the stone's fail chance and its 1 to 3 damage (the Wiki says a few). Left for later: the Lumbridge Swamp stepping stone (66; its river's edges aren't clear in the map), the River Lum broken raft (a grapple), the Edgeville Dungeon pipes (not built yet) and the Paterdomus railing (Morytania). The Lumber Yard's broken fence (2618, Climb-over) is the yard's way in from the south (Broken fence (Lumber Yard), read 2026-11-10): no level and no XP, two tiles across from 3308,3491 to 3308,3493 (inferred from the map), with the Varrock fence's human_jump_hurdle (guessed).",
+    "Misthalin shortcuts (on no course): locs, tiles and options from the 241 cache's map; levels and XP from the OSRS Wiki's Shortcuts page and each shortcut's page (read 2026-11-02): the Varrock south fence (13, no XP), the Grand Exchange underwall tunnel (21, no XP), the Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, with damage and 1 XP), the Draynor underwall tunnel (42, no XP), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones (52, 5 XP a crossing: 2.5 on the first stone and 2.5 on the third). Both stones are jumped onto from the bank, as their sides are water. Inferred from the map: each side's tile (the fences' two sides of their wall, the tunnels' ends either side of the city or manor wall, the river banks either side of the stones). Guessed until recorded: the animations by their cache names (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall, human_walk_logbalance_stumble for a stone's fall), every tick count and exact move timing, the stone's fail chance and its 1 to 3 damage (the Wiki says a few). Left for later: the Lumbridge Swamp stepping stone (66; its river's edges aren't clear in the map), the River Lum broken raft (a grapple) and the Paterdomus railing (Morytania). The Lumber Yard's broken fence (2618, Climb-over) is the yard's way in from the south (Broken fence (Lumber Yard), read 2026-11-10): no level and no XP, two tiles across from 3308,3491 to 3308,3493 (inferred from the map), with the Varrock fence's human_jump_hurdle (guessed).",
     "The River Lum's broken raft (Jump-to, 48 Agility without a grapple since 12 August 2026; the Grapple option is LumbridgeSwamp.kt's) and the Lumbridge Swamp stepping stone to the desert (66 Agility, no diary since 8 May 2024): levels from the Wiki's Broken Raft and Stepping stone (Lumbridge Swamp) pages, read 2026-11-09. Their bank tiles are the 242 map's agility_shortcut_icon locs for the raft (3246,3179 and 3259,3179) and, for the stone, the nearest tiles each side reaches on foot (3214,3140 and 3214,3131, by flood fill over the 242 map). Guessed: the jumps go by way of the raft or the stone, two ticks each, with the stepping-stone jump animation.",
     "Lumbridge Swamp Caves stepping stones (Misthalin piece 7 step 2b): locs 5948 and 5949 and their tiles from the 242 cache's map; level 1, 3 XP, 1 XP for a fall and the 51/256 to 252/256 cross chance from the OSRS Wiki's Stepping stone (Lumbridge Swamp Caves) page (read 2026-11-09, Mod Ash's chart); a fall puts the player's lights out (failDouses, the Wiki's Light sources page). Inferred from the map: each side's tile, two from the stone. Guessed: a fall lands back where the player jumped from, with no damage; the animations and timings as the Champions' Guild stone's.",
-    "The Varrock Palace garden's trellis (post-quest content step 1): loc 2149 (garden_trellis_concave_shortcut) on the south side of 3228,3471, a wall of the garden's south fence, from the 242 cache's map; level 35 and no XP from the OSRS Wiki's Trellis (Varrock) page (read 2026-11-19; it needs Garden of Tranquillity, which every account has done). Inferred from the map: its two sides, 3228,3470 outside and 3228,3471 in the garden. Guessed until recorded: the Varrock fence's human_jump_hurdle and timing (the Wiki gives only a jump sound), and the level message's words (its own key)."
+    "The Varrock Palace garden's trellis (post-quest content step 1): loc 2149 (garden_trellis_concave_shortcut) on the south side of 3228,3471, a wall of the garden's south fence, from the 242 cache's map; level 35 and no XP from the OSRS Wiki's Trellis (Varrock) page (read 2026-11-19; it needs Garden of Tranquillity, which every account has done). Inferred from the map: its two sides, 3228,3470 outside and 3228,3471 in the garden. Guessed until recorded: the Varrock fence's human_jump_hurdle and timing (the Wiki gives only a jump sound), and the level message's words (its own key).",
+    "Edgeville Dungeon pipes (on no course): locs, tiles and options from the 242 cache's map; levels, XP, damage and crossing times from the OSRS Wiki's Obstacle pipe (Edgeville Dungeon) and Obstacle pipe (Edgeville Dungeon south) pages (read 2026-11-19): the pipe east to the Varrock Sewers' moss giants (16511, two locs either side of the wall: 51, 10 XP, 7 ticks) and the south pipe to the hobgoblins and hill giants (62409, from the 12 August 2026 update: 60, 10 XP, 4 ticks). Getting stuck still takes the player through, with 1 to 6 damage and the quoted message; at 6 hitpoints or less nobody gets stuck, so the pipe can't kill. The north pipe's chance to cross unhurt is the Wiki's success chart (0 to 254 out of 256); the south pipe's, which has no chart, is guessed the same. Inferred from the map: each end's tile. Guessed until recorded: human_doublepipesqueeze for both, the exact move timing, the XP on a stuck crossing too, and the damage and message coming at the far end.",
+    "The Lost Tribe's two holes (post-quest step 6, DorgeshuunTunnels.kt): Lumbridge Castle cellar's hole, the map's loc 6898 on the cellar side (3219,9618) and 6899 on the tunnel side (3221,9618), multilocs on varbit 532 that show the Hole (6905, Squeeze-through) after the quest; and the hole between the Goblin Maze and the Lumbridge Swamp Caves (6912, 3 tiles north to south from 3224,9601). Level 13 and no XP for the cellar's hole from the OSRS Wiki's Hole (Lumbridge Castle cellar) page; the swamp hole's page gives no level (read 2026-11-19). Inferred from the 242 map: each side's tile (3219,9618 and 3221,9618 either side of the cellar wall; 3224,9604 in the maze and 3224,9600 in the caves). The cellar hole's level message has its own key (agility.lumbridge_cellar_hole_level), its words unsourced. Guessed: the Grand Exchange tunnel's human_longcrawl and 3 ticks, and that the swamp side's hole, which refuses during the quest, lets the player through both ways after it."
   ],
   "obstacles": [
     {
@@ -2407,6 +2409,346 @@
               "to": [
                 3221,
                 9552,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_edgeville_dungeon_pipe",
+      "loc": 16511,
+      "option": "Squeeze-through",
+      "level": 51,
+      "levelLine": "agility.edgeville_dungeon_pipe_level",
+      "xpTenths": 100,
+      "failXpTenths": 100,
+      "success": [
+        0,
+        254
+      ],
+      "damage": [
+        1,
+        6
+      ],
+      "failLine": "agility.pipe_stuck",
+      "safeAtHp": 6,
+      "routes": [
+        {
+          "from": [
+            3149,
+            9906,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3152,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 75,
+              "ticks": 3
+            },
+            {
+              "type": "slide",
+              "to": [
+                3155,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3152,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 75,
+              "ticks": 3
+            },
+            {
+              "type": "slide",
+              "to": [
+                3155,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ]
+        },
+        {
+          "from": [
+            3155,
+            9906,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3152,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 75,
+              "ticks": 3
+            },
+            {
+              "type": "slide",
+              "to": [
+                3149,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3152,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 75,
+              "ticks": 3
+            },
+            {
+              "type": "slide",
+              "to": [
+                3149,
+                9906,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_edgeville_dungeon_south_pipe",
+      "loc": 62409,
+      "option": "Squeeze-through",
+      "level": 60,
+      "levelLine": "agility.edgeville_dungeon_south_pipe_level",
+      "xpTenths": 100,
+      "failXpTenths": 100,
+      "success": [
+        0,
+        254
+      ],
+      "damage": [
+        1,
+        6
+      ],
+      "failLine": "agility.pipe_stuck",
+      "safeAtHp": 6,
+      "routes": [
+        {
+          "from": [
+            3122,
+            9880,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3122,
+                9883,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3122,
+                9883,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ]
+        },
+        {
+          "from": [
+            3122,
+            9883,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3122,
+                9880,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3122,
+                9880,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 15,
+              "endCycles": 105,
+              "ticks": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_lumbridge_cellar_hole",
+      "loc": 6898,
+      "alsoLocs": [
+        6899
+      ],
+      "option": "Squeeze-through",
+      "level": 13,
+      "levelLine": "agility.lumbridge_cellar_hole_level",
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3219,
+            9618,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3221,
+                9618,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3221,
+            9618,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3219,
+                9618,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_goblin_maze_hole",
+      "loc": 6912,
+      "option": "Squeeze-through",
+      "level": 1,
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3224,
+            9604,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3224,
+                9600,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3224,
+            9600,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3224,
+                9604,
                 0
               ]
             }
