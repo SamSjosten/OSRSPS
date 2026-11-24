@@ -55,6 +55,7 @@ class HeadlessBalloonsTest {
                 ObjType(BalloonStation.ENTRANA.log, "Logs", weight = 2000),
                 ObjType(ANCHOR, "Anchor", weight = 39_500),
                 ObjType(PLATEBODY, "Rune platebody", wearpos1 = WearPos.BODY, params = mapOf(STAB_DEFENCE to 82), weight = 9979),
+                ObjType(FIRE_CAPE, "Fire cape", wearpos1 = WearPos.CAPE, params = mapOf(STAB_DEFENCE to 11), weight = 1814),
             ),
             npcTypes = NpcTypes.of(serf, auguste),
             npcSpawns = listOf(NpcSpawn(serf, 3298, 3483, wander = 0, source = "test")),
@@ -171,10 +172,26 @@ class HeadlessBalloonsTest {
                 client.await("the dialogue closed") { if (client.dialogueView == null) Unit else null }
                 assertEquals(here, client.position)
                 assertEquals(2L, client.inventory(BACKPACK).filterNotNull().filter { it.id == BalloonStation.ENTRANA.log }.sumOf { it.count.toLong() })
-                // Without it, Fly goes straight to the map and the search lets the player through.
+                // A cape with a defence bonus is armour too (the Wiki's Entrana page).
                 client.command("empty")
                 client.command("item ${BalloonStation.ENTRANA.log}")
-                client.await("the platebody gone") { if (client.inventory(BACKPACK).none { it?.id == PLATEBODY }) Unit else null }
+                client.command("item $FIRE_CAPE")
+                client.await("the cape") { client.inventory(BACKPACK).firstOrNull { it?.id == FIRE_CAPE } }
+                client.npcOp(npc.index, Balloons.FLY)
+                client.await("the map for the cape") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
+                client.ifButton(Balloons.MAP, BalloonStation.ENTRANA.button, 1)
+                client.awaitDialogue("the cape's search") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_SEARCH.key}]" }
+                client.continueDialogue()
+                client.awaitDialogue("the cape searched") { it is DialogueView.Message && it.text == "[${BalloonLines.SEARCHED.key}]" }
+                client.continueDialogue()
+                client.awaitDialogue("the cape refused") { it is DialogueView.Chat && it.text == "[${BalloonLines.ENTRANA_REFUSE.key}]" }
+                client.continueDialogue()
+                client.await("the refusal closed") { if (client.dialogueView == null) Unit else null }
+                assertEquals(here, client.position)
+                // Without either, Fly goes straight to the map and the search lets the player through.
+                client.command("empty")
+                client.command("item ${BalloonStation.ENTRANA.log}")
+                client.await("the cape gone") { if (client.inventory(BACKPACK).none { it?.id == FIRE_CAPE || it?.id == PLATEBODY }) Unit else null }
                 client.npcOp(npc.index, Balloons.FLY)
                 client.await("the map again") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
                 client.ifButton(Balloons.MAP, BalloonStation.ENTRANA.button, 1)
@@ -211,6 +228,7 @@ class HeadlessBalloonsTest {
     private companion object {
         const val ANCHOR = 10_000
         const val PLATEBODY = 1127
+        const val FIRE_CAPE = 6570
         const val STAB_DEFENCE = 5
         const val BACKPACK = 93
     }

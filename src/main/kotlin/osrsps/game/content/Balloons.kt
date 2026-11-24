@@ -81,7 +81,7 @@ enum class BalloonStation(
  * builds in two steps, 1 for the others). Guessed: where a trip lands (the tile south of the basket's south-west corner,
  * walkable on the 242 map); the trip itself (the map closing, the jingle and a move [FLIGHT_TICKS] later, with no flying
  * screen or fade); the Firemaking and weight messages' words (keys with no words until a recording); a click on the
- * station the player is at doing nothing; Entrana's rule (any carried or worn item worn in the head, weapon, body,
+ * station the player is at doing nothing; Entrana's rule (any carried or worn item worn in the head, cape, weapon, body,
  * shield, legs, hands or feet slot with an attack or defence bonus); the player having to stay within [REACH] of the
  * basket while the map is open.
  * Not built yet: log storage and paying from it (step T6); Auguste's other options (origami balloons, replacing the
@@ -233,7 +233,7 @@ class Balloons(private val world: World) {
         /** Guessed: how far from the basket's south-west tile the player may stand with the map open (the assistants stand 2 away). */
         const val REACH = 4
 
-        private val ARMED_SLOTS = setOf(WearPos.HEAD, WearPos.WEAPON, WearPos.BODY, WearPos.SHIELD, WearPos.LEGS, WearPos.HANDS, WearPos.FEET)
+        private val ARMED_SLOTS = setOf(WearPos.HEAD, WearPos.CAPE, WearPos.WEAPON, WearPos.BODY, WearPos.SHIELD, WearPos.LEGS, WearPos.HANDS, WearPos.FEET)
 
         /** Params 0 to 9: the attack and defence bonuses (see Equipment). */
         private val COMBAT_BONUS_PARAMS = 0..9
