@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -48,6 +49,7 @@ class HeadlessLogStorageTest {
                 ObjType(WILLOW, "Willow logs", weight = 2000, certlink = WILLOW_NOTE),
                 ObjType(WILLOW_NOTE, "Willow logs", stackable = true, certlink = WILLOW, certtemplate = 799),
                 ObjType(YEW, "Yew logs", weight = 1500),
+                ObjType(ANVIL, "Anvil", weight = 38_500),
             ),
             locTypes = LocTypes(
                 (
@@ -195,10 +197,46 @@ class HeadlessLogStorageTest {
         }
     }
 
+    @Test
+    fun `a log paid from storage still counts toward the weight limit`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel firemaking 99")
+                client.command("item $WILLOW 2")
+                client.tele(BalloonStation.CASTLE_WARS.landing)
+                val scripts = client.clientScripts().size
+                client.crate(BalloonStation.CASTLE_WARS, LogStorage.STORE)
+                client.amount(2, scripts)
+                client.stored("[${LogStorageLines.STORED.key} logs=Willow logs amount=2]")
+                client.crate(BalloonStation.CASTLE_WARS, LogStorage.PREFERENCES)
+                client.awaitDialogue("the preferences box") { it is DialogueView.Message && it.text == "[${LogStorageLines.PREFERENCES.key}]" }
+                client.continueDialogue()
+                client.awaitDialogue("the preferences") {
+                    it is DialogueView.Menu && it.options == listOf("[${LogStorageLines.STORAGE_FIRST.key}]", "[${LogStorageLines.ASK.key}]")
+                }
+                client.chooseOption(1)
+                client.await("the menu closed") { if (client.dialogueView == null) Unit else null }
+
+                // 38.5 kg anvil + 2 kg willow: under the limit only if the backpack log is burnt, but storage pays, so it stays carried.
+                client.command("item $WILLOW")
+                client.command("item $ANVIL")
+                val messages = client.messages().size
+                client.locOp(BalloonStation.CASTLE_WARS.basket, BalloonStation.CASTLE_WARS.basketTile.x, BalloonStation.CASTLE_WARS.basketTile.z, Balloons.USE)
+                client.await("the map") { if (Balloons.MAP in client.openInterfaces()) Unit else null }
+                client.ifButton(Balloons.MAP, BalloonStation.VARROCK.button, 1)
+                client.seen("[${BalloonLines.TOO_HEAVY.key} limit=40]", messages)
+                assertEquals(1L, client.count(WILLOW))
+                assertNotEquals(Coord(BalloonStation.VARROCK.landing.x, BalloonStation.VARROCK.landing.z, 0), client.position)
+            }
+        }
+    }
+
     private companion object {
         const val WILLOW = 1519
         const val WILLOW_NOTE = 1520
         const val YEW = 1515
+        const val ANVIL = 2347
         const val BACKPACK = 93
     }
 }

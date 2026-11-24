@@ -190,7 +190,12 @@ class Balloons(private val world: World) {
         }
         if (to == BalloonStation.ENTRANA && !searched(from)) return
         // The boxes waited: the log must still be there, and the player still at the basket and within the limit.
-        if (!near(from) || tooHeavy(to, inBag)) return
+        if (!near(from)) return
+        // Only a backpack log that pays for the trip comes off the weight: one paid from storage stays carried (Codex review on #924).
+        if (tooHeavy(to, !fromStore && player.inventory.count(to.log) > 0)) {
+            player.message(text[BalloonLines.TOO_HEAVY, "limit" to WEIGHT_LIMIT_GRAMS / 1000])
+            return
+        }
         if (fromStore) {
             val left = log?.let { world.logStorage.takeOne(player, it) } ?: return
             player.message(text[LogStorageLines.LEFT, "logs" to text[to.logName], "amount" to left])
