@@ -2549,8 +2549,15 @@ Balloons (`game/content/Balloons.kt`, words under `balloon.*`): every route is o
 A basket's Use, or an assistant's Fly or Talk-to, opens the map of the six stations (Entrana, Taverley, the Crafting
 Guild, Varrock south of the Lumber Yard, Castle Wars, the Grand Tree); Travel burns one of the destination's logs
 (logs, oak, willow, yew, magic) at its Firemaking level (20 to 60), with no more than 40 kg carried, and lands beside its
-basket. A trip to Entrana is searched for weapons and armour. Paying from log storage comes with step T6. Check:
-`test-runner/examples/balloons.json`, `HeadlessBalloonsTest`.
+basket. A trip to Entrana is searched for weapons and armour. Check: `test-runner/examples/balloons.json`,
+`HeadlessBalloonsTest`.
+
+Log storage (`game/content/LogStorage.kt`, words under `log_storage.*`): the crate beside each basket stores up to 100
+each of logs, oak, willow, yew and magic logs (noted ones too), shared by every crate. Store asks which log and how
+many (using a log on the crate skips the which); Check gives the counts; Preferences picks inventory first, storage
+first or ask every trip, for when a trip's log is in both. A trip with no log in the backpack burns a stored one and
+says how many are left. Stored logs never come back out. Check: `test-runner/examples/log-storage.json`,
+`HeadlessLogStorageTest`.
 
 ## Equipment
 
