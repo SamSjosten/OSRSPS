@@ -30,6 +30,9 @@ class EntranaSearchTest {
     @Test
     fun `the page's exceptions, jewellery, runes and bonusless weapons pass`() {
         assertFalse(EntranaSearch.prohibited(item("Blue wizard robe", WearPos.BODY, 2)))
+        assertFalse(EntranaSearch.prohibited(item("Black robe", WearPos.BODY, 3)))
+        assertFalse(EntranaSearch.prohibited(item("Black robe (t)", WearPos.BODY, 3)))
+        assertFalse(EntranaSearch.prohibited(item("Blue skirt (g)", WearPos.LEGS, 2)))
         assertFalse(EntranaSearch.prohibited(item("Leather gloves", WearPos.HANDS, 1)))
         assertFalse(EntranaSearch.prohibited(item("Saradomin cape", WearPos.CAPE, 1)))
         assertFalse(EntranaSearch.prohibited(item("Holy book", WearPos.SHIELD, 8)))
