@@ -39,6 +39,9 @@ class EntranaSearchTest {
         assertFalse(EntranaSearch.prohibited(item("Rubber chicken", WearPos.WEAPON)))
         assertFalse(EntranaSearch.prohibited(item("Mystic robe top", WearPos.BODY, 0)))
         assertTrue(EntranaSearch.prohibited(item("Mystic robe top", WearPos.BODY, 20)))
+        assertFalse(EntranaSearch.prohibited(item("Saradomin cloak", WearPos.CAPE, 3)))
+        assertTrue(EntranaSearch.prohibited(item("Ardougne cloak 1", WearPos.CAPE, 1)))
+        assertTrue(EntranaSearch.prohibited(item("Imbued saradomin cape", WearPos.CAPE, 15)))
     }
 
     private companion object {
