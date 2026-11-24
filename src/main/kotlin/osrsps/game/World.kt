@@ -509,6 +509,9 @@ class World(
     /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
     val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
 
+    /** Brutus's fields, one a player ([osrsps.game.content.BrutusPens]). */
+    val brutusPens = osrsps.game.content.BrutusPens(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -690,6 +693,7 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.content.Brutus.INSTANCE_LOCS ||
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
@@ -1276,6 +1280,7 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
