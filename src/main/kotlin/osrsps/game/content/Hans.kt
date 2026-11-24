@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
@@ -37,6 +38,13 @@ object Hans {
     // Age is op3 in the 242 cache (Talk-to, nothing, Age), not op2.
     const val AGE = 3
 
+    /**
+     * hans_age_checked (gameval): the cache hides Age (a conditional op with no text) while it is 0, so the option shows
+     * only once the player has heard their time played from Hans. Inferred from the 242 cache's NPC 3105; set by both
+     * the Talk-to answer and Age itself.
+     */
+    const val VARBIT_AGE_CHECKED = 16792
+
     /** How far Hans runs from a player who threatens him, in tiles along each axis. Guessed. */
     const val FLEE_DISTANCE = 4
 
@@ -67,6 +75,7 @@ object Hans {
     internal suspend fun Dialogue.age(nowMillis: Long) {
         chatNpc(ChatAnim.NEUTRAL, HansLines.NEWCOMERS)
         chatNpc(ChatAnim.NEUTRAL, HansLines.TIME_PLAYED, *timePlayed(player, nowMillis))
+        player.vars.setVarbitIfKnown(VARBIT_AGE_CHECKED, 1)
     }
 
     /**
