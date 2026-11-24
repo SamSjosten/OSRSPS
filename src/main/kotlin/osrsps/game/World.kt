@@ -1025,6 +1025,7 @@ class World(
 
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+    val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1347,6 +1348,7 @@ class World(
         ourania.register()
         houses.register()
         furniture.register()
+        kitchen.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }

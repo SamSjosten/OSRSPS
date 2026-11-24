@@ -303,9 +303,9 @@ class Cooking(private val world: World) {
 
         /**
          * The fire Firemaking lights, and Mor Ul Rek's sulphur vents (tzhaar_sulphar_vent, 11851), which the Wiki's
-         * Sulphur vent page calls permanent fires: no options, food used on them.
+         * Sulphur vent page calls permanent fires: no options, food used on them. The house kitchen's firepits too.
          */
-        val FIRES = setOf(Firemaking.FIRE, SULPHUR_VENT)
+        val FIRES = setOf(Firemaking.FIRE, SULPHUR_VENT) + osrsps.game.skill.construction.KitchenStoves.FIREPITS
         const val SULPHUR_VENT = 11851
 
         /**
@@ -331,7 +331,8 @@ class Cooking(private val world: World) {
          */
         const val VARROCK_RANGE = 7184
         const val VARROCK_OVEN = 7421
-        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE, COOKS_GUILD_RANGE, VARROCK_RANGE, VARROCK_OVEN)
+        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE, COOKS_GUILD_RANGE, VARROCK_RANGE, VARROCK_OVEN) +
+            osrsps.game.skill.construction.KitchenStoves.FANCY_RANGES
 
         /** The Make-X box shows up to 18 kinds. */
         private const val MAX_KINDS = 18

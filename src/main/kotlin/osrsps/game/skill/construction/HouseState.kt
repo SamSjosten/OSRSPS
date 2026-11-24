@@ -1,5 +1,6 @@
 package osrsps.game.skill.construction
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.int
@@ -10,6 +11,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * A room type, as the cache's `poh_room` table (dbtable 111, the 242 cache) has it: its [id] there (`room_type`, what
@@ -204,7 +207,11 @@ object HouseSaves {
             )
             require(rooms.none { it.x == room.x && it.z == room.z && it.floor == room.floor }) { "Two rooms in cell ${room.x}, ${room.z}" }
             require(room.floor == House.GROUND) { "A room on floor ${room.floor}" }
-            for ((hotspot, loc) in built) require(builds(type, hotspot, loc)) { "$loc built on $hotspot in a ${type.key}" }
+            // A piece this server doesn't build there is dropped, not the whole house (R52B-1): a table changed since the
+            // save mustn't lock its owner out. The exit portal is checked below either way.
+            built.entries.removeIf { (hotspot, loc) ->
+                (!builds(type, hotspot, loc)).also { if (it) logger.warn { "Dropped $loc built on $hotspot in a ${type.key}" } }
+            }
             rooms += room
         }
         require(rooms.isNotEmpty()) { "A house with no rooms" }
