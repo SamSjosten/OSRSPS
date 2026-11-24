@@ -136,7 +136,7 @@ class ClanHall(private val world: World) {
         const val EXIT = 41617
         const val LEAVE = 1
 
-        /** clan_medieval_altar, upstairs in the hall. */
+        /** clan_medieval_altar: on map level 1 but on bridge tiles, so on the ground floor in play, as the hall's other locs. */
         const val ALTAR = 41650
         const val PRAY_AT = 1
 

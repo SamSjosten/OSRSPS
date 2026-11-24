@@ -14,7 +14,7 @@
   {"step": "command", "text": "::clanjoin Hall Gate", "expectMessage": "Joined clan Hall Gate"},
   {"step": "locOption", "locId": 41724, "option": "Enter"},
   {"step": "waitTicks", "ticks": 4, "comment": "the hall is a new instance: the region redraws"},
-  {"step": "locOption", "locId": 10583, "option": "Bank", "timeoutMs": 20000, "comment": "one of the hall's four bank booths, upstairs in the bank"},
+  {"step": "locOption", "locId": 10583, "option": "Bank", "timeoutMs": 20000, "comment": "one of the hall's four bank booths: on map level 1, but bridge tiles, so on the ground floor in play"},
   {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 20000},
   {"step": "locOption", "locId": 41617, "option": "Leave", "timeoutMs": 20000},
   {"step": "assertLocation", "x": 3185, "y": 3472, "plane": 0, "timeoutMs": 20000, "comment": "beside the hub portal (the tile is a guess)"},
