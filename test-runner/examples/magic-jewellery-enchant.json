@@ -1,0 +1,31 @@
+{
+ "name": "Magic utility step U3: Lvl-1 Enchant cast on a sapphire ring making a ring of recoil, the second ring following on its own 7 ticks later, then Lvl-5 Enchant on a dragonstone amulet making an amulet of glory, a ruby ring refused by Lvl-1 (::keys on); needs runner 0.29.0 for castOnItem",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel magic 68", "expectMessage": "Magic set to level 68"},
+  {"step": "command", "text": "::item 564 3", "expectMessage": "Added 3 x Cosmic rune"},
+  {"step": "command", "text": "::item 555 17", "expectMessage": "Added 17 x Water rune"},
+  {"step": "command", "text": "::item 557 15", "expectMessage": "Added 15 x Earth rune"},
+  {"step": "command", "text": "::item 1637 2", "expectMessage": "Added 2 x Sapphire ring"},
+  {"step": "command", "text": "::item 1641", "expectMessage": "Added 1 x Ruby ring"},
+  {"step": "command", "text": "::item 1702", "expectMessage": "Added 1 x Dragonstone amulet"},
+  {"step": "castOnItem", "interfaceId": 218, "component": 16, "item": "Ruby ring", "comment": "Lvl-1 Enchant on a ruby ring"},
+  {"step": "assertMessage", "contains": "[jewellery_enchant.wrong_item]", "timeoutMs": 5000},
+  {"step": "castOnItem", "interfaceId": 218, "component": 16, "item": "Sapphire ring", "comment": "Lvl-1 Enchant"},
+  {"step": "assertAnimation", "id": 931, "timeoutMs": 5000, "comment": "human_cast_enchantring (guessed for rings)"},
+  {"step": "assertInventory", "item": "Ring of recoil", "count": 1, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Ring of recoil", "count": 2, "timeoutMs": 10000, "comment": "the next ring 7 ticks later, unclicked"},
+  {"step": "assertInventory", "item": "Sapphire ring", "count": 0},
+  {"step": "waitTicks", "ticks": 3, "comment": "the 3 ticks between item spells"},
+  {"step": "castOnItem", "interfaceId": 218, "component": 64, "item": "Dragonstone amulet", "comment": "Lvl-5 Enchant"},
+  {"step": "assertInventory", "item": "Amulet of glory", "count": 1, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Cosmic rune", "count": 0},
+  {"step": "assertInventory", "item": "Water rune", "count": 0},
+  {"step": "assertInventory", "item": "Earth rune", "count": 0},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

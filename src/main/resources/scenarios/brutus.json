@@ -1,0 +1,20 @@
+{
+  "about": "Outside Brutus's pen in the Lumbridge cow field, with iron melee gear, 30 combat and lobsters.",
+  "notes": "Brutus step 1. South of the pen's gate (Brutus.OUTSIDE): Release goes into a field of the player's own, the gate out (Leave or Quick-escape) back here. The loadout is ours, not a live one (the Wiki's Strategies page lists free-to-play gear from steel up; iron is what the other scenarios already carry).",
+  "position": { "x": 3262, "z": 3293, "level": 0 },
+  "skills": { "attack": 30, "strength": 30, "defence": 30, "hitpoints": 30, "ranged": 30, "magic": 30, "prayer": 25 },
+  "run": true,
+  "inventory": [
+    { "item": "lobster", "count": 20 }
+  ],
+  "equipment": [
+    { "item": "iron_full_helm" },
+    { "item": "amulet_of_strength" },
+    { "item": "iron_scimitar" },
+    { "item": "iron_platebody" },
+    { "item": "iron_kiteshield" },
+    { "item": "iron_platelegs" },
+    { "item": "leather_gloves" },
+    { "item": "leather_boots" }
+  ]
+}
