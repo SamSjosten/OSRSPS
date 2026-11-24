@@ -10,7 +10,11 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.Pickpocketing
+import osrsps.game.skill.Pocket
+import osrsps.game.skill.PocketLoot
+import osrsps.map.CollisionFlag
 import osrsps.game.trail.SkillingClues
 import osrsps.game.trail.TrailData
 import osrsps.game.trail.TrailTier
@@ -22,11 +26,16 @@ import osrsps.map.CollisionMap
  * A base chance of 1 makes every roll hit; the real ones are the Wiki's.
  */
 class HeadlessTreasureTrailsSourcesTest {
+    private val collision = CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(25_000)
         for (tier in TrailTier.entries) objs[tier.scrollBox] = ObjType(tier.scrollBox, "Scroll box (${tier.key})", stackable = true)
+        objs[CHAOS_RUNE] = ObjType(CHAOS_RUNE, "Chaos rune", stackable = true)
+        objs[Pickpocketing.PALADIN_POUCH] = ObjType(Pickpocketing.PALADIN_POUCH, "Coin pouch", stackable = true)
+        objs[FILLER] = ObjType(FILLER, "Filler")
         objs[Pickpocketing.CLUE_EASY] = ObjType(Pickpocketing.CLUE_EASY, "Clue scroll (easy)", iops = listOf("Read", null, null, null, "Drop"), params = mapOf(TrailTier.EASY.param to 1))
-        World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), trailData = TrailData(emptyList()), cycleMillis = millis)
+        World(crcs, collision, objTypes = ObjTypes(objs), trailData = TrailData(emptyList()), cycleMillis = millis)
     }
 
     private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filterNotNull().filter { it.id == id }.sumOf { it.count }
@@ -101,6 +110,44 @@ class HeadlessTreasureTrailsSourcesTest {
     }
 
     @Test
+    fun `a pocket's clue comes after its loot, so two free slots keep the loot and the box goes down`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kit").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("kit")!!
+                for (slot in 0 until 26) player.inventory[slot] = InvObj(FILLER, 1)
+                // A paladin's pocket (runes beside the pouch) with every clue roll hitting (Codex review on #907).
+                val pocket = Pocket(emptyList(), "paladin", 1, 0, 0, 0, 0, PickpocketLines.CAUGHT_CITIZEN, pouch = Pickpocketing.PALADIN_POUCH,
+                    extra = listOf(PocketLoot(CHAOS_RUNE, 2, 2) { 1 }), clue = Pickpocketing.CLUE_EASY, clueChance = 1)
+                server.world.pickpocketing.give(player, pocket)
+                client.await("the pouch") { if (client.count(Pickpocketing.PALADIN_POUCH) == 1) Unit else null }
+                assertEquals(2, client.count(CHAOS_RUNE))
+                assertEquals(0, client.count(TrailTier.EASY.scrollBox), "no room left for the box")
+                client.await("the box on the floor") { client.groundObjs().firstOrNull { it.id == TrailTier.EASY.scrollBox } }
+            }
+        }
+    }
+
+    @Test
+    fun `a scroll box on a table is taken a tick later from beside it, with the table pickup`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                val (x, z) = at.x + 1 to at.z
+                collision.add(x, z, at.level, CollisionFlag.LOC)
+                server.world.groundObjs.addPublic(server.world.objTypes[TrailTier.EASY.scrollBox]!!, 1, x, z, at.level)
+                client.await("the box on the table") { client.groundObjs().firstOrNull { it.id == TrailTier.EASY.scrollBox } }
+                val player = server.world.playerNamed("ivy")!!
+                val anims = client.animationTicks().size
+                client.objOp(TrailTier.EASY.scrollBox, x, z, TAKE)
+                client.await("the box") { if (client.count(TrailTier.EASY.scrollBox) == 1) Unit else null }
+                assertTrue(client.animationTicks().size > anims, "the table pickup animates")
+                assertEquals(at.x to at.z, player.x to player.z, "taken from beside the table")
+            }
+        }
+    }
+
+    @Test
     fun `the rates are the Wiki's`() {
         // The Wiki's Clue nest formula at a normal tree (317,647) and 99 Woodcutting: 317,647 / 199 × 0.2, rounded down.
         assertEquals(319, SkillingClues.chance(317_647, 99, TrailTier.BEGINNER))
@@ -113,5 +160,7 @@ class HeadlessTreasureTrailsSourcesTest {
     private companion object {
         const val BACKPACK = 93
         const val TAKE = 3
+        const val CHAOS_RUNE = 562
+        const val FILLER = 1511
     }
 }

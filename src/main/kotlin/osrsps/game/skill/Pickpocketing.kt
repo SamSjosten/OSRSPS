@@ -216,17 +216,18 @@ class Pickpocketing(private val world: World) {
         return worst.all { (obj, count) -> fits(obj, count) }
     }
 
-    private fun give(player: Player, pocket: Pocket) {
+    internal fun give(player: Player, pocket: Pocket) {
         for (extra in pocket.extra) world.objTypes[extra.obj]?.let { player.inventory.add(it, extra.min) }
-        if (pocket.clueChance > 0 && world.random.nextInt(pocket.clueChance) == 0) world.objTypes[pocket.clue]?.let { world.trails.give(player, it, 1) }
         if (pocket.pouch != null) {
             world.objTypes[pocket.pouch]?.let { player.inventory.add(it, 1) }
-            return
+        } else {
+            val (obj, count) = pick(pocket, player.skills.currentLevel(Skill.FARMING))
+            // A clue scroll in the table (the H.A.M. members' and guards', the wealthy citizens') comes as its scroll box.
+            if (obj >= 0) world.objTypes[obj]?.let { world.trails.give(player, it, count) }
         }
-        val (obj, count) = pick(pocket, player.skills.currentLevel(Skill.FARMING))
-        if (obj < 0) return
-        // A clue scroll in the table (the H.A.M. members' and guards', the wealthy citizens') comes as its scroll box.
-        world.objTypes[obj]?.let { world.trails.give(player, it, count) }
+        // The tertiary clue last: the space check counts only the pocket's own loot, so a full backpack sends the clue
+        // to the floor, not the loot (Codex review on #907).
+        if (pocket.clueChance > 0 && world.random.nextInt(pocket.clueChance) == 0) world.objTypes[pocket.clue]?.let { world.trails.give(player, it, 1) }
     }
 
     /** One item and how many from [pocket]'s table, by weight at [farming]. */

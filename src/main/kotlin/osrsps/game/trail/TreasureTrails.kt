@@ -234,7 +234,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
      * pickup too, as on live). A clue scroll of a tier already held stays where it is; scroll boxes past the cap are
      * destroyed, the rest taken (the Wiki's Treasure Trails page for both messages).
      */
-    fun take(player: Player, obj: osrsps.game.zone.ZoneObj) {
+    suspend fun take(context: ScriptContext, obj: osrsps.game.zone.ZoneObj) {
+        val player = context.player
+        // From beside the tile (on a table), a tick's wait and human_pickuptable first, as GroundObjs takes anything
+        // else; the checks below are made after it (Codex review on #907).
+        if (player.x != obj.x || player.z != obj.z) {
+            context.delay(1)
+            player.anim(GroundObjs.ANIM_PICKUP_TABLE)
+        }
         val box = TrailTier.entries.firstOrNull { it.scrollBox == obj.id }
         if (box == null) {
             val tier = tierOf(obj.id)
@@ -810,7 +817,7 @@ fun registerTreasureTrails(world: World) {
     // Every clue scroll in the cache (a Read op and a tier's param), not only the ones a built step names.
     val pickups = TrailTier.entries.map { it.scrollBox } + TrailTier.entries.map { it.sharedClue }.filter { it >= 0 } + trails.data.byItem.keys +
         (0 until world.objTypes.size).filter { trails.tierOf(it) != null }
-    for (id in pickups.distinct()) world.handlers.onGroundObj(id, GroundObjs.TAKE_OPTION) { op -> trails.take(player, op.groundObj ?: return@onGroundObj) }
+    for (id in pickups.distinct()) world.handlers.onGroundObj(id, GroundObjs.TAKE_OPTION) { op -> trails.take(this, op.groundObj ?: return@onGroundObj) }
     // Talk and search steps take their NPC's or loc's click ahead of its own handler.
     world.handlers.first(trails::intercept)
     for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }
