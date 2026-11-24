@@ -66,11 +66,11 @@ class LodestoneMapTest {
 
     @Test
     fun `the map's projection puts each stone where it stands`() {
-        // 7/10 of a pixel a tile from tile 3,000 at the left and 3,540 at the top: Lumbridge's centre tile 3233, 3221.
-        assertEquals(163, LodestoneMap.mapX(3233))
-        assertEquals(223, LodestoneMap.mapY(3221))
-        assertEquals(LodestoneMap.MAP_X + 163 - 10, LodestoneMap.iconX(Lodestones.LUMBRIDGE))
-        assertEquals(LodestoneMap.MAP_Y + 223 - 10, LodestoneMap.iconY(Lodestones.LUMBRIDGE))
+        // 7/20 of a pixel a tile from tile 2,600 at the left and 3,560 at the top: Lumbridge's centre tile 3233, 3221.
+        assertEquals(221, LodestoneMap.mapX(3233))
+        assertEquals(118, LodestoneMap.mapY(3221))
+        assertEquals(LodestoneMap.MAP_X + 221 - 10, LodestoneMap.iconX(Lodestones.LUMBRIDGE))
+        assertEquals(LodestoneMap.MAP_Y + 118 - 10, LodestoneMap.iconY(Lodestones.LUMBRIDGE))
         assertTrue(LodestoneMap.iconY(Lodestones.EDGEVILLE) < LodestoneMap.iconY(Lodestones.VARROCK), "Edgeville north of Varrock")
         assertTrue(LodestoneMap.iconX(Lodestones.DRAYNOR) < LodestoneMap.iconX(Lodestones.LUMBRIDGE), "Draynor west of Lumbridge")
         assertTrue(LodestoneMap.iconX(Lodestones.AL_KHARID) > LodestoneMap.iconX(Lodestones.LUMBRIDGE), "Al Kharid east of Lumbridge")

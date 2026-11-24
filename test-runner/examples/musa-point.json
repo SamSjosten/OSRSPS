@@ -1,0 +1,55 @@
+{
+  "name": "Karamja step K1.2: Luthas's banana job taken, a banana picked off a plantation tree (the tree then showing four), ten more packed into his crate, one by Use and the rest by Fill, Search on it, his pay of 30 coins for the full crate, and Zembo's talk opening his shop (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::varp banana_crate 0", "comment": "no job, an empty crate"},
+    {"step": "command", "text": "::tele 2939 3152 0", "expectMessage": "Teleported to 2939, 3152, 0", "comment": "Luthas's house by the plantation"},
+    {"step": "npcOption", "npc": "Luthas", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[musa_point.luthas_hello]"},
+    {"step": "chooseOption", "text": "[musa_point.employment]"},
+    {"step": "continueDialogue", "comment": "the player asks"},
+    {"step": "continueDialogue", "comment": "[musa_point.crate_ready]"},
+    {"step": "continueDialogue", "comment": "[musa_point.demand]"},
+    {"step": "continueDialogue", "comment": "[musa_point.pay_30]"},
+
+    {"step": "command", "text": "::tele 2930 3154 0", "expectMessage": "Teleported to 2930, 3154, 0", "comment": "below a banana tree"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 2073, "option": "Pick", "x": 2930, "y": 3155},
+    {"step": "assertMessage", "contains": "[musa_point.banana_picked]", "timeoutMs": 10000},
+    {"step": "assertLoc", "locId": 2074, "x": 2930, "y": 3155, "timeoutMs": 5000, "comment": "four bananas left on it"},
+    {"step": "assertInventory", "item": "Banana", "count": 1},
+
+    {"step": "command", "text": "::item 1963 10"},
+    {"step": "command", "text": "::tele 2939 3148 0", "expectMessage": "Teleported to 2939, 3148, 0", "comment": "beside Luthas's crate"},
+    {"step": "useItemOnLoc", "itemId": 1963, "locId": 2072, "x": 2939, "y": 3149},
+    {"step": "continueDialogue", "comment": "[musa_point.pack_one]"},
+    {"step": "locOption", "locId": 2072, "option": "Search", "x": 2939, "y": 3149},
+    {"step": "assertMessage", "contains": "[musa_point.crate_has count=1 s=]", "timeoutMs": 10000},
+    {"step": "locOption", "locId": 2072, "option": "Fill", "x": 2939, "y": 3149},
+    {"step": "continueDialogue", "comment": "[musa_point.pack_all]"},
+    {"step": "assertInventory", "item": "Banana", "count": 1, "comment": "nine more went in, ten in all"},
+    {"step": "locOption", "locId": 2072, "option": "Search", "x": 2939, "y": 3149},
+    {"step": "continueDialogue", "comment": "[musa_point.crate_full_search]"},
+
+    {"step": "command", "text": "::tele 2939 3152 0", "expectMessage": "Teleported to 2939, 3152, 0"},
+    {"step": "npcOption", "npc": "Luthas", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[musa_point.filled]"},
+    {"step": "continueDialogue", "comment": "[musa_point.well_done]"},
+    {"step": "chooseOption", "text": "[musa_point.on_my_way]"},
+    {"step": "continueDialogue", "comment": "[musa_point.on_my_way_say]"},
+    {"step": "assertInventory", "item": "Coins", "count": 30},
+
+    {"step": "command", "text": "::tele 2926 3145 0", "expectMessage": "Teleported to 2926, 3145, 0", "comment": "Zembo's bar"},
+    {"step": "npcOption", "npc": "Zembo", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[musa_point.zembo_hello]"},
+    {"step": "chooseOption", "text": "[musa_point.zembo_yes]"},
+    {"step": "assertInterface", "interfaceId": 300, "timeoutMs": 5000, "comment": "Karamja Wines, Spirits, and Beers."},
+
+    {"step": "command", "text": "::varp banana_crate 0"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

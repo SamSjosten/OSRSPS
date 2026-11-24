@@ -328,6 +328,7 @@ class HeadlessSlayerRewardsTest {
             SlayerMaster.VANNAKA to "slayer_master_3", SlayerMaster.MAZCHNA to "slayer_master_2_mazchna",
             SlayerMaster.CHAELDAR to "slayer_master_4", SlayerMaster.STEVE to "slayer_master_steve",
             SlayerMaster.KURADAL to "slayer_master_5_kuradal",
+            SlayerMaster.KRYSTILIA to "slayer_master_7",
         )
     }
 }

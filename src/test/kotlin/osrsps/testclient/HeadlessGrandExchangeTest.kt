@@ -9,6 +9,9 @@ import osrsps.game.ItemPrices
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.shop.ShopStock
+import osrsps.game.shop.ShopType
+import osrsps.game.shop.ShopTypes
 import osrsps.map.CollisionMap
 
 /**
@@ -105,6 +108,73 @@ class HeadlessGrandExchangeTest {
         }
     }
 
+    @Test
+    fun `an item an NPC sells below its guide price sells to the market for no more than the NPC's price`(@TempDir dir: Path) {
+        // Exploit review 44, R44A-3. Beer is the Sheared Ram's and the Blue Moon's at 2 coins (their own registrations,
+        // made as the world starts); the logs are this test's shop's at 5. Their guides are 72 and 40. Rope is free from
+        // Ned (exploit review 45, R45A-1), so the market never buys it.
+        val objs = ObjTypes.of(
+            ObjType(COINS, "Coins", stackable = true, tradeable = true),
+            ObjType(BEER, "Beer", tradeable = true, internalName = "beer"),
+            ObjType(LOGS, "Logs", tradeable = true, internalName = "logs"),
+            ObjType(ROPE, "Rope", tradeable = true, internalName = "rope"),
+        )
+        val prices = ItemPrices(
+            mapOf(BEER to ItemPrices.Entry("Beer", 72, 2_000), LOGS to ItemPrices.Entry("Logs", 40, 10), ROPE to ItemPrices.Entry("Rope", 16, 1_000)),
+        )
+        val shops = ShopTypes(listOf(ShopType("test", "Test shop", 1, 1, false, 1000, 0, 0, listOf(ShopStock(objs[LOGS]!!, 5, 100, fixedPrice = 5)), emptyList())))
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
+                objTypes = objs, itemPrices = prices, shopTypes = shops, cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $BEER 10")
+                client.awaitHeld(BEER, 10)
+                // Under the guide's 72 but over the bartenders' 2: it waits.
+                client.commandReply("geoffer sell beer 10 50") { it.startsWith("Placed") }
+                client.awaitTicks(5)
+                assertEquals(
+                    "Slot 0: sell 10 x Beer ($BEER) at 50, 0/10 done for 0, to collect 0 items and 0 coins",
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") },
+                )
+                client.commandReply("geoffer abort 0") { it.startsWith("Aborted") }
+                client.commandReply("geoffer collect 0") { it.startsWith("Collected") }
+                client.awaitHeld(BEER, 10)
+
+                // At 2 it fills at 2, not 72: 20 coins for the ten.
+                client.commandReply("geoffer sell beer 10 2") { it.startsWith("Placed") }
+                client.await("the beer to sell") {
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") }.takeIf { "10/10 done for 20," in it }
+                }
+                client.commandReply("geoffer collect 0") { it.startsWith("Collected") }
+                client.awaitHeld(COINS, 20)
+
+                // The shop's logs at its 5, not the guide's 40.
+                client.command("item $LOGS 4")
+                client.awaitHeld(LOGS, 4)
+                client.commandReply("geoffer sell logs 4 1") { it.startsWith("Placed") }
+                client.await("the logs to sell") {
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") }.takeIf { "4/4 done for 20," in it }
+                }
+                client.commandReply("geoffer collect 0") { it.startsWith("Collected") }
+                client.awaitHeld(COINS, 40)
+
+                // Ned's rope, free with the yak hair talk: not even 1 coin fills.
+                client.command("item $ROPE 1")
+                client.awaitHeld(ROPE, 1)
+                client.commandReply("geoffer sell rope 1 1") { it.startsWith("Placed") }
+                client.awaitTicks(5)
+                assertEquals(
+                    "Slot 0: sell 1 x Rope ($ROPE) at 1, 0/1 done for 0, to collect 0 items and 0 coins",
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") },
+                )
+            }
+        }
+    }
+
     /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
     private fun TestServer.loginAgain(name: String): HeadlessClient {
         repeat(50) {
@@ -118,5 +188,7 @@ class HeadlessGrandExchangeTest {
         const val COINS = 995
         const val FEATHER = 314
         const val LOGS = 1511
+        const val BEER = 1917
+        const val ROPE = 954
     }
 }

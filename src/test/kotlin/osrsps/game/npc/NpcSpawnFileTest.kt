@@ -375,8 +375,8 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still`() {
-        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi")
+    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still, and Fluffs upstairs`() {
+        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi", 3497 to "gertrudescat")
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumber-yard.json"), types, "lumber-yard.json")
         assertEquals(emptyList(), result.unknown)
@@ -386,7 +386,9 @@ class NpcSpawnFileTest {
         assertEquals(3308 to 3452, spawns.single { it.type.id == 2010 }.let { it.x to it.z })
         // The crates are inside the yard's fence.
         assertTrue(spawns.filter { it.type.id == 3499 }.all { it.x in 3295..3320 && it.z in 3495..3520 })
-        assertTrue(spawns.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
+        val fluffs = spawns.single { it.type.id == 3497 }
+        assertEquals(Triple(3306, 3512, 1), Triple(fluffs.x, fluffs.z, fluffs.level))
+        assertTrue(spawns.filter { it !== fluffs }.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
     }
 
     @Test
@@ -603,7 +605,7 @@ class NpcSpawnFileTest {
             2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
             3254 to "guard1", 4808 to "hundred_dave_mum", 1325 to "canoeing_hari", 13644 to "ikov_lucien2", 4806 to "hundred_evil_dave",
             4809 to "hundred_dave_hellrat", 6793 to "hundred_dave_bigrat",
-            2579 to "monk", 2577 to "abbot_langley", 2578 to "brother_jered", 1397 to "brother_althric",
+            2579 to "monk", 2577 to "abbot_langley", 2578 to "brother_jered", 1397 to "brother_althric", 7663 to "slayer_master_7",
         ) + (4167..4176).associateWith { "surok_outlaw${it - 4166}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
@@ -642,6 +644,8 @@ class NpcSpawnFileTest {
         assertEquals(listOf(0, 0, 0, 0, 1, 1), monastery.filter { it.type.id == 2579 }.map { it.level }.sorted())
         assertEquals(1, monastery.single { it.type.id == 2578 }.level)
         assertTrue(monastery.all { it.x in 3040..3062 && it.z in 3478..3510 })
+        // Krystilia in the jail cell north-east of the bank.
+        assertEquals(listOf(3109 to 3516), spawns.filter { it.type.id == 7663 }.map { it.x to it.z })
         // The rest south of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
         assertTrue((spawns - basement.toSet() - monastery.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
@@ -691,6 +695,7 @@ class NpcSpawnFileTest {
             1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
             4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
             2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1", 512 to "young_dark_wizard",
+            5832 to "martin_the_master_farmer", 277 to "pmod_town_crier_draynor",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -723,6 +728,9 @@ class NpcSpawnFileTest {
         assertEquals(Tile(3080, 3250), spawns.single { it.type.id == 5730 }.let { Tile(it.x, it.z) })
         // The two level 7 dark wizards south of the bank.
         assertEquals(listOf(3236, 3238), spawns.filter { it.type.id == 512 }.map { it.z }.sorted())
+        // Martin the Master Gardener by the pig pen, and the Town Crier in the market.
+        assertEquals(Tile(3078, 3258), spawns.single { it.type.id == 5832 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3079, 3249), spawns.single { it.type.id == 277 }.let { Tile(it.x, it.z) })
     }
 
     @Test
@@ -929,7 +937,7 @@ class NpcSpawnFileTest {
             1906 to "vm_archaeologist4_npc_dummy", 1907 to "vm_archaeologist5_npc_dummy", 1908 to "vm_archaeologist6_npc_dummy",
             1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
             1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
-            1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
+            1921 to "vm_school_girl_blonde", 8491 to "vm_collector", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
             6002 to "vm_natural_historian_north", 6003 to "vm_natural_historian_south", 6004 to "vm_natural_historian_east",
             6005 to "vm_natural_historian_west", 6019 to "vm_advent_01", 6020 to "vm_advent_02",
             6007 to "vm_natural_history_display_case_leech", 6008 to "vm_natural_history_display_case_seaslugs",
@@ -1015,6 +1023,9 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
+        // Collection log step 3: The Collector by the museum's stairs (mejrs).
+        val collector = spawns.single { it.type.id == 8491 }
+        assertEquals(listOf(3265, 3455, 0, 0), listOf(collector.x, collector.z, collector.level, collector.wander))
         // Kudos step 1: the cleaning area's six archaeologists, standing at their tables.
         val archaeologists = spawns.filter { it.type.id in 1903..1908 }
         assertEquals((1903..1908).toList(), archaeologists.map { it.type.id }.sorted())
@@ -1050,7 +1061,7 @@ class NpcSpawnFileTest {
         // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
         val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
         assertEquals(4, still.size)
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still - collector).all { it.wander > 0 })
     }
 
     @Test

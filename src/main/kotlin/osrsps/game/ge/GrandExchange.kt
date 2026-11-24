@@ -5,6 +5,9 @@ import osrsps.game.ItemPrices
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
+import osrsps.game.shop.Shop
+import osrsps.game.shop.ShopScreen
+import osrsps.game.shop.ShopTypes
 
 /** Why an offer couldn't be placed, or [PLACED]. */
 enum class PlaceResult { PLACED, NO_FREE_SLOT, NOT_TRADEABLE, NOT_ON_EXCHANGE, BAD_AMOUNT, TOO_EXPENSIVE, NOT_ENOUGH_COINS, NOT_ENOUGH_ITEMS, NO_ROOM_FOR_CHANGE }
@@ -20,7 +23,8 @@ enum class PlaceResult { PLACED, NO_FREE_SLOT, NOT_TRADEABLE, NOT_ON_EXCHANGE, B
  * the limit's window has passed. A sell fills only as far as the same limit lets the player sell in its own window,
  * which live doesn't have: there real buyers run out, and here an endless buyer at the guide price would turn anything
  * a shop sells below it into coins (round 6 exploit review, 1 Nov 2026); an item with no limit in the snapshot gets
- * [NO_LIMIT_SELLS] instead. An item with no guide price never fills. Offers fill only while their owner is logged
+ * [NO_LIMIT_SELLS] instead. An item an NPC sells below its guide price sells to the bot market for no more than that
+ * NPC's price ([npcSells]), so buying from the NPC and selling here makes nothing. An item with no guide price never fills. Offers fill only while their owner is logged
  * in (inferred: on live they fill while logged out, which here would show the same on the first tick after login).
  */
 class GrandExchange(
@@ -35,6 +39,35 @@ class GrandExchange(
 ) {
     /** Whether the bot market fills offers; `::gemarket off` stops it, so tests can hold offers open. */
     var marketOpen: Boolean = true
+
+    /** The least an NPC sells each item for, by id ([npcSells]). */
+    private val npcPrices = HashMap<Int, Long>()
+
+    /**
+     * Notes that an NPC sells [item] for [price] coins, through a shop or a dialogue. The bot market then pays no more
+     * than the lowest such price for it, or anything bought from an NPC below its guide price would sell straight back
+     * at the guide (exploit review 44, R44A-3: the Sheared Ram's beer at 2 coins against a guide of 72, about 640k
+     * coins an account every four hours). Live has no such buyer, so no live rule to follow.
+     */
+    fun npcSells(item: Int, price: Long) {
+        require(price >= 0) { "Bad NPC price $price for $item" }
+        npcPrices.merge(item, price, ::minOf)
+    }
+
+    /** Every coin shop's price for each item it starts with in stock, at that stock ([npcSells]). */
+    fun npcSells(shops: ShopTypes) {
+        for (shop in shops.all) {
+            if (shop.currency != ShopScreen.COINS) continue
+            for (stock in shop.stock) {
+                if (stock.count <= 0) continue
+                val price = shop.fixedPrice(stock.type.id) ?: maxOf(1, Shop.price(stock.type.cost, shop.sellAt, shop.changePer, 0))
+                npcSells(stock.type.id, price.toLong())
+            }
+        }
+    }
+
+    /** What the bot market pays for one [type] with guide price [guide]: the guide, or less where an NPC sells it for less. */
+    fun botSellPrice(type: ObjType, guide: Long): Long = npcPrices[type.id]?.let { minOf(it, guide) } ?: guide
 
     /**
      * Places a buy offer for [quantity] of [item] at [price] each in [slot], the first free one unless given, taking the coins now: coins
@@ -174,7 +207,10 @@ class GrandExchange(
             val guide = prices().price(type) ?: continue
             when (offer.type) {
                 OfferType.BUY -> if (offer.price >= guide) fill(player, slot, minOf(offer.remaining, limitLeft(player, type)), guide)
-                OfferType.SELL -> if (offer.price <= guide) fill(player, slot, minOf(offer.remaining, sellLimitLeft(player, type)), guide)
+                OfferType.SELL -> {
+                    val pays = botSellPrice(type, guide)
+                    if (offer.price <= pays) fill(player, slot, minOf(offer.remaining, sellLimitLeft(player, type)), pays)
+                }
             }
         }
     }

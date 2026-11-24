@@ -1,0 +1,37 @@
+{
+ "name": "Treasure Trails step TT7: the medium cryptic in the Wizards' Tower basement wants the key a wizard drops; locked without it, the next clue with it (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::god on", "comment": "the wizards fight back"},
+
+  {"step": "command", "text": "::clue medium cryptic:741", "expectMessage": "Clue (medium): cryptic:741", "comment": "the drawers in the Wizards' Tower basement (3116, 9562), key 7302 from a wizard"},
+  {"step": "command", "text": "::tele 3117 9562 0", "comment": "east of the drawers, where they are opened from"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3116, "y": 9562},
+  {"step": "assertMessage", "contains": "[trail.locked]"},
+
+  {"step": "command", "text": "::tele 3109 3164 0", "comment": "the tower's ground floor, where the key's wizards are"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::kill wizard", "expectMessage": "Killed Wizard"},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "takeItem", "item": "Key (medium)"},
+  {"step": "assertInventory", "item": "Key (medium)", "count": 1},
+
+  {"step": "command", "text": "::tele 3117 9562 0"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3116, "y": 9562},
+  {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "another_clue, or casket on a one-step trail"},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "item": "Key (medium)", "count": 0},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -62,6 +62,7 @@ object SlayerMasterLines : Lines("slayer_master", "Transcript:Vannaka") {
 object AyaLines : Lines("aya", "Transcript:Aya") {
     val NOT_MINE = line("not_mine", "with another master's task that isn't on her list: she offers a new one")
     val RESET_STREAK = line("reset_streak", "the warning that a new task resets the standard streak but not the Wilderness one", "streak", "wilderness")
+    val RESET_WILDERNESS_STREAK = line("reset_wilderness_streak", "for a Krystilia task instead: the warning that a new task resets the Wilderness streak (not on the Wiki: needs a recording)", "streak", "wilderness")
     val YES_PLEASE = line("yes_please", "that menu, option 1")
     val NO_THANKS = line("no_thanks", "that menu, option 2, which the player then says")
     val ABOUT_TURAEL = line("about_turael", "first menu after While Guthix Sleeps, which the player then says")
@@ -94,6 +95,34 @@ object KuradalLines : Lines("kuradal", "Transcript:Kuradal") {
     val SKILLCAPE = line("skillcape", "first menu below 99 Slayer, which the player then says")
     val SKILLCAPE_ABOUT = line("skillcape_about", "Kuradal on the Slayer cape")
     val MORE_TRAINING = line("more_training", "then: more training needed")
+}
+
+/** Krystilia's own lines (the Wiki's Transcript:Krystilia, read 2026-11-19). */
+object KrystiliaLines : Lines("krystilia", "Transcript:Krystilia") {
+    val GREETING = line("greeting", "Talk-to: her first line")
+    val WARN_WILDERNESS = line("warn_wilderness", "before her first task: her tasks are done in the Wilderness, only kills there count")
+    val WARN_COMBAT = line("warn_combat", "then: she checks no combat levels")
+    val WARN_AYA = line("warn_aya", "then: go to Aya for something else")
+    val WARN_LOOT = line("warn_loot", "then: unusual loot, and does the player want a task")
+    val UNDERSTAND = line("understand", "that menu, option 1: yes, killing it in the Wilderness (said by nobody)")
+    val NO_TASKS = line("no_tasks", "that menu, option 2, which the player then says")
+    val TIP_WILDERNESS = line("tip_wilderness", "after a task's tip: it has to be done in the Wilderness")
+    val STILL_SLAYING = line("still_slaying", "with a task of hers already: the task and how many are left", "task", "amount")
+    val CHECK_OFF = line("check_off", "the difficulty, with the combat check off: every master may assign any task")
+    val CHECK_ON = line("check_on", "the difficulty, with the check on: the others check, she doesn't (the first box)")
+    val CHECK_ON_2 = line("check_on_2", "then the second box: provided the player can get to it")
+    val HAT = line("hat", "first menu, option 4 (the player then says it with \"the hat\")")
+    val HAT_SAID = line("hat_said", "option 4 as the player says it")
+    val MADE_IT = line("made_it", "she made the hat herself")
+    val ARTS = line("arts", "the player: arts and crafts?")
+    val WITCHCRAFT = line("witchcraft", "the craft in witchcraft: comics and stuffed toys")
+    val SPARE_TIME = line("spare_time", "the player: masters have spare time")
+    val TOO_MUCH = line("too_much", "too much spare time, running out of room")
+    val GIVE_AWAY = line("give_away", "the player: giving them away?")
+    val CHINCHOMPAS = line("chinchompas", "the stuffed chinchompas and the guards")
+    val LESS_DANGEROUS = line("less_dangerous", "the player: less dangerous crafts?")
+    val HATS_TOO = line("hats_too", "she makes hats too")
+    val PERFECT = line("perfect", "the player's last line")
 }
 
 /** The tip a master gives for each task (the Wiki's Transcript:Slayer task tips), by the cache's task id. */
@@ -165,7 +194,7 @@ class SlayerMasters(private val world: World) {
         /** The masters placed so far; Vannaka stood waiting in Edgeville Dungeon. */
         val BUILT = listOf(
             SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.VANNAKA, SlayerMaster.MAZCHNA, SlayerMaster.CHAELDAR,
-            SlayerMaster.STEVE, SlayerMaster.KURADAL,
+            SlayerMaster.STEVE, SlayerMaster.KURADAL, SlayerMaster.KRYSTILIA,
         )
 
         /** The masters whose transcripts end at the new task, with no tip offered. */
@@ -188,13 +217,14 @@ class SlayerMasters(private val world: World) {
         }
     }
 
-    /** The master's own option in Talk-to's menu, before "Er... Nothing...", if they have one. */
-    private fun Dialogue.ownOption(master: SlayerMaster): Line? = when (master) {
-        SlayerMaster.AYA -> AyaLines.ABOUT_TURAEL
-        SlayerMaster.MAZCHNA -> MazchnaLines.ABOUT_LUCIEN
-        SlayerMaster.STEVE -> SteveLines.NEW_MASTER
-        SlayerMaster.KURADAL -> KuradalLines.SKILLCAPE.takeIf { player.skills.baseLevel(Skill.SLAYER) < 99 }
-        else -> null
+    /** The master's own options in Talk-to's menu, before the Nothing option (`NOTHING`), if they have any. */
+    private fun Dialogue.ownOptions(master: SlayerMaster): List<Line> = when (master) {
+        SlayerMaster.AYA -> listOf(AyaLines.ABOUT_TURAEL)
+        SlayerMaster.MAZCHNA -> listOf(MazchnaLines.ABOUT_LUCIEN)
+        SlayerMaster.STEVE -> listOf(SteveLines.NEW_MASTER)
+        SlayerMaster.KURADAL -> listOfNotNull(KuradalLines.SKILLCAPE.takeIf { player.skills.baseLevel(Skill.SLAYER) < 99 })
+        SlayerMaster.KRYSTILIA -> listOf(KrystiliaRespawnLines.APART, KrystiliaLines.HAT)
+        else -> emptyList()
     }
 
     /** The Slayer Equipment shop, which every master runs (OSRS Wiki, Slayer Equipment); Trade opens it through [registerShops]. */
@@ -207,8 +237,10 @@ class SlayerMasters(private val world: World) {
      * rewards screen or the shop once the talk is over, else 0.
      */
     private suspend fun Dialogue.talk(master: SlayerMaster): Int = with(SlayerMasterLines) {
-        chatNpc(ChatAnim.NEUTRAL, GREETING)
-        val options = listOfNotNull(NEED_TASK, REWARDS, DIFFICULTY, ownOption(master), NOTHING)
+        chatNpc(ChatAnim.NEUTRAL, if (master == SlayerMaster.KRYSTILIA) KrystiliaLines.GREETING else GREETING)
+        // Krystilia's six options don't fit a chat menu's five: hers leaves out the Nothing option (guessed: live's
+        // layout isn't on the Wiki; Escape closes the menu all the same).
+        val options = (listOf(NEED_TASK, REWARDS, DIFFICULTY) + ownOptions(master) + NOTHING).let { if (it.size > 5) it - NOTHING else it }
         when (options[choice(*options.toTypedArray()) - 1]) {
             NEED_TASK -> {
                 chatPlayer(ChatAnim.NEUTRAL, NEED_TASK)
@@ -225,12 +257,14 @@ class SlayerMasters(private val world: World) {
             }
             DIFFICULTY -> {
                 chatPlayer(ChatAnim.NEUTRAL, DIFFICULTY)
-                difficulty()
+                if (master == SlayerMaster.KRYSTILIA) krystiliaDifficulty() else difficulty()
             }
             AyaLines.ABOUT_TURAEL -> aboutTurael()
             MazchnaLines.ABOUT_LUCIEN -> aboutLucien()
             SteveLines.NEW_MASTER -> aboutNieve()
             KuradalLines.SKILLCAPE -> aboutSkillcape()
+            KrystiliaLines.HAT -> aboutHat()
+            KrystiliaRespawnLines.APART -> with(EdgevilleRespawn) { talk(world) }
             else -> chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         }
         0
@@ -265,15 +299,37 @@ class SlayerMasters(private val world: World) {
         chatNpc(ChatAnim.NEUTRAL, MORE_TRAINING)
     }
 
+    private suspend fun Dialogue.aboutHat(): Unit = with(KrystiliaLines) {
+        chatPlayer(ChatAnim.HAPPY, HAT_SAID)
+        chatNpc(ChatAnim.HAPPY, MADE_IT)
+        chatPlayer(ChatAnim.QUIZ, ARTS)
+        chatNpc(ChatAnim.HAPPY, WITCHCRAFT)
+        chatPlayer(ChatAnim.HAPPY, SPARE_TIME)
+        chatNpc(ChatAnim.NEUTRAL, TOO_MUCH)
+        chatPlayer(ChatAnim.QUIZ, GIVE_AWAY)
+        chatNpc(ChatAnim.SAD, CHINCHOMPAS)
+        chatPlayer(ChatAnim.QUIZ, LESS_DANGEROUS)
+        chatNpc(ChatAnim.NEUTRAL, HATS_TOO)
+        chatPlayer(ChatAnim.HAPPY, PERFECT)
+    }
+
+    /** Krystilia's answer on difficulty: she checks no combat levels herself, so she offers no switch. */
+    private suspend fun Dialogue.krystiliaDifficulty(): Unit = with(KrystiliaLines) {
+        if (!slayer.combatChecked(player)) return chatNpc(ChatAnim.NEUTRAL, CHECK_OFF)
+        chatNpc(ChatAnim.NEUTRAL, CHECK_ON)
+        chatNpc(ChatAnim.NEUTRAL, CHECK_ON_2)
+    }
+
     /** "I need another assignment", or the Assignment option. */
     private suspend fun Dialogue.assignment(master: SlayerMaster): Unit = with(SlayerMasterLines) {
         if (!slayer.meets(player, master)) return chatNpc(ChatAnim.NEUTRAL, TOO_WEAK)
         val task = slayer.task(player)
         if (task != null) {
             if (!slayer.fit(player, task, combat = false)) return offerCancel(task.nameLower)
-            val line = when (master) {
-                SlayerMaster.AYA, SlayerMaster.SPRIA -> STILL_HUNTING
-                SlayerMaster.MAZCHNA -> MazchnaLines.STILL_HUNTING
+            val line = when {
+                master == SlayerMaster.AYA || master == SlayerMaster.SPRIA -> STILL_HUNTING
+                master == SlayerMaster.MAZCHNA -> MazchnaLines.STILL_HUNTING
+                master == SlayerMaster.KRYSTILIA && slayer.master(player) == SlayerMaster.KRYSTILIA -> KrystiliaLines.STILL_SLAYING
                 else -> STILL_HUNTING_COME_BACK
             }
             chatNpc(ChatAnim.NEUTRAL, line, "task" to task.nameLower, "amount" to slayer.remaining(player))
@@ -282,7 +338,23 @@ class SlayerMasters(private val world: World) {
             return
         }
         if (!suggestHigher(master)) return
+        if (master == SlayerMaster.KRYSTILIA && !krystiliaWarning()) return
         newTask(master)
+    }
+
+    /**
+     * Krystilia's warning before a player's first task from her, and her yes or no; false for no. Inferred: a first task
+     * is while her streak is still 0, as live's condition isn't on the Wiki.
+     */
+    private suspend fun Dialogue.krystiliaWarning(): Boolean = with(KrystiliaLines) {
+        if (slayer.wildernessStreak(player) > 0) return true
+        chatNpc(ChatAnim.NEUTRAL, WARN_WILDERNESS)
+        chatNpc(ChatAnim.NEUTRAL, WARN_COMBAT)
+        chatNpc(ChatAnim.NEUTRAL, WARN_AYA)
+        chatNpc(ChatAnim.NEUTRAL, WARN_LOOT)
+        if (choice(UNDERSTAND, NO_TASKS) == 1) return true
+        chatPlayer(ChatAnim.NEUTRAL, NO_TASKS)
+        false
     }
 
     /** A task the player is no longer fit for: the master offers to cancel it, which keeps the streaks. */
@@ -323,14 +395,15 @@ class SlayerMasters(private val world: World) {
         val (entry, amount) = slayer.roll(player, master) ?: return chatNpc(ChatAnim.NEUTRAL, NOTHING_TO_GIVE)
         slayer.assign(player, master, entry.task, amount)
         chatNpc(ChatAnim.HAPPY, NEW_TASK, "amount" to amount, "task" to entry.task.nameLower)
-        if (master !in NO_TIPS) tips(entry.task.id)
+        if (master !in NO_TIPS) tips(entry.task.id, master)
     }
 
     /** "Got any tips for me?" or "Okay, great!". */
-    private suspend fun Dialogue.tips(task: Int): Unit = with(SlayerMasterLines) {
+    private suspend fun Dialogue.tips(task: Int, master: SlayerMaster): Unit = with(SlayerMasterLines) {
         if (choice(TIPS, OKAY_GREAT) == 1) {
             chatPlayer(ChatAnim.QUIZ, TIPS)
             SlayerTipLines.BY_TASK[task]?.let { chatNpc(ChatAnim.NEUTRAL, it) }
+            if (master == SlayerMaster.KRYSTILIA) chatNpc(ChatAnim.NEUTRAL, KrystiliaLines.TIP_WILDERNESS)
             chatPlayer(ChatAnim.HAPPY, TIPS_THANKS)
         } else {
             chatPlayer(ChatAnim.HAPPY, OKAY_GREAT)
@@ -338,16 +411,21 @@ class SlayerMasters(private val world: World) {
         }
     }
 
-    /** Aya's offer to swap another master's task, which resets the standard streak. */
+    /**
+     * Aya's offer to swap another master's task, which resets its streak: the standard one, or for a Krystilia task
+     * the Wilderness one (OSRS Wiki, Krystilia: going to Turael to remove her task "will remove the Wilderness task
+     * streak"; inferred that it leaves the standard one).
+     */
     private suspend fun Dialogue.swap(): Unit = with(AyaLines) {
         chatNpc(ChatAnim.NEUTRAL, NOT_MINE)
-        chatNpc(ChatAnim.NEUTRAL, RESET_STREAK, "streak" to slayer.streak(player), "wilderness" to slayer.wildernessStreak(player))
+        val warning = if (slayer.master(player) == SlayerMaster.KRYSTILIA) RESET_WILDERNESS_STREAK else RESET_STREAK
+        chatNpc(ChatAnim.NEUTRAL, warning, "streak" to slayer.streak(player), "wilderness" to slayer.wildernessStreak(player))
         if (choice(YES_PLEASE, NO_THANKS) != 1) {
             chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
             return
         }
         val (entry, amount) = slayer.roll(player, SlayerMaster.AYA) ?: return chatNpc(ChatAnim.NEUTRAL, SlayerMasterLines.NOTHING_TO_GIVE)
-        slayer.setStreak(player, 0)
+        slayer.setStreakOf(player, slayer.master(player), 0)
         slayer.assign(player, SlayerMaster.AYA, entry.task, amount)
         chatNpc(ChatAnim.HAPPY, SlayerMasterLines.NEW_TASK, "amount" to amount, "task" to entry.task.nameLower)
     }

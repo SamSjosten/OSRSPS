@@ -194,9 +194,11 @@ class HeadlessFarmingHopsBushTest {
                 client.bushOp(1)
                 client.seen("[farming.berries_gone]", 120_000)
                 client.awaitPatch(10)
-                val berries = client.count(REDBERRIES)
+                // The berry's message can come a tick before the pack shows it, so the count is read once it matches the XP.
+                val berries = client.await("berries matching the XP (${client.count(REDBERRIES)}, ${client.xp()})") {
+                    client.count(REDBERRIES).takeIf { (base + 115 + 640 + it * 45) / 10 == client.xp() }
+                }
                 assertTrue(berries >= 4, "at least four berries: $berries")
-                client.awaitXp((base + 115 + 640 + berries * 45) / 10)
                 assertEquals(berries, client.messages().count { it.text == "[farming.berry_picked produce=redberries]" })
 
                 // A berry back at the next 20-minute tick, picked.
@@ -205,9 +207,10 @@ class HeadlessFarmingHopsBushTest {
                 client.bushOp(1)
                 client.await("the bush bare again") { if (client.messages().count { it.text == "[farming.berries_gone]" } == 2) Unit else null }
                 client.awaitPatch(10)
-                val all = client.count(REDBERRIES)
+                val all = client.await("berries matching the XP (${client.count(REDBERRIES)}, ${client.xp()})") {
+                    client.count(REDBERRIES).takeIf { (base + 115 + 640 + it * 45) / 10 == client.xp() }
+                }
                 assertTrue(all > berries, "the berry grown back: $all")
-                client.awaitXp((base + 115 + 640 + all * 45) / 10)
 
                 // Bare, op1 is Clear: dug up with the spade, for no XP.
                 val before = client.xp()

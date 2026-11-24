@@ -61,7 +61,17 @@ internal fun resetScenario(world: World, player: Player): String {
     // A stopped Hunter run's traps come down too, so none stands for the next script.
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
+    // A Fight Cave or Inferno run of the setup's ends first, keeping the run saved from before: ended later, by the
+    // process seeing them leave, it would forget the run restoreTo just put back (exploit review R45B-5).
+    world.fightCaves.endRun(player)
+    world.inferno.endRun(player)
+    // The account's random event timer and its ::randomevent off stay as they are now, as starting the setup kept
+    // them: the snapshot's would wind the timer back, so an event could be had per setup (exploit review R50A-1). An
+    // event NPC out goes, so none crosses into the account.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
+    world.randomEvents.end(player)
     before.restoreTo(player)
+    for ((name, value) in kept) player.charges[name] = value
     // A trail being followed ends, and the restored varbits show none of its footprints.
     world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
@@ -121,6 +131,9 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
     // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
     player.archiveChest.clear()
+    // Nor Treasure Trails: STASH contents, casket counts, scroll cases and trails are in the snapshot, which puts them
+    // back, so a STASH emptied during the scenario would come back full (exploit review 49, R49A-1 and R49A-3).
+    player.trails.replaceWith(osrsps.game.trail.TrailProgress())
     // The lobby's Loot Wheelbarrow reads its varbit, which goes with the chest (Codex review on #783).
     world.archiveChestWindow.showClaimable(player)
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
@@ -152,7 +165,12 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
     // A scenario's charged items start empty, and its essence pouches too.
+    // The account's random event timer and its ::randomevent off aren't the scenario's to reset.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
+    // An event NPC out goes too, so none from the account pays into the setup (R50A-1).
+    world.randomEvents.end(player)
     player.charges.clear()
+    for ((name, value) in kept) player.charges[name] = value
     world.essencePouches.emptyAll(player)
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
@@ -180,6 +198,11 @@ private fun startMinigame(world: World, player: Player, scenario: Scenario, mini
             val rotation = minigame.rotation ?: world.fightCaves.randomRotation()
             if (rotation !in 1..FightCaveWaves.ROTATIONS) refuse("Scenario ${scenario.name}: the fight cave has no rotation $rotation")
             if (!world.fightCaves.start(player, wave, rotation)) refuse("Scenario ${scenario.name}: no room for another fight cave")
+        }
+        Scenario.ScenarioMinigame.INFERNO -> {
+            val wave = minigame.wave.takeIf { it in 1..osrsps.game.tzhaar.InfernoWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the Inferno has no wave ${minigame.wave}")
+            world.inferno.sacrifice(player)
+            if (!world.inferno.start(player, wave, fresh = true)) refuse("Scenario ${scenario.name}: no room for another Inferno")
         }
     }
 }

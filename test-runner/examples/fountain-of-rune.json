@@ -13,7 +13,6 @@
     {"step": "assertMessage", "contains": "fountain_of_rune.recharge", "timeoutMs": 10000, "comment": "or fountain_of_rune.eternal, 1 in 25,000"},
     {"step": "assertInventory", "item": "Amulet of glory(6)", "count": 1},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

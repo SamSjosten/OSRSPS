@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.NpcStat
@@ -49,6 +50,9 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
+            "thzaar_unarmed_attack" to 2609, "thzaar_armed_attack" to 2610, "thzaar_magic_attack" to 2613,
+            "thzaar_parry" to 2605, "thzaar_staff_parry" to 2606, "thzaar_death" to 2607, "thzaar_staff_death" to 2608,
             "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "fear_attack" to 3812, "fear_parry" to 3811, "fear_death" to 3813,
@@ -63,7 +67,10 @@ class NpcCombatTest {
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
             "small_scorpion_update_attack" to 6261, "small_scorpion_update_defend" to 6259, "small_scorpion_update_death" to 6260,
-            "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017,
+            "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017, "npc_vetion_attack_magic_01" to 9969, "npc_vetion_attack_magic_02" to 9970, "npc_vetion_defend_parry_01" to 9973, "npc_vetion_defend_parry_02" to 9974, "npc_vetion_death_01" to 9980, "npc_vetion_death_02" to 9981, "dog_update_skeleton_hellhound_attack" to 6579, "dog_update_skeleton_hellhound_defend" to 6578,
+            "npc_rat_boss_attack_melee_01" to 10692, "npc_rat_boss_death_01" to 10705,
+            "npc_venenatis_melee_01" to 9991, "npc_venenatis_death_01" to 9992, "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
+            "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929, "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -113,6 +120,12 @@ class NpcCombatTest {
             "lizard_cleric_attack" to 2637, "lizard_cleric_defend" to 2635, "lizard_cleric_death" to 2638,
             "igniferum_ranged" to 2647, "igniferum_defend" to 2645, "igniferum_death" to 2646,
             "lordmagmus_fire" to 2656, "lordmagmus_defend" to 2653, "lordmagmus_death" to 2654,
+            "jalnib_attack" to 7574, "jalnib_defend" to 7575, "jalnib_death" to 7576, "jalmejrah_attack" to 7578, "jalmejrah_defend" to 7579, "jalmejrah_death" to 7580,
+            "jalak_attack_magic" to 7581, "jalak_attack_ranged" to 7583, "jalak_attack_melee" to 7582, "jalak_defend" to 7585, "jalak_death" to 7584,
+            "jalimkot_attack" to 7597, "jalimkot_defend" to 7598, "jalimkot_death" to 7599, "jalxil_attack_ranged" to 7605, "jalxil_defend" to 7607, "jalxil_death" to 7606,
+            "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
+            "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
+            "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
         ),
     )
 
@@ -994,6 +1007,34 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Scurrius swipes for 13 every 4 ticks in both lairs, back after 30, the public one with the bigger XP bonus`() {
+        val ratTypes = NpcTypes.of(
+            NpcType(7221, "Scurrius", internalName = "rat_boss_normal", stats = NpcStats(attack = 300, strength = 100, defence = 100, hitpoints = 1500)),
+            NpcType(7222, "Scurrius", internalName = "rat_boss_instance", stats = NpcStats(attack = 300, strength = 100, defence = 60, hitpoints = 500)),
+        )
+        val combat = NpcCombat.load(ratTypes, seqs)
+        for (name in listOf("rat_boss_normal", "rat_boss_instance")) {
+            val def = combat[ratTypes.find(name)!!]!!
+            assertEquals(CombatMath.npcMaxHit(100, def.strengthBonus), def.maxHit, name)
+            assertEquals(listOf(4, 13, 30, 5), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.deathTicks), name)
+            assertEquals(NpcCombatAnims(10692, -1, 10705), def.anims, name)
+            assertNotNull(def.aggression, name)
+        }
+        assertEquals(425, combat[ratTypes.find("rat_boss_normal")!!]!!.xpBonusTenths)
+        assertEquals(200, combat[ratTypes.find("rat_boss_instance")!!]!!.xpBonusTenths)
+    }
+
+    @Test
+    fun `Scurrius's giant rats slash for 4, and a quarter of it comes through Protect from Melee`() {
+        val ratTypes = NpcTypes.of(NpcType(7223, "Giant rat", internalName = "rat_boss_giant_rat", stats = NpcStats(attack = 100, strength = 25, defence = 10, hitpoints = 15)))
+        val def = NpcCombat.load(ratTypes, seqs)[ratTypes.find("rat_boss_giant_rat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 4, 25), listOf(def.attackSpeed, def.maxHit, def.prayerPasses))
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), def.anims)
+        assertNotNull(def.aggression)
+    }
+
+    @Test
     fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
         // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
         val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)), NpcType(2834, "Giant bat", internalName = "bat"))
@@ -1037,6 +1078,24 @@ class NpcCombatTest {
         assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
         assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
         assertTrue(def.aggression != null)
+    }
+
+    @Test
+    fun `Musa Point's snakes stab for 1 at speed 4, aggressive, back after 30 ticks, and its two men fight as men`() {
+        val types = NpcTypes.of(
+            NpcType(2845, "Snake", internalName = "snake", stats = NpcStats(strength = 5)),
+            NpcType(3106, "Man", internalName = "man"),
+            NpcType(3110, "Man", internalName = "man4_for_musa_point"),
+            NpcType(3652, "Man", internalName = "karamja_man"),
+        )
+        val combat = NpcCombat.load(types, seqs)
+        val snake = combat[types.find("snake")!!]!!
+        assertEquals(CombatMath.npcMaxHit(5, snake.strengthBonus), snake.maxHit)
+        assertEquals(listOf(4, 1, 30), listOf(snake.attackSpeed, snake.maxHit, snake.respawnTicks))
+        assertTrue(snake.aggression != null)
+        val man = combat[types.find("man")!!]!!
+        assertEquals(man, combat[types.find("man4_for_musa_point")!!])
+        assertEquals(man, combat[types.find("karamja_man")!!])
     }
 
     @Test

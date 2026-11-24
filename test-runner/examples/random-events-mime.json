@@ -1,0 +1,30 @@
+{
+  "name": "Random events: the Mysterious Old Man's mime show, a copy picked from the window, and the mime's next emote",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
+    {"step": "command", "text": "::randomevent mime", "expectMessage": "Started random event mime"},
+    {"step": "npcOption", "npc": "Mysterious Old Man", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Mysterious Old Man", "contains": "[mime.invite", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[mime.yes]"},
+    {"step": "assertDialogue", "contains": "[mime.yes]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Mysterious Old Man", "contains": "[mime.copy]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"comment": "On the stage: look that the mime does an emote under his spotlight before the window opens.", "step": "assertInterface", "interfaceId": 188, "timeoutMs": 20000},
+    {"comment": "Think: the player does it, then cheers if it matched the mime's or cries if not.", "step": "clickWidget", "interfaceId": 188, "component": 2},
+    {"step": "assertInterface", "interfaceId": 188, "absent": true, "timeoutMs": 5000},
+    {"comment": "The mime's next emote, then the window again.", "step": "assertInterface", "interfaceId": 188, "timeoutMs": 20000},
+    {"step": "clickWidget", "interfaceId": 188, "component": 7},
+    {"step": "assertInterface", "interfaceId": 188, "absent": true, "timeoutMs": 5000},
+    {"comment": "Off the stage by teleport, which ends the show with nothing.", "step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0}
+  ]
+}

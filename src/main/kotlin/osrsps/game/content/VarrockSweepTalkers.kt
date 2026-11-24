@@ -93,10 +93,10 @@ object MeredithLines : Lines("meredith", "Transcript:Meredith") {
  *   way out but closing it, as the Wiki has it.
  * - Meredith (10733) in the Games Zone: her answers; the board games themselves aren't built. Her games menu has no
  *   way back either.
- * - The Weaponsmaster (5211), upstairs in the Phoenix Gang's house: a fight only (the Wiki's stats, npc-combat.json);
- *   his talk is left out, as the Wiki's transcript couldn't be read.
+ * - The Weaponsmaster (5211), upstairs in the Phoenix Gang's house: his fight is the Wiki's stats (npc-combat.json);
+ *   his talk to a gang member is [PhoenixGang]'s (post-quest step 2).
  *
- * Left out: the Castle Wars recruiters, the clan Clerk, Marlo (Mahogany Homes), the Estate agent (player-owned
+ * Left out: the Castle Wars recruiters, Marlo (Mahogany Homes), the Estate agent (player-owned
  * houses) and the Assistant Serf (balloons): their talk leads straight into a system that isn't built. Guessed: every
  * chathead expression.
  */

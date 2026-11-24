@@ -9,7 +9,7 @@ import osrsps.cache.overlay.CacheOverlay
 /**
  * The lodestone map, after RS3's: an interface of our own (the first; [INTERFACE], served through the cache overlay as
  * our locs are) that Home Teleport, `::lodestone` and an active stone's Teleport open in place of the chat menu steps 1
- * to 5 used. A map of the stones' part of Misthalin ([MAP_SPRITE]) with each stone's icon where it stands, lit once the
+ * to 5 used. A map of the stones' part of the world ([MAP_SPRITE]) with each stone's icon where it stands, lit once the
  * player has activated it and grey until then ([activeIcon], [dormantIcon]; one shown, one hidden), the stones' names
  * in a list beside the map ([row]), both clickable (Teleport) for the activated ones, "Previous destination" under the
  * list ([PREVIOUS]; RS3's spell option, the stone last teleported to), the title and a close button.
@@ -78,11 +78,15 @@ object LodestoneMap {
     const val MAP_HEIGHT = 262
     const val ICON = 20
 
-    /** The map's projection: the tile at its left edge, the tile at its top, and 7/10 of a pixel a tile. */
-    const val MAP_WEST = 3000
-    const val MAP_NORTH = 3540
+    /**
+     * The map's projection: the tile at its left edge, the tile at its top, and 7/20 of a pixel a tile, so the map runs
+     * from x 2,600 to 3,457 and z 3,560 down to 2,812: Misthalin, Asgarnia, Kandarin's east and all of Karamja, room
+     * for the stones each new place brings (Sam, 18 Nov 2026). It was Misthalin's alone, 7/10 a tile from 3,000, 3,540.
+     */
+    const val MAP_WEST = 2600
+    const val MAP_NORTH = 3560
     private const val SCALE_NUMERATOR = 7
-    private const val SCALE_DENOMINATOR = 10
+    private const val SCALE_DENOMINATOR = 20
 
     /** Where tile ([x], [z]) is drawn, in the map's pixels from its top left. */
     fun mapX(x: Int): Int = (x - MAP_WEST) * SCALE_NUMERATOR / SCALE_DENOMINATOR
@@ -96,10 +100,13 @@ object LodestoneMap {
     const val ROW_X = 324
     const val ROW_Y = 36
     const val ROW_WIDTH = 144
-    const val ROW_HEIGHT = 20
-    const val ROW_GAP = 24
-    const val PREVIOUS_Y = 170
+    const val ROW_HEIGHT = 18
+    const val ROW_GAP = 18
     const val PREVIOUS_HEIGHT = 40
+
+    /** Previous destination sits at the bottom, under room for [MAX_ROWS] rows. */
+    const val PREVIOUS_Y = HEIGHT - 8 - PREVIOUS_HEIGHT
+    const val MAX_ROWS = (PREVIOUS_Y - ROW_Y) / ROW_GAP
     fun rowY(site: Lodestones.Site): Int = ROW_Y + site.index * ROW_GAP
 
     /** Fonts: the cache's p12_full and b12_full (RuneLite's FontID; guessed to be the 241 cache's ids). */
@@ -112,6 +119,13 @@ object LodestoneMap {
     const val TAN = 0x8F7A4F
     const val ORANGE = 0xFF981F
     const val LOCKED_COLOUR = "9f9f9f"
+
+    init {
+        require(Lodestones.SITES.size <= MAX_ROWS) { "${Lodestones.SITES.size} stones don't fit the list's $MAX_ROWS rows" }
+        for (site in Lodestones.SITES) {
+            require(mapX(site.x + 1) in 0 until MAP_WIDTH && mapY(site.z + 1) in 0 until MAP_HEIGHT) { "${site.slug} is off the map" }
+        }
+    }
 
     val components: List<Component> = buildList {
         add(Component(ROOT, InterfaceCodec.LAYER, width = WIDTH, height = HEIGHT, xMode = InterfaceCodec.CENTRE, yMode = InterfaceCodec.CENTRE, noClickThrough = true))

@@ -1,0 +1,15 @@
+{
+  "about": "Musa Point (Karamja step K1.2): Luthas of the banana plantation, Zembo of the spirits shop, and the general store's keeper and assistant. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), Luthas's and Zembo's checked against the Wiki's maps. Step K1.3 adds its two men and the snakes west of the store.",
+  "spawns": [
+    {"npc": "luthas", "x": 2939, "z": 3154, "wander": 3, "source": "Luthas, in his house by the plantation. Wiki Luthas map (2939,3154, r5); wander 3 guessed"},
+    {"npc": "zembo", "x": 2925, "z": 3143, "wander": 2, "source": "Zembo, behind his bar. mejrs NPCList_OSRS (Wiki map 2927,3145, r3); wander 2 guessed"},
+    {"npc": "generalshopkeeper7", "x": 2902, "z": 3146, "wander": 2, "source": "Shop keeper, Karamja General Store. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "generalassistant7", "x": 2902, "z": 3150, "wander": 2, "source": "Shop assistant, Karamja General Store. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "karamja_man", "x": 2948, "z": 3146, "wander": 5, "source": "Man (Karamja version), by the dock. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "man4_for_musa_point", "x": 2889, "z": 3173, "wander": 5, "source": "Man (Musa Point version), north-west of the store. mejrs NPCList_OSRS; wander 5 guessed"},
+    {"npc": "snake", "x": 2875, "z": 3164, "wander": 5, "source": "Snake, Musa Point. Wiki Snake page's Musa Point spawns; wander guessed"},
+    {"npc": "snake", "x": 2879, "z": 3151, "wander": 5, "source": "Snake, Musa Point. Wiki Snake page's Musa Point spawns; wander guessed"},
+    {"npc": "snake", "x": 2881, "z": 3157, "wander": 5, "source": "Snake, Musa Point. Wiki Snake page's Musa Point spawns; wander guessed"},
+    {"npc": "snake", "x": 2889, "z": 3146, "wander": 5, "source": "Snake, Musa Point. Wiki Snake page's Musa Point spawns; wander guessed"}
+  ]
+}
