@@ -1149,7 +1149,8 @@ class MeleeCombat(
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
      * alone, if it is in that 3x3 and can be fought (not a wall beast's hole); the spotanim on the player; the targets'
      * hits on this tick; an NPC their Slayer level can't hurt, or that they are shut out of fighting ([Combat.barred]),
-     * passed over, as every other attack refuses it.
+     * passed over, as every other attack refuses it; but not for the weapon worn, as the prayer isn't the weapon's
+     * attack (exploit review R52C-5).
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
@@ -1158,13 +1159,13 @@ class MeleeCombat(
         val targets = if (multi.at(player.level, player.x, player.z)) {
             npcs.inPlay.filter {
                 !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
-                    combat.barred(player, it) == null
+                    combat.barred(player, it, weapon = false) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
                     !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
-                        withinATile(player, it) && combat.barred(player, it) == null
+                        withinATile(player, it) && combat.barred(player, it, weapon = false) == null
                 },
             )
         }
