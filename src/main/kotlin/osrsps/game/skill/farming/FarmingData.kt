@@ -28,6 +28,11 @@ package osrsps.game.skill.farming
  * once grown and then bear up to [lives] berries, one more every 20 minutes ([regrowTicks]), until dug up. Guessed:
  * hops falling ill at 27/128 as allotments are taken to, bushes at 18/128 as fruit trees do (the Disease page gives
  * neither).
+ *
+ * Belladonna ([BELLADONNA]; the Wiki's Belladonna and Belladonna seed, read 2026-11-19) grows in Draynor Manor's one
+ * patch, every 80 minutes through four stages (320 minutes), from one seed, and is picked once by hand, as a flower is,
+ * for all its nightshade. Guessed: it falls ill at 27/128 as herbs do (the Disease page names it among the crops that
+ * fall ill and are cured with plant cure, with no figure), and compost adds no lives to a crop picked once.
  */
 enum class PatchKind(
     val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val disease: Int,
@@ -39,7 +44,11 @@ enum class PatchKind(
     TREE(cycleTicks = 8, seeds = 1, lives = 1, harvestValues = 1, spade = true, disease = 0, composting = false),
     FRUIT_TREE(cycleTicks = 32, seeds = 1, lives = 6, harvestValues = 7, spade = true, disease = 18, composting = false),
     HOPS(cycleTicks = 2, seeds = 4, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
-    BUSH(cycleTicks = 4, seeds = 1, lives = 4, harvestValues = 5, spade = true, disease = 18, composting = false);
+    BUSH(cycleTicks = 4, seeds = 1, lives = 4, harvestValues = 5, spade = true, disease = 18, composting = false),
+    BELLADONNA(cycleTicks = 16, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false);
+
+    /** Picked once by hand for its whole crop, then bare: flowers and belladonna. */
+    val pickedOnce: Boolean get() = this == FLOWER || this == BELLADONNA
 
     val diseaseCycleTicks: Int get() = cycleTicks * 2
 
@@ -120,8 +129,8 @@ object Compost {
  * the values for stages 1 on (a crop can't fall ill as a seed). [stages] is how many times it grows before it can be
  * harvested.
  *
- * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to a tenth of the Farming level
- * more, limpwurt's) and has no chance to keep a life.
+ * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to (level - 1) / [bonusPer]
+ * more, limpwurt's tenth) and has no chance to keep a life; magic secateurs add to that bonus where [secateurs].
  *
  * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own), and its first
  * growth comes on its kind's clock, or [firstStageMillis] after planting when that isn't 0 (a yew's
@@ -156,6 +165,8 @@ class Crop(
     val stumpValue: Int = -1,
     val fruitXpTenths: Int = 0,
     val seeds: Int = kind.seeds,
+    val bonusPer: Int = 10,
+    val secateurs: Boolean = true,
 ) {
     val stages: Int get() = growing.size
 
@@ -348,6 +359,18 @@ object Crops {
     val WHITEBERRY = bush("whiteberry", 5105, 239, 59, 780, 4375, 290, 8, 51, 116, 180, 254)
     val POISON_IVY = bush("poison_ivy", 5106, 6018, 70, 1200, 6750, 450, 8, 197, 210, 217, 255, disease = 0)
 
+    /**
+     * Belladonna (the Wiki's Belladonna, read 2026-11-19): level 63, 91 XP planting and 512 harvesting, picked once for
+     * stackable nightshade (`stackable_nightshade` 27790), "6+" at least six and 18 at most at 99, "similar to limpwurt
+     * roots", and magic secateurs don't help (Mod Ash, cited there). Values from the cache's patch multiloc 7572: four
+     * growing from 4, grown at 8, three diseased from 9 and three dead from 12. Inferred: both XPs come with the pick, as a
+     * flower's do, and the bonus is limpwurt's draw from 0 to level - 1 divided by 8, not 10, which gives the 18 at 99.
+     */
+    val BELLADONNA = Crop(
+        "belladonna", PatchKind.BELLADONNA, 5281, 27790, 63, 910, 5120, 0, 0,
+        run(4, 4), emptyList(), 8, run(9, 3), run(12, 3), yield = 6, levelBonus = true, bonusPer = 8, secateurs = false,
+    )
+
     val ALL = listOf(
         POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS,
         GUAM, MARRENTILL, TARROMIN, HARRALANDER, RANARR, TOADFLAX, IRIT, AVANTOE, KWUARM, SNAPDRAGON, HUASCA,
@@ -356,7 +379,7 @@ object Crops {
         OAK, WILLOW, MAPLE, YEW, MAGIC,
         APPLE, BANANA, ORANGE, CURRY, PINEAPPLE, PAPAYA, PALM, DRAGONFRUIT,
         BARLEY, HAMMERSTONE, ASGARNIAN, JUTE, YANILLIAN, KRANDORIAN, WILDBLOOD,
-        REDBERRY, CADAVABERRY, DWELLBERRY, JANGERBERRY, WHITEBERRY, POISON_IVY,
+        REDBERRY, CADAVABERRY, DWELLBERRY, JANGERBERRY, WHITEBERRY, POISON_IVY, BELLADONNA,
     )
 
     private val byKey = ALL.associateBy { it.key }
@@ -524,9 +547,16 @@ object FarmingPatches {
     val ETCETERIA = FarmingArea("Etceteria", setOf(10300), listOf(ETCETERIA_BUSH))
     val ARDOUGNE = FarmingArea("Ardougne", setOf(10290, 10546), listOf(ARDOUGNE_BUSH))
 
+    /**
+     * `farming_belladonna_patch` (7572, 3086, 3354) by Draynor Manor, drawn by `farming_transmit_a` in its map square
+     * (RuneLite's FarmingWorld). Auburnvale's, in Varlamore, isn't built.
+     */
+    val DRAYNOR_MANOR_BELLADONNA = FarmingPatch("draynor_manor_belladonna", 7572, TRANSMIT_A, PatchKind.BELLADONNA)
+    val DRAYNOR_MANOR = FarmingArea("Draynor Manor", setOf(12340), listOf(DRAYNOR_MANOR_BELLADONNA))
+
     val AREAS = listOf(
         FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY, GNOME_STRONGHOLD, GNOME_VILLAGE, BRIMHAVEN, CATHERBY,
-        LUMBRIDGE_HOPS_AREA, YANILLE, ENTRANA, SEERS, CHAMPIONS_GUILD, RIMMINGTON, ETCETERIA, ARDOUGNE,
+        LUMBRIDGE_HOPS_AREA, YANILLE, ENTRANA, SEERS, CHAMPIONS_GUILD, RIMMINGTON, ETCETERIA, ARDOUGNE, DRAYNOR_MANOR,
     )
 
     val ALL: List<FarmingPatch> = AREAS.flatMap { it.patches }

@@ -1,0 +1,28 @@
+{
+ "name": "Brutus step 1: the pen. Release on the gate (its menu, Yes), into a field of the player's own with Brutus in it, his last words on a kill, Quick-escape out, and Leave out after a second Release (::keys on). His charge and stomp are the next step",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario brutus", "expectMessage": "Started scenario brutus.", "comment": "south of the pen's gate; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "he is aggressive"},
+  {"step": "locOption", "locId": 60763, "option": "Release", "x": 3262, "y": 3294},
+  {"step": "assertDialogue", "contains": "[brutus.release_yes]", "timeoutMs": 10000, "comment": "on an account that once picked don't-ask-again there is no menu: drop this step and the next"},
+  {"step": "chooseOption", "text": "[brutus.release_yes]"},
+  {"step": "waitTicks", "ticks": 5, "comment": "the field's region drawn; its tiles are an instance's, so the gate out and Brutus are found by id and name"},
+  {"step": "npcOption", "npc": "Brutus", "option": "Attack", "timeoutMs": 10000},
+  {"step": "command", "text": "::kill Brutus", "expectMessage": "Killed Brutus"},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "locOption", "locId": 60765, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000, "comment": "outside the real gate"},
+  {"step": "locOption", "locId": 60760, "option": "Release", "x": 3263, "y": 3294},
+  {"step": "assertDialogue", "contains": "[brutus.release_yes]", "timeoutMs": 10000},
+  {"step": "chooseOption", "text": "[brutus.release_yes]"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "locOption", "locId": 60764, "option": "Leave"},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
