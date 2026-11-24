@@ -285,7 +285,8 @@ class MagicCombat(
         if (!ready(player, spell, "$npc", held)) return false
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
         if (!pay(player, spell, tick, speed)) return false
-        if (combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
+        // The weapon's own spell only: a spellbook cast keeps its speed (exploit review R52C-1).
+        if (spell.staff != null && combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
