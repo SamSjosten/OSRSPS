@@ -2545,6 +2545,13 @@ the cache names; a pick goes there after the bark box, and Last-destination goes
 tree you're at, the farming-patch and house trees (not built yet), the Poison Waste and Laguna Aurorae (Sailing isn't
 built) answer with the tree's refusal. Check: `test-runner/examples/spirit-trees.json`, `HeadlessSpiritTreesTest`.
 
+Balloons (`game/content/Balloons.kt`, words under `balloon.*`): every route is open, as every account has flown them.
+A basket's Use, or an assistant's Fly or Talk-to, opens the map of the six stations (Entrana, Taverley, the Crafting
+Guild, Varrock south of the Lumber Yard, Castle Wars, the Grand Tree); Travel burns one of the destination's logs
+(logs, oak, willow, yew, magic) at its Firemaking level (20 to 60), with no more than 40 kg carried, and lands beside its
+basket. A trip to Entrana is searched for weapons and armour. Paying from log storage comes with step T6. Check:
+`test-runner/examples/balloons.json`, `HeadlessBalloonsTest`.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

@@ -138,6 +138,11 @@ class Quests(val all: List<Quest>) {
             // The Restless Ghost: the Wizards' Tower basement's altar (restless_ghost_altar) bare, the skull back in the
             // coffin (1, restless_ghost_altar_no_skull).
             2130 to 1,
+            // Enlightened Journey, with every balloon route flown (Sam, 19 Nov 2026: all routes open): each station's basket
+            // ready, zep_multi_basket (Entrana) and zep_multi_piccard (Taverley) at 2, the quest's last step, and
+            // zep_multi_cast, _gno, _craft and _varr at 1 (inferred from the baskets' multiloc forms;
+            // [osrsps.game.content.Balloons]).
+            2867 to 2, 2868 to 2, 2869 to 1, 2870 to 1, 2871 to 1, 2872 to 1,
         )
 
         val NONE = Quests(emptyList())
