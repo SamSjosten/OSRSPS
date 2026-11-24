@@ -1077,6 +1077,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Lvl-1 to Lvl-7 Enchant; see [osrsps.game.skill.magic.JewelleryEnchant]. */
+    val jewelleryEnchant = osrsps.game.skill.magic.JewelleryEnchant(this, osrsps.game.skill.magic.JewelleryEnchantData.load(objTypes))
+
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
 
@@ -1329,6 +1332,7 @@ class World(
         boltEnchant.register()
         alchemy.register()
         superheat.register()
+        jewelleryEnchant.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
