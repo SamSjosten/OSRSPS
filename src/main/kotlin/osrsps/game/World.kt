@@ -185,6 +185,7 @@ import osrsps.game.content.registerKaramjaShips
 import osrsps.game.content.registerKaramjaVolcano
 import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMorUlRekInner
+import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -1251,6 +1252,7 @@ class World(
         RunePacks.register(this)
         registerMorUlRekInner(this)
         registerInfernalEels(this)
+        registerBarnabyShip(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
