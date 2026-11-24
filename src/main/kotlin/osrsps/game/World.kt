@@ -525,6 +525,9 @@ class World(
 
     val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+
+    /** What [player] carries in grams now, from their backpack and worn items, rather than at the last tick's update. */
+    fun weightNow(player: Player): Int = itemWeights.total(player)
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */

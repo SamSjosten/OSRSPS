@@ -60,15 +60,6 @@ enum class BalloonStation(
     VARROCK(18, 19143, Destination(3296, 3481, 0), Destination(3296, 3480, 0), 1519, BalloonLines.WILLOW_LOGS, 40, listOf(4719), BalloonLines.WHO_SERF),
     CASTLE_WARS(13, 19137, Destination(2461, 3109, 0), Destination(2461, 3108, 0), 1515, BalloonLines.YEW_LOGS, 50, listOf(4721), BalloonLines.WHO_MARROW),
     GRAND_TREE(14, 19139, Destination(2481, 3457, 0), Destination(2481, 3456, 0), 1513, BalloonLines.MAGIC_LOGS, 60, listOf(4722, 7154), BalloonLines.WHO_LE_SMITH),
-    ;
-
-    companion object {
-        fun ofBasket(id: Int): BalloonStation? = entries.firstOrNull { it.basket == id }
-
-        fun ofAssistant(id: Int): BalloonStation? = entries.firstOrNull { id in it.assistants }
-
-        fun ofButton(component: Int): BalloonStation? = entries.firstOrNull { it.button == component }
-    }
 }
 
 /**
@@ -104,7 +95,7 @@ class Balloons(private val world: World) {
         for (station in BalloonStation.entries) {
             world.handlers.onLoc(station.basket, USE) { arriveDelay(); openMap(station) }
             for (assistant in station.assistants) {
-                world.handlers.onNpc(assistant, TALK_TO) { op -> talk(station, op.npc?.type?.id ?: assistant) }
+                world.handlers.onNpc(assistant, TALK_TO) { talk(station, assistant) }
                 world.handlers.onNpc(assistant, FLY) { openMap(station) }
             }
             world.handlers.onButton(MAP, station.button, 1) { travel(station) }
@@ -175,20 +166,26 @@ class Balloons(private val world: World) {
             player.message(text[BalloonLines.NEED_LOGS, "logs" to text[to.logName]])
             return
         }
-        val logGrams = world.objTypes[to.log]?.weight ?: 0
-        if (player.weightGrams - logGrams > WEIGHT_LIMIT_GRAMS) {
+        if (tooHeavy(to)) {
             player.message(text[BalloonLines.TOO_HEAVY, "limit" to WEIGHT_LIMIT_GRAMS / 1000])
             return
         }
         world.interfaces.closeModals(player)
         if (to == BalloonStation.ENTRANA && !searched(from)) return
         // The search's boxes waited: the log must still be there, and the player still at the basket.
-        if (player.inventory[slot]?.id != to.log || !near(from)) return
+        if (player.inventory[slot]?.id != to.log || !near(from) || tooHeavy(to)) return
         player.inventory.remove(slot, 1)
         player.jingle(JOURNEY_JINGLE)
         delay(FLIGHT_TICKS)
         world.teleport(player, to.landing.x, to.landing.z, to.landing.level)
     }
+
+    /**
+     * Whether [player] carries more than the limit, not counting one of [to]'s logs: weighed now, not at the last tick's
+     * update, as a worn item can come off in the same tick as Travel (Codex review on #905).
+     */
+    private fun ScriptContext.tooHeavy(to: BalloonStation): Boolean =
+        world.weightNow(player) - (world.objTypes[to.log]?.weight ?: 0) > WEIGHT_LIMIT_GRAMS
 
     /** The assistant's search before a trip to Entrana: true when the player may go. */
     private suspend fun ScriptContext.searched(from: BalloonStation): Boolean {
