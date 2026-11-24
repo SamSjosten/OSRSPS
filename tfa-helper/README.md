@@ -24,7 +24,8 @@ It knows where you are from your own tile, mapped back to the raid's map in the 
 
 ## Running it
 
-- **On our server's test client**: download `tfa-helper-jar` from the latest `build` run on GitHub Actions, copy
+- **On our server's test client**: fetch `tfa-helper-jar` with `powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\repo-fetch.ps1 -Artifact tfa-helper-jar -OutFile C:\RSPS\downloads\tfa-helper-jar.zip`
+  (it takes only this repository's own `main` builds; an artifact picked by hand from the Actions page could be a fork pull request's, and developer mode runs whatever jar is in `sideloaded-plugins`, exploit review R54C-1), unzip it, copy
   `tfa-helper-<version>.jar` to `C:\RSPS\.rlcustom\sideloaded-plugins\`, start `C:\RSPS\RSProx.cmd`, then
   `::raid` into a run.
 - **From the repo** (PowerShell, Java 21): `.\gradlew -p tfa-helper run` starts RuneLite in developer mode with the plugin
