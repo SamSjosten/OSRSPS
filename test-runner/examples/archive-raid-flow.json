@@ -456,8 +456,8 @@
   {
    "step": "command",
    "text": "::pos",
-   "expectMessage": "4127, 5560, 0",
-   "comment": "in the lobby, in front of the Archive Door; the instance ends behind us"
+   "expectMessage": "4125, 5553, 0",
+   "comment": "in the lobby, where the Rift out lands (ArchiveRaid.RIFT_LEAVE_X/Z, Sam's recording of 16 November 2026), not the Archive Door's tile the Passageway exit lands on; the instance ends behind us"
   },
   {
    "step": "waitTicks",
