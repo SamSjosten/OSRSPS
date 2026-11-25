@@ -54,6 +54,7 @@
     "NPCs: random events step 13 (2026-11-19): the Kiss the frog frogs (312 and 5429-5432, one examine in their infobox), the Frog Prince (13445) and the Frog Princess (13446), from their infoboxes.",
     "NPCs and locs: random events step 14 (2026-11-19): the Mysterious Old Man's maze form (6752) shares his examine; the strange shrine (14985) and the maze chests (14986 closed, 14988 opened), from their infoboxes.",
     "NPCs and locs of the tunnels between Lumbridge Castle's cellar, the Dorgeshuun mines and the water mill cellar (post-quest step 6, DorgeshuunTunnels.kt): the guides and Nardok, with the types their multi-NPCs show; the cellar's two hole multilocs, the water mill cellar's trapdoor, ladder and tunnels and Death to the Dorgeshuun's crates (the 242 cache, 2026-11-19).",
+    "The clan hall (2026-11-19): its exit portal (41617) and altar (41650), from the Clan hall page.",
     "Locs of the Digsite camp's leftovers (post-quest step 7, DigsiteCamp.kt): the barrel's and the tablet's multilocs and the chest open (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
@@ -3089,6 +3090,8 @@
     {"loc": 41610, "name": "Bush"},
     {"loc": 41611, "name": "Bush", "wiki": "Bush (scenery) page, infobox"},
     {"loc": 41615, "name": "Poster"},
+    {"loc": 41617, "name": "Portal", "wiki": "Clan hall page (the exit portal, clan_hall_exit_medieval)"},
+    {"loc": 41650, "name": "Altar", "wiki": "Clan hall page (the chapel's altar, clan_medieval_altar)"},
     {"loc": 41724, "name": "Clan hall portal"},
     {"loc": 41728, "name": "Clan recruitment board"},
     {"loc": 41730, "name": "Clan recruitment board"},

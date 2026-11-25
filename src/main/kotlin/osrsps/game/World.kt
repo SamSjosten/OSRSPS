@@ -706,7 +706,8 @@ class World(
                 it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.ClanHall.INSTANCE_LOCS
         },
     )
 
@@ -1028,6 +1029,8 @@ class World(
 
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+    /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
+    val clanHall = osrsps.game.content.ClanHall(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1350,6 +1353,7 @@ class World(
         ourania.register()
         houses.register()
         furniture.register()
+        clanHall.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
