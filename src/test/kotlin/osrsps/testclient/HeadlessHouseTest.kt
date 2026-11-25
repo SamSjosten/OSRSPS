@@ -856,8 +856,9 @@ class HeadlessHouseTest {
                     client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, slot)
                 }
 
-                // An empty tool space offers only the first store: the others upgrade it.
-                menu(TOOL_SPACE_A, wx + 1, wz + 2, House.BUILD, 1, listOf(TOOL_STORE_1_ROW))
+                // An empty tool space offers only the first store: the others upgrade it. Built from the second space, it racks
+                // the first and leaves the second bare (Codex review on #968).
+                menu(TOOL_SPACE_B, wx + 1, wz + 3, House.BUILD, 1, listOf(TOOL_STORE_1_ROW))
                 client.await("the first rack") { if (client.shown(TOOLS_1, wx + 1, wz + 2)) Unit else null }
                 client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 120 } }
                 assertTrue(!client.shown(TOOLS_2, wx + 1, wz + 3))

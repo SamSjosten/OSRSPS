@@ -26,14 +26,14 @@ class Workshop(private val world: World, private val houses: Houses) {
 
     companion object {
         // By the cache's names: saw, hammer, chisel, shears; bucket, knife, spade, tinderbox; brown apron, glassblowing
-        // pipe, needle; amulet, necklace, ring, holy, bracelet and tiara moulds; rake, spade, trowel, seed dibber,
+        // pipe, needle; amulet, necklace, ring, holy, bracelet and tiara moulds; rake, spade, gardening trowel, seed dibber,
         // watering can(8), secateurs.
         val TOOLS: Map<Int, List<Int>> = mapOf(
             FurnitureBuilds.TOOLS_1 to listOf(8794, 2347, 1755, 1735),
             FurnitureBuilds.TOOLS_1 + 1 to listOf(1925, 946, 952, 590),
             FurnitureBuilds.TOOLS_1 + 2 to listOf(1757, 1785, 1733),
             FurnitureBuilds.TOOLS_1 + 3 to listOf(1595, 1597, 1592, 1599, 11065, 5523),
-            FurnitureBuilds.TOOLS_1 + 4 to listOf(5341, 952, 676, 5343, 5340, 5329),
+            FurnitureBuilds.TOOLS_1 + 4 to listOf(5341, 952, 5325, 5343, 5340, 5329),
         )
     }
 }

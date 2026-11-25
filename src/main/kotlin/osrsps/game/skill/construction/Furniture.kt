@@ -310,6 +310,18 @@ object FurnitureBuilds {
     }
 
     /**
+     * Whether furniture [row] is one [hotspot]'s place offers and builds on it: every part it puts on the place's
+     * hotspots is one [buildsOn] accepts there, and it puts one on at least one of them.
+     */
+    fun buildsAt(hotspot: Int, row: Int): Boolean {
+        val spot = HOTSPOTS[hotspot] ?: return false
+        if (PLACES[spot.room to spot.index]?.contains(row) != true) return false
+        val build = BUILDS[row] ?: return false
+        val parts = siblings(hotspot).map { it to build.locFor(HOTSPOTS.getValue(it).variant) }.filter { it.second != NONE }
+        return parts.isNotEmpty() && parts.all { (id, loc) -> buildsOn(id, loc) }
+    }
+
+    /**
      * The furniture row built at [hotspot]'s place, from what [built] (a room's, by hotspot) holds on it and its siblings:
      * the one row whose every part matches, or null when nothing is built there (or what is doesn't match one row).
      */
@@ -444,8 +456,9 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val piece = options.getOrNull(slot - 1) ?: return
         if (piece.row in FurnitureBuilds.NEEDS_CREST) return world.message(player, ConstructionLines.FURNITURE_CREST)
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
-        // Only a piece the save check knows for this place (R52B-1): what is built must always load again.
-        if (!FurnitureBuilds.buildsOn(hotspot.id, build.locFor(FurnitureBuilds.HOTSPOTS[hotspot.id]?.variant))) return world.message(player, GameLines.NOTHING_INTERESTING)
+        // Only a piece the save check knows for this place (R52B-1): what is built must always load again. Checked across
+        // the place, as a tool store leaves bare the spaces past its own (Codex review on #968).
+        if (!FurnitureBuilds.buildsAt(hotspot.id, piece.row)) return world.message(player, GameLines.NOTHING_INTERESTING)
         if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }

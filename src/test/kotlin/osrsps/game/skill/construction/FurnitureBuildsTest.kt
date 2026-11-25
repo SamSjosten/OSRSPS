@@ -47,6 +47,9 @@ class FurnitureBuildsTest {
         // Parts of two stores together are no store.
         assertEquals(null, FurnitureBuilds.builtRow(mapOf(15444 to 6787), 15443))
         assertTrue(FurnitureBuilds.NONE !in FurnitureBuilds.BUILT_LOCS)
+        // Any tool space builds any store, its racks on the first spaces; a row from another place never.
+        assertTrue(FurnitureBuilds.buildsAt(15447, 5758) && FurnitureBuilds.buildsAt(15443, 5762))
+        assertTrue(!FurnitureBuilds.buildsAt(15443, 5749) && FurnitureBuilds.buildsAt(15439, 5749))
     }
 
     @Test
