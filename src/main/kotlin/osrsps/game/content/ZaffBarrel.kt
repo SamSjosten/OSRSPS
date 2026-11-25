@@ -10,7 +10,7 @@ import osrsps.game.dialogue.Lines
 /** The barrel's words, from the Wiki's Transcript:Barrel (Zaff's Superior Staffs!), read 2026-11-19. */
 object ZaffBarrelLines : Lines("zaff_barrel", "Transcript:Barrel (Zaff's Superior Staffs!)") {
     val NOT_FOR_YOU = line("not_for_you", "Claim-staves with no Varrock Diary tier done: the game message")
-    val NEED_SPACE = line("need_space", "Claim-staves with no free space (and no noted battlestaves to stack on): the box")
+    val NEED_SPACE = line("need_space", "Claim-staves with no free space (and no noted battlestaves to stack on), or a stack too full for the day's staves: the box")
     val BUY = line("buy", "Claim-staves: the box asking whether to buy them", "count", "total")
     val YES = line("yes", "the option to buy")
     val NO = line("no", "the option not to")
@@ -37,7 +37,9 @@ class ZaffBarrel(private val world: World, private val today: () -> Long = { Loc
                 val count = STAVES[tier.ordinal]
                 val total = count * PRICE
                 world.dialogues.start(this) {
-                    if (player.inventory.freeSlots == 0 && player.inventory.count(NOTED_BATTLESTAFF) == 0L) {
+                    if (player.inventory.freeSlots == 0 && player.inventory.count(NOTED_BATTLESTAFF) == 0L ||
+                        player.inventory.count(NOTED_BATTLESTAFF) + count > Int.MAX_VALUE
+                    ) {
                         return@start mesbox(ZaffBarrelLines.NEED_SPACE)
                     }
                     mesbox(ZaffBarrelLines.BUY, "count" to count, "total" to "%,d".format(total))
@@ -48,6 +50,8 @@ class ZaffBarrel(private val world: World, private val today: () -> Long = { Loc
                     if (player.inventory.count(COINS) < total) return@start mesbox(ZaffBarrelLines.NEED_COINS, "total" to "%,d".format(total))
                     val noted = world.objTypes[NOTED_BATTLESTAFF] ?: return@start
                     if (player.inventory.freeSlots == 0 && player.inventory.count(NOTED_BATTLESTAFF) == 0L) return@start mesbox(ZaffBarrelLines.NEED_SPACE)
+                    // The whole buy must fit on the stack, so no coins go for staves that can't be held.
+                    if (player.inventory.count(NOTED_BATTLESTAFF) + count > Int.MAX_VALUE) return@start mesbox(ZaffBarrelLines.NEED_SPACE)
                     var left = total
                     for ((slot, held) in player.inventory.contents()) {
                         if (left == 0) break

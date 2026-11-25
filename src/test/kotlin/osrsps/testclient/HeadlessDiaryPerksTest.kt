@@ -95,6 +95,27 @@ class HeadlessDiaryPerksTest {
     }
 
     @Test
+    fun `Zaff's barrel takes no coins when the day's staves wouldn't fit on the stack`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.done("diary complete varrock easy all")
+                client.command("item ${ZaffBarrel.COINS} 105000")
+                client.await("the coins") { Unit.takeIf { client.count(ZaffBarrel.COINS) == 105_000 } }
+                // A stack 10 short of full: the day's 15 don't fit, though a slot holds the stack.
+                val bob = server.world.playerNamed("bob")!!
+                bob.inventory.add(server.world.objTypes[ZaffBarrel.NOTED_BATTLESTAFF]!!, Int.MAX_VALUE - 10)
+                client.await("the stack") { Unit.takeIf { client.count(ZaffBarrel.NOTED_BATTLESTAFF) == Int.MAX_VALUE - 10 } }
+                client.locOp(ZaffBarrel.FULL, barrel.x, barrel.z, 1)
+                client.awaitDialogue("no space") { it is DialogueView.Message && it.text == "[zaff_barrel.need_space]" }
+                client.continueDialogue()
+                assertEquals(105_000, client.count(ZaffBarrel.COINS))
+                assertEquals(Int.MAX_VALUE - 10, client.count(ZaffBarrel.NOTED_BATTLESTAFF))
+            }
+        }
+    }
+
+    @Test
     fun `Varrock Teleport's Grand Exchange needs the medium tier, and Configure flips the left click`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

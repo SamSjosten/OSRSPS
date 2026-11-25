@@ -320,10 +320,13 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
 }
 
 /** Fragments or a piece used on the imbued sceptre: charges up to [SkullSceptre.maxCharges], the rest kept. */
-private fun ScriptContext.charge(world: World, op: Op, piece: Int, per: Int) {
+private fun ScriptContext.charge(world: World, op: Op, piece: Int, basePer: Int) {
     val slot = if (op.obj == piece) op.objSlot else op.sub
     val held = player.inventory[slot]?.takeIf { it.id == piece } ?: return
     val have = player.charges[SkullSceptre.CHARGES]
+    // A piece gives what chiselling it would (the Wiki's Skull sceptre, recharge table): 1 more for each Varrock tier
+    // done; a bone fragment stays 1.
+    val per = if (piece == SkullSceptre.BONE_FRAGMENTS) basePer else basePer + SkullSceptre.COMPONENTS.getValue(piece) * SkullSceptre.varrockTiers(world.diaries, player)
     val added = SkullSceptre.chargesAdded(have, per, held.count, SkullSceptre.maxCharges(world.diaries, player))
     // A piece gives all its charges or none: it isn't split. Fragments go one charge each.
     val used = if (per == 1) added else if (added >= per) 1 else 0
