@@ -262,8 +262,8 @@ class Mining(private val world: World) {
             player.anim(tool.anim)
             if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING) + celestialBoost(player))) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
-                // Varrock armour's second ore, as from a rock, if there's room for it (a golem's head counting as a
-                // rock of its ore for the armour: guessed).
+                // Varrock armour 4's second ore, as from a rock, if there's room for it (the Wiki's Runite Golem, mining
+                // info: a 10% chance of double ore with it worn).
                 val count = if (player.inventory.freeSlots > 1 && VarrockArmour.doubleOre(player, world.random, type.level)) 2 else 1
                 player.inventory.add(ore, count)
                 player.skills.addTenths(Skill.MINING, type.xpTenths * count)
