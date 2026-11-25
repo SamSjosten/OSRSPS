@@ -6,6 +6,7 @@ import osrsps.game.InvObj
 import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.SkillGuide
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.bank.setVarbitIfKnown
@@ -121,7 +122,7 @@ object FarmingLines : Lines("farming", "Farming") {
  * Every patch is a multiloc the map places, drawn by one of the `farming_transmit` varbits ([FarmingPatches]); each tick
  * the player's patches grow to the clock and the varbits of the area they stand in are set (only changes are sent).
  * The client's op1 is whatever the patch shows (Rake, Harvest), so op1 is answered by the patch's state; op2 is
- * Inspect. Op4, Guide, isn't built (the Farming skill guide).
+ * Inspect. Op4, Guide, opens the Farming skill guide ([osrsps.game.SkillGuide]) on the patch kind's tab ([guideTab]).
  *
  * Sourced: allotment levels, seeds, XP, stages and 10-minute cycles; the planting XP given when the last crop is
  * harvested, not on planting (the Allotment patch page's footnote); 4 XP per weed and weeds growing back every 5
@@ -189,6 +190,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         for (loc in FarmingPatches.LOCS) {
             world.handlers.onLoc(loc, OP_ACTION) { op -> action(op) }
             world.handlers.onLoc(loc, OP_INSPECT) { op -> inspect(op) }
+            world.handlers.onLoc(loc, OP_GUIDE) { op -> patchOf(op)?.let { SkillGuide.open(world, player, SkillGuide.FARMING, guideTab(it.kind)) } }
             world.handlers.onLoc(loc, OP_CLEAR) { op -> clearBushOp(op) }
             world.handlers.onObjOnLoc(loc) { op -> useObj(op) }
         }
@@ -1164,6 +1166,25 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         /** Op1, whatever the patch shows (Rake, Harvest), and op2, Inspect, on every patch's shown locs. */
         const val OP_ACTION = 1
         const val OP_INSPECT = 2
+
+        /** Op4, Guide, on every patch's shown locs. */
+        const val OP_GUIDE = 4
+
+        /**
+         * The Farming guide's tab for a patch kind: the cache's `skill_guide_subsections` rows for skill 21 (1
+         * Allotments, 2 Hops, 3 Trees, 4 Fruit Trees, 5 Bushes, 6 Flowers, 7 Herbs, 8 Special). Inferred: each kind to the
+         * tab its name matches, belladonna to Special.
+         */
+        fun guideTab(kind: PatchKind): Int = when (kind) {
+            PatchKind.ALLOTMENT -> 1
+            PatchKind.HOPS -> 2
+            PatchKind.TREE -> 3
+            PatchKind.FRUIT_TREE -> 4
+            PatchKind.BUSH -> 5
+            PatchKind.FLOWER -> 6
+            PatchKind.HERB -> 7
+            PatchKind.BELLADONNA -> 8
+        }
 
         /** Op5, Clear: a bush with berries on it (the cache's bush locs). */
         const val OP_CLEAR = 5
