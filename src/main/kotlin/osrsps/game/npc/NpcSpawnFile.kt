@@ -119,6 +119,7 @@ object NpcSpawnFile {
         "dorgeshuun-tunnels.json",
         "brimhaven.json",
         "balloons.json",
+        "sourhog-cave.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

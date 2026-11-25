@@ -1,0 +1,41 @@
+{
+ "name": "Travel networks step T6: Castle Wars's log storage stores willow logs, Check counts them, a balloon trip to Varrock with none in the backpack burns a stored one, and a magic log used on Varrock's crate is stored (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or held; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel firemaking 50"},
+  {"step": "command", "text": "::tele 2461 3108 0", "expectMessage": "Teleported to 2461, 3108, 0", "comment": "south of Castle Wars' basket; the crate stands at 2458, 3110"},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "command", "text": "::item 1519 3", "comment": "willow logs"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "loc": "Log storage", "option": "Store", "x": 2458, "y": 3110},
+  {"step": "enterAmount", "amount": 3},
+  {"step": "assertDialogue", "contains": "[log_storage.stored logs=Willow logs", "timeoutMs": 10000},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "itemId": 1519, "count": 0},
+  {"step": "locOption", "loc": "Log storage", "option": "Check", "x": 2458, "y": 3110},
+  {"step": "assertDialogue", "contains": "[log_storage.check", "timeoutMs": 10000},
+  {"step": "continueDialogue"},
+
+  {"step": "locOption", "loc": "Basket", "option": "Use", "x": 2461, "y": 3109},
+  {"step": "assertInterface", "interfaceId": 469, "comment": "zep_balloon_map"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 469, "component": 18, "op": 1, "comment": "Varrock, with no willow logs in the backpack"},
+  {"step": "assertMessage", "contains": "[log_storage.left logs=[balloon.willow_logs]", "timeoutMs": 5000},
+  {"step": "assertLocation", "x": 3296, "y": 3480, "plane": 0, "timeoutMs": 10000, "comment": "south of Varrock's basket"},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "command", "text": "::item 1513", "comment": "a magic log"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "useItemOnLoc", "itemId": 1513, "locId": 31578, "x": 3299, "y": 3486, "comment": "Varrock's crate"},
+  {"step": "assertDialogue", "contains": "[log_storage.stored logs=Magic logs", "timeoutMs": 10000},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "itemId": 1513, "count": 0},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
