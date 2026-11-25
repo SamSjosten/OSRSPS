@@ -148,6 +148,13 @@ class Quests(val all: List<Quest>) {
             // zep_multi_cast, _gno, _craft and _varr at 1 (inferred from the baskets' multiloc forms;
             // [osrsps.game.content.Balloons]).
             2867 to 2, 2868 to 2, 2869 to 1, 2870 to 1, 2871 to 1, 2872 to 1,
+            // vm_digsite_tablet, vm_digsite_talisman: The Dig Site fills the Varrock Museum's tablet and talisman cases
+            // (Wiki, Display case numbers 42 and 43; [osrsps.game.content.MuseumDisplays]).
+            3643 to 1,
+            3644 to 1,
+            // golem_retrieved_statuette: The Golem takes the statuette from the museum's terracotta case, which then
+            // shows empty, its Study saying it was stolen (Wiki, Display case number 30; [osrsps.game.content.MuseumDisplays]).
+            355 to 1,
         )
 
         val NONE = Quests(emptyList())
