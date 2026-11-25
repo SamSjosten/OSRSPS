@@ -1,0 +1,27 @@
+{
+ "name": "The Clan Hub's recruitment board (::keys on): View on the table opens it, and in a clan made by ::clanmake, as a recruiter, List your clan puts the clan on it and De-list takes it off",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any"},
+  {"step": "command", "text": "::clandisband Board Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Board Gate", "expectMessage": "Clan Board Gate made"},
+  {"step": "command", "text": "::clanjoin Board Gate recruiter", "expectMessage": "Joined clan Board Gate as a recruiter"},
+  {"step": "command", "text": "::tele 3177 3468 0", "expectMessage": "Teleported to 3177, 3468, 0", "comment": "in the Clan Hub, south of the recruitment table (3177, 3469)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 41728, "option": "View", "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 700, "timeoutMs": 20000, "comment": "the Clan Recruitment Board"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertVarp", "id": 261, "value": 0, "comment": "if1: the button reads List your clan"},
+  {"step": "clickWidget", "interfaceId": 700, "component": 68, "op": 1, "comment": "List your clan"},
+  {"step": "assertMessage", "contains": "[clan.board_listed clan=Board Gate]", "timeoutMs": 10000},
+  {"step": "assertVarp", "id": 261, "value": 1, "timeoutMs": 10000, "comment": "the button reads De-list"},
+  {"step": "waitTicks", "ticks": 3, "comment": "the button's click timer (80 client cycles) before it takes another"},
+  {"step": "clickWidget", "interfaceId": 700, "component": 68, "op": 1, "comment": "De-list"},
+  {"step": "assertMessage", "contains": "[clan.board_delisted clan=Board Gate]", "timeoutMs": 10000},
+  {"step": "assertVarp", "id": 261, "value": 0, "timeoutMs": 10000},
+  {"step": "command", "text": "::clandisband Board Gate", "expectMessage": "Clan Board Gate deleted"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

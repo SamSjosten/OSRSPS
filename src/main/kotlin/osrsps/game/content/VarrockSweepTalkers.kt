@@ -47,7 +47,7 @@ object TobyLines : Lines("toby", "Transcript:Toby") {
     val YES_PLEASE = line("yes_please", "a claim (easy to hard): the player's answer")
     val ELITE_DONE = line("elite_done", "the elite claim: his answer, every task in the Varrock area done, here's the reward")
     val ELITE_EARLIER = line("elite_earlier", "the elite claim with an earlier tier not done: complete the easy, medium and hard tasks too")
-    val NO_SPACE = line("no_space", "a claim without two free inventory spaces")
+    val NO_SPACE = line("no_space", "a claim without two free inventory spaces (guessed: also another platebody without one)")
     val ARMOUR_EASY = line("armour_easy", "the easy claim: the armour, what it does (two boxes on live)")
     val ARMOUR_MEDIUM = line("armour_medium", "the medium claim: the armour upgraded, what it does")
     val ARMOUR_HARD = line("armour_hard", "the hard claim: the armour upgraded, what it does")
@@ -109,7 +109,8 @@ object MeredithLines : Lines("meredith", "Transcript:Meredith") {
  *   Diaries tab, as the Wiki has it. Guessed: a claim runs as soon as Talk-to is clicked, in place of his Hello, and his
  *   first menu follows; a medium or hard claim with an earlier tier not done says nothing (the Wiki's words are
  *   missing), while an elite one gets his "easy, medium and hard tasks too" line; "Can I have another Varrock
- *   platebody?" shows once an armour is earned and the highest earned isn't carried, worn or banked, and gives the highest tier earned.
+ *   platebody?" shows once an armour is earned and the highest earned isn't carried, worn, banked, dropped and still on the
+ *   ground, or in a grave, and gives the highest tier earned into a free space (none: his claim's no-space words).
  * - James (`bond_james_bond` 5885, shown as `bond_james_visible` 8193): every answer returns to his menu, which has no
  *   way out but closing it, as the Wiki has it.
  * - Meredith (10733) in the Games Zone: her answers; the board games themselves aren't built. Her games menu has no
@@ -142,8 +143,12 @@ object VarrockSweepTalkers {
             when (options[choice(*options.toTypedArray()) - 1]) {
                 ANOTHER_PLATEBODY -> {
                     chatPlayer(ChatAnim.QUIZ, ANOTHER_PLATEBODY)
-                    diaries.replace(player, VARROCK)
-                    objbox(VARROCK.rewards[diaries.highestClaimed(player, VARROCK)!!.ordinal], ANOTHER_PLATEBODY_GIVEN)
+                    if (diaries.replace(player, VARROCK)) {
+                        objbox(VARROCK.rewards[diaries.highestClaimed(player, VARROCK)!!.ordinal], ANOTHER_PLATEBODY_GIVEN)
+                    } else {
+                        // Guessed: his claim's words for no space (exploit review R55A-1).
+                        chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+                    }
                 }
                 WHO -> {
                     chatPlayer(ChatAnim.QUIZ, WHO)
@@ -207,11 +212,10 @@ object VarrockSweepTalkers {
             chatNpc(ChatAnim.HAPPY, WELL_DONE)
             chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
         }
-        if (player.inventory.freeSlots < 2) {
+        if (!diaries.claim(player, VARROCK, tier)) {
             chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
             return null
         }
-        diaries.claim(player, VARROCK, tier)
         chatNpc(ChatAnim.HAPPY, listOf(ARMOUR_EASY, ARMOUR_MEDIUM, ARMOUR_HARD, ARMOUR_ELITE)[tier.ordinal])
         chatPlayer(ChatAnim.HAPPY, WOW_THANKS)
         true
