@@ -533,6 +533,9 @@ class World(
     /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
     val championsChallenge = ChampionsChallenge(this)
 
+    /** Brutus's records across the server, his scoreboard's global column. */
+    val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -838,7 +841,10 @@ class World(
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
-        fell = { archiveRaids.fell(it) },
+        fell = {
+            archiveRaids.fell(it)
+            if (brutusPens.runOf(it) != null) osrsps.game.content.BrutusScoreboard.died(this, it)
+        },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
@@ -1349,6 +1355,7 @@ class World(
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
+        osrsps.game.content.registerBrutusScoreboard(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
