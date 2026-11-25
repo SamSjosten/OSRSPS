@@ -133,7 +133,12 @@ class HeadlessArchiveRaidTest {
         }
     }
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    /**
+     * A server with the raid's rooms, chests and Rift out. [clues] adds the elite clue and its scroll box to the cache:
+     * only the clue test has them, since the loot file's tertiary clue (1 in 10) would otherwise put a box in other
+     * tests' chests now and then (the Nov 25 CI failure of the empty-rooms test after #910).
+     */
+    private fun server(dir: Path, clues: Boolean = false) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             // Lumbridge's square too, for Home Teleport's landing.
@@ -145,7 +150,7 @@ class HeadlessArchiveRaidTest {
             },
             locTypes = locTypes,
             staticLocs = staticLocs,
-            objTypes = ObjTypes.of(axe, pickaxe, eliteClue, eliteBox),
+            objTypes = if (clues) ObjTypes.of(axe, pickaxe, eliteClue, eliteBox) else ObjTypes.of(axe, pickaxe),
             npcTypes = NpcTypes.of(
                 NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
                 // The reward vault's Rift out, as the 241.4 cache has it.
@@ -1213,7 +1218,7 @@ class HeadlessArchiveRaidTest {
 
     @Test
     fun `the chest's clue scroll comes as its scroll box, and not at all for one holding as many as they may`(@TempDir dir: Path) {
-        server(dir).use { server ->
+        server(dir, clues = true).use { server ->
             server.login("carol").use { carol ->
                 server.login("dave").use { dave ->
                     for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
