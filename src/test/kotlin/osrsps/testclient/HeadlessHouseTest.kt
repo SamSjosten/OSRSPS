@@ -730,6 +730,10 @@ class HeadlessHouseTest {
                 client.command("item $TEA_LEAVES 2")
                 client.command("item $MILK 1")
                 client.await("the tea leaves and milk") { if (client.count(TEA_LEAVES) == 2 && client.count(MILK) == 1) Unit else null }
+                // A save from inside (a shutdown, an autosave) leaves them behind too, and takes nothing from the player.
+                val saved = server.world.snapshot(player).inventory.values.map { it.id }
+                assertTrue(KETTLE !in saved && TEA_LEAVES !in saved && MILK in saved, "saved: $saved")
+                assertEquals(listOf(1, 2), listOf(client.count(KETTLE), client.count(TEA_LEAVES)))
                 client.tele(OUTSIDE.x, OUTSIDE.z)
                 client.await("the house's supplies gone") { if (client.count(KETTLE) == 0 && client.count(TEA_LEAVES) == 0) Unit else null }
                 assertEquals(listOf(1, 1), listOf(client.count(MILK), client.count(BUCKET_OF_WATER)))
