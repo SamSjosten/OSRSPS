@@ -1,0 +1,117 @@
+{
+ "name": "Achievement diaries: nine rune darts fletched in Varrock do nothing, ten at once do a Varrock elite task, and the panel's count shows it (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0,
+   "comment": "varrock_elite_count"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel fletching 81"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3230 3430 0",
+   "expectMessage": "Teleported to 3230, 3430, 0",
+   "comment": "Varrock square, inside the walls"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::item 314 20"
+  },
+  {
+   "step": "command",
+   "text": "::item 824 9"
+  },
+  {
+   "step": "useItemOnItem",
+   "itemId": 314,
+   "onItemId": 824
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 811,
+   "count": 9,
+   "timeoutMs": 5000,
+   "comment": "nine rune darts"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0,
+   "comment": "nine darts aren't the task's ten"
+  },
+  {
+   "step": "command",
+   "text": "::item 824 10"
+  },
+  {
+   "step": "useItemOnItem",
+   "itemId": 314,
+   "onItemId": 824
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 811,
+   "count": 19,
+   "timeoutMs": 5000,
+   "comment": "ten more at once"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the elite count goes to 1"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}
