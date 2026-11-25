@@ -1,11 +1,13 @@
 package osrsps.game.content
 
+import osrsps.game.GameFrame
+import osrsps.game.JournalTab
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
 
-/** Toby's lines with no diary tier claimed, from the Wiki's Transcript:Toby, read 2026-11-11. */
+/** Toby's lines, from the Wiki's Transcript:Toby, read 2026-11-11 (the claims 2026-11-19). */
 object TobyLines : Lines("toby", "Transcript:Toby") {
     val HELLO = line("hello", "his greeting")
     val WHO = line("who", "top menu option 2, which the player then says")
@@ -35,6 +37,22 @@ object TobyLines : Lines("toby", "Transcript:Toby") {
     val CLAIM_1 = line("claim_1", "claim: complete the tasks, then come back")
     val BYE = line("bye", "either menu's last option, which the player then says")
     val BYE_1 = line("bye_1", "his farewell")
+    val ANOTHER_PLATEBODY = line("another_platebody", "top menu option 1 once an armour is earned and the highest earned isn't carried, worn or banked: which the player then says")
+    val ANOTHER_PLATEBODY_GIVEN = line("another_platebody_given", "after another platebody: the box")
+    val CLAIM_EASY = line("claim_easy", "a claim: the player has done every easy task (\"Achievement Diary\" capitalised)")
+    val CLAIM_MEDIUM = line("claim_medium", "a claim: every medium task (\"achievement diary\" in lower case, as for hard and elite)")
+    val CLAIM_HARD = line("claim_hard", "a claim: every hard task")
+    val CLAIM_ELITE = line("claim_elite", "a claim: every elite task")
+    val WELL_DONE = line("well_done", "a claim (easy to hard): his answer, a reward then")
+    val YES_PLEASE = line("yes_please", "a claim (easy to hard): the player's answer")
+    val ELITE_DONE = line("elite_done", "the elite claim: his answer, every task in the Varrock area done, here's the reward")
+    val ELITE_EARLIER = line("elite_earlier", "the elite claim with an earlier tier not done: complete the easy, medium and hard tasks too")
+    val NO_SPACE = line("no_space", "a claim without two free inventory spaces (guessed: also another platebody without one)")
+    val ARMOUR_EASY = line("armour_easy", "the easy claim: the armour, what it does (two boxes on live)")
+    val ARMOUR_MEDIUM = line("armour_medium", "the medium claim: the armour upgraded, what it does")
+    val ARMOUR_HARD = line("armour_hard", "the hard claim: the armour upgraded, what it does")
+    val ARMOUR_ELITE = line("armour_elite", "the elite claim: the armour upgraded, what it does")
+    val WOW_THANKS = line("wow_thanks", "a claim: the player's thanks")
 }
 
 /** James's lines, from the Wiki's Transcript:James, read 2026-11-11. */
@@ -86,9 +104,13 @@ object MeredithLines : Lines("meredith", "Transcript:Meredith") {
  * More of Varrock's people the Misthalin sweep found unspawned, as far as their talk goes without a system that isn't
  * built; spawned in varrock.json on mejrs's tiles:
  *
- * - Toby (5525), the Varrock diary's taskmaster: his menus and the rewards' descriptions. There are no diaries, so
- *   nothing is claimable: the platebody option is left out of his first menu (guessed: the Wiki doesn't say when it
- *   shows), and "Who are you?" doesn't open the diary tab.
+ * - Toby (5525), the Varrock diary's taskmaster: his menus, and claiming each tier (Varrock armour 1 to 4 and the
+ *   tier's antique lamp, with two free inventory spaces, the tiers in order); "Who are you?" opens the Achievement
+ *   Diaries tab, as the Wiki has it. Guessed: a claim runs as soon as Talk-to is clicked, in place of his Hello, and his
+ *   first menu follows; a medium or hard claim with an earlier tier not done says nothing (the Wiki's words are
+ *   missing), while an elite one gets his "easy, medium and hard tasks too" line; "Can I have another Varrock
+ *   platebody?" shows once an armour is earned and the highest earned isn't carried, worn, banked, dropped and still on the
+ *   ground, or in a grave, and gives the highest tier earned into a free space (none: his claim's no-space words).
  * - James (`bond_james_bond` 5885, shown as `bond_james_visible` 8193): every answer returns to his menu, which has no
  *   way out but closing it, as the Wiki has it.
  * - Meredith (10733) in the Games Zone: her answers; the board games themselves aren't built. Her games menu has no
@@ -106,18 +128,38 @@ object VarrockSweepTalkers {
     const val MEREDITH = 10733
     const val TALK_TO = 1
 
-    internal suspend fun Dialogue.toby() = with(TobyLines) {
-        chatNpc(ChatAnim.HAPPY, HELLO)
+    private val VARROCK = DiaryArea.VARROCK
+
+    internal suspend fun Dialogue.toby(world: World) = with(TobyLines) {
+        val diaries = world.diaries
+        when (tobyClaim(diaries)) {
+            null -> return@with
+            false -> chatNpc(ChatAnim.HAPPY, HELLO)
+            true -> Unit
+        }
         while (true) {
-            when (choice(WHO, QUESTION, BYE)) {
-                1 -> {
+            val another = diaries.highestClaimed(player, VARROCK) != null && !diaries.ownsReward(player, VARROCK)
+            val options = listOfNotNull(ANOTHER_PLATEBODY.takeIf { another }, WHO, QUESTION, BYE)
+            when (options[choice(*options.toTypedArray()) - 1]) {
+                ANOTHER_PLATEBODY -> {
+                    chatPlayer(ChatAnim.QUIZ, ANOTHER_PLATEBODY)
+                    if (diaries.replace(player, VARROCK)) {
+                        objbox(VARROCK.rewards[diaries.highestClaimed(player, VARROCK)!!.ordinal], ANOTHER_PLATEBODY_GIVEN)
+                    } else {
+                        // Guessed: his claim's words for no space (exploit review R55A-1).
+                        chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+                    }
+                }
+                WHO -> {
                     chatPlayer(ChatAnim.QUIZ, WHO)
                     chatNpc(ChatAnim.HAPPY, WHO_1)
                     chatPlayer(ChatAnim.QUIZ, WHO_2)
                     chatNpc(ChatAnim.NEUTRAL, DIARY_1)
+                    world.interfaces.switchSideTab(player, GameFrame.SIDE_TAB_QUEST)
+                    world.interfaces.openJournalTab(player, JournalTab.DIARIES)
                     chatNpc(ChatAnim.NEUTRAL, DIARY_2)
                 }
-                2 -> {
+                QUESTION -> {
                     chatPlayer(ChatAnim.QUIZ, QUESTION_SAID)
                     when (choice(WHAT_IS, REWARDS, CLAIM, BYE)) {
                         1 -> {
@@ -148,6 +190,35 @@ object VarrockSweepTalkers {
                 else -> return@with bye()
             }
         }
+    }
+
+    /**
+     * The lowest tier ready to claim: true when Toby spoke (a claim made, or the elite refused for an earlier tier), so
+     * his Hello is skipped and his menu follows; null when he turned it down for space, which ends the talk (the Wiki's
+     * "end"); false when there was nothing to claim.
+     */
+    private suspend fun Dialogue.tobyClaim(diaries: Diaries): Boolean? = with(TobyLines) {
+        val tier = diaries.claimable(player, VARROCK) ?: return false
+        val earlierDone = diaries.previousDone(player, VARROCK, tier)
+        if (!earlierDone && tier != DiaryTier.ELITE) return false
+        chatPlayer(ChatAnim.HAPPY, listOf(CLAIM_EASY, CLAIM_MEDIUM, CLAIM_HARD, CLAIM_ELITE)[tier.ordinal])
+        if (!earlierDone) {
+            chatNpc(ChatAnim.NEUTRAL, ELITE_EARLIER)
+            return true
+        }
+        if (tier == DiaryTier.ELITE) {
+            chatNpc(ChatAnim.HAPPY, ELITE_DONE)
+        } else {
+            chatNpc(ChatAnim.HAPPY, WELL_DONE)
+            chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
+        }
+        if (!diaries.claim(player, VARROCK, tier)) {
+            chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+            return null
+        }
+        chatNpc(ChatAnim.HAPPY, listOf(ARMOUR_EASY, ARMOUR_MEDIUM, ARMOUR_HARD, ARMOUR_ELITE)[tier.ordinal])
+        chatPlayer(ChatAnim.HAPPY, WOW_THANKS)
+        true
     }
 
     private suspend fun Dialogue.bye() = with(TobyLines) {
@@ -230,7 +301,7 @@ fun registerVarrockSweepTalkers(world: World) {
     with(VarrockSweepTalkers) {
         fun talk(id: Int, block: suspend Dialogue.() -> Unit) =
             world.handlers.onNpc(id, TALK_TO) { op -> world.dialogues.start(this, op.npc) { block() } }
-        talk(TOBY) { toby() }
+        talk(TOBY) { toby(world) }
         talk(JAMES) { james() }
         talk(MEREDITH) { meredith() }
     }

@@ -395,6 +395,8 @@ fun registerChurch(world: World) {
 internal suspend fun ScriptContext.prayAt(world: World) {
     arriveDelay()
     val full = player.skills.currentLevel(Skill.PRAYER) >= player.skills.baseLevel(Skill.PRAYER)
+    val smite = world.prayers.all.any { it.name == "Smite" && world.prayers.isActive(player, it) }
     Church.pray(player)
     world.message(player, if (full) AltarLines.FULL else AltarLines.RECHARGE)
+    if (smite) world.diaries.prayedWithSmite(player)
 }

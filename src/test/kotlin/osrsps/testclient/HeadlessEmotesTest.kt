@@ -5,9 +5,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.PlayerOps
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.content.EmoteLines
 import osrsps.game.content.Emotes
@@ -23,7 +25,7 @@ import osrsps.map.CollisionMap
 class HeadlessEmotesTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(3090 shr 6, 3253 shr 6) },
             varTypes = VarTypes(
                 VARP_COUNT,
                 mapOf(
@@ -66,6 +68,48 @@ class HeadlessEmotesTest {
     }
 
     @Test
+    fun `the Stronghold's four emotes, each once, count for the Varrock diary`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("alice")!!
+                for (varbit in listOf(StrongholdOfSecurity.VARBIT_FLAP, StrongholdOfSecurity.VARBIT_SLAP_HEAD, StrongholdOfSecurity.VARBIT_IDEA, StrongholdOfSecurity.VARBIT_STAMP)) {
+                    player.vars.setVarbit(varbit, 1)
+                }
+                for (emote in 28..30) {
+                    val mark = client.actorEvents().size
+                    client.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = emote)
+                    client.played(mark, Emotes.EMOTES.getValue(emote).anim)
+                }
+                assertTrue(client.messages().none { it.text.startsWith("[diary.task_done") }, "three of four")
+                client.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = 31)
+                client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
+            }
+        }
+    }
+
+    @Test
+    fun `Skill Cape plays only in a quest point cape, and in the Wise Old Man's house counts for the diary`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                var mark = client.actorEvents().size
+                client.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = Emotes.SKILL_CAPE)
+                client.awaitTicks(2)
+                assertTrue(client.actorEvents(mark).none { it.kind == ActorEventKind.ANIMATION && it.id == Emotes.QUEST_CAPE.anim }, "no cape worn")
+
+                server.world.playerNamed("alice")!!.equipment[WearPos.CAPE] = InvObj(QUEST_POINT_CAPE, 1)
+                client.command("tele 3090 3253 0")
+                client.await("the house") { client.position?.takeIf { it == Coord(3090, 3253, 0) } }
+                mark = client.actorEvents().size
+                client.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = Emotes.SKILL_CAPE)
+                client.played(mark, Emotes.QUEST_CAPE.anim)
+                client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
+            }
+        }
+    }
+
+    @Test
     fun `an emote stops a follow where the player stands`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -92,6 +136,7 @@ class HeadlessEmotesTest {
     private companion object {
         const val VARP_COUNT = 5000
         const val VARP_SOS_EMOTE = 802
+        const val QUEST_POINT_CAPE = 9813
         const val IDEA = 28
         const val ANIM_YES = 855
         const val ANIM_IDEA = 4276

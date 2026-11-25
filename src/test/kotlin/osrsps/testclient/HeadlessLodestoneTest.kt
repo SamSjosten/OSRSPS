@@ -173,6 +173,32 @@ class HeadlessLodestoneTest {
         }
     }
 
+    @Test
+    fun `the Karamja stone activates, shows on the map and takes a teleport`(@TempDir dir: Path) {
+        val karamja = Lodestones.KARAMJA
+        server(dir).use { server ->
+            assertEquals(karamja.id, server.world.locs[karamja.x, karamja.z, 0, karamja.loc.layer]?.id)
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.tele(Coord(karamja.x + 4, karamja.z + 1))
+                val stone = LocChange(karamja.id, karamja.loc.shape, karamja.loc.angle, Coord(karamja.x, karamja.z))
+                client.await("the Karamja stone to reach the client") { client.locChanges().takeIf { stone in it } }
+                client.locOp(karamja.id, karamja.x, karamja.z, Lodestones.ACTIVATE)
+                client.awaitMessage("the activation") { it == "[lodestone.activated name=[lodestone.karamja]]" }
+                client.await("Karamja's bit") { client.varp(vars.lodestonesVarp).takeIf { it == 1 or (1 shl karamja.index) } }
+
+                client.tele(Coord(3222, 3218))
+                client.command("lodestone")
+                client.awaitMap()
+                assertEquals("[lodestone.karamja]", client.text(MAP, LodestoneMap.rowText(karamja)))
+                assertEquals(false, client.hidden(MAP, LodestoneMap.activeIcon(karamja)))
+                client.ifButton(MAP, LodestoneMap.iconButton(karamja), LodestoneMap.TELEPORT)
+                client.await("the landing on Karamja", timeoutMillis = 30_000) { client.position?.takeIf { it == Coord(karamja.x + 1, karamja.z + 1) } }
+            }
+        }
+    }
+
     /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
     private fun TestServer.loginAgain(name: String): HeadlessClient {
         repeat(50) {

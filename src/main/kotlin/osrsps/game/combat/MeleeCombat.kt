@@ -337,7 +337,7 @@ class MeleeCombat(
             player.interaction = next
             return
         }
-        player.nextAttackTick = tick + combat.attackSpeed(player)
+        player.nextAttackTick = if (combat.noCooldown(player, npc)) tick + 1 else tick + combat.attackSpeed(player)
         val spec = special(player)
         if (spec?.against != null) matchup = combat.matchup(player, npc, spec.against)!!
         if (spec == null) {
@@ -421,6 +421,8 @@ class MeleeCombat(
     private class Shot(
         val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long,
         val type: AttackType = AttackType.MAGIC, val prayedOnLanding: Boolean = false,
+        /** The [NpcBlinding] it lands with on a player without its protection, null for none. */
+        val blinding: NpcBlinding? = null,
     )
 
     private val shots = ArrayList<Shot>()
@@ -741,7 +743,7 @@ class MeleeCombat(
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
-        if (type == null && spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        if (type == null && spell != null && spellCasts(spell, player) && castsNow(spell, def, player)) return cast(npc, player, spell.attack, tick, spell.type)
         val fire = def.dragonfire
         if (type == null && fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
@@ -795,6 +797,10 @@ class MeleeCombat(
     /** Whether [npc] stands where its melee reaches [player], as its fight back asks before a swing. */
     fun reaches(npc: Npc, player: Player): Boolean =
         npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
+
+    /** Whether [npc], with its south-west tile on [x], [z], would reach [player] from there: where a boss lands beside them. */
+    fun reachesFrom(npc: Npc, x: Int, z: Int, player: Player): Boolean =
+        npc.level == player.level && Reach.reachedEntity(collision, npc.level, x, z, npc.type.size, player.x, player.z, 1, 1)
 
     /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
     fun sees(npc: Npc, player: Player): Boolean =
@@ -855,6 +861,15 @@ class MeleeCombat(
         }
     }
 
+    /** Whether a melee NPC's [spell] goes this turn: against the player's protection prayer if it counters one, else a roll. */
+    private fun castsNow(spell: NpcMeleeSpell, def: NpcCombatDef, player: Player): Boolean {
+        if (spell.countersPrayer) {
+            if (protects(player, def.attackType)) return true
+            if (protects(player, AttackType.MAGIC)) return false
+        }
+        return random.chance(1, spell.chance)
+    }
+
     private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {
         val skill = spell.attack.drain?.skill ?: return true
         return spell.casts(player.skills.baseLevel(skill), player.skills.currentLevel(skill))
@@ -863,29 +878,38 @@ class MeleeCombat(
     /**
      * A melee NPC's spell at [player] in its reach ([NpcMeleeSpell]): its animation, the projectile, and a magic roll
      * against their Magic defence, landing after [HitDelay.MAGIC] as an NPC's shot does ([shoot]); Protect from
-     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's.
+     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's. A ranged spit
+     * ([type] ranged) rolls against Ranged defence, lands after [HitDelay.BOW] and Protect from Missiles blocks it; an
+     * NPC that blinds ([NpcCombatDef.blinds]) hits a player without the protection for its blinding's damage instead,
+     * and its drain comes as the hit lands (guessed: the accuracy roll still counts, and the prayer blocks both).
      */
-    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long) {
+    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long, type: AttackType = AttackType.MAGIC) {
         val def = combat.npcCombat[npc.type] ?: return
         val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
         if (anim >= 0) npc.effects.anim(anim)
         npc.face(player)
         if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
         val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z).coerceAtLeast(1)
-        val delay = HitDelay.MAGIC.ticks(distance)
+        val delay = (if (type == AttackType.MAGIC) HitDelay.MAGIC else HitDelay.BOW).ticks(distance)
         if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
-        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val roll = combat.npcAttack(npc, player, type) ?: return
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = attack.maxHit ?: roll.maxHit
-        val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val blocked = protects(player, AttackType.MAGIC)
+        val blinding = def.blinds?.takeIf { blinds -> blinds.protection.none { player.equipment.count(it) > 0 } }
+        val damage = when {
+            !hit -> 0
+            blinding != null -> blinding.min + random.nextInt(blinding.max - blinding.min + 1)
+            max > 0 -> CombatMath.rollDamage(random, max)
+            else -> 0
+        }
+        val blocked = protects(player, type)
         val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay, blinding = blinding)
     }
 
     /**
      * [npc] breathes dragonfire at [player] ([Dragonfire]): its Magic accuracy against their Magic defence, capped by an
-     * anti-dragon shield or Protect from Magic, with the message for which held.
+     * anti-dragon shield or Protect from Magic (not a metallic dragon's), with the message for which held.
      */
     private fun breathe(npc: Npc, player: Player, fire: NpcDragonfire, tick: Long) {
         if (fire.anim >= 0) npc.effects.anim(fire.anim)
@@ -894,7 +918,7 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
         val resisted = !CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val shield = Dragonfire.shielded(player)
-        val prayer = protects(player, AttackType.MAGIC)
+        val prayer = !fire.metallic && protects(player, AttackType.MAGIC)
         val damage = CombatMath.rollDamage(random, Dragonfire.maxHit(shield, prayer, resisted))
         message(player, words(player)[Dragonfire.line(shield, prayer, resisted)])
         hitPlayer(player, npc, damage, tick)
@@ -936,6 +960,7 @@ class MeleeCombat(
             }
             if (shot.attack.impact >= 0) player.effects.spotanim(0, shot.attack.impact, IMPACT_HEIGHT, 0)
             shot.attack.drain?.let { drain(player, it) }
+            shot.blinding?.let { blinding -> for (skill in blinding.skills) drain(player, StatDrain(skill, blinding.drainPercent)) }
             if (shot.attack.maxHit == 0) {
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
@@ -1140,7 +1165,8 @@ class MeleeCombat(
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
      * alone, if it is in that 3x3 and can be fought (not a wall beast's hole); the spotanim on the player; the targets'
      * hits on this tick; an NPC their Slayer level can't hurt, or that they are shut out of fighting ([Combat.barred]),
-     * passed over, as every other attack refuses it.
+     * passed over, as every other attack refuses it; but not for the weapon worn, as the prayer isn't the weapon's
+     * attack (exploit review R52C-5).
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
@@ -1149,13 +1175,13 @@ class MeleeCombat(
         val targets = if (multi.at(player.level, player.x, player.z)) {
             npcs.inPlay.filter {
                 !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
-                    combat.barred(player, it) == null
+                    combat.barred(player, it, weapon = false) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
                     !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
-                        withinATile(player, it) && combat.barred(player, it) == null
+                        withinATile(player, it) && combat.barred(player, it, weapon = false) == null
                 },
             )
         }

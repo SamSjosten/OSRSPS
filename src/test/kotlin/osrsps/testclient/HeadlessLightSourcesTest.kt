@@ -35,13 +35,14 @@ class HeadlessLightSourcesTest {
         lightable(LightSources.CANDLE, LightSources.LIT_CANDLE, "Candle", 1) +
         lightable(LightSources.CANDLE_LANTERN, LightSources.CANDLE_LANTERN_LIT, "Candle lantern", 2) +
         lightable(LightSources.OIL_LANTERN, LightSources.OIL_LANTERN_LIT, "Oil lantern", 2) +
-        lightable(LightSources.UNLIT_TORCH, LightSources.LIT_TORCH, "Unlit torch", 4)
+        lightable(LightSources.UNLIT_TORCH, LightSources.LIT_TORCH, "Unlit torch", 4) +
+        lightable(LightSources.MINING_HELMET, LightSources.MINING_HELMET_LIT, "Mining helmet", 2)
 
     private val range = ZoneLoc(Cooking.RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, 3212, 3215, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3212 shr 6, 3215 shr 6) },
+            crcs, CollisionMap().apply { markLoaded(3212 shr 6, 3215 shr 6); markLoaded(BASEMENT.x shr 6, BASEMENT.z shr 6) },
             random = GameRandom(1), objTypes = ObjTypes.of(*objs.toTypedArray()),
             locTypes = LocTypes(mapOf(Cooking.RANGE to LocType(Cooking.RANGE, "Range", ops = listOf("Cook", null, null, null, null), collision = LocCollisionType(width = 1, length = 1)))),
             staticLocs = StaticLocs().apply { add(range) }, cycleMillis = millis,
@@ -76,6 +77,28 @@ class HeadlessLightSourcesTest {
                 client.awaitHeld(LightSources.CANDLE)
                 client.seen("[light_source.extinguished item=candle]")
                 assertEquals(0, client.held(LightSources.LIT_CANDLE))
+            }
+        }
+    }
+
+    @Test
+    fun `a mining helmet lit in the castle basement is the Lumbridge & Draynor hard diary task, and lit upstairs isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel firemaking 65")
+                client.await("Firemaking 65") { client.stat(FIREMAKING)?.takeIf { it.level == 65 } }
+                client.command("item ${LightSources.TINDERBOX}")
+                client.command("item ${LightSources.MINING_HELMET}")
+                client.use(LightSources.MINING_HELMET, LightSources.TINDERBOX)
+                client.awaitHeld(LightSources.MINING_HELMET_LIT)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "not in the basement")
+
+                client.command("item ${LightSources.MINING_HELMET}")
+                client.command("tele ${BASEMENT.x} ${BASEMENT.z} 0")
+                client.await("the basement") { client.position?.takeIf { it == BASEMENT } }
+                client.use(LightSources.MINING_HELMET, LightSources.TINDERBOX)
+                client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
             }
         }
     }
@@ -139,5 +162,8 @@ class HeadlessLightSourcesTest {
     private companion object {
         const val BACKPACK = 93
         const val FIREMAKING = 11
+
+        /** In the castle basement, inside the diary task's box. */
+        val BASEMENT = Coord(3214, 9620, 0)
     }
 }

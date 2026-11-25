@@ -1,0 +1,34 @@
+{
+ "name": "Treasure Trails step TT8: Reldo hands over the strange device for a beginner hot-cold clue; it reads hotter by the Draynor wheat field, and Dig there solves the step (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+
+  {"step": "command", "text": "::clue beginner hotcold:160", "expectMessage": "Clue (beginner): hotcold:160", "comment": "the wheat field by Draynor Village (3120, 3282)"},
+  {"step": "command", "text": "::tele 3210 3494 0", "comment": "Reldo's library"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Reldo", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[hotcold.gives_device]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "item": "Strange device", "count": 1},
+  {"step": "itemOption", "item": "Strange device", "option": "Feel"},
+  {"step": "assertMessage", "contains": "[hotcold.first temperature=[hotcold.very_cold]]", "comment": "212 tiles off"},
+
+  {"step": "command", "text": "::tele 3120 3283 0", "comment": "a tile north of the spot"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "item": "Strange device", "option": "Feel"},
+  {"step": "assertMessage", "contains": "[hotcold.again temperature=[hotcold.shaking] change=[hotcold.warmer]]"},
+  {"step": "command", "text": "::item 952 1", "comment": "a spade"},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "another_clue, or casket on a one-step trail"},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

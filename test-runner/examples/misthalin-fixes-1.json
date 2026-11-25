@@ -1,5 +1,5 @@
 {
- "name": "Misthalin fixes 1: Hans's Age (op 3), the Sheared Ram Bartender's Trade (beer 2 coins, cooked meat 4), and a members piece of the Wilderness Ditch crossed both ways (::keys on)",
+ "name": "Misthalin fixes 1: Hans's Age (op 3, shown once the time played has been heard), the Sheared Ram Bartender's Trade (beer 2 coins, cooked meat 4), and a members piece of the Wilderness Ditch crossed both ways (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -22,10 +22,79 @@
    "expectMessage": "Teleported to 3222, 3218"
   },
   {
+   "step": "command",
+   "text": "::npc hans 0",
+   "expectMessage": "Spawned Hans",
+   "comment": "a Hans of our own that stays put: the castle's walks the courtyard and can be out of reach for over a minute (nightly 2026-11-22)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16792 0",
+   "expectMessage": "Varbit 16792",
+   "comment": "hans_age_checked: the cache hides Age until the player has heard their time played, whatever an earlier run left"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hans",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "speaker": "Hans",
+   "contains": "[hans.greeting]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[hans.how_long]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hans.how_long]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "speaker": "Hans",
+   "contains": "[hans.newcomers]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "speaker": "Hans",
+   "contains": "[hans.time_played",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16792,
+   "value": 1,
+   "comment": "now the Age option shows"
+  },
+  {
    "step": "npcOption",
    "npc": "Hans",
    "option": "Age",
-   "timeoutMs": 70000
+   "timeoutMs": 20000
   },
   {
    "step": "assertDialogue",
@@ -47,6 +116,11 @@
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "you put in."
   },
   {
    "step": "command",

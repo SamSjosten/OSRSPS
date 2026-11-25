@@ -26,8 +26,8 @@ class CustomVarsTest {
         assertEquals(20411, vars.firstVarbit)
         assertEquals(20411, vars.lodestoneVarbit(Lodestones.LUMBRIDGE))
         assertEquals(20413, vars.lodestoneVarbit(Lodestones.VARROCK))
-        assertEquals(20416, vars.lodestonePreviousVarbit, "after the sites'")
-        assertEquals("varp 5996, varbits 20411 to 20416", vars.toString())
+        assertEquals(20417, vars.lodestonePreviousVarbit, "after the sites'")
+        assertEquals("varp 5996, varbits 20411 to 20417", vars.toString())
 
         val older = CustomVars.after(olderBuild)
         assertEquals(5891, older.lodestonesVarp)
@@ -47,7 +47,7 @@ class CustomVarsTest {
             val varbits = files.filter { it.group == CustomVars.VARBIT_GROUP }
             assertEquals(files.size, varps.size + varbits.size)
             assertTrue(files.all { it.index == 2 })
-            assertEquals(listOf(vars.lodestonesVarp, vars.harlanClaimVarp, vars.giantLairsVarp, vars.lairVisitVarp, vars.fightCaveVarp, vars.infernoVarp, vars.whiteTreeVarp, vars.bananaCrateVarp), varps.map { it.file })
+            assertEquals(listOf(vars.lodestonesVarp, vars.harlanClaimVarp, vars.giantLairsVarp, vars.lairVisitVarp, vars.fightCaveVarp, vars.infernoVarp, vars.whiteTreeVarp, vars.bananaCrateVarp, vars.morUlRekAccessVarp, vars.logStorageVarp, vars.logStorageMagicVarp), varps.map { it.file })
             assertTrue(varps.all { it.file >= cache.varpCount }, "a varp id the cache has would be refused at startup")
             assertTrue(varps.all { it.data.contentEquals(byteArrayOf(0)) })
             assertEquals(Lodestones.SITES.map { vars.lodestoneVarbit(it) } + vars.lodestonePreviousVarbit, varbits.map { it.file })
@@ -58,19 +58,19 @@ class CustomVarsTest {
         }
         val vars = CustomVars.after(build2746)
         assertEquals(VarbitType(5996, 2, 2), vars.varbits[20413], "Varrock's: bit 2 of the varp")
-        assertEquals(VarbitType(5996, 8, 11), vars.varbits[20416], "the previous destination's: bits 8 to 11, above the sites'")
+        assertEquals(VarbitType(5996, 8, 11), vars.varbits[20417], "the previous destination's: bits 8 to 11, above the sites'")
     }
 
     @Test
     fun `the vars go by name, for the chatbox and the runner scripts, which can't know a cache's ids`() {
         val vars = CustomVars.after(build2746)
-        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003), vars.varpNames)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003, "mor_ul_rek_access" to 6004, "log_storage" to 6005, "log_storage.magic" to 6006), vars.varpNames)
         assertEquals(5996, vars.varp("Lodestones"))
         assertNull(vars.varp("5996"))
         assertEquals(
             mapOf(
                 "lodestone.lumbridge" to 20411, "lodestone.draynor" to 20412, "lodestone.varrock" to 20413, "lodestone.al_kharid" to 20414,
-                "lodestone.edgeville" to 20415, "lodestone.previous" to 20416,
+                "lodestone.edgeville" to 20415, "lodestone.karamja" to 20416, "lodestone.previous" to 20417,
             ),
             vars.varbitNames,
         )
@@ -89,7 +89,7 @@ class CustomVarsTest {
         val vars = CustomVars.after(build2746)
         val merged = build2746.with(vars.varbits)
         assertEquals(5997, merged.varpCount)
-        assertEquals(20417, merged.varbitCount)
+        assertEquals(20418, merged.varbitCount)
         assertEquals(VarbitType(5995, 0, 3), merged.varbit(20410))
         assertEquals(vars.varbits[vars.lodestoneVarbit(Lodestones.EDGEVILLE)], merged.varbit(20415))
         assertEquals(6_001, VarTypes.NONE.with(CustomVars.after(VarTypes.NONE).varbits).varpCount)
@@ -101,11 +101,11 @@ class CustomVarsTest {
 
         // Our varps by name too, for the saves, with the cache's own count kept for telling an old numeric id of ours apart.
         val named = build2746.with(vars.varbits, vars.varpNames)
-        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003), named.namedVarps)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003, "mor_ul_rek_access" to 6004, "log_storage" to 6005, "log_storage.magic" to 6006), named.namedVarps)
         assertEquals("lodestones", named.varpName(5996))
         assertNull(named.varpName(5995))
         assertEquals(5996, named.cacheVarpCount)
-        assertEquals(6004, named.varpCount)
+        assertEquals(6007, named.varpCount)
         assertEquals(5996, build2746.cacheVarpCount, "a cache's own types: every varp is its")
         assertFailsWith<IllegalArgumentException>("a name used twice") { named.with(emptyMap(), mapOf("lodestones" to 5998)) }
         assertFailsWith<IllegalArgumentException>("a named varp among the cache's") { VarTypes(6_000, emptyMap(), 0, mapOf("x" to 5)) }

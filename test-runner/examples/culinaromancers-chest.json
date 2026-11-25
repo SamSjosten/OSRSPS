@@ -1,0 +1,149 @@
+{
+ "name": "Post-quest step 5: the Culinaromancer's Chest's Bank, Collect, Buy-food and Buy-items, and the Restless Ghost's altar standing bare",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3219 9622 0",
+   "expectMessage": "Teleported to 3219, 9622, 0",
+   "comment": "Lumbridge Castle's cellar, south of the Culinaromancer's Chest"
+  },
+  {
+   "step": "locOption",
+   "locId": 12308,
+   "option": "Bank",
+   "x": 3219,
+   "y": 9623,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "timeoutMs": 10000,
+   "comment": "the bank"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 2,
+   "slot": 11,
+   "op": 1,
+   "comment": "bankmain:frame's close button"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "locId": 12308,
+   "option": "Collect",
+   "x": 3219,
+   "y": 9623,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 402,
+   "timeoutMs": 10000,
+   "comment": "the Grand Exchange collection box"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 12308,
+   "option": "Buy-food",
+   "x": 3219,
+   "y": 9623,
+   "timeoutMs": 20000,
+   "comment": "a new option closes the collection box"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "timeoutMs": 10000,
+   "comment": "the food store"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 402,
+   "absent": true,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 12308,
+   "option": "Buy-items",
+   "x": 3219,
+   "y": 9623,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "timeoutMs": 10000,
+   "comment": "the items store: the gloves and utensils"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3120 9565 0",
+   "expectMessage": "Teleported to 3120, 9565, 0",
+   "comment": "the Wizards' Tower basement, south of the Restless Ghost's altar"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2130,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the altar bare: the skull is back in the coffin"
+  },
+  {
+   "step": "locOption",
+   "locId": 2146,
+   "option": "Search",
+   "x": 3120,
+   "y": 9566,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[restless_ghost.altar_empty]",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  }
+ ]
+}

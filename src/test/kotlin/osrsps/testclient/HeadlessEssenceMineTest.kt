@@ -90,6 +90,8 @@ class HeadlessEssenceMineTest {
                 client.awaitDialogue("the ask") { it is DialogueView.Chat && it.text == DialogueText.NONE[SedridorLines.TELEPORT] }
                 client.continueDialogue()
                 val landed = client.inMine()
+                // Sedridor's teleport is the Lumbridge & Draynor easy diary's third task.
+                client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
                 assertTrue(EssenceMine.LANDINGS.any { maxOf(kotlin.math.abs(it.x - landed.x), kotlin.math.abs(it.z - landed.z)) <= 1 }, "landed at $landed")
 
                 client.tele(2886, 4850, 0)

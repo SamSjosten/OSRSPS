@@ -159,6 +159,7 @@ class GameServer(
         val quests: Quests
         val effectIds: EffectIds
         val chatFont: ChatFont
+        val scrollFont: ChatFont
         val attackStyles: AttackStyles
         val seqNames: SeqNames
         val spotanimNames: SpotanimNames
@@ -169,6 +170,7 @@ class GameServer(
         val slayerData: SlayerData
         val fairyRingCodes: osrsps.game.content.FairyRingCodes
         val trailData: osrsps.game.trail.TrailData
+        val furnitureData: osrsps.game.skill.construction.FurnitureData
         val settings: SettingsCatalog
         val collectionLog: osrsps.game.collection.CollectionLogCatalog
         try {
@@ -191,6 +193,7 @@ class GameServer(
             quests = QuestLoader.load(library)
             effectIds = EffectIdLoader.load(library).withCustom(CustomAnims.seqs.keys, CustomAnims.spotanims.keys)
             chatFont = FontLoader.loadDialogueFont(library)
+            scrollFont = FontLoader.loadFont(library, ChatFont.SCROLL_FONT)
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
             spotanimNames = CombatLoader.spotanimNames(library)
@@ -201,6 +204,7 @@ class GameServer(
             slayerData = SlayerLoader.load(library)
             fairyRingCodes = osrsps.cache.FairyRingLoader.load(library)
             trailData = osrsps.cache.TrailLoader.load(library, objTypes)
+            furnitureData = osrsps.cache.FurnitureLoader.load(library)
             settings = SettingsLoader.load(library)
             collectionLog = osrsps.cache.CollectionLogLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
@@ -279,13 +283,13 @@ class GameServer(
         world = World(
             js5.crcs, map.collision, varTypes, customVars, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
-            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
+            scenarios = scenarios, chatFont = chatFont, scrollFont = scrollFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
             reportsFile = dataDir.resolve(Reports.FILE_NAME), clansDir = dataDir, admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, collectionLogCatalog = collectionLog, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            slayerData = slayerData, fairyRingCodes = fairyRingCodes, trailData = trailData, idkTypes = idkTypes, makeoverCatalog = makeoverCatalog, starCycle = true, cycleMillis = cycleMillis,
+            slayerData = slayerData, furnitureData = furnitureData, fairyRingCodes = fairyRingCodes, trailData = trailData, idkTypes = idkTypes, makeoverCatalog = makeoverCatalog, starCycle = true, cycleMillis = cycleMillis,
             trailRewards = osrsps.game.trail.TrailRewards.load(objTypes),
         )
         loadObjSpawns(objTypes)

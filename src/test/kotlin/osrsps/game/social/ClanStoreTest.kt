@@ -59,12 +59,15 @@ class ClanStoreTest {
         store.addApplicant(clan, "dave", "dave")
         assertTrue(store.removeApplicant(clan, "dave"))
         assertFalse(store.removeApplicant(clan, "dave"))
-        // Applicants wait for the autosave's flush; a member leaving is written at once, with them.
+        // Applicants wait for the autosave's flush, and so does a member leaving (exploit review R53A-4).
         assertTrue(store.unwritten)
         assertTrue(ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.applicants.isEmpty())
         store.flush()
         assertFalse(store.unwritten)
         assertTrue(store.removeMember(clan, "bob"))
+        assertTrue(store.unwritten)
+        assertEquals(listOf("alice", "bob"), ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.members.map { it.key })
+        store.flush()
         val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
         assertEquals(listOf("carol" to "Carol"), reloaded.applicants.map { it.key to it.name })
         assertEquals(listOf("alice"), reloaded.members.map { it.key })

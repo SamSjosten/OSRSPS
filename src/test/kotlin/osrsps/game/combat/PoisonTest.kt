@@ -73,6 +73,24 @@ class PoisonTest {
     }
 
     @Test
+    fun `a strange fruit's block keeps poison and venom off for its ticks, with no immunity in the varp`() {
+        poison.poison(alice, 20)
+        poison.cureVenom(alice, 0)
+        poison.block(alice, 30)
+        assertEquals(0, varp())
+        assertFalse(poison.poison(alice, 20))
+        assertFalse(poison.envenom(alice))
+        run(29)
+        assertFalse(poison.poison(alice, 20))
+        run(1)
+        assertTrue(poison.poison(alice, 20))
+        poison.clear(alice)
+        poison.block(alice, 30)
+        poison.clear(alice)
+        assertTrue(poison.envenom(alice), "clearing ends the block too")
+    }
+
+    @Test
     fun `poison runs out at 0, and the timer stops`() {
         poison.poison(alice, 2)
         run(1 + Poison.TICKS * 2)

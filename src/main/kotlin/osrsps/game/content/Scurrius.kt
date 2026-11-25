@@ -4,6 +4,8 @@ import osrsps.game.GameLines
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.shop.ShopScreen
 import osrsps.game.combat.DeathPlace
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
@@ -22,6 +24,7 @@ object ScurriusLairLines : Lines("scurrius", "Scurrius's lair") {
     val EAT_HEALED = line("eat_healed", "Eat on a food pile: healed in full (OSRS Wiki, Food Pile; no transcript)")
     val EAT_WAIT = line("eat_wait", "Eat on a food pile within ten minutes of the last (no transcript)", "minutes")
     val EAT_COMBAT = line("eat_combat", "Eat on a food pile just after being attacked (no transcript)")
+    val KILL_COUNT = line("kill_count", "Scurrius killed: the player's kill count of him (the Wiki's Kill count page; no transcript)", "count")
 }
 
 /** Historian Aldo's lines (keys only; the words are in data/dialogue.txt, from Transcript:Historian Aldo, read 2026-11-19). */
@@ -44,6 +47,21 @@ object HistorianAldoLines : Lines("historian_aldo", "Transcript:Historian Aldo")
     val WEAPON_NEEDS = line("weapon_needs", "a bone weapon: what to bring")
     val WEAPON_FEE = line("weapon_fee", "a bone weapon: the 50,000 coins")
     val WEAPON_COME_BACK = line("weapon_come_back", "a bone weapon without the materials")
+    val WEAPON_WHICH = line("weapon_which", "with the materials: the menu's title, which bone weapon")
+    val WEAPON_MACE = line("weapon_mace", "that menu: the bone mace")
+    val WEAPON_SHORTBOW = line("weapon_shortbow", "that menu: the bone shortbow")
+    val WEAPON_STAFF = line("weapon_staff", "that menu: the bone staff")
+    val WEAPON_OKAY = line("weapon_okay", "a bone weapon picked: he'll make it", "weapon")
+    val WEAPON_HANDED = line("weapon_handed", "the item box as he hands it over", "weapon")
+    val SPINE_USED = line("spine_used", "a spine used on him, before the Trade menu")
+    val TRADE_NO_SPINE = line("trade_no_spine", "Trade with no spine held: he needs one")
+    val TRADE_CONFIRM = line("trade_confirm", "Trade with a spine: the menu's title, a combat lamp for it")
+    val TRADE_YES = line("trade_yes", "that menu: yes")
+    val TRADE_NO = line("trade_no", "that menu: no")
+    val TRADE_DONE = line("trade_done", "the item box as he swaps the spine for the lamp")
+    val TRADE_WHICH = line("trade_which", "Trade with a spine and a weapon's materials: the menu's title")
+    val TRADE_WEAPON = line("trade_weapon", "that menu: the weapon option")
+    val TRADE_LAMP = line("trade_lamp", "that menu: the combat lamp option")
 }
 
 /**
@@ -218,6 +236,7 @@ object Scurrius {
     const val QUICK_ESCAPE = 2
     const val EAT = 1
     const val TALK_TO = 1
+    const val TRADE = 3
 
     /** The lair's locs whose handlers work in a private lair's copy too: the water out and the food piles. */
     val INSTANCE_LOCS: Set<Int> = setOf(WATER, FOOD_PILE, FOOD_PILE_2)
@@ -250,7 +269,64 @@ object Scurrius {
     /** Whether [x], [z] (level 0, the real map) is in the public lair: its three by three zones. */
     fun inPublicLair(x: Int, z: Int): Boolean = x in LAIR_X until LAIR_X + LAIR_ZONES * 8 && z in LAIR_Z until LAIR_Z + LAIR_ZONES * 8
 
-    internal suspend fun Dialogue.aldo() = with(HistorianAldoLines) {
+    /** Aldo's fee for a bone weapon. */
+    const val WEAPON_FEE_COINS = 50_000
+
+    /** The cache's `rat_boss_biologist_npc`: 1 shows Aldo with Trade (7615). */
+    const val VARBIT_ALDO_TRADE = 9586
+
+    /**
+     * Whether the player holds a weapon's materials and Aldo's fee: the transcript's "materials". INFERRED: the 50,000
+     * coins count among them.
+     */
+    private fun Dialogue.canPay(): Boolean =
+        RatBoneWeapons.materials(context.player).isNotEmpty() && context.player.inventory.count(ShopScreen.COINS) >= WEAPON_FEE_COINS
+
+    /**
+     * Which bone weapon, one picked, paid for and handed over in an item box; the talk then ends. INFERRED: the menu
+     * offers only the weapons whose materials the player holds (the transcript lists all three).
+     */
+    private suspend fun Dialogue.weapon(world: World) = with(HistorianAldoLines) {
+        val options = RatBoneWeapons.materials(context.player)
+        val lines = options.map {
+            when (it) {
+                RatBoneWeapons.BONE_MACE -> WEAPON_MACE
+                RatBoneWeapons.BONE_SHORTBOW -> WEAPON_SHORTBOW
+                else -> WEAPON_STAFF
+            }
+        }
+        val picked = options[choice(*lines.toTypedArray(), title = text(WEAPON_WHICH)) - 1]
+        val name = world.objTypes[picked]?.name ?: "$picked"
+        chatNpc(ChatAnim.HAPPY, WEAPON_OKAY, "weapon" to name)
+        // Paid and made with nothing suspending between: the materials may have gone while he spoke.
+        val player = context.player
+        if (picked !in RatBoneWeapons.materials(player) || !AlKharidTraders.pay(player, WEAPON_FEE_COINS)) return@with
+        RatBoneWeapons.make(world, player, picked)
+        objbox(picked, text(WEAPON_HANDED, "weapon" to name))
+    }
+
+    /**
+     * Trade (Transcript:Historian Aldo): with no spine he asks for one; with one, a combat lamp for it, asked first; with
+     * a weapon's materials and his fee too, the weapon or the lamp first.
+     */
+    internal suspend fun Dialogue.trade(world: World) = with(HistorianAldoLines) {
+        val player = context.player
+        if (player.inventory.count(RatBoneWeapons.SPINE) < 1) {
+            chatNpc(ChatAnim.NEUTRAL, TRADE_NO_SPINE)
+            return@with
+        }
+        if (canPay() && choice(TRADE_WEAPON, TRADE_LAMP, title = text(TRADE_WHICH)) == 1) {
+            weapon(world)
+            return@with
+        }
+        if (choice(TRADE_YES, TRADE_NO, title = text(TRADE_CONFIRM)) != 1) return@with
+        if (player.inventory.count(RatBoneWeapons.SPINE) < 1) return@with
+        RatBoneWeapons.take(player, RatBoneWeapons.SPINE, 1)
+        world.objTypes[RatBoneWeapons.LAMP]?.let { player.inventory.add(it, 1) }
+        objbox(RatBoneWeapons.LAMP, TRADE_DONE)
+    }
+
+    internal suspend fun Dialogue.aldo(world: World) = with(HistorianAldoLines) {
         chatNpc(ChatAnim.HAPPY, HELLO)
         while (true) {
             when (choice(ASK_BARS, ASK_SPINE_OPTION, ASK_WEAPON, GOODBYE)) {
@@ -273,6 +349,10 @@ object Scurrius {
                     chatPlayer(ChatAnim.QUIZ, ASK_WEAPON)
                     chatNpc(ChatAnim.NEUTRAL, WEAPON_NEEDS)
                     chatNpc(ChatAnim.NEUTRAL, WEAPON_FEE)
+                    if (canPay()) {
+                        weapon(world)
+                        return
+                    }
                     chatNpc(ChatAnim.NEUTRAL, WEAPON_COME_BACK)
                 }
                 else -> {
@@ -297,7 +377,19 @@ fun registerScurrius(world: World, lairs: ScurriusLairs) {
         world.handlers.onLoc(FOOD_PILE, EAT) { with(lairs) { eat() } }
         world.handlers.onLoc(FOOD_PILE_2, EAT) { with(lairs) { eat() } }
         for (id in listOf(ALDO, ALDO_TALK, ALDO_TRADE)) {
-            world.handlers.onNpc(id, TALK_TO) { op -> world.dialogues.start(this, op.npc) { aldo() } }
+            world.handlers.onNpc(id, TALK_TO) { op ->
+                // GUESSED: Trade shows once the player has talked to him.
+                player.vars.setVarbitIfKnown(VARBIT_ALDO_TRADE, 1)
+                world.dialogues.start(this, op.npc) { aldo(world) }
+            }
+            world.handlers.onNpc(id, TRADE) { op -> world.dialogues.start(this, op.npc) { trade(world) } }
+            // A spine used on him: his line, then as Trade.
+            world.handlers.onObjOnNpc(id, RatBoneWeapons.SPINE) { op ->
+                world.dialogues.start(this, op.npc) {
+                    chatNpc(ChatAnim.HAPPY, HistorianAldoLines.SPINE_USED)
+                    trade(world)
+                }
+            }
         }
         // Inferred: the lair is multi-way, public and private, as his giant rats fight alongside him.
         val multi = world.multiCombat.dynamic

@@ -1,0 +1,48 @@
+// Mirrors RuneLite's example-plugin template, with Google's mirror of Maven Central first: Central rate-limits shared
+// CI runners (HTTP 429), as the server's own build notes.
+plugins {
+	id 'java'
+}
+
+repositories {
+	mavenLocal()
+	maven {
+		url = 'https://repo.runelite.net'
+		content {
+			includeGroupByRegex("net\\.runelite.*")
+		}
+	}
+	maven {
+		url = 'https://maven-central.storage-download.googleapis.com/maven2/'
+	}
+	mavenCentral()
+}
+
+def runeLiteVersion = 'latest.release'
+
+dependencies {
+	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+
+	testImplementation 'junit:junit:4.13.2'
+	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
+}
+
+group = 'osrsps'
+version = '0.1.0'
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+	options.release.set(11)
+}
+
+// `gradlew -p tfa-helper run` starts a development RuneLite with this plugin loaded (TfaHelperPluginTest), in developer
+// mode, as RuneLite's example plugin does from an IDE.
+tasks.register('run', JavaExec) {
+	group = 'application'
+	description = 'Starts RuneLite with TFA Helper loaded'
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'osrsps.tfahelper.TfaHelperPluginTest'
+	jvmArgs '-ea'
+	args '--developer-mode'
+}

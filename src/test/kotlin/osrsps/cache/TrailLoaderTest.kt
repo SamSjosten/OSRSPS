@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.trail.StepType
+import osrsps.game.trail.TrailBoxes
 import osrsps.game.trail.TrailChallenge
 import osrsps.game.trail.TrailOutfit
 import osrsps.game.trail.TrailProgress
@@ -34,6 +35,7 @@ class TrailLoaderTest {
         26 to DbRow(StepType.ANAGRAM.table, mapOf(0 to listOf(55), 1 to listOf(2), 2 to listOf("A NAGRAM"), 3 to listOf(11), 4 to listOf(30), 5 to listOf(1))),
         // A beginner emote (raspberry, emote 19) in a gold necklace and gold ring, or any ring of dueling (group 18) on the ring slot.
         27 to DbRow(StepType.EMOTE.table, mapOf(0 to listOf(273), 1 to listOf(0), 2 to listOf("Blow a raspberry."), 3 to listOf(10), 4 to listOf(19), 6 to listOf(31, 32), 7 to listOf(34736), 11 to listOf(1))),
+        99 to DbRow(TrailLoader.COMBAT_ENCOUNTER, mapOf(0 to listOf("A Saradomin wizard."), 1 to listOf(2955))),
         31 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a necklace and ring"), 3 to listOf(1654), 10 to listOf(1635))),
         32 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a dueling ring"), 21 to listOf(18))),
         30 to DbRow(TrailLoader.CHALLENGE_QUESTION, mapOf(0 to listOf("How many?", 19, "How many?", 20))),
@@ -57,6 +59,7 @@ class TrailLoaderTest {
         val coordinate = data["coordinate:432"]!!
         assertEquals(TrailTier.HARD, coordinate.tier)
         assertTrue(coordinate.combat)
+        assertEquals(listOf(2955), coordinate.combatNpcs)
         assertEquals(listOf(12554, 12555), coordinate.items)
         assertEquals(TrailTier.BEGINNER, data["map:101"]!!.tier)
         assertNull(cryptic.challenge)
@@ -75,6 +78,16 @@ class TrailLoaderTest {
     }
 
     @Test
+    fun `a box challenge says which boxes it takes`() {
+        assertEquals(true to false, TrailChallenge.Box("A puzzle box.").let { it.puzzle to it.light })
+        assertEquals(false to true, TrailChallenge.Box("A light box.").let { it.puzzle to it.light })
+        assertEquals(true to true, TrailChallenge.Box("A puzzle or a light box.").let { it.puzzle to it.light })
+        assertTrue(TrailBoxes.isSolved(IntArray(25) { if (it == 24) -1 else 3619 + it }))
+        assertEquals(listOf(1, 5), TrailBoxes.neighbours(0))
+        assertEquals(listOf(11, 13, 7, 17), TrailBoxes.neighbours(12))
+    }
+
+    @Test
     fun `a challenge scroll is kept apart from the step's clue scroll, with its question and every answer`() {
         val anagram = data["anagram:55"]!!
         assertEquals(TrailChallenge.Question("How many?", setOf(19, 20)), anagram.challenge)
@@ -85,22 +98,28 @@ class TrailLoaderTest {
     }
 
     @Test
-    fun `a trail under way, the caskets opened, the scroll cases opened and the STASH units' items survive a save`() {
+    fun `a trail under way, the caskets opened, the scroll cases opened and the STASH units' items and the boxes under way survive a save`() {
         val progress = TrailProgress()
         progress[TrailTier.EASY] = Trail("map:107", 3, mutableListOf("cryptic:636"))
-        progress[TrailTier.BEGINNER] = Trail("map:101", 1)
+        progress[TrailTier.BEGINNER] = Trail("cryptic:639", 1, fought = true, task = "skillchallenge:549")
         progress.setCompleted(TrailTier.HARD, 51)
         progress.cases += 30914
         progress.stashes[34736] = listOf(1654, 1635)
+        progress.puzzles[19887] = IntArray(25) { if (it == 0) -1 else 3618 + it }
+        progress.lightBox = osrsps.game.trail.LightBoxState(IntArray(8) { 1 shl it }, 77)
         val back = TrailSaves.fromJson(TrailSaves.toJson(progress))
         assertEquals("map:107", back[TrailTier.EASY]!!.step)
         assertEquals(3, back[TrailTier.EASY]!!.length)
         assertEquals(listOf("cryptic:636"), back[TrailTier.EASY]!!.done)
         assertEquals(1, back[TrailTier.BEGINNER]!!.length)
+        assertEquals(true to "skillchallenge:549", back[TrailTier.BEGINNER]!!.let { it.fought to it.task })
+        assertEquals(false to null, back[TrailTier.EASY]!!.let { it.fought to it.task })
         assertNull(back[TrailTier.HARD])
         assertEquals(51, back.completed(TrailTier.HARD))
         assertEquals(0, back.completed(TrailTier.EASY))
         assertEquals(setOf(30914), back.cases)
         assertEquals(mapOf(34736 to listOf(1654, 1635)), back.stashes)
+        assertEquals(progress.puzzles.getValue(19887).toList(), back.puzzles.getValue(19887).toList())
+        assertEquals(List(8) { 1 shl it } to 77, back.lightBox!!.switches.toList() to back.lightBox!!.lit)
     }
 }

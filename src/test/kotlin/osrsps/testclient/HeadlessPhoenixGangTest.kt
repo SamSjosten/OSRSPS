@@ -60,17 +60,19 @@ class HeadlessPhoenixGangTest {
     private val storeDoor = ZoneLoc(PhoenixGang.STORE_DOOR, LocShape.WALL_STRAIGHT, 3, 3251, 3386, 0)
     private val blackArmDoor = ZoneLoc(PhoenixGang.BLACK_ARM_DOOR, LocShape.WALL_STRAIGHT, 3, 3185, 3388, 0)
     private val ladder = ZoneLoc(PhoenixGang.HIDEOUT_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, 3244, 9783, 0)
-    private val chest = ZoneLoc(PhoenixGang.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3238, 9761, 0)
+    private val chest = ZoneLoc(PhoenixGang.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3235, 9761, 0)
+    /** A copy of the hideout's ladder type elsewhere, which mustn't climb anywhere. */
+    private val strayLadder = ZoneLoc(PhoenixGang.HIDEOUT_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, 3240, 3390, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             CollisionMap().apply {
-                markLoaded(3247 shr 6, 9779 shr 6); markLoaded(3238 shr 6, 9761 shr 6)
-                markLoaded(3251 shr 6, 3386 shr 6); markLoaded(3185 shr 6, 3388 shr 6)
+                markLoaded(3247 shr 6, 9779 shr 6); markLoaded(3235 shr 6, 9761 shr 6)
+                markLoaded(3251 shr 6, 3386 shr 6); markLoaded(3185 shr 6, 3388 shr 6); markLoaded(3240 shr 6, 3390 shr 6)
             },
             objTypes = ObjTypes.of(key, crossbow), locTypes = types,
-            staticLocs = StaticLocs().apply { listOf(hideoutDoor, storeDoor, blackArmDoor, ladder, chest).forEach(::add) },
+            staticLocs = StaticLocs().apply { listOf(hideoutDoor, storeDoor, blackArmDoor, ladder, chest, strayLadder).forEach(::add) },
             npcTypes = NpcTypes.of(straven, katrine, weaponsmaster, watcher),
             npcSpawns = listOf(
                 NpcSpawn(straven, 3246, 9780, wander = 0, source = "test"),
@@ -153,18 +155,54 @@ class HeadlessPhoenixGangTest {
                 client.awaitAt(3247, 9780)
 
                 // The chest opens on nothing, and shuts again.
-                client.tele(3238, 9762)
+                client.tele(3235, 9762)
                 client.locOp(chest.id, chest.x, chest.z, PhoenixGang.OP1)
                 client.message("gang_house.chest_search")
                 client.message("gang_house.chest_nothing")
-                client.await("the chest open") { world.locs[3238, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST_OPEN } }
-                client.await("the chest shut") { world.locs[3238, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST } }
+                client.await("the chest open") { world.locs[3235, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST_OPEN } }
+                client.await("the chest shut") { world.locs[3235, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST } }
 
                 // Up the ladder to the alley.
                 client.tele(3244, 9782)
                 client.locOp(ladder.id, ladder.x, ladder.z, PhoenixGang.OP1)
                 // Beside the street's ladder, on the side the player stood.
                 client.awaitAt(3244, 3382)
+            }
+        }
+    }
+
+    @Test
+    fun `a key-holder crosses the store door without it opening, so no one follows, and a stray ladder copy goes nowhere`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { a ->
+                server.login("dave").use { b ->
+                    for (client in listOf(a, b)) {
+                        client.await("the login rebuild") { client.position }
+                        client.tele(3251, 3387)
+                    }
+                    a.command("item ${PhoenixGang.WEAPON_STORE_KEY} 1")
+                    a.await("the key") { if (a.count(PhoenixGang.WEAPON_STORE_KEY) == 1) Unit else null }
+                    val world = server.world
+                    a.locOp(storeDoor.id, storeDoor.x, storeDoor.z, PhoenixGang.OP1)
+                    b.locOp(storeDoor.id, storeDoor.x, storeDoor.z, PhoenixGang.OP1)
+                    // The door stays shut while the key-holder crosses.
+                    repeat(4) {
+                        assertEquals(PhoenixGang.STORE_DOOR, world.locs[3251, 3386, 0, 0]?.id, "the store door shut")
+                        a.awaitTicks(1)
+                    }
+                    a.awaitAt(3251, 3385)
+                    b.message("gang_house.securely_locked")
+                    b.awaitTicks(3)
+                    // Outside is the door's own tile and north of it; the store is south of its edge.
+                    assertEquals(true, b.position!!.z >= 3386, "the keyless player still outside: ${b.position}")
+
+                    b.tele(3240, 3391)
+                    b.locOp(strayLadder.id, strayLadder.x, strayLadder.z, PhoenixGang.OP1)
+                    b.message("game.nothing_interesting")
+                    b.awaitTicks(3)
+                    assertEquals(0, b.position?.level)
+                    assertEquals(true, b.position!!.z in 3380..3400, "not sent south")
+                }
             }
         }
     }

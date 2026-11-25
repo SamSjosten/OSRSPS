@@ -1,5 +1,5 @@
 {
-  "name": "Looks step 2: Thessalia's makeover screen, from her Makeover option and from her talk: a style and a swatch previewed, walking off drops them, Confirm keeps them with her line",
+  "name": "Looks step 2: Thessalia's makeover screen, from her Makeover option and from her talk: a style and a swatch previewed, closing the screen drops them, Confirm keeps them with her line",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -12,7 +12,7 @@
     {"step": "waitTicks", "ticks": 2, "comment": "lets the client draw the styles before clicking one"},
     {"step": "clickWidget", "interfaceId": 516, "component": 7, "slot": 5, "op": 1, "comment": "Preview the second top, Torn (kit 24): each style is five children"},
     {"step": "assertVarp", "id": 3788, "value": 5, "comment": "makeover_hair lights the second style; check by eye that the model in the middle wears it"},
-    {"step": "walk", "x": 3205, "y": 3417, "comment": "walking closes the screen without Apply"},
+    {"step": "clickWidget", "interfaceId": 516, "component": 2, "slot": 11, "op": 1, "comment": "makeover:border's close button (steelborder's child 11, as bankmain:frame's): closing without Apply. A walk can't: the click lands on the screen (nightly 2026-11-23)"},
     {"step": "assertInterface", "interfaceId": 516, "absent": true},
     {"step": "command", "text": "::look", "expectMessage": "torso 18", "comment": "the preview gone, the saved top back"},
     {"step": "npcOption", "npc": "Thessalia", "option": "Talk-to", "timeoutMs": 20000},

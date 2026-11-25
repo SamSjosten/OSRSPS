@@ -168,6 +168,7 @@ object LumbridgeSwamp {
         player.anim(if (from == RAFT_WEST) ANIM_SWIM_FROM_WEST else ANIM_SWIM_FROM_EAST)
         delay(SWIM_TICKS)
         world.teleport(player, to.x, to.z, 0)
+        world.diaries.complete(player, DiaryTask.LUMBRIDGE_MEDIUM_2)
         // Inferred: the roll is made as the rope is untied, on the far bank, as the message says.
         if (world.random.between(1, GRAPPLE_BREAK_CHANCE) == 1 && player.equipment[WearPos.AMMO]?.id == MITH_GRAPPLE) {
             player.equipment.remove(WearPos.AMMO, 1)

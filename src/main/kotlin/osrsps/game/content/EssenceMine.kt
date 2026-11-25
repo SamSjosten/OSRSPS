@@ -194,6 +194,9 @@ suspend fun ScriptContext.teleportToEssenceMine(
     val to = EssenceMine.freeTileNear(landing, 1, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
     EssenceMine.sentFrom(player, returnTo)
     world.teleport(player, to.x, to.z, 0)
+    if (npc.type.id == EssenceMine.SEDRIDOR) world.diaries.complete(player, DiaryTask.LUMBRIDGE_EASY_3)
+    // The map spawns Aubury as his multi-NPC (2886): the type the player sees is one of VarrockStores.AUBURY (Codex on #932).
+    if ((world.npcInteractions.shownType(npc, player)?.id ?: npc.type.id) in VarrockStores.AUBURY) world.diaries.complete(player, DiaryTask.VARROCK_EASY_2)
 }
 
 fun registerEssenceMine(world: World) {

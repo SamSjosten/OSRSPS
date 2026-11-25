@@ -37,37 +37,95 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
     val ELITE_REWARDS = line("elite_rewards", "the elite tier: her answer")
     val THANKS = line("thanks", "after a tier: the player's thanks")
     val FINISH_TASKS = line("finish_tasks", "how to claim: her answer")
+    val ANOTHER_RING = line("another_ring", "first menu, option 1 once a ring is earned and the highest earned isn't carried, worn or banked: which the player then says")
+    val ANOTHER_RING_GIVEN = line("another_ring_given", "after another ring: the box beside the ring")
+    val NO_SPACE = line("no_space", "a claim without two free inventory spaces, or another ring without one (guessed: Toby's has words, hers none yet)")
+    val CLAIM_EASY = line("claim_easy", "a claim: the player has done every easy task (\"Achievement Diary\" capitalised)")
+    val CLAIM_MEDIUM = line("claim_medium", "a claim: every medium task (\"achievement diary\" in lower case, as for hard and elite)")
+    val CLAIM_HARD = line("claim_hard", "a claim: every hard task")
+    val CLAIM_ELITE = line("claim_elite", "a claim: every elite task")
+    val WANT_REWARD = line("want_reward", "a claim (easy to hard): her answer, a reward then")
+    val YES_PLEASE = line("yes_please", "a claim (easy to hard): the player's answer")
+    val ELITE_DONE = line("elite_done", "the elite claim: her answer, every task in the diary done")
+    val RING_EASY = line("ring_easy", "the easy claim, after the ring: what it does")
+    val RING_MEDIUM = line("ring_medium", "the medium claim: the ring upgraded, what it does")
+    val RING_HARD = line("ring_hard", "the hard claim: the ring upgraded, what it does")
+    val RING_ELITE = line("ring_elite", "the elite claim: the ring upgraded, what it does (two boxes on live)")
+    val WOW_THANKS = line("wow_thanks", "a claim: the player's thanks")
+    val LOSE_RING = line("lose_ring", "the easy claim, last: come back if the ring is lost")
 }
 
 /**
  * Mikasi outside Lumbridge Castle's gate (NPC 16804, mikasi_lumbridge_diary), the former Magic tutor, who runs the
  * Lumbridge & Draynor Diary since 242.1 moved Hatius Cosaintus to the Falador pub (Wiki update notes, 3 November 2026;
- * Falador isn't built, so he is left out). From the Wiki: Talk-to for a player who has done no diary tasks (there are
- * no diaries here yet). She says nothing before the first menu. Guessed: every chathead expression; leaving out the
- * Wiki's "another ring" option, which a player who has earned no ring can't need; and that the diary menu comes back
- * after "what is the diary" (the Wiki doesn't say). Goodbye brings her first menu back, as the Wiki's transcript has
+ * Falador isn't built, so he is left out). From the Wiki: her menus, and claiming each tier's reward (Explorer's ring 1
+ * to 4 with the tier's antique lamp, the lamp from the diary's page, as her transcript leaves it out), the tiers in
+ * order. She says nothing before the first menu. Guessed: every chathead expression; that a claim runs as soon as
+ * Talk-to is clicked, in place of her silence, and her first menu follows; that a tier whose earlier tiers aren't all
+ * done can't be claimed and says nothing (the Wiki has no words for it); that "Can I have another ring?" shows once a
+ * ring is earned and the highest tier earned isn't carried, worn, banked, dropped and still on the ground, or in a grave,
+ * and gives that tier; that a claim wants two free spaces and a replacement one, as Toby's transcript has it for a claim
+ * (hers doesn't say; nothing lands on the floor: exploit review R55A-1 and R55A-2), said with [MikasiLines.NO_SPACE]
+ * (unsourced: its words wait for a recording); and that the
+ * diary menu comes back after "what is the diary". Goodbye brings her first menu back, as the Wiki's transcript has
  * it after "See you later." (from either menu), so the talk ends only when the player walks away.
  */
 object Mikasi {
     const val ID = 16804
     const val TALK_TO = 1
 
-    internal suspend fun Dialogue.talk() = with(MikasiLines) {
+    private val AREA = DiaryArea.LUMBRIDGE
+
+    internal suspend fun Dialogue.talk(diaries: Diaries) = with(MikasiLines) {
+        if (!claim(diaries)) return@with
         while (true) {
-            when (choice(WHO_ARE_YOU, MY_DIARY, FAREWELL)) {
-                1 -> {
+            val another = diaries.highestClaimed(player, AREA) != null && !diaries.ownsReward(player, AREA)
+            val options = listOfNotNull(ANOTHER_RING.takeIf { another }, WHO_ARE_YOU, MY_DIARY, FAREWELL)
+            when (options[choice(*options.toTypedArray()) - 1]) {
+                ANOTHER_RING -> {
+                    chatPlayer(ChatAnim.QUIZ, ANOTHER_RING)
+                    if (diaries.replace(player, AREA)) {
+                        objbox(AREA.rewards[diaries.highestClaimed(player, AREA)!!.ordinal], ANOTHER_RING_GIVEN)
+                    } else {
+                        chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+                    }
+                }
+                WHO_ARE_YOU -> {
                     chatPlayer(ChatAnim.QUIZ, WHO_ARE_YOU)
                     chatNpc(ChatAnim.NEUTRAL, TASKMASTER)
                     chatPlayer(ChatAnim.QUIZ, WHAT_DIARY)
                     explain()
                 }
-                2 -> {
+                MY_DIARY -> {
                     chatPlayer(ChatAnim.QUIZ, MY_DIARY_SAID)
                     if (!diaryMenu()) return@with
                 }
                 else -> farewell()
             }
         }
+    }
+
+    /**
+     * The lowest tier ready to claim, if its earlier tiers are done: the ring and lamp, and her words for them; false when
+     * the pack has no room for both, which ends the talk as Toby's does.
+     */
+    private suspend fun Dialogue.claim(diaries: Diaries): Boolean = with(MikasiLines) {
+        val tier = diaries.claimable(player, AREA)?.takeIf { diaries.previousDone(player, AREA, it) } ?: return@with true
+        chatPlayer(ChatAnim.HAPPY, listOf(CLAIM_EASY, CLAIM_MEDIUM, CLAIM_HARD, CLAIM_ELITE)[tier.ordinal])
+        if (tier == DiaryTier.ELITE) {
+            chatNpc(ChatAnim.HAPPY, ELITE_DONE)
+        } else {
+            chatNpc(ChatAnim.NEUTRAL, WANT_REWARD)
+            chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
+        }
+        if (!diaries.claim(player, AREA, tier)) {
+            chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+            return@with false
+        }
+        chatNpc(ChatAnim.HAPPY, listOf(RING_EASY, RING_MEDIUM, RING_HARD, RING_ELITE)[tier.ordinal])
+        chatPlayer(ChatAnim.HAPPY, WOW_THANKS)
+        if (tier == DiaryTier.EASY) chatNpc(ChatAnim.NEUTRAL, LOSE_RING)
+        true
     }
 
     /** The diary menu; true to go back to the first menu (after "how to claim" or goodbye), false when the talk has ended. */
@@ -121,6 +179,6 @@ object Mikasi {
 /** Mikasi's Talk-to. */
 fun registerMikasi(world: World) {
     world.handlers.onNpc(Mikasi.ID, Mikasi.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(Mikasi) { talk() } }
+        world.dialogues.start(this, op.npc) { with(Mikasi) { talk(world.diaries) } }
     }
 }

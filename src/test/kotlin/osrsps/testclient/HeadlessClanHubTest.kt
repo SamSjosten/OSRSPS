@@ -1,22 +1,27 @@
 package osrsps.testclient
 
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.Inventory
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.SettingsSide
 import osrsps.game.VarTypes
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.content.ClanHub
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.social.ClanStore
 import osrsps.game.social.Clans
 import osrsps.map.CollisionMap
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -30,7 +35,8 @@ class HeadlessClanHubTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(ClanHub.VEXILLA.max() + 1)
-        for (id in ClanHub.CLOAKS + ClanHub.VEXILLA) objs[id] = ObjType(id, "Clan item $id")
+        for (id in ClanHub.CLOAKS) objs[id] = ObjType(id, "Clan cloak $id", iops = listOf(null, "Wear", null, null, "Destroy"), wearpos1 = WearPos.CAPE)
+        for (id in ClanHub.VEXILLA) objs[id] = ObjType(id, "Clan vexillum $id", iops = listOf(null, "Wield", null, null, "Destroy"), wearpos1 = WearPos.WEAPON)
         objs[FILLER] = ObjType(FILLER, "Filler")
         World(
             crcs,
@@ -38,7 +44,7 @@ class HeadlessClanHubTest {
             objTypes = ObjTypes(objs),
             npcTypes = NpcTypes.of(clerk),
             npcSpawns = listOf(NpcSpawn(clerk, 3222, 3220, source = "test")),
-            varTypes = VarTypes(VARP_COUNT, emptyMap()),
+            varTypes = VarTypes(VARP_COUNT, mapOf(SettingsSide.VARBIT_ACCEPT_AID to SettingsSide.VARBITS.getValue(SettingsSide.VARBIT_ACCEPT_AID))),
             cycleMillis = millis,
             clansDir = dir.resolve("data"),
         )
@@ -255,8 +261,217 @@ class HeadlessClanHubTest {
         }
     }
 
+    private fun HeadlessClient.wield(id: Int) {
+        val slot = await("item $id in the backpack") { inventory(Inventory.INV).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
+        ifButton(INVENTORY, 0, WEAR_BUTTON, slot, id)
+        await("item $id wielded") { inventory(WORN).firstOrNull { it?.id == id } }
+    }
+
+    private fun HeadlessClient.saw(text: String) = await(text) { messages().firstOrNull { it.text == text } }
+
+    private fun HeadlessClient.recruitShown() = playerOps()[Clans.PLAYER_OP_RECRUIT] == Clans.RECRUIT
+
+    @Test
+    fun `wielding a vexillum gives Recruit, and a yes from someone with Accept Aid on joins them to the clan`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.inClan("Odins Gate")
+                    alice.awaitTicks(2)
+                    assertFalse(alice.recruitShown())
+                    alice.command("item ${ClanHub.VEXILLA[2]} 1")
+                    alice.wield(ClanHub.VEXILLA[2])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+
+                    // Accept Aid off: refused.
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.saw("[clan.recruit_no_aid name=bob]")
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+
+                    // Asked, and no: he stays out, and alice hears of it.
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.saw("[clan.recruit_sent name=bob]")
+                    val question = bob.awaitDialogue("the question") { it is DialogueView.Menu } as DialogueView.Menu
+                    assertEquals("[clan.recruit_question name=alice clan=Odins Gate]", question.title)
+                    // A second Recruit while he is asked: busy.
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.saw("[clan.recruit_busy name=bob]")
+                    bob.chooseOption(2)
+                    alice.saw("[clan.recruit_declined name=bob]")
+                    assertNull(server.world.clans.clanOf(server.world.playerNamed("bob")!!))
+
+                    // Alice asking again so soon after his No reads as busy (exploit review R53A-1).
+                    bob.await("the question closed") { if (bob.dialogueView == null) Unit else null }
+                    val busyBefore = alice.messages().count { it.text == "[clan.recruit_busy name=bob]" }
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.await("busy again") { Unit.takeIf { alice.messages().count { it.text == "[clan.recruit_busy name=bob]" } > busyBefore } }
+                    bob.awaitTicks(2)
+                    assertNull(bob.dialogueView)
+
+                    // Asked by another recruiter, and yes: a member of the lowest rank.
+                    server.login("carol").use { carol ->
+                        carol.ready()
+                        carol.inClan("Odins Gate")
+                        carol.command("item ${ClanHub.VEXILLA[2]} 1")
+                        carol.wield(ClanHub.VEXILLA[2])
+                        carol.await("Recruit on players") { Unit.takeIf { carol.recruitShown() } }
+                        carol.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                        bob.awaitDialogue("the question again") { it is DialogueView.Menu }
+                        bob.chooseOption(1)
+                        bob.saw("[clan.recruited name=Odins Gate]")
+                        carol.saw("[clan.recruit_accepted name=bob]")
+                    }
+                    val clan = server.world.clans.clanNamed("Odins Gate")!!
+                    assertEquals(0, clan.member(server.world.playerNamed("bob")!!.saveKey)?.rank)
+
+                    // In the clan now: Recruit on him says so.
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.saw("[clan.already_in_clan name=bob]")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member whose rank can't recruit is told so, and taking the vexillum off takes Recruit away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.commandReply("clanmake Odins Gate") { it.startsWith("Clan") }
+                    assertEquals("Joined clan Odins Gate", alice.commandReply("clanjoin Odins Gate") { it.startsWith("Joined") })
+                    alice.command("item ${ClanHub.VEXILLA[0]} 1")
+                    alice.wield(ClanHub.VEXILLA[0])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.saw("[clan.recruit_not_allowed]")
+                    assertNull(bob.dialogueView)
+
+                    alice.ifButton(EquipmentTab.WORNITEMS, EquipmentTab.WORNITEMS_SLOTS[EquipmentTab.SLOT_WEARPOS.indexOf(WearPos.WEAPON)], 1)
+                    alice.await("Recruit gone") { if (alice.recruitShown()) null else Unit }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Recruit on someone held in a delayed action reads as busy, and asks nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.inClan("Odins Gate")
+                    alice.command("item ${ClanHub.VEXILLA[2]} 1")
+                    alice.wield(ClanHub.VEXILLA[2])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+                    // Codex on PR 836: a delayed action with no interface open is busy too (ScriptRunner.busy).
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    val him = server.world.playerNamed("bob")!!
+                    server.world.scripts.start(him) { delay(20) }
+                    assertTrue(him.scripts.delayed && !him.modalOpen)
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    alice.saw("[clan.recruit_busy name=bob]")
+                    assertNull(bob.dialogueView)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Recruit on someone in combat reads as busy, and asks nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.inClan("Odins Gate")
+                    alice.command("item ${ClanHub.VEXILLA[2]} 1")
+                    alice.wield(ClanHub.VEXILLA[2])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+                    // Codex on PR 836: a question open in combat would stop his auto-retaliate.
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    val him = server.world.playerNamed("bob")!!
+                    him.attackedTick = server.world.tick
+                    assertTrue(server.world.inCombat(him) && !him.modalOpen && !him.scripts.delayed)
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    alice.saw("[clan.recruit_busy name=bob]")
+                    assertNull(bob.dialogueView)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Recruit in the Wilderness, on someone banned or busy with an action, asks nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.inClan("Odins Gate")
+                    alice.command("item ${ClanHub.VEXILLA[2]} 1")
+                    alice.wield(ClanHub.VEXILLA[2])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+                    val him = server.world.playerNamed("bob")!!
+                    val clan = server.world.clans.clanNamed("Odins Gate")!!
+
+                    // Exploit review R53A-1: not in the Wilderness, where a clan-mate's attack would get free hits. The
+                    // test world has no map there, so they are moved as ::tele would, past its map check.
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    val her = server.world.playerNamed("alice")!!
+                    server.world.teleport(her, 3100, 3530, 0)
+                    server.world.teleport(him, 3102, 3530, 0)
+                    alice.stepTicks(2)
+                    assertTrue(osrsps.game.Wilderness.level(him.x, him.z) > 0)
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    alice.saw("[clan.recruit_busy name=bob]")
+                    assertNull(bob.dialogueView)
+                    server.world.teleport(her, 3222, 3222, 0)
+                    server.world.teleport(him, 3224, 3222, 0)
+                    alice.stepTicks(2)
+
+                    // Exploit review R53A-2: not someone banned from the clan's channel.
+                    clan.banned += ClanStore.Banned(him.saveKey, "bob")
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    alice.saw("[clan.recruit_banned name=bob]")
+                    assertNull(bob.dialogueView)
+                    clan.banned.clear()
+
+                    // Exploit review R53A-1: not someone with a queued action, which the question would cut short.
+                    server.world.scripts.queue(him, "test", osrsps.game.script.QueueType.WEAK, 20) {}
+                    assertTrue(him.scripts.queued.isNotEmpty())
+                    val busyBefore = alice.messages().count { it.text == "[clan.recruit_busy name=bob]" }
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    assertTrue(alice.messages().count { it.text == "[clan.recruit_busy name=bob]" } > busyBefore)
+                    assertNull(bob.dialogueView)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val VARP_COUNT = 5_000
         const val FILLER = 1511
+        const val INVENTORY = 149
+        const val WORN = 94
+        const val WEAR_BUTTON = 3
     }
 }

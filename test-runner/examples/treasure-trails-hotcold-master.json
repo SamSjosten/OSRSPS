@@ -1,0 +1,42 @@
+{
+ "name": "Treasure Trails step TT8: a master hot-cold clue's strange device hurts on each Feel; Dig 5 tiles from the spot finds nothing, 4 tiles off brings out the Brassican Mage, and once it is dead Dig solves the step (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::setlevel hitpoints 99", "comment": "the device hits for 3 to 8 each Feel"},
+
+  {"step": "command", "text": "::clue master hotcold:212", "expectMessage": "Clue (master): hotcold:212", "comment": "the spot is 3169, 3279, west of Lumbridge"},
+  {"step": "command", "text": "::item 19939 1", "comment": "the master strange device; Jorral's hand-over works like Reldo's (treasure-trails-hotcold.json)"},
+  {"step": "command", "text": "::item 952 1", "comment": "a spade"},
+  {"step": "command", "text": "::tele 3169 3300 0", "comment": "21 tiles north of the spot"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "item": "Strange device", "option": "Feel"},
+  {"step": "assertMessage", "contains": "[hotcold.first temperature=[hotcold.incredibly_hot]]"},
+  {"step": "assertHitsplat", "self": true, "timeoutMs": 10000, "comment": "the device's 3 to 8"},
+
+  {"step": "command", "text": "::tele 3169 3284 0", "comment": "5 tiles off: outside the master's hottest band"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "item": "Strange device", "option": "Feel"},
+  {"step": "assertMessage", "contains": "[hotcold.again temperature=[hotcold.incredibly_hot] change=[hotcold.warmer]]"},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "assertMessage", "contains": "[game.nothing_interesting]"},
+
+  {"step": "command", "text": "::tele 3169 3283 0", "comment": "4 tiles off: inside it"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::kill brassican mage", "expectMessage": "Killed Brassican Mage", "comment": "it only exists once the Dig brought it out"},
+  {"step": "waitTicks", "ticks": 6},
+  {"step": "itemOption", "item": "Spade", "option": "Dig"},
+  {"step": "assertDialogue", "contains": "[trail.", "timeoutMs": 15000, "comment": "another_clue, or casket on a one-step trail"},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

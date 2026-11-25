@@ -81,10 +81,24 @@ class ShopTest {
         12740 to 505, 12742 to 3200, 12744 to 60000,
         // The Sheared Ram, which sells at its own prices and buys nothing back: the values only stand in.
         1917 to 2, 5763 to 2, 2142 to 4,
+        // The Culinaromancer's Chest's food and items stores (the 242 cache; the Wiki's prices at 130% agree).
+        1973 to 10, 1985 to 4, 1982 to 4, 1955 to 1, 1987 to 1, 1933 to 10, 2283 to 4, 1944 to 4, 1927 to 6, 2130 to 2, 6697 to 4,
+        2007 to 230, 2313 to 3, 1980 to 2,
+        7453 to 50, 7454 to 100, 7455 to 250, 7456 to 500, 7457 to 1000, 7458 to 1500, 7459 to 2500, 7460 to 5000, 7461 to 100000,
+        7462 to 100000, 7433 to 35, 7435 to 50, 7437 to 325, 7439 to 1920, 7441 to 1660, 7443 to 3200, 7445 to 14400, 7447 to 8000,
+        7449 to 41500, 7451 to 25600,
+        // Nardok's Bone Weapons (the 242 cache's values; the Wiki's prices at 100% agree).
+        5018 to 600, 5016 to 600, 8872 to 2000, 8880 to 2000, 8882 to 3, 13193 to 350,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
         // Zembo's beer and Karamjan rum (the 242 cache's values).
         1917 to 2, 431 to 30,
+        // Mor Ul Rek's Tokkul shops (the 242 cache's values; the gems and runes are with Al Kharid's and Varrock's).
+        6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
+        438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
+        9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430, 21298 to 56320, 21301 to 84000, 21304 to 67000,
+        // Brimhaven's shops (the 242 cache's values).
+        1718 to 300, 1727 to 900, 1729 to 1275, 1725 to 2025, 1731 to 3525, 347 to 10, 339 to 10, 361 to 40, 379 to 70, 373 to 80, 3144 to 250,
     )
 
     /**
@@ -92,6 +106,8 @@ class ShopTest {
      * the cabbage cape to the rainbow scarf, and the Oculus orb.
      */
     private val untradeable = setOf(
+        // The Culinaromancer's Chest's gloves.
+        7453, 7454, 7455, 7456, 7457, 7458, 7459, 7460, 7461, 7462,
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
         // Dusuri's stock.
         25539, 25547, 25537, 25533,
@@ -171,6 +187,14 @@ class ShopTest {
             NpcType(2825, "Shop keeper", internalName = "generalshopkeeper7"),
             NpcType(2826, "Shop assistant", internalName = "generalassistant7"),
             NpcType(13655, "Zembo", internalName = "zembo"),
+            NpcType(2183, "TzHaar-Hur-Tel", internalName = "tzhaar_merchant_equipment"),
+            NpcType(2184, "TzHaar-Hur-Lek", internalName = "tzhaar_merchant_oreandgem"),
+            NpcType(2185, "TzHaar-Mej-Roh", internalName = "tzhaar_merchant_rune"),
+            NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
+            NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
+            NpcType(996, "Nardok", internalName = "dttd_bone_dealer"),
+            NpcType(8680, "Davon", internalName = "davon"),
+            NpcType(4920, "Alfonse the waiter", internalName = "alfonse_the_waiter"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -258,6 +282,20 @@ class ShopTest {
         // Musa Point's shops, read 2026-11-17.
         "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
         "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
+        // The Culinaromancer's Chest with Recipe for Disaster finished, read 2026-11-19.
+        "culinaromancers_chest_food" to listOf(13, 5, 5, 1, 1, 13, 5, 5, 7, 2, 5, 299, 3, 13, 5, 1, 182, 1, 2, 2, 650),
+        "culinaromancers_chest_items" to listOf(65, 130, 325, 650, 1300, 1950, 3250, 6500, 130000, 130000, 45, 65, 422, 2496, 2158, 4160, 18720, 10400, 53950, 33280),
+        // Mor Ul Rek's Tokkul shops, read 2026-11-18: 150% of each value, in Tokkul.
+        "tzhaar_hur_tels_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500),
+        "tzhaar_hur_leks_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        "tzhaar_mej_rohs_rune_store" to listOf(6, 6, 6, 6, 4, 4, 135, 270, 645, 645, 645, 645),
+        "tzhaar_hur_zals_equipment_store" to listOf(375, 60000, 37500, 75001, 52500, 45000, 90000, 67500, 84480, 126000, 100500),
+        "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
+        // Nardok's Bone Weapons, read 2026-11-19.
+        "nardoks_bone_weapons" to listOf(600, 600, 2000, 2000, 3, 350),
+        // Brimhaven's shops, read 2026-11-18: Davon's at 120% with none in stock, the Shrimp and Parrot's at 130%.
+        "davons_amulet_store" to listOf(360, 1080, 1530, 2430, 4230),
+        "the_shrimp_and_parrot" to listOf(13, 13, 52, 91, 104, 325),
     )
 
     @Test
@@ -279,6 +317,8 @@ class ShopTest {
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
         assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        assertEquals(shops["davons_amulet_store"], shops.ofNpc(8680))
+        assertEquals(shops["the_shrimp_and_parrot"], shops.ofNpc(4920))
         // The Sawmill operator's Construction supplies buys back at 50% with no change per item (the Wiki's 5, 250, 1, 2, 1).
         val supplies = shops["construction_supplies"]!!
         assertEquals(supplies, shops.ofNpc(3101))
@@ -293,7 +333,16 @@ class ShopTest {
         assertEquals(shops.ofNpc(10631), dusuri)
         assertEquals(25527, dusuri.currency)
         assertEquals(listOf(1600, 2400, 240, 120), dusuri.stock.map { Shop(dusuri).sellPrice(it.type.id, it.type.cost, it.count) })
-        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key }.all { it.currency == ShopScreen.COINS })
+        // Mor Ul Rek's shops are paid in Tokkul, and buy back at 15% (the Wiki's 9,000 for the obsidian cape).
+        val tzhaar = listOf(
+            "tzhaar_hur_tels_equipment_store", "tzhaar_hur_leks_ore_and_gem_store", "tzhaar_mej_rohs_rune_store", "tzhaar_hur_zals_equipment_store",
+            "tzhaar_hur_rins_ore_and_gem_store",
+        )
+        assertEquals(listOf(2183, 2184, 2185, 7688, 7689).map { shops.ofNpc(it) }, tzhaar.map { shops[it] })
+        assertTrue(tzhaar.all { shops[it]!!.currency == 6529 })
+        val equipment = shops[tzhaar[0]]!!
+        assertEquals(9000, Shop(equipment).sellPrice(6568, 60000, 1))
+        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key && it.key !in tzhaar }.all { it.currency == ShopScreen.COINS })
         // Her sales alone go in the collection log (its Rooftop Agility page).
         assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
         // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies and the Sheared

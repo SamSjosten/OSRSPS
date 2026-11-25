@@ -1,0 +1,119 @@
+{
+ "name": "Achievement diaries: Mikasi gives the easy Explorer's ring and lamp once the easy tasks are done (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::diary complete lumbridge easy all",
+   "expectMessage": "task(s) done in lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3234 3215 0",
+   "expectMessage": "Teleported to 3234, 3215, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Mikasi",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.claim_easy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.want_reward]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.ring_easy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.wow_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.lose_ring]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mikasi.who_are_you]"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Explorer's ring 1"
+  },
+  {
+   "step": "walk",
+   "x": 3233,
+   "y": 3216,
+   "comment": "a step away shuts her menu"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

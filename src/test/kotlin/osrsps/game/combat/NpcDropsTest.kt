@@ -1151,6 +1151,30 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `Brimhaven Dungeon's dragons drop their bones always, the metal ones five bars and a dragon legs pre-roll, the fire giants big bones`() {
+        val names = listOf("dog_wild", "babyreddragon", "babygreendragon1", "red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant", "greater_demon", "black_demon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(3100 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
+        fun def(name: String) = drops[types.find(name)!!]!!
+        assertEquals(
+            mapOf(
+                "dog_wild" to listOf("Bones"), "babyreddragon" to listOf("Babydragon bones"), "babygreendragon1" to listOf("Babydragon bones"),
+                "red_dragon" to listOf("Dragon bones", "Red dragonhide"), "bronze_dragon" to listOf("Dragon bones", "Bronze bar"),
+                "iron_dragon" to listOf("Dragon bones", "Iron bar"), "steel_dragon" to listOf("Dragon bones", "Steel bar"), "firegiant" to listOf("Big bones"),
+                "greater_demon" to listOf("Vile ashes"), "black_demon" to listOf("Malicious ashes"),
+            ),
+            names.associateWith { name -> def(name).always.map { it.type.name } },
+        )
+        for (name in listOf("bronze_dragon", "iron_dragon", "steel_dragon")) {
+            assertEquals(5, def(name).always.last().count(GameRandom(1)), name)
+            assertEquals(listOf("Dragon plateskirt", "Dragon platelegs"), def(name).preroll.map { it.item.type.name }, name)
+        }
+        assertEquals(listOf(2048, 1024, 512), listOf("bronze_dragon", "iron_dragon", "steel_dragon").map { def(it).preroll.first().denominator })
+        for (name in names.filter { def(it).table != null }) assertEquals(128, def(name).table!!.slots, name)
+    }
+
+    @Test
     fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
         val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
         val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())

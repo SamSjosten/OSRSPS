@@ -68,16 +68,56 @@ half_merged() {
 }
 
 # Lock files a git that crashed left behind (.git/HEAD.lock and .git/gc.pid.lock stalled every deploy from 06:40 to
-# 14:38 CDT on 2026-10-30): git refuses to run while they are there and never removes them itself. One counts as stale
-# when it is older than ten minutes and no git of this user is running (a zombie, state Z, has exited and holds
-# nothing); it is removed, and the log says so.
+# 14:38 CDT on 2026-10-30, and again from #810 on 2026-11-19): git refuses to run while they are there and never removes
+# them itself. Run holding .deploy/git.lock (with_git_lock), so no git of this script or staging.sh is running in this
+# checkout. One counts as stale when it is older than ten minutes and no other git of this user is running in this
+# checkout or its staging worktree (a zombie, state Z, has exited and holds nothing); it is removed, and the log says so.
+# A git elsewhere doesn't count. Before 2026-11-22 any git of this user did, and staging.sh's minutely fetch, run in the
+# same second by its own timer, was always one: no stale lock was ever cleared.
 clear_stale_locks() {
-	ps -u "$(id -u)" -o stat=,comm= | awk '$2 == "git" && $1 !~ /^Z/ { found = 1 } END { exit !found }' && return 0
+	git_running_here && return 0
 	local lock
 	while IFS= read -r lock; do
-		echo "Removing $lock: a stale git lock (older than ten minutes, and no git is running)"
+		echo "Removing $lock: a stale git lock (older than ten minutes, and no git is running in this checkout)"
 		rm -f -- "$lock"
 	done < <(find .git -maxdepth 1 -name '*.lock' -mmin +10 2>/dev/null; find .git/refs .git/logs -name '*.lock' -mmin +10 2>/dev/null)
+}
+
+# Whether a git of this user, not a zombie, runs with its working folder in this checkout (the staging worktree,
+# .staging/src, is in it). One whose folder can't be read counts, to be safe.
+git_running_here() {
+	local here pid stat comm cwd
+	here=$(pwd -P)
+	while read -r pid stat comm; do
+		[[ $comm == git && $stat != Z* ]] || continue
+		cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || return 0
+		[[ $cwd == "$here" || $cwd == "$here"/* ]] && return 0
+	done < <(ps -u "$(id -u)" -o pid=,stat=,comm=)
+	return 1
+}
+
+# Runs "$@" holding .deploy/git.lock, which staging.sh takes for its own git commands in this checkout: two fetches at
+# once fail on "cannot lock ref refs/remotes/origin/main", and a lock one leaves isn't stale while the other runs. It is
+# held only around git commands, and nothing waits for another lock while holding it, so it can't deadlock with the
+# deploy or staging lock. A run that held it for OSRSPS_GIT_LOCK_WAIT seconds (5 minutes) fails this one, which the
+# next minute's run tries again.
+with_git_lock() {
+	local status=0 wait=${OSRSPS_GIT_LOCK_WAIT:-300}
+	exec 7>.deploy/git.lock
+	if ! flock -w "$wait" 7; then
+		exec 7>&-
+		echo "Another git command in this checkout has held .deploy/git.lock for $wait s; the next run tries again"
+		return 1
+	fi
+	"$@" || status=$?
+	exec 7>&-
+	return "$status"
+}
+
+# Clears stale git locks and fetches main; run holding .deploy/git.lock.
+refresh() {
+	clear_stale_locks
+	git fetch --quiet origin main
 }
 
 main() {
@@ -94,8 +134,7 @@ main() {
 		return 0
 	fi
 
-	clear_stale_locks
-	git fetch --quiet origin main
+	with_git_lock refresh
 	local target deployed failed built
 	target=$(git rev-parse origin/main)
 	deployed=$(cat .deploy/deployed 2>/dev/null || true)
@@ -115,7 +154,7 @@ main() {
 	if ((code && !force)) && [[ -n $built ]] && ! server_changed "$built" "$target"; then
 		# A restart would kick every player for nothing: the checkout moves on, and the server's /version reads the new
 		# commit from .deploy/deployed, as `built` still names its own.
-		if ! fast_forward "$target"; then
+		if ! with_git_lock fast_forward "$target"; then
 			return 1
 		fi
 		put built "$built"
@@ -125,7 +164,7 @@ main() {
 		code=0
 	elif ((code)); then
 		echo "Deploying $target (up now: ${deployed:-unknown})"
-		if ! fast_forward "$target"; then
+		if ! with_git_lock fast_forward "$target"; then
 			return 1
 		fi
 		# The server takes about 1 GB and a cold build about 1.5 GB (Dockerfile, 2026-11-15; it was 1.1 GB when VM 214 had
@@ -206,7 +245,7 @@ server_changed() {
 	local files
 	files=$(git diff --no-renames --name-only "$1" "$2" --) || return 0
 	[[ -n $files ]] || return 1
-	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|docs|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
+	grep -qvE '^((test-runner|tick-recorder|tfa-helper|launcher|deploy|docs|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
 }
 
 # Each build leaves a few hundred MB of build cache (the source layer and Gradle's output for that commit), which filled

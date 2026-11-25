@@ -11,7 +11,7 @@ VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has mov
 - When the merges since the running server's build change nothing it is built from, the script only fast-forwards
   the checkout, and the server keeps running with its players in. That is a merge whose files are all docs at the top
   of the repo, the friend page (`docs/`), tests (`src/test/`), the RuneLite plugins (`test-runner/`,
-  `tick-recorder/`), the launcher (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of
+  `tick-recorder/`, `tfa-helper/`), the launcher (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of
   the server, rebuilds it.
   `.deploy/built` keeps the running server's commit and `.deploy/deployed` the merge's, and compose mounts `.deploy/`
   read-only into the container, so `/version` answers with the merge's commit anyway and `/status` adds a
@@ -96,7 +96,14 @@ deploy/staging.sh auto                    # what osrsps-staging.timer runs: stag
   progress, `auto` skips its minute. An `up` also takes the deploy lock (`.deploy/lock`), waiting up to 15 minutes
   for a live deploy's build to finish, from before the staging data is made from the live data (a cache swap by the
   deploy can't be copied half-way) to the end of the build, so the VM never builds two images at once; a timed deploy
-  that comes due meanwhile sees the lock and tries again a minute later. The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
+  that comes due meanwhile sees the lock and tries again a minute later.
+- Both scripts run their git commands in this checkout (fetch, fast-forward, the staging worktree's checkout) holding
+  `.deploy/git.lock`, waiting up to 5 minutes for the other's, so two fetches never race for `origin/main` and the
+  deploy's clearing of a crashed git's stale `.git/*.lock` (older than ten minutes) isn't put off forever by staging's
+  minutely fetch. A git of `sam`'s running in another folder doesn't stop the clearing; one in this checkout does.
+  A staging run that gives up waiting for either lock exits 75, and `auto` tries the same commit again the next minute
+  rather than counting it as failed.
+  The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
   kernel kills a build first (the Dockerfile raises its OOM score), the staging server next (the default score), and
   the live server last (-500). `down` when staging isn't needed, as it keeps running across reboots like the live one.
 - `http://192.168.0.210:44595/version` answers with the staged commit, so `start-client.ps1 -Commit <sha> -GamePort

@@ -49,6 +49,8 @@ class HeadlessTeleportsTest {
         await("$count of item $id") { if (count(id) == before + count) Unit else null }
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     private fun HeadlessClient.magicXp(): Int = stat(MAGIC)?.xp ?: 0
 
     /** Sets Magic to [level] and waits for the client's stat to show it, so the XP read next is after the change. */
@@ -76,6 +78,7 @@ class HeadlessTeleportsTest {
                     client.awaitTicks(4)
                     assertEquals(START, client.position)
                     assertEquals(1, client.count(LAW))
+                    assertEquals(0, client.diaryTasksDone(), "a refused cast does no diary task")
 
                     client.magicLevel(25)
                     val xpBefore = client.magicXp()
@@ -90,6 +93,8 @@ class HeadlessTeleportsTest {
                     assertTrue(client.animationTicks().size > animsBefore, "the cast animates")
                     assertEquals(listOf(0, 0, 0), listOf(client.count(LAW), client.count(AIR), client.count(FIRE)), "the runes are gone")
                     assertEquals(xpBefore + 35, client.magicXp())
+                    // The Varrock medium diary's Varrock Teleport task.
+                    client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
 
                     // No runes left: nothing happens but the message.
                     client.cast(VARROCK_COMPONENT)
@@ -170,6 +175,13 @@ class HeadlessTeleportsTest {
                     assertTrue((landed.x in 3219..3223 && landed.z in 3218..3219) || (landed.x in 3221..3222 && landed.z in 3216..3220), "in the plus: $landed")
                     assertEquals(1, client.count(LUMBRIDGE_TABLET))
                     assertEquals(xpBefore, client.magicXp(), "no XP from a tablet")
+                    assertEquals(0, client.diaryTasksDone(), "a tablet isn't the Lumbridge & Draynor diary's Lumbridge Teleport task")
+
+                    // The spell itself is: the medium task's line, once.
+                    client.give(EARTH, 1)
+                    client.magicLevel(31)
+                    client.cast(LUMBRIDGE_COMPONENT)
+                    client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 }
             }
         }

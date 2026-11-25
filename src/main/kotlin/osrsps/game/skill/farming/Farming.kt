@@ -6,8 +6,11 @@ import osrsps.game.InvObj
 import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.SkillGuide
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.combat.Poison
 import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
@@ -104,6 +107,7 @@ object FarmingLines : Lines("farming", "Farming") {
     val BIN_NEED_ASH = line("bin_need_ash", "volcanic ash on an open bin of supercompost, fewer than 25 held")
     val PATCH_HOPS = line("patch_hops", "a hops patch's name in messages")
     val PATCH_BUSH = line("patch_bush", "a bush patch's name in messages")
+    val PATCH_BELLADONNA = line("patch_belladonna", "the belladonna patch's name in messages")
 }
 
 /**
@@ -118,7 +122,7 @@ object FarmingLines : Lines("farming", "Farming") {
  * Every patch is a multiloc the map places, drawn by one of the `farming_transmit` varbits ([FarmingPatches]); each tick
  * the player's patches grow to the clock and the varbits of the area they stand in are set (only changes are sent).
  * The client's op1 is whatever the patch shows (Rake, Harvest), so op1 is answered by the patch's state; op2 is
- * Inspect. Op4, Guide, isn't built (the Farming skill guide).
+ * Inspect. Op4, Guide, opens the Farming skill guide ([osrsps.game.SkillGuide]) on the patch kind's tab ([guideTab]).
  *
  * Sourced: allotment levels, seeds, XP, stages and 10-minute cycles; the planting XP given when the last crop is
  * harvested, not on planting (the Allotment patch page's footnote); 4 XP per weed and weeds growing back every 5
@@ -186,6 +190,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         for (loc in FarmingPatches.LOCS) {
             world.handlers.onLoc(loc, OP_ACTION) { op -> action(op) }
             world.handlers.onLoc(loc, OP_INSPECT) { op -> inspect(op) }
+            world.handlers.onLoc(loc, OP_GUIDE) { op -> patchOf(op)?.let { SkillGuide.open(world, player, SkillGuide.FARMING, guideTab(it.kind)) } }
             world.handlers.onLoc(loc, OP_CLEAR) { op -> clearBushOp(op) }
             world.handlers.onObjOnLoc(loc) { op -> useObj(op) }
         }
@@ -439,7 +444,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             state.grown && patch.kind.bears && !state.stump && state.lives > 0 -> DO_PICK_FRUIT
             state.grown && patch.kind == PatchKind.BUSH -> DO_CLEAR_BUSH
             state.grown && tree -> if (state.stump) DO_DIG_STUMP else DO_CHOP
-            state.grown && patch.kind == PatchKind.FLOWER -> DO_PICK
+            state.grown && patch.kind.pickedOnce -> DO_PICK
             state.grown -> DO_HARVEST
             else -> DO_NOTHING
         }
@@ -548,14 +553,22 @@ class Farming(private val world: World, private val clock: () -> Long, private v
 
     /**
      * Pick on a grown flower: its produce all at once, then both its XPs (the Wiki's Flower patch: "Both plant and
-     * harvest experience is awarded once when the patch is cleared"), and the patch is bare again.
+     * harvest experience is awarded once when the patch is cleared"), and the patch is bare again. Belladonna the same,
+     * but only with gloves on ([BELLADONNA_GLOVES]): bare-handed the player is hit for 2, drawn as poison, and picks
+     * nothing (the Wiki's Belladonna). Guessed: no message with the hit, and the hit landing after the pick's delay.
      */
     private suspend fun ScriptContext.pick(patch: FarmingPatch, state: PatchState) {
         val crop = state.crop ?: return
-        if (player.inventory.freeSlots == 0) return world.message(player, FarmingLines.INVENTORY_FULL)
+        // A stackable crop (belladonna's nightshade) also goes onto a stack already in the pack.
+        val stacks = world.objTypes[crop.produce]?.stackable == true && player.inventory.count(crop.produce) > 0
+        if (player.inventory.freeSlots == 0 && !stacks) return world.message(player, FarmingLines.INVENTORY_FULL)
         player.anim(ANIM_PICK_LOW)
         delay(PICK_DELAY)
         if (state.crop !== crop || !state.grown) return
+        if (patch.kind == PatchKind.BELLADONNA && player.equipment[WearPos.HANDS]?.id !in BELLADONNA_GLOVES) {
+            world.meleeCombat.statusHit(player, BELLADONNA_HIT, Poison.POISON_HITSPLAT)
+            return
+        }
         val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
         giveOrDrop(crop.produce, flowerYield(crop, player.skills.currentLevel(Skill.FARMING), hasMagicSecateurs(player)))
         player.skills.addTenths(Skill.FARMING, crop.plantXpTenths + crop.harvestXpTenths)
@@ -582,8 +595,8 @@ class Farming(private val world: World, private val clock: () -> Long, private v
      */
     fun flowerYield(crop: Crop, level: Int, secateurs: Boolean): Int {
         if (!crop.levelBonus) return crop.yield
-        val numbers = if (secateurs) level * 11 / 10 else level
-        return crop.yield + world.random.nextInt(maxOf(numbers, 1)) / 10
+        val numbers = if (secateurs && crop.secateurs) level * 11 / 10 else level
+        return crop.yield + world.random.nextInt(maxOf(numbers, 1)) / crop.bonusPer
     }
 
     private fun hasMagicSecateurs(player: Player) = player.inventory.count(MAGIC_SECATEURS) > 0 || player.equipment.count(MAGIC_SECATEURS) > 0
@@ -1154,6 +1167,25 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         const val OP_ACTION = 1
         const val OP_INSPECT = 2
 
+        /** Op4, Guide, on every patch's shown locs. */
+        const val OP_GUIDE = 4
+
+        /**
+         * The Farming guide's tab for a patch kind: the cache's `skill_guide_subsections` rows for skill 21 (1
+         * Allotments, 2 Hops, 3 Trees, 4 Fruit Trees, 5 Bushes, 6 Flowers, 7 Herbs, 8 Special). Inferred: each kind to the
+         * tab its name matches, belladonna to Special.
+         */
+        fun guideTab(kind: PatchKind): Int = when (kind) {
+            PatchKind.ALLOTMENT -> 1
+            PatchKind.HOPS -> 2
+            PatchKind.TREE -> 3
+            PatchKind.FRUIT_TREE -> 4
+            PatchKind.BUSH -> 5
+            PatchKind.FLOWER -> 6
+            PatchKind.HERB -> 7
+            PatchKind.BELLADONNA -> 8
+        }
+
         /** Op5, Clear: a bush with berries on it (the cache's bush locs). */
         const val OP_CLEAR = 5
 
@@ -1263,6 +1295,25 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         const val PLANT_DELAY = 3
         const val WATER_DELAY = 3
         const val PICK_DELAY = 2
+
+        /** The hit for picking belladonna bare-handed (the Wiki's Belladonna: "hit for 2 damage"). */
+        const val BELLADONNA_HIT = 2
+
+        /**
+         * What in the hands slot lets a player pick belladonna: the obj types named in the Wiki's Belladonna gloves
+         * tables (read 2026-11-19), matched by name in the 242 cache, worn variants with them. Anything else there, a
+         * bracelet or decorative gloves such as mime gloves, doesn't.
+         */
+        val BELLADONNA_GLOVES: Set<Int> = setOf(
+            775, 776, 777, 778, 1059, 1063, 1065, 1495, 1580, 2487, 2489, 2491, 2902, 2912, 2922, 2932, 2942, 2997, 3391,
+            3799, 4095, 4105, 4115, 4308, 5556, 6068, 6110, 6149, 6151, 6153, 6330, 6629, 6720, 6922, 7453, 7454, 7455,
+            7456, 7457, 7458, 7459, 7460, 7461, 7462, 7537, 8842, 8929, 9072, 9099, 10075, 10077, 10079, 10081, 10083,
+            10085, 10336, 10368, 10376, 10384, 10553, 10554, 11133, 11136, 11138, 11140, 11858, 11859, 12490, 12498,
+            12506, 13103, 13357, 13362, 13367, 13372, 13377, 13587, 13588, 13599, 13600, 13611, 13612, 13623, 13624,
+            13635, 13636, 13675, 13676, 19691, 19994, 20041, 20086, 20134, 20581, 20582, 20583, 21073, 21075, 21343,
+            21345, 21392, 21736, 22981, 23056, 23091, 23261, 23593, 24046, 24755, 24757, 25081, 25083, 25392, 25407,
+            26168, 26182, 26235, 26467, 26537, 27029, 27046, 27456, 27458, 28630, 30057, 30059, 30082,
+        )
         const val CURE_DELAY = 3
         const val CLEAR_DELAY = 3
         const val COMPOST_DELAY = 3
@@ -1278,6 +1329,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             PatchKind.FRUIT_TREE -> FarmingLines.PATCH_FRUIT_TREE
             PatchKind.HOPS -> FarmingLines.PATCH_HOPS
             PatchKind.BUSH -> FarmingLines.PATCH_BUSH
+            PatchKind.BELLADONNA -> FarmingLines.PATCH_BELLADONNA
         }
 
         /** A crop's chance pair, low and high, with magic secateurs' 10% when [secateurs] (rounded down, the Wiki's order). */

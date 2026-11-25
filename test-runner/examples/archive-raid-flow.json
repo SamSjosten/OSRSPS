@@ -425,6 +425,12 @@
    "comment": "the client's scene after the move"
   },
   {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the Rift's question is checked by its keys, so it passes with or without its words on the server"
+  },
+  {
    "step": "npcOption",
    "npcId": 16690,
    "option": "Leave",
@@ -432,15 +438,26 @@
    "comment": "the Rift out, 3 by 3 in the island's middle (4126,5796): Leave, back to the lobby"
   },
   {
+   "step": "chooseOption",
+   "text": "[tfa_run.leave_yes]",
+   "timeoutMs": 20000,
+   "comment": "Leave asks whether we're ready to leave the Fractured Archive (Sam's recordings of 16 November 2026) once we've walked to it: Yes"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
    "step": "waitTicks",
-   "ticks": 14,
-   "comment": "the walk to the Rift and the move"
+   "ticks": 4,
+   "comment": "the move comes on Yes, then the client's scene in the lobby"
   },
   {
    "step": "command",
    "text": "::pos",
-   "expectMessage": "4127, 5560, 0",
-   "comment": "in the lobby, in front of the Archive Door; the instance ends behind us"
+   "expectMessage": "4125, 5553, 0",
+   "comment": "in the lobby, where the Rift out lands (ArchiveRaid.RIFT_LEAVE_X/Z, Sam's recording of 16 November 2026), not the Archive Door's tile the Passageway exit lands on; the instance ends behind us"
   },
   {
    "step": "waitTicks",

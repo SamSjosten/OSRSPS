@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.Player
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 
@@ -23,8 +24,9 @@ object EmoteLines : Lines("emotes", "Emotes") {
  *
  * Guessed: an emote stops the player where they stand and plays at once, the spotanims at height 0, and a new emote
  * replaces one still playing. Left out: Loop (it plays once, as Perform does; live repeats it until the player acts),
- * Blow Kiss's hearts, and the emotes that need more than an animation: Skill Cape (each cape's own), Uri transform,
- * Premier Shield and Relic unlock, which do nothing yet.
+ * Blow Kiss's hearts, and the emotes that need more than an animation: Skill Cape (each cape's own; only the quest
+ * point cape's is built, for the Lumbridge elite diary), Uri transform, Premier Shield and Relic unlock, which do
+ * nothing yet.
  */
 object Emotes {
     const val INTERFACE = 216
@@ -89,6 +91,15 @@ object Emotes {
         Emote(55, 10051), // human_emote_crabdance
     ).associateBy { it.index }
 
+    /** Skill Cape (43) in a quest point cape, plain or trimmed: `skillcapes_player_quest_cape` and its spotanim. */
+    const val SKILL_CAPE = 43
+    val QUEST_CAPE = Emote(SKILL_CAPE, 4945, 816)
+    private val QUEST_CAPES = setOf(9813, 13068)
+
+    /** The Skill Cape emote for the cape worn: only the quest point cape's is built, so any other does nothing. */
+    fun skillCape(player: Player, index: Int): Emote? =
+        QUEST_CAPE.takeIf { index == SKILL_CAPE && player.equipment[WearPos.CAPE]?.id in QUEST_CAPES }
+
     // The varbits and varp emote_checkunlocked reads (242 cache gamevals).
     private const val EMOTE_GLASSBOX = 1368
     private const val EMOTE_CLIMBROPE = 1369
@@ -145,7 +156,7 @@ object Emotes {
 
 fun registerEmotes(world: World) {
     world.handlers.onButton(Emotes.INTERFACE, Emotes.CONTENTS) { op ->
-        val emote = Emotes.EMOTES[op.sub] ?: return@onButton
+        val emote = Emotes.EMOTES[op.sub] ?: Emotes.skillCape(player, op.sub) ?: return@onButton
         if (!Emotes.unlocked(player, emote.index)) return@onButton world.message(player, EmoteLines.LOCKED)
         // Inferred, as a walk click: a delayed player (an agility obstacle) can't break off for an emote.
         if (player.scripts.delayed) return@onButton
@@ -158,5 +169,7 @@ fun registerEmotes(world: World) {
         player.anim(emote.anim)
         if (emote.spotanim >= 0) player.spotanim(emote.spotanim)
         world.trails.emoted(player, emote.index)
+        if (emote === Emotes.QUEST_CAPE) world.diaries.questCapeEmote(player)
+        world.diaries.emoted(player, emote.index)
     }
 }

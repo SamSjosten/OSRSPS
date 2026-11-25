@@ -137,6 +137,8 @@ class HeadlessHamHideoutTest {
 
                 client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, HamHideout.OP_OPEN_OR_CLIMB)
                 client.awaitAt(HamHideout.INSIDE.first, HamHideout.INSIDE.second)
+                // Entering is the Lumbridge & Draynor easy diary's twelfth task.
+                client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
                 client.locOp(ladder.id, ladder.x, ladder.z, 1)
                 client.awaitAt(HamHideout.SURFACE.first, HamHideout.SURFACE.second)
 

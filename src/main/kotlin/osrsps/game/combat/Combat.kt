@@ -160,14 +160,40 @@ class Combat(
     var immune: (Npc) -> Boolean = { false }
 
     /**
+     * Set by content: why [Player]'s weapon can't be used on [Npc], as the line that tells them, or null when it can: the
+     * rat bone weapons, which work on rats alone ([osrsps.game.content.RatBoneWeapons]). Asked with [barred].
+     */
+    var weaponBarred: (Player, Npc) -> Line? = { _, _ -> null }
+
+    /**
+     * Set by content: why [Player]'s weapon can't be used on another player, as [weaponBarred] for an NPC: the rat bone
+     * weapons, rats only. Asked by [PvpCombat] at every attempt, so a weapon swapped mid-fight counts.
+     */
+    var weaponBarredOnPlayer: (Player) -> Line? = { null }
+
+    /**
+     * Set by content: what is added to [Player]'s max hit on [Npc], with any style, after every other bonus: the rat
+     * bone weapons' +10 against rats ([osrsps.game.content.RatBoneWeapons]).
+     */
+    var maxHitAdded: (Player, Npc) -> Int = { _, _ -> 0 }
+
+    /**
+     * Set by content: whether [Player]'s attack on [Npc] leaves them free to attack again on the next tick, whatever
+     * their weapon's speed: the rat bone weapons on Scurrius's giant rats ([osrsps.game.content.RatBoneWeapons]). Asked
+     * for the weapon's own attack only (a swing, a shot, a powered staff's spell), never a spellbook cast.
+     */
+    var noCooldown: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
-     * or spreads to another NPC.
+     * or spreads to another NPC. [weapon] false leaves out what the wielded weapon bars ([weaponBarred]), for damage
+     * that isn't the weapon's, such as Retribution (exploit review R52C-5).
      */
-    fun barred(player: Player, npc: Npc): Line? = when {
+    fun barred(player: Player, npc: Npc, weapon: Boolean = true): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
-        else -> notYours(player, npc)
+        else -> (if (weapon) weaponBarred(player, npc) else null) ?: notYours(player, npc)
     }
 
     /**
@@ -257,7 +283,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))),
+            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))) + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -328,7 +354,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = maxHit,
+            maxHit = maxHit + maxHitAdded(player, npc),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }
@@ -420,7 +446,14 @@ class Combat(
         return MagicMatchup(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = maxHit,
+            // A spell with no damage (Bind) stays harmless: no bonus to make it roll damage XP (Codex, PR 878).
+            // Only a powered staff's own spell is the weapon's attack: a spellbook spell (a barrage splashing onto Scurrius)
+            // gets no bonus (exploit review R52C-1).
+            maxHit = when {
+                spell.maxHit == 0 -> 0
+                spell.staff == null -> maxHit
+                else -> maxHit + maxHitAdded(player, npc)
+            },
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }

@@ -126,6 +126,8 @@ data class NpcCombatDef(
     val xpBonusTenths: Int = 0,
     /** A melee NPC's spell, cast in its place now and then while it fights in reach (the Catablepon's Weaken). */
     val spell: NpcMeleeSpell? = null,
+    /** What its [spell] does to a player without the protection it asks for, null for none ([NpcBlinding]). */
+    val blinds: NpcBlinding? = null,
     /** A dragon's dragonfire, breathed in reach now and then instead of a swing ([Dragonfire]). */
     val dragonfire: NpcDragonfire? = null,
     /** Typeless attacks, which no protection prayer blocks or cuts (`"typeless": true`; the Escape Caves' bears and spiders). */
@@ -165,8 +167,19 @@ data class NpcCombatDef(
  * Magic defence) instead of swinging, while its drain has taken less than [stopPercent] of the stat's base level plus
  * [stopFlat]; past that it only swings. The Catablepon's Weaken "will stop casting once 8% + 3 of your total strength
  * level has been drained", "but casts before this threshold can still bring you lower" (OSRS Wiki, Catablepon).
+ * One that [countersPrayer] picks the style a protection prayer doesn't block: always the spell against Protect from
+ * Melee, never against Protect from Magic, else the [chance] roll (the Saradomin wizard, OSRS Wiki: "They will change
+ * attack styles between Melee and Magic to counter protection prayers").
  */
-data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0) {
+data class NpcMeleeSpell(
+    val attack: NpcRangedAttack,
+    val chance: Int,
+    val stopPercent: Int = 0,
+    val stopFlat: Int = 0,
+    /** Magic for a spell; ranged for a spit (the sourhog's), rolled against Ranged defence and flying as an arrow does. */
+    val type: AttackType = AttackType.MAGIC,
+    val countersPrayer: Boolean = false,
+) {
     /** Whether it still casts at a player whose drained stat is at [current] of [base]. */
     fun casts(base: Int, current: Int): Boolean = base - current < base * stopPercent / 100 + stopFlat
 }
@@ -175,6 +188,13 @@ data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopP
  * A stat a hit lowers by [percent] of its base level (Confuse's Attack), when it isn't lowered that far already; one
  * that [stacks] lowers it by that much from where it is each time instead (the Catablepon's Weaken), to 1 at least.
  */
+/**
+ * What a monster's [NpcMeleeSpell] does to a player who wears none of [protection] (the sourhog's spit without reinforced
+ * goggles or a Slayer helmet, OSRS Wiki, Sourhog): a hit of [min] to [max] in place of its own, and [drainPercent] of
+ * each of [skills]' base levels drained.
+ */
+data class NpcBlinding(val protection: Set<Int>, val min: Int, val max: Int, val drainPercent: Int, val skills: List<Skill>)
+
 data class StatDrain(val skill: Skill, val percent: Int, val stacks: Boolean = false)
 
 /**
@@ -238,8 +258,10 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
          * A melee NPC may add a `"spell"` it casts in reach now and then: one such attack plus `"chance"` (1 in that
-         * many turns) and `"stopsAt": { "percent": 8, "flat": 3 }` ([NpcMeleeSpell]); a drain there may be
-         * `"stacks": true`. A dragon adds `"dragonfire": { "chance": 6, "anim": "dragon_firebreath_attack", "cast": 1 }`
+         * many turns), `"stopsAt": { "percent": 8, "flat": 3 }` and `"countersPrayer": true` ([NpcMeleeSpell]); a drain there may be
+         * `"stacks": true`, and `"type": "ranged"` makes it a spit rolled as ranged. Its `"blinds"`, beside it, is what
+         * the spit does to a player without the protection: `{ "protection": [24942, 11864], "min": 20, "max": 30,
+         * "drainPercent": 90, "skills": ["attack", "defence"] }` ([NpcBlinding]). A dragon adds `"dragonfire": { "chance": 6, "anim": "dragon_firebreath_attack", "cast": 1 }`
          * ([NpcDragonfire]).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
@@ -335,6 +357,24 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         spell.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a spell chance of 1 in $it" } },
                         stops?.get("percent")?.jsonPrimitive?.int ?: 0,
                         stops?.get("flat")?.jsonPrimitive?.int ?: 0,
+                        when (val type = spell["type"]?.jsonPrimitive?.content ?: "magic") {
+                            "magic" -> AttackType.MAGIC
+                            "ranged" -> AttackType.RANGED
+                            else -> throw IllegalArgumentException("a spell of type '$type': only magic and ranged")
+                        },
+                        spell["countersPrayer"]?.jsonPrimitive?.boolean ?: false,
+                    )
+                },
+                blinds = entry["blinds"]?.jsonObject?.let { blinds ->
+                    require(entry["spell"] != null) { "blinds without a spell" }
+                    val min = blinds.required("min").jsonPrimitive.int
+                    val max = blinds.required("max").jsonPrimitive.int
+                    require(min in 0..max) { "blinding for $min to $max" }
+                    NpcBlinding(
+                        blinds.required("protection").jsonArray.map { it.jsonPrimitive.int }.toSet().also { require(it.isNotEmpty()) { "blinding with no protection" } },
+                        min, max,
+                        blinds.required("drainPercent").jsonPrimitive.int.also { require(it in 0..100) { "a blinding drain of $it%" } },
+                        blinds.required("skills").jsonArray.map { name -> Skill.entries.firstOrNull { it.name.equals(name.jsonPrimitive.content, ignoreCase = true) } ?: throw IllegalArgumentException("no skill $name") },
                     )
                 },
                 dragonfire = entry["dragonfire"]?.jsonObject?.let { fire ->
@@ -343,6 +383,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     NpcDragonfire(
                         fire.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a dragonfire chance of 1 in $it" } },
                         breath.anim, breath.cast,
+                        fire["metallic"]?.jsonPrimitive?.boolean ?: false,
                     )
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,

@@ -87,17 +87,33 @@ class CustomVars(
      */
     val bananaCrateVarp: Int = firstVarp + 7
 
+    /**
+     * 1 once the player has shown a fire cape to a TzHaar-Ket at Mor Ul Rek's barriers, which lets them through the hot
+     * vent doors for good and makes them Xo ([MorUlRekInner]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val morUlRekAccessVarp: Int = firstVarp + 8
+
+    /**
+     * The balloon log storage's normal, oak, willow and yew logs, 7 bits each from bit 0, and the player's preference
+     * above them ([LogStorage]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val logStorageVarp: Int = firstVarp + 9
+
+    /** The balloon log storage's magic logs ([LogStorage]). Live keeps this somewhere we haven't found; ours is guessed. */
+    val logStorageMagicVarp: Int = firstVarp + 10
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE] and [BANANA_CRATE]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE] and [LOG_STORAGE_MAGIC]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
-        FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp,
+        FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
+        LOG_STORAGE to logStorageVarp, LOG_STORAGE_MAGIC to logStorageMagicVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -145,6 +161,13 @@ class CustomVars(
 
         /** Luthas's banana crate's varp's name. */
         const val BANANA_CRATE = "banana_crate"
+
+        /** Mor Ul Rek's inner city access varp's name. */
+        const val MOR_UL_REK_ACCESS = "mor_ul_rek_access"
+
+        /** The balloon log storage's varps' names. */
+        const val LOG_STORAGE = "log_storage"
+        const val LOG_STORAGE_MAGIC = "log_storage.magic"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

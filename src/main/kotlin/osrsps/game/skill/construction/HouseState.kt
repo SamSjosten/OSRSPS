@@ -1,5 +1,6 @@
 package osrsps.game.skill.construction
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.int
@@ -10,6 +11,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * A room type, as the cache's `poh_room` table (dbtable 111, the 242 cache) has it: its [id] there (`room_type`, what
@@ -181,7 +184,11 @@ object HouseSaves {
         }
     }
 
-    /** Throws [IllegalArgumentException] for a house no server would have saved: an unknown room, two rooms in a cell. */
+    /**
+     * Throws [IllegalArgumentException] for a house no server would have saved: an unknown room, two rooms in a cell, no
+     * rooms, a room off the ground floor, something built that this server doesn't build on that hotspot, or other than
+     * one exit portal (exploit review R43B-1). Each step that builds something new adds it to [builds].
+     */
     fun fromJson(json: JsonObject): HouseState {
         val locationKey = json["location"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("House has no location")
         val location = HouseLocation.byKey(locationKey) ?: throw IllegalArgumentException("Unknown house location $locationKey")
@@ -199,10 +206,26 @@ object HouseSaves {
                 entry["rotation"]?.jsonPrimitive?.int ?: 0, built,
             )
             require(rooms.none { it.x == room.x && it.z == room.z && it.floor == room.floor }) { "Two rooms in cell ${room.x}, ${room.z}" }
+            require(room.floor == House.GROUND) { "A room on floor ${room.floor}" }
+            // A piece this server doesn't build there is dropped, not the whole house (R52B-1): a table changed since the
+            // save mustn't lock its owner out. The exit portal is checked below either way.
+            built.entries.removeIf { (hotspot, loc) ->
+                (!builds(type, hotspot, loc)).also { if (it) logger.warn { "Dropped $loc built on $hotspot in a ${type.key}" } }
+            }
             rooms += room
         }
+        require(rooms.isNotEmpty()) { "A house with no rooms" }
         require(rooms.size <= House.MAX_ROOMS) { "A house of ${rooms.size} rooms" }
+        val portals = rooms.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } }
+        require(portals == 1) { "A house with $portals exit portals" }
         return HouseState(location, rooms)
+    }
+
+    /** Whether this server builds [loc] on [hotspot] in a [type] room: the garden's exit portal, or CON3's furniture. */
+    private fun builds(type: RoomType, hotspot: Int, loc: Int): Boolean {
+        if (loc == House.EXIT_PORTAL) return type == RoomType.GARDEN && hotspot == House.CENTREPIECE_SPACE
+        if (FurnitureBuilds.HOTSPOTS[hotspot]?.room != type) return false
+        return FurnitureBuilds.buildsOn(hotspot, loc)
     }
 
     private fun JsonObject.int(key: String): Int = this[key]?.jsonPrimitive?.int ?: throw IllegalArgumentException("House room has no $key")

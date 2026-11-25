@@ -84,6 +84,8 @@ class HeadlessVarrockThievingTest {
         }
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     @Test
     fun `the tea stall needs level 5, then gives a cup of tea and 16 XP and is empty for 4 ticks`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -97,6 +99,7 @@ class HeadlessVarrockThievingTest {
                 }
                 client.continueDialogue()
                 assertEquals(0, client.count(CUP_OF_TEA))
+                assertEquals(0, client.diaryTasksDone(), "refused for level")
                 client.command("setlevel thieving 5")
                 val alice = server.world.playerNamed("alice")!!
                 client.await("level 5") { client.stat(THIEVING)?.takeIf { it.level == 5 } }
@@ -104,6 +107,8 @@ class HeadlessVarrockThievingTest {
                 client.locOp(TEA_STALL, 3224, 3218, 2)
                 client.await("a cup of tea") { if (client.count(CUP_OF_TEA) == 1) Unit else null }
                 client.await("the theft's message") { if (client.seen("[thieving.stolen item=Cup of tea]") == 1) Unit else null }
+                // Stealing from the tea stall is the Varrock easy diary task.
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 assertEquals(before + 160, alice.skills.tenths(Skill.THIEVING))
                 val emptied = client.await("the empty stall") {
                     if (client.locAt(3224, 3218) == Thieving.STALLS.getValue(TEA_STALL).empty) server.world.tick else null
@@ -127,6 +132,7 @@ class HeadlessVarrockThievingTest {
                 client.awaitTicks(2)
                 assertEquals(0, client.count(CUP_OF_TEA))
                 assertEquals(TEA_STALL, client.locAt(3224, 3218) ?: TEA_STALL)
+                assertEquals(0, client.diaryTasksDone(), "a theft he stopped")
             }
         }
     }

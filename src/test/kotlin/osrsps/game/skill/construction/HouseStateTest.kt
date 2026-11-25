@@ -41,6 +41,32 @@ class HouseStateTest {
     }
 
     @Test
+    fun `a hand-edited save is refused without rooms on the ground floor and one exit portal, and loses what isn't built here`() {
+        val garden = """{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}"""
+        read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":6758}}]}""")
+        // No rooms, no exit portal, two exit portals.
+        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[]}""") }
+        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1}]}""") }
+        assertFailsWith<IllegalArgumentException> {
+            read("""{"location":"rimmington","rooms":[$garden,{"type":"garden","x":2,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}]}""")
+        }
+        // A room on another floor is refused; an exit portal anywhere but the garden's centrepiece is dropped, leaving none.
+        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"floor":2}]}""") }
+        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"4515":${House.EXIT_PORTAL}}}]}""") }
+        // A chair built in the garden and a loc this server never builds are dropped, the house kept (R52B-1).
+        assertEquals(mapOf(House.CENTREPIECE_SPACE to House.EXIT_PORTAL),
+            read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"4515":6758}}]}""").rooms.single().built)
+        assertEquals(emptyMap(), read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":995}}]}""").rooms[1].built)
+        // A rug's parts each on their own tile, a bookcase with its scroll rack, curtains: all fine.
+        read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4518":6761,"4519":6760,"4520":6759,"4521":6768,"4522":6771,"4524":6774}}]}""")
+        // A chair on the rug's middle, a rug's corner on its middle, curtains on the fireplace's place, the Raging Echoes
+        // curtains (not built here): each dropped.
+        for (built in listOf(""""4518":6752""", """"4518":6759""", """"4523":6774""", """"4515":6761""", """"4524":56079""")) {
+            assertEquals(emptyMap(), read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{$built}}]}""").rooms[1].built, built)
+        }
+    }
+
+    @Test
     fun `the yard grows with the level as the Wiki's table has it`() {
         assertEquals(listOf(5, 5, 6, 6, 7, 7, 8, 8, 9, 9), listOf(1, 14, 15, 29, 30, 44, 45, 59, 60, 99).map(House::yardSize))
     }
