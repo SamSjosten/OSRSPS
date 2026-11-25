@@ -93,8 +93,8 @@ object MuseumCaseLines : Lines("museum_case", "Kudos") {
  * charges as [TOLD]; a case takes its find only after that. Guessed: every expression, the cases' messages
  * ([MuseumCaseLines]), the necklace's last two lines coming after its item boxes, a second necklace shown after the
  * first going the same way, and "Take a look at this..." standing in for the jewellery's own first line when the
- * jewellery is used on him. Study on the cases is [MuseumDisplays]. Left out: the Digsite pendant's
- * enchantment itself (no Lvl-3 Enchant on jewellery yet).
+ * jewellery is used on him. Study on the cases is [MuseumDisplays]. The Digsite pendant's
+ * enchantment, once taught, is Lvl-3 Enchant's ([osrsps.game.skill.magic.JewelleryEnchant]), which checks it.
  */
 object MuseumFinds {
     val ARCHAEOLOGISTS = (1903..1908).toList()
