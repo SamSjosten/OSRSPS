@@ -19,6 +19,9 @@ class FurnitureLoaderTest {
             5518 to furniture("Wooden chair", 8310, listOf(960, 3, 32923, 3), listOf(Skill.CONSTRUCTION.id, 8)),
             5600 to furniture("Hidden chair", 8311, listOf(960, 1), listOf(Skill.CONSTRUCTION.id, 1), hidden = 1),
             5524 to furniture("Brown rug", 8316, listOf(8790, 2), listOf(Skill.CRAFTING.id, 5, Skill.CONSTRUCTION.id, 2)),
+            // A material with no count, and a level with no stat: each row is left out whole.
+            5601 to furniture("Odd rug", 8317, listOf(8790, 2, 1761), listOf(Skill.CONSTRUCTION.id, 2)),
+            5602 to furniture("Odd rug", 8318, listOf(8790, 2), listOf(Skill.CONSTRUCTION.id, 2, 5)),
         ),
         mapOf(
             4166 to DbRow(FurnitureLoader.ROOM_TABLE, mapOf(3 to listOf(1), 7 to listOf(6030, 6030, 6031))),
@@ -26,7 +29,7 @@ class FurnitureLoaderTest {
         ),
         mapOf(
             6030 to DbRow(FurnitureLoader.HOTSPOT_TABLE, mapOf(0 to listOf(5517, 5518, 5600))),
-            6031 to DbRow(FurnitureLoader.HOTSPOT_TABLE, mapOf(0 to listOf(5524))),
+            6031 to DbRow(FurnitureLoader.HOTSPOT_TABLE, mapOf(0 to listOf(5524, 5601, 5602))),
         ),
     )
 
@@ -44,6 +47,7 @@ class FurnitureLoaderTest {
         )
         assertEquals(chairs, data.options(1, 1))
         assertEquals(listOf(2), data.options(1, 2).map { it.level })
+        assertEquals(listOf(Skill.CRAFTING.id to 5), data.options(1, 2).single().otherLevels)
         assertEquals(emptyList(), data.options(1, 3))
         assertEquals(emptyList(), data.options(2, 0))
     }

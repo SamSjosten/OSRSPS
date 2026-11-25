@@ -133,7 +133,12 @@ class HeadlessArchiveRaidTest {
         }
     }
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    /**
+     * A server with the raid's rooms, chests and Rift out. [clues] adds the elite clue and its scroll box to the cache:
+     * only the clue test has them, since the loot file's tertiary clue (1 in 10) would otherwise put a box in other
+     * tests' chests now and then (the Nov 25 CI failure of the empty-rooms test after #910).
+     */
+    private fun server(dir: Path, clues: Boolean = false) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             // Lumbridge's square too, for Home Teleport's landing.
@@ -145,7 +150,7 @@ class HeadlessArchiveRaidTest {
             },
             locTypes = locTypes,
             staticLocs = staticLocs,
-            objTypes = ObjTypes.of(axe, pickaxe, eliteClue, eliteBox),
+            objTypes = if (clues) ObjTypes.of(axe, pickaxe, eliteClue, eliteBox) else ObjTypes.of(axe, pickaxe),
             npcTypes = NpcTypes.of(
                 NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
                 // The reward vault's Rift out, as the 241.4 cache has it.
@@ -287,7 +292,12 @@ class HeadlessArchiveRaidTest {
         val key = server.world.playerNamed(username)!!.saveKey
         assertEquals(listOf(key), run.loot?.chests?.keys?.toList())
         assertEquals(mapOf(key to 0), run.chestSlots.toMap())
-        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing. Unclaimed: nothing.", commandReply("raid loot") { it.contains("oot") })
+        // The elite clue's scroll box is a 1-in-10 tertiary roll on an unseeded random (#910), so the chest may hold it.
+        val loot = commandReply("raid loot") { it.contains("oot") }
+        assertTrue(
+            Regex("""Loot for 1, no unique\. Your chest is 1, closed: (nothing|Scroll box \(elite\) x1)\. Unclaimed: \1\.""").matches(loot),
+            loot,
+        )
         assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
             // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
@@ -308,6 +318,8 @@ class HeadlessArchiveRaidTest {
         }
         // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
+        // A scroll box left unclaimed waits in the Loot Wheelbarrow and would keep the Archive Door shut for the next run.
+        server.world.playerNamed(username)!!.archiveChest.clear()
     }
 
     @Test
@@ -1213,7 +1225,7 @@ class HeadlessArchiveRaidTest {
 
     @Test
     fun `the chest's clue scroll comes as its scroll box, and not at all for one holding as many as they may`(@TempDir dir: Path) {
-        server(dir).use { server ->
+        server(dir, clues = true).use { server ->
             server.login("carol").use { carol ->
                 server.login("dave").use { dave ->
                     for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }

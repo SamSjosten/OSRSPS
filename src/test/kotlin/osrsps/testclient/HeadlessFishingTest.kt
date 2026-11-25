@@ -29,7 +29,7 @@ class HeadlessFishingTest {
     private val draynor = NpcType(Fishing.DRAYNOR_SPOT, "Fishing spot", ops = listOf("Small Net", null, "Bait", null, null))
 
     /** [withAlKharid] adds Al Kharid's spot; the other tests leave it out, so the spots' moves draw the same numbers. */
-    private fun server(dir: Path, withAlKharid: Boolean = false) = TestServer(dir, cycleMillis = 20) { crcs, millis ->
+    private fun server(dir: Path, withAlKharid: Boolean = false, withVillage: Boolean = false) = TestServer(dir, cycleMillis = 20) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(POT + 1)
         for ((id, name) in listOf(
             Fishing.NET to "Small fishing net", Fishing.FISHING_ROD to "Fishing rod", Fishing.FLY_FISHING_ROD to "Fly fishing rod",
@@ -48,11 +48,12 @@ class HeadlessFishingTest {
                 markLoaded(RIVER_X shr 6, RIVER_Z shr 6)
                 markLoaded(DRAYNOR_X shr 6, DRAYNOR_Z shr 6)
                 markLoaded(AL_KHARID_X shr 6, AL_KHARID_Z shr 6)
+                markLoaded(VILLAGE_X shr 6, VILLAGE_Z shr 6)
             },
             objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(swamp, river, draynor, alKharid), random = GameRandom(5),
             npcSpawns = listOf(NpcSpawn(swamp, SWAMP_X, SWAMP_Z, source = "test"), NpcSpawn(river, RIVER_X, RIVER_Z, source = "test"),
                 NpcSpawn(draynor, DRAYNOR_X, DRAYNOR_Z, source = "test"),
-            ) + listOfNotNull(NpcSpawn(alKharid, AL_KHARID_X, AL_KHARID_Z, source = "test").takeIf { withAlKharid }),
+            ) + listOfNotNull(NpcSpawn(river, VILLAGE_X, VILLAGE_Z, source = "test").takeIf { withVillage }) + listOfNotNull(NpcSpawn(alKharid, AL_KHARID_X, AL_KHARID_Z, source = "test").takeIf { withAlKharid }),
             cycleMillis = millis,
         )
     }
@@ -202,6 +203,33 @@ class HeadlessFishingTest {
     }
 
     @Test
+    fun `trout caught in Barbarian Village are the Varrock easy diary task, and trout caught in Lumbridge aren't`(@TempDir dir: Path) {
+        server(dir, withVillage = true).use { server ->
+            server.login("fay").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Level 29: trout only, as salmon from Lumbridge's river is a Lumbridge diary task of its own.
+                client.command("setlevel fishing 29")
+                client.await("level 29") { client.stat(FISHING)?.takeIf { it.level == 29 } }
+                client.command("item ${Fishing.FLY_FISHING_ROD}")
+                client.command("item ${Fishing.FEATHER} 100")
+                client.await("the rod and feathers") { if (client.count(Fishing.FEATHER) == 100) Unit else null }
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                fun lureUntilTrout(x: Int, z: Int) {
+                    client.goTo(x + 1, z)
+                    val before = client.count(Fishing.TROUT.obj)
+                    client.npcOp(client.await("the spot") { client.npcs().firstOrNull { it.id == Fishing.RIVER_SPOT && it.coord.x == x && it.coord.z == z } }.index, 1)
+                    client.await("a trout", timeoutMillis = 40_000) { if (client.count(Fishing.TROUT.obj) > before) Unit else null }
+                    client.goTo(x + 1, z + 2)
+                }
+                lureUntilTrout(RIVER_X, RIVER_Z)
+                assertEquals(0, diaryTasksDone(), "trout from Lumbridge's river")
+                lureUntilTrout(VILLAGE_X, VILLAGE_Z)
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+            }
+        }
+    }
+
+    @Test
     fun `the river spot moves on within 530 ticks and the player stops fishing`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->
@@ -240,6 +268,9 @@ class HeadlessFishingTest {
         const val AL_KHARID_X = 3267
         const val AL_KHARID_Z = 3148
         const val POT = 1931
+        /** In the River Barbarian beside the village, inside the diary's Barbarian Village box. */
+        const val VILLAGE_X = 3104
+        const val VILLAGE_Z = 3424
         const val BACKPACK = 93
         const val FISHING = 10
     }

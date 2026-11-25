@@ -129,6 +129,9 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
+import osrsps.game.content.registerClanCup
+import osrsps.game.content.PollBooths
+import osrsps.game.content.registerPollBooths
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
@@ -195,6 +198,7 @@ import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
+import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -676,6 +680,7 @@ class World(
     val shopScreen = ShopScreen(
         shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
         logged = { player, type -> collectionLog.add(player, type.id, 1) },
+        opened = { player, type -> diaries.shopOpened(player, type.key) },
     )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
@@ -697,7 +702,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = {
+        forInstances = { it, x, z ->
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
@@ -711,7 +716,9 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
-                it in osrsps.game.content.ClanHall.INSTANCE_LOCS
+                // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
+                // (exploit review R55C-3).
+                ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
         },
     )
 
@@ -951,6 +958,7 @@ class World(
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         recolour = osrsps.game.content.ClanHub::recolour,
+        hallAccessChanged = { clanId -> clanHall.recheck(clanId) },
         weapon = { player -> player.equipment[WearPos.WEAPON]?.id ?: -1 },
         acceptsAid = { player -> player.vars.getVarbitIfKnown(SettingsSide.VARBIT_ACCEPT_AID) == 1 },
         inCombat = { player -> inCombat(player) },
@@ -1036,6 +1044,7 @@ class World(
 
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+    val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
 
@@ -1241,6 +1250,8 @@ class World(
         registerLumberYard(this)
         registerGertrudesCat(this)
         registerClanHub(this)
+        registerClanCup(this)
+        registerPollBooths(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
@@ -1297,6 +1308,7 @@ class World(
         registerInfernalEels(this)
         registerBarnabyShip(this)
         registerBrimhavenTown(this)
+        registerBrimhavenDungeon(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1370,6 +1382,7 @@ class World(
         ourania.register()
         houses.register()
         furniture.register()
+        kitchen.register()
         clanHall.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
@@ -1765,6 +1778,7 @@ class World(
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
             perPlayer(player, "wall beasts") { wallBeasts.process(player) }
+            perPlayer(player, "diaries") { diaries.moved(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -2171,12 +2185,15 @@ class World(
         val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
+        // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
+        val leaving = if (houses.houseAt(player.x, player.z) == null) inventory
+        else inventory.filterValues { it.id !in osrsps.game.skill.construction.Kitchen.HOUSE_ONLY }
         // A random event's place sends them back by the way back's own rule (R51 C-4).
         val (x, z, level) = randomEvents.areas.awayOf(player)?.let { randomEvents.areas.backOf(it) }
             ?: Triple(instance?.exitX ?: SPAWN_X, instance?.exitZ ?: SPAWN_Z, instance?.exitLevel ?: SPAWN_LEVEL)
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
-            player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
+            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank,
             x = x, z = z, level = level,
             held = held,
         )
@@ -2992,6 +3009,10 @@ class World(
             worldMap.close(player)
             return@act
         }
+        if (interfaceId == PollBooths.BALLOT && componentId == PollBooths.CLOSE) {
+            if (player.floater == PollBooths.BALLOT) interfaces.closeFloater(player)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -3450,6 +3471,16 @@ class World(
     fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
 
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
+
+    /**
+     * A poll booth's ballot ([PollBooths]): opened in the floater, which holds one window, so All Settings closes by its
+     * own path first (as for the world map orb); then the empty poll history.
+     */
+    fun openBallot(player: Player) {
+        allSettings.close(player)
+        interfaces.openFloater(player, PollBooths.BALLOT)
+        interfaces.runClientScript(player, PollBooths.SCRIPT_LIST_BUILD, PollBooths.emptyHistory(PollBooths.thisYear()))
+    }
 
     private fun move(player: Player) {
         val result = movement.process(player)

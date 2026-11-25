@@ -174,6 +174,7 @@ class HeadlessStrongholdOfSecurityTest {
                 client.tele(3081, 3421, 0)
                 client.locOp(StrongholdOfSecurity.ENTRANCE, 3081, 3420, StrongholdOfSecurity.CLIMB_DOWN)
                 client.awaitAt(StrongholdOfSecurity.LANDING.x, StrongholdOfSecurity.LANDING.z, 0)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "the first floor isn't the diary's second level")
                 client.locOp(StrongholdOfSecurity.LADDER_UP, 1859, 5244, StrongholdOfSecurity.CLIMB_UP)
                 client.awaitAt(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0)
                 client.tele(1913, 5225, 0)
@@ -299,6 +300,8 @@ class HeadlessStrongholdOfSecurityTest {
                 client.tele(1903, 5222, 0)
                 client.locOp(StrongholdOfSecurity.WAR_LADDER_DOWN, 1902, 5222, StrongholdOfSecurity.CLIMB_DOWN)
                 client.awaitAt(StrongholdOfSecurity.FAMINE_LANDING.x, StrongholdOfSecurity.FAMINE_LANDING.z, 0)
+                // The second level is the Varrock easy diary's task.
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
                 client.locOp(StrongholdOfSecurity.FAMINE_LADDER_UP, 2042, 5246, StrongholdOfSecurity.CLIMB_UP)
                 client.awaitAt(StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.x, StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.z, 0)
                 client.tele(2017, 5211, 0)

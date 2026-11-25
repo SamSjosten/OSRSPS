@@ -791,15 +791,35 @@ internal class HeadlessGame(
     /**
      * The loc the client's map data puts on a tile. In a region rebuild (an instance) the client draws each zone from
      * the one the rebuild names, so the loc is read from that zone of the cache's maps and moved here; a zone the
-     * rebuild left out is empty. Only unrotated copies are read, which is all the server sends.
+     * rebuild left out is empty. A turned copy (a house's turned room) moves each loc as the client's dynamic map
+     * loader does ([Instances.rotateX]), its angle turned with it.
      */
     private fun mapLoc(copied: Map<Triple<Int, Int, Int>, CopiedZone>?, x: Int, z: Int, level: Int, layer: Int): ZoneLoc? {
         if (copied == null) return types.staticLoc(x, z, level, layer)
         val zone = copied[Triple(x shr 3, z shr 3, level)] ?: return null
-        if (zone.rotation != 0) return null
+        if (zone.rotation != 0) {
+            val loc = turnedZone(zone)[slot(x and 7, z and 7, layer)] ?: return null
+            return loc.copy(x = (x and 7.inv()) + loc.x, z = (z and 7.inv()) + loc.z, level = level)
+        }
         val fromX = (zone.zoneX shl 3) + (x and 7)
         val fromZ = (zone.zoneZ shl 3) + (z and 7)
         return types.staticLoc(fromX, fromZ, zone.level, layer)?.copy(x = x, z = z, level = level)
+    }
+
+    private val turnedZones = HashMap<CopiedZone, Map<Long, ZoneLoc>>()
+
+    /** A turned copied zone's locs by their tile in the zone (0 to 7) and layer, with x and z within the zone. */
+    private fun turnedZone(zone: CopiedZone): Map<Long, ZoneLoc> = turnedZones.getOrPut(zone) {
+        val out = HashMap<Long, ZoneLoc>()
+        for (dx in 0 until 8) for (dz in 0 until 8) for (layer in 0 until LAYERS) {
+            val loc = types.staticLoc((zone.zoneX shl 3) + dx, (zone.zoneZ shl 3) + dz, zone.level, layer) ?: continue
+            val type = types.locs[loc.id]
+            val (width, length) = if (type == null) 1 to 1 else if (loc.angle and 1 == 1) type.length to type.width else type.width to type.length
+            val tx = osrsps.game.instance.Instances.rotateX(dx, dz, zone.rotation, width, length)
+            val tz = osrsps.game.instance.Instances.rotateZ(dx, dz, zone.rotation, width, length)
+            out[slot(tx, tz, layer)] = loc.copy(x = tx, z = tz, angle = (loc.angle + zone.rotation) and 3)
+        }
+        out
     }
 
     /** Whether a tile is in the area the client last built. */

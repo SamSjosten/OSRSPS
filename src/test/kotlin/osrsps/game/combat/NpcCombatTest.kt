@@ -131,6 +131,8 @@ class NpcCombatTest {
             "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
             "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
             "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
+            "bdrag_attack" to 25, "bdrag_block" to 26, "bdrag_death" to 28,
+            "giant_update_fire_attack" to 4666, "giant_update_fire_defend" to 4664, "giant_update_fire_death" to 4668,
         ),
     )
 
@@ -1158,6 +1160,47 @@ class NpcCombatTest {
         assertEquals(55, def("tribesman").poison)
         assertEquals(ElementalWeakness(Element.FIRE, 40), def("jungle_spider").weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 25), def("poison_scorpion").weakness)
+    }
+
+    @Test
+    fun `Brimhaven Dungeon's monsters have the Wiki's speeds, hits and respawns, all but the wild dogs come for the player, and the grown dragons breathe fire`() {
+        val monsters = listOf(
+            NpcType(112, "Wild dog", internalName = "dog_wild", stats = NpcStats(strength = 54)),
+            NpcType(244, "Baby red dragon", internalName = "babyreddragon", stats = NpcStats(strength = 40)),
+            NpcType(5194, "Baby green dragon", internalName = "babygreendragon1", stats = NpcStats(strength = 40)),
+            NpcType(247, "Red dragon", internalName = "red_dragon", stats = NpcStats(strength = 130)),
+            NpcType(270, "Bronze dragon", internalName = "bronze_dragon", stats = NpcStats(strength = 112)),
+            NpcType(272, "Iron dragon", internalName = "iron_dragon", stats = NpcStats(strength = 165)),
+            NpcType(274, "Steel dragon", internalName = "steel_dragon", stats = NpcStats(strength = 215)),
+            NpcType(2078, "Fire giant", internalName = "firegiant", stats = NpcStats(strength = 65)),
+            NpcType(2025, "Greater demon", internalName = "greater_demon", stats = NpcStats(strength = 78)),
+            NpcType(2048, "Black demon", internalName = "black_demon", stats = NpcStats(strength = 148)),
+        )
+        val types = NpcTypes.of(*monsters.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        assertEquals(
+            mapOf(
+                "dog_wild" to listOf(4, 6, 50), "babyreddragon" to listOf(4, 5, 30), "babygreendragon1" to listOf(4, 5, 30),
+                "red_dragon" to listOf(4, 14, 30), "bronze_dragon" to listOf(4, 12, 30), "iron_dragon" to listOf(4, 17, 30),
+                "steel_dragon" to listOf(4, 22, 30), "firegiant" to listOf(5, 11, 30), "greater_demon" to listOf(4, 9, 15),
+                "black_demon" to listOf(4, 16, 30),
+            ),
+            monsters.associate { it.internalName!! to def(it.internalName!!).let { d -> listOf(d.attackSpeed, d.maxHit, d.respawnTicks) } },
+        )
+        assertEquals(setOf("dog_wild"), monsters.filter { def(it.internalName!!).aggression == null }.map { it.internalName }.toSet())
+        assertEquals(
+            setOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon"),
+            monsters.filter { def(it.internalName!!).dragonfire != null }.map { it.internalName }.toSet(),
+        )
+        assertEquals(ElementalWeakness(Element.EARTH, 50), def("steel_dragon").weakness)
+        assertEquals(ElementalWeakness(Element.WATER, 100), def("firegiant").weakness)
+        // The Wiki's level 86 fire giant: attack +29, strength +31; the grown dragons give 2.5% more XP.
+        assertEquals(listOf(29, 31), def("firegiant").let { listOf(it.attackBonus, it.strengthBonus) })
+        assertEquals(
+            mapOf("red_dragon" to 25, "bronze_dragon" to 25, "iron_dragon" to 25, "steel_dragon" to 25, "firegiant" to 0),
+            listOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant").associateWith { def(it).xpBonusTenths },
+        )
     }
 
     @Test

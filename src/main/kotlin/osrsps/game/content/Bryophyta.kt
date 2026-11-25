@@ -330,7 +330,7 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
         world.combat.finishers[GROWTHLING] = { player, type -> type in MELEE_TYPES && wieldsCutter(world, player) }
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type ->
-            if (npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player)) SureHit.MAX else sureHit(player, npc, type)
+            if (npc.type.id == GROWTHLING && type in MELEE_TYPES && wieldsCutter(world, player)) SureHit.MAX else sureHit(player, npc, type)
         }
         // While her growthlings live she takes nothing but poison and venom, checked as each hit lands.
         val immune = world.combat.immune

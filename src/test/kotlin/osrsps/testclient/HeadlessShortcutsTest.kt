@@ -98,6 +98,8 @@ class HeadlessShortcutsTest {
                     val (backId, backX, backZ) = s.backLoc ?: Triple(s.id, s.x, s.z)
                     client.crossTo(backId, backX, backZ, s.sideA)
                 }
+                // The fence south of Varrock is the Varrock easy diary's task, once; no other shortcut here is one.
+                assertEquals(1, client.messages().count { it.text.startsWith("[diary.task_done") })
                 // 3 XP twice on the stone, 1.5 twice through the manor fence, 5 twice on the south stones: 19 XP.
                 assertEquals(before + 19, client.await("the shortcuts' XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 19 } }.xp)
             }
@@ -136,6 +138,7 @@ class HeadlessShortcutsTest {
                 client.locOp(16518, 3240, 3335, 1)
                 client.await("the level message") { client.messages().firstOrNull { it.text == "[agility.varrock_fence_level level=13]" } }
                 assertEquals(3335, client.position!!.z)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "the fence refused for level")
                 client.command("setlevel agility 31")
                 client.await("level 31") { client.stat(AGILITY)?.takeIf { it.level == 31 } }
                 val before = client.stat(AGILITY)!!.xp
