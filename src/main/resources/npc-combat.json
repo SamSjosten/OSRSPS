@@ -2,6 +2,106 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
+      "npcs": ["champions_imp"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "champions_imp_stab", "defend": "imp_block", "death": "imp_death" },
+      "respawnTicks": 100,
+      "spell": { "type": "ranged", "anim": "champions_imp_throw", "cast": 493, "projectile": 494, "maxHit": 1, "chance": 3 },
+      "source": "OSRS Wiki, Imp Champion (3355): melee and ranged, max hit 1; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). Animations and spotanims by name (champions_imp_stab, _throw, dagger_launch 493, _travel 494). GUESSED: stab, a thrown dagger one turn in 3, the old imp's block and death"
+    },
+    {
+      "npcs": ["champions_goblin"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "goblin_update_champion_casting", "defend": "goblin_block", "death": "goblin_death" },
+      "respawnTicks": 100,
+      "range": 10,
+      "attacks": [ { "anim": "goblin_update_champion_casting", "cast": 488, "impact": 489 } ],
+      "source": "OSRS Wiki, Goblin Champion (3353): magic, max hit 4; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). GUESSED: the 10-tile range, the casting glow (488) and drain impact (489) as its spell's, no projectile, the old goblin's block and death"
+    },
+    {
+      "npcs": ["champions_skeleton"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "ranged", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "skeleton_update_champion_attack", "defend": "skeleton_update_champion_defend", "death": "skeleton_update_champion_death" },
+      "respawnTicks": 100,
+      "range": 7,
+      "attacks": [ { "cast": 994, "projectile": 995 } ],
+      "weakness": { "element": "air", "percent": 35 },
+      "source": "OSRS Wiki, Skeleton Champion (3358): ranged, max hit 5, weak to air 35%; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). Animations and spotanims by name (skeleton_update_champion_*, skeleton_update_champ_spotanim 994, _projectile 995). GUESSED: the 7-tile range"
+    },
+    {
+      "npcs": ["champions_zombie"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_champion", "defend": "champions_zombie_defend", "death": "champions_zombie_death" },
+      "respawnTicks": 100,
+      "weakness": { "element": "fire", "percent": 50 },
+      "source": "OSRS Wiki, Zombies Champion (3359): stab, max hit 5 (the formula's from Strength 42), weak to fire 50%; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused)."
+    },
+    {
+      "npcs": ["champions_giant"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_champion_attack", "defend": "giant_champion_defend", "death": "giant_champion_death" },
+      "respawnTicks": 100,
+      "source": "OSRS Wiki, Giant Champion (3329): crush, max hit 5 (the formula's from Strength 44); the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused)."
+    },
+    {
+      "npcs": ["champions_hobgoblin"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "ranged", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "champions_hobgoblin_range", "defend": "hobgoblin_block", "death": "hobgoblin_death" },
+      "respawnTicks": 100,
+      "range": 7,
+      "attacks": [ { "cast": 490, "projectile": 491 } ],
+      "source": "OSRS Wiki, Hobgoblin Champion (3354): ranged, max hit 6; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). The thrown spear by name (champions_hobgoblin_range, _spear_launch 490, _travel 491). GUESSED: the 7-tile range, the old hobgoblin's block and death"
+    },
+    {
+      "npcs": ["champions_ghoul"],
+      "attackSpeed": 4, "maxHit": 9, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "champions_ghoul_club", "defend": null, "death": null },
+      "respawnTicks": 100,
+      "spell": { "type": "ranged", "anim": "champions_ghoul_throw", "cast": 495, "projectile": 496, "maxHit": 9, "chance": 3 },
+      "source": "OSRS Wiki, Ghoul Champion (3330): crush and ranged, max hit 9 (the formula's from Strength 80); the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). The club and the thrown skull by name (champions_ghoul_club, _throw, _skull_launch 495, _travel 496); the cache names no block or death for it. GUESSED: a skull one turn in 3"
+    },
+    {
+      "npcs": ["champions_earthwarrior"],
+      "attackSpeed": 4, "maxHit": 9, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "earthwarrior_chop", "defend": "earthwarrior_def", "death": "earthwarrior_death" },
+      "respawnTicks": 100,
+      "source": "OSRS Wiki, Earth Warrior Champion (3328): crush, max hit 9 (the formula's from Strength 84); the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). The earth warrior's animations"
+    },
+    {
+      "npcs": ["champions_jogre"],
+      "attackSpeed": 4, "maxHit": 10, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "champions_jogre_attack", "defend": null, "death": null },
+      "respawnTicks": 100,
+      "source": "OSRS Wiki, Jogre Champion (3356): stab, max hit 10 (the formula gives 9 from Strength 86; the Wiki's kept); the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). The cache names no block or death for it"
+    },
+    {
+      "npcs": ["champions_lesserdemon"],
+      "attackSpeed": 4, "maxHit": 15, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "demon_update_attack", "defend": "demon_update_defend", "death": "demon_update_death" },
+      "respawnTicks": 100,
+      "spell": { "anim": "champions_lesserdemon_fire_launch", "cast": 497, "projectile": 498, "maxHit": 14, "chance": 3 },
+      "weakness": { "element": "water", "percent": 40 },
+      "source": "OSRS Wiki, Lesser Demon Champion (3357): slash and magic, max hits 15 and 14, weak to water 40%; the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). The fire by name (champions_lesserdemon_fire_launch, spotanims 497 and 498). GUESSED: a fire one turn in 3, the lesser demon's other animations"
+    },
+    {
+      "npcs": ["champions_human"],
+      "attackSpeed": 4, "maxHit": 13, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "barrow_dharok_crush", "defend": "human_dhsword_block", "death": "human_death" },
+      "respawnTicks": 100,
+      "source": "OSRS Wiki, Leon d'Cour (3360): crush, max hit 13 (the formula's from Strength 123); the Wiki's infobox (read 2026-11-19, post-quest step 9, ChampionsChallenge.kt): speed 4, the max hit, no bonuses or defences (the Wiki's zeros). It fights only the player whose duel it is, provoked as it comes in, so not aggressive here (inferred; the Wiki says aggressive), and never respawns (respawnTicks unused). GUESSED: Dharok's crush and the two-hander's block for his swing (he stands as a two-hander's wielder)"
+    },
+    {
       "npcs": ["sourhog"],
       "attackSpeed": 5, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 30, "crush": 10, "magic": 30, "light": 0, "standard": 0, "heavy": 0 },

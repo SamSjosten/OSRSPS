@@ -5,6 +5,7 @@ import osrsps.game.NpcStat
 import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Line
 import osrsps.game.npc.Npc
 
 private val logger = KotlinLogging.logger {}
@@ -115,12 +116,23 @@ class SpecialAttacks(
     }
 
     /**
+     * Set by content: the line refusing [Player]'s special attacks where a fight's rules forbid them, null where they
+     * may: the Imp Champion's duel ([osrsps.game.content.ChampionsChallenge]). The bar turns off as it does when the
+     * energy is short.
+     */
+    var barred: (Player) -> Line? = { null }
+
+    /**
      * A swing with [weapon]: the special attack if the bar is lit and the energy is there, which it takes, putting the
      * bar out; null for an ordinary swing.
      */
     fun use(player: Player, weapon: ObjType?): SpecialAttack? {
         if (!active(player)) return null
         player.vars[VARP_ACTIVE] = 0
+        barred(player)?.let { line ->
+            message(player, words(player)[line])
+            return null
+        }
         val special = special(weapon) ?: return null
         val cost = cost(weapon)
         if (energy(player) < cost) {
