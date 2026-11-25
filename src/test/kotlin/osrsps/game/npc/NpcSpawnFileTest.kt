@@ -722,6 +722,8 @@ class NpcSpawnFileTest {
         assertEquals(Tile(3088, 3255), spawns.single { it.type.id == 2109 }.let { Tile(it.x, it.z) })
         assertEquals(1, spawns.single { it.type.id == 2114 }.level)
         assertEquals(listOf(1, 1), listOf(2116, 2123).map { id -> spawns.count { it.type.id == id } })
+        // Miss Schism sits on her stool: she stays put (Sam's 19 Nov report of her sliding round sitting).
+        assertEquals(0, spawns.single { it.type.id == 2116 }.wander)
         // The market's two guards.
         assertEquals(listOf(3247, 3253), spawns.filter { it.type.id == 5732 }.map { it.z }.sorted())
         // The Master Farmer in the market.
@@ -962,6 +964,8 @@ class NpcSpawnFileTest {
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
         // The Wiki's Guard page: 13 in the city, 2 on the walls and 22 in the palace (7, 4 and 11 a floor).
+        // Anna Jones sits on the statue's bench: she stays put.
+        assertEquals(0, spawns.single { it.type.id == 4162 }.wander)
         assertEquals(37, spawns.count { it.type.id in 11911..11917 })
         assertEquals(22, spawns.count { it.type.id in 11911..11917 && it.x in 3200..3225 && it.z in 3460..3500 })
         // Five stray dogs, three grey and two brown (Wiki).
@@ -1058,9 +1062,9 @@ class NpcSpawnFileTest {
         assertEquals(listOf(3143), gamesZone.map { it.x })
         assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet() - gamesZone.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram), and so do the
-        // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
-        val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
-        assertEquals(4, still.size)
+        // sweep's sick Guidor, the sleeping Jeremy Clerksin, BigRedJapan on the rooftops and Anna Jones on her bench.
+        val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921, 4162) }.toSet()
+        assertEquals(5, still.size)
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still - collector).all { it.wander > 0 })
     }
 
