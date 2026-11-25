@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameLines
 import osrsps.game.GameRandom
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -53,6 +54,8 @@ class HeadlessDorgeshuunTunnelsTest {
     private val ladder = ZoneLoc(DorgeshuunTunnels.MILL_LADDER, LocShape.CENTREPIECE_STRAIGHT, 2, 3240, 9695, 0)
     private val mazeTunnel = ZoneLoc(DorgeshuunTunnels.TUNNEL_MAZE_SIDE, LocShape.CENTREPIECE_STRAIGHT, 1, 3245, 9649, 0)
     private val millTunnel = ZoneLoc(DorgeshuunTunnels.TUNNEL_MILL_SIDE, LocShape.CENTREPIECE_STRAIGHT, 1, 3245, 9661, 0)
+    /** A copy of the trapdoor's type off its own tile (exploit review R52A-2). */
+    private val strayTrapdoor = ZoneLoc(DorgeshuunTunnels.MILL_TRAPDOOR, LocShape.GROUND_DECOR, 0, 3234, 3286, 0)
     private val chest = ZoneLoc(DorgeshuunTunnels.SIGMUND_CHEST, LocShape.CENTREPIECE_STRAIGHT, 2, 3209, 3217, 1)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -70,7 +73,7 @@ class HeadlessDorgeshuunTunnelsTest {
                     type(DorgeshuunTunnels.TUNNEL_MILL_SIDE, "Tunnel", "Squeeze-through"), type(DorgeshuunTunnels.SIGMUND_CHEST, "Chest", "Open"),
                 ).associateBy { it.id },
             ),
-            staticLocs = StaticLocs().apply { listOf(cellarHole, mazeHole, trapdoor, ladder, mazeTunnel, millTunnel, chest).forEach(::add) },
+            staticLocs = StaticLocs().apply { listOf(cellarHole, mazeHole, trapdoor, strayTrapdoor, ladder, mazeTunnel, millTunnel, chest).forEach(::add) },
             npcTypes = NpcTypes.of(kazgar, mistag, dartog, nardok),
             npcSpawns = listOf(
                 NpcSpawn(kazgar, 3230, 9611, wander = 0, source = "test"),
@@ -276,6 +279,19 @@ class HeadlessDorgeshuunTunnelsTest {
                 client.tele(3208, 3217, 1)
                 client.locOp(chest.id, chest.x, chest.z, 1)
                 client.awaitMessage("the chest") { it == DialogueText.NONE[LostTribeLines.CHEST_FOUND] }
+            }
+        }
+    }
+
+    @Test
+    fun `a copy of the trapdoor off its own tile moves nobody`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3234, 3285)
+                client.locOp(strayTrapdoor.id, strayTrapdoor.x, strayTrapdoor.z, 1)
+                client.awaitMessage("nothing interesting") { it == DialogueText.NONE[GameLines.NOTHING_INTERESTING] }
+                client.awaitAt(3234, 3285)
             }
         }
     }

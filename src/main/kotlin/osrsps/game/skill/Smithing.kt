@@ -222,6 +222,7 @@ class Smithing(private val world: World) {
         removeObj(player, bar.obj, item.bars)
         player.inventory.add(world.objTypes[item.obj] ?: error("No obj type ${item.obj} on the anvil"), item.count)
         player.skills.addTenths(Skill.SMITHING, bar.smithXpTenths * item.bars)
+        world.diaries.made(player, item.obj, item.count)
         player.message(world.textFor(player)[SmithingLines.SMITHED, "bar" to bar.key, "item" to itemName(item)])
     }
 

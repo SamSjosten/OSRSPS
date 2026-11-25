@@ -77,8 +77,8 @@ class ImplingTier(
  * :33;
  * which of the crystal impling's seventeen names shows (at random); Loot needing one free slot beside the jar, and loot
  * that doesn't fit (looting at once with a full backpack) going on the ground; that the miss and catch messages are
- * their own lines. Left out: Puro-Puro and its implings, the lucky impling (its loot is the clue reward tables, not
- * built), clue scrolls in the loot tables, the impling tracker, binding spells' grace, implings flying over water, the
+ * their own lines. The jars' clue scrolls come as scroll boxes (Treasure Trails step TT9). Left out: Puro-Puro and its
+ * implings, the lucky impling (its loot is the clue reward tables, not built), the impling tracker, binding spells' grace, implings flying over water, the
  * stuck teleport.
  */
 class Implings(private val world: World) {
@@ -275,7 +275,8 @@ class Implings(private val world: World) {
     /** One roll of [impling]'s loot into [player]'s backpack, what doesn't fit on their tile. */
     private fun give(player: Player, impling: Impling) {
         val def: NpcDropsDef = loot.chests[impling.loot] ?: return logger.warn { "No loot for the ${impling.loot} impling in $RESOURCE" }
-        for (drop in def.roll(world.random)) world.groundObjs.give(player, drop.type, drop.count)
+        // A clue scroll comes as its scroll box, or not at all past the cap (Treasure Trails step TT9).
+        for (drop in def.roll(world.random)) world.trails.give(player, drop.type, drop.count)
     }
 
     companion object {

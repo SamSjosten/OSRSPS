@@ -129,10 +129,15 @@ class HeadlessRandomEventsTrayTest {
                 client.continueDialogue()
                 client.await("the tray") { if (SandwichLady.INTERFACE in client.openInterfaces()) Unit else null }
                 client.ifButton(SandwichLady.INTERFACE, SandwichLady.KEY_BUTTON, 1)
-                // The two layers' hides come as two packets: wait for both, as the client may have read only the first.
-                client.await("the key, the tray hidden") {
+                // The two hides come as separate packets: wait for both, not just the first (it raced in CI on #905 and #924).
+                client.await("the key over the tray") {
                     if (client.hidden(SandwichLady.INTERFACE, SandwichLady.KEY_LAYER) == false &&
-                        client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER) == true) Unit else null
+                        client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER) == true
+                    ) {
+                        Unit
+                    } else {
+                        null
+                    }
                 }
                 client.ifButton(SandwichLady.INTERFACE, SandwichLady.BACK_BUTTON, 1)
                 client.await("the tray again") { if (client.hidden(SandwichLady.INTERFACE, SandwichLady.TRAY_LAYER) == false) Unit else null }

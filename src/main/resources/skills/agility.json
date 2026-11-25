@@ -14,7 +14,9 @@
     "Lumbridge Swamp Caves stepping stones (Misthalin piece 7 step 2b): locs 5948 and 5949 and their tiles from the 242 cache's map; level 1, 3 XP, 1 XP for a fall and the 51/256 to 252/256 cross chance from the OSRS Wiki's Stepping stone (Lumbridge Swamp Caves) page (read 2026-11-09, Mod Ash's chart); a fall puts the player's lights out (failDouses, the Wiki's Light sources page). Inferred from the map: each side's tile, two from the stone. Guessed: a fall lands back where the player jumped from, with no damage; the animations and timings as the Champions' Guild stone's.",
     "The Varrock Palace garden's trellis (post-quest content step 1): loc 2149 (garden_trellis_concave_shortcut) on the south side of 3228,3471, a wall of the garden's south fence, from the 242 cache's map; level 35 and no XP from the OSRS Wiki's Trellis (Varrock) page (read 2026-11-19; it needs Garden of Tranquillity, which every account has done). Inferred from the map: its two sides, 3228,3470 outside and 3228,3471 in the garden. Guessed until recorded: the Varrock fence's human_jump_hurdle and timing (the Wiki gives only a jump sound), and the level message's words (its own key).",
     "Edgeville Dungeon pipes (on no course): locs, tiles and options from the 242 cache's map; levels, XP, damage and crossing times from the OSRS Wiki's Obstacle pipe (Edgeville Dungeon) and Obstacle pipe (Edgeville Dungeon south) pages (read 2026-11-19): the pipe east to the Varrock Sewers' moss giants (16511, two locs either side of the wall: 51, 10 XP, 7 ticks) and the south pipe to the hobgoblins and hill giants (62409, from the 12 August 2026 update: 60, 10 XP, 4 ticks). Getting stuck still takes the player through, with 1 to 6 damage and the quoted message; at 6 hitpoints or less nobody gets stuck, so the pipe can't kill. The north pipe's chance to cross unhurt is the Wiki's success chart (0 to 254 out of 256); the south pipe's, which has no chart, is guessed the same. Inferred from the map: each end's tile. Guessed until recorded: human_doublepipesqueeze for both, the exact move timing, the XP on a stuck crossing too, and the damage and message coming at the far end.",
-    "The Lost Tribe's two holes (post-quest step 6, DorgeshuunTunnels.kt): Lumbridge Castle cellar's hole, the map's loc 6898 on the cellar side (3219,9618) and 6899 on the tunnel side (3221,9618), multilocs on varbit 532 that show the Hole (6905, Squeeze-through) after the quest; and the hole between the Goblin Maze and the Lumbridge Swamp Caves (6912, 3 tiles north to south from 3224,9601). Level 13 and no XP for the cellar's hole from the OSRS Wiki's Hole (Lumbridge Castle cellar) page; the swamp hole's page gives no level (read 2026-11-19). Inferred from the 242 map: each side's tile (3219,9618 and 3221,9618 either side of the cellar wall; 3224,9604 in the maze and 3224,9600 in the caves). The cellar hole's level message has its own key (agility.lumbridge_cellar_hole_level), its words unsourced. Guessed: the Grand Exchange tunnel's human_longcrawl and 3 ticks, and that the swamp side's hole, which refuses during the quest, lets the player through both ways after it."
+    "The Lost Tribe's two holes (post-quest step 6, DorgeshuunTunnels.kt): Lumbridge Castle cellar's hole, the map's loc 6898 on the cellar side (3219,9618) and 6899 on the tunnel side (3221,9618), multilocs on varbit 532 that show the Hole (6905, Squeeze-through) after the quest; and the hole between the Goblin Maze and the Lumbridge Swamp Caves (6912, 3 tiles north to south from 3224,9601). Level 13 and no XP for the cellar's hole from the OSRS Wiki's Hole (Lumbridge Castle cellar) page; the swamp hole's page gives no level (read 2026-11-19). Inferred from the 242 map: each side's tile (3219,9618 and 3221,9618 either side of the cellar wall; 3224,9604 in the maze and 3224,9600 in the caves). The cellar hole's level message has its own key (agility.lumbridge_cellar_hole_level), its words unsourced. Guessed: the Grand Exchange tunnel's human_longcrawl and 3 ticks, and that the swamp side's hole, which refuses during the quest, lets the player through both ways after it.",
+    "The ropeswings between Brimhaven and Moss Giant Island (Karamja step K3.2): locs 23568 (Brimhaven's, at 2705,3209) and 23569 (the island's, at 2703,3205) from the 242 cache's map; level 10 and 3 XP from the OSRS Wiki's Ropeswing (Brimhaven) page (read 2026-11-18). Each rope swings one way, so the two routes don't end where the other starts. Guessed until recorded: the standing tiles either side of the water (2709,3209 to 2704,3209 and 2704,3205 to 2709,3205), the Al Kharid cable's human_ropeswing_long swing and its timing, and the level message, which the Wiki doesn't give.",
+    "The Sourhog Cave's blockage (post-quest step 8, SourhogCave.kt): loc 40331 at 3156,9704, Climb-over between its north side (3156,9705) and its south side (3156,9703), inferred from the 242 map. The OSRS Wiki has no page for it (read 2026-11-19): level 1 and no XP are guessed, as are the stile's jump (839) and 2 ticks."
   ],
   "obstacles": [
     {
@@ -2749,6 +2751,72 @@
               "to": [
                 3224,
                 9604,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_brimhaven_ropeswing",
+      "loc": 23568,
+      "alsoLocs": [23569],
+      "option": "Swing-on",
+      "level": 10,
+      "levelLine": "agility.brimhaven_ropeswing_level",
+      "xpTenths": 30,
+      "routes": [
+        {"from": [2709, 3209, 0], "at": [[2705, 3209, 0]], "moves": [{"type": "anim", "anim": 751, "ticks": 1}, {"type": "slide", "to": [2704, 3209, 0], "anim": 751, "startCycles": 0, "endCycles": 60, "ticks": 2}]},
+        {"from": [2704, 3205, 0], "at": [[2703, 3205, 0]], "moves": [{"type": "anim", "anim": 751, "ticks": 1}, {"type": "slide", "to": [2709, 3205, 0], "anim": 751, "startCycles": 0, "endCycles": 60, "ticks": 2}]}
+      ]
+    },
+    {
+      "key": "shortcut_sourhog_cave_blockage",
+      "loc": 40331,
+      "option": "Climb-over",
+      "level": 1,
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3156,
+            9705,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 839,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3156,
+                9703,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3156,
+            9703,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 839,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3156,
+                9705,
                 0
               ]
             }

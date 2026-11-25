@@ -132,7 +132,7 @@ class HeadlessTreasureTrailsCharlieTest {
     }
 
     @Test
-    fun `the master device hurts on each feel, keeps its own reading beside the beginner one, and digs from 4 tiles`(@TempDir dir: Path) {
+    fun `the master device hurts on each feel, keeps its own reading beside the beginner one, and both dig from 4 tiles`(@TempDir dir: Path) {
         server(dir, listOf(hotCold, masterHotCold)).use { server ->
             server.login("rue").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -163,8 +163,9 @@ class HeadlessTreasureTrailsCharlieTest {
                 client.op(MASTER_DEVICE, 1)
                 client.await("warmer on the master device") { client.messages().drop(from).firstOrNull { it.text == "[hotcold.again temperature=[hotcold.incredibly_hot] change=[hotcold.warmer]]" } }
 
-                // Five tiles off is outside the master's hottest band: Dig finds nothing. Four tiles off solves it.
-                // The beginner step is at the same spot but 4 is outside its band too, so only the master one counts.
+                // Five tiles off is outside the Wiki's 9x9 square: Dig finds nothing. Four tiles off is inside it, for
+                // either tier: the first Dig solves the beginner step (its clue comes first in the backpack), the next
+                // the master one.
                 client.op(TreasureTrails.SPADE, 1)
                 client.awaitMessage("nothing at 5 tiles") { it == "[game.nothing_interesting]" }
                 assertTrue(client.inventory(BACKPACK).any { it?.id == TrailTier.MASTER.sharedClue }, "the master clue is still held")
@@ -172,8 +173,10 @@ class HeadlessTreasureTrailsCharlieTest {
                 client.awaitTicks(2)
                 client.op(TreasureTrails.SPADE, 1)
                 client.objbox("trail.casket")
+                client.await("the beginner casket") { client.inventory(BACKPACK).firstOrNull { it?.id == TrailTier.BEGINNER.rewardCasket } }
+                client.op(TreasureTrails.SPADE, 1)
+                client.objbox("trail.casket")
                 client.await("the master casket") { client.inventory(BACKPACK).firstOrNull { it?.id == TrailTier.MASTER.rewardCasket } }
-                assertTrue(client.inventory(BACKPACK).any { it?.id == TrailTier.BEGINNER.sharedClue }, "the beginner clue is still held")
             }
         }
     }

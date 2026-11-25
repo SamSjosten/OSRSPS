@@ -1,0 +1,12 @@
+{
+  "about": "The balloon transport system (travel networks step T5): Auguste on Entrana and the assistants at the other five stations, each the multi-NPC live spawns (it shows the assistant once the station is open, which every account has). Tiles from mejrs's live NPC list; none wanders (guessed). The Grand Tree has two: Assistant Le Smith and Assistant Lori, each shown by its own varbit.",
+  "spawns": [
+    {"npc": "zep_piccard", "x": 2808, "z": 3355, "source": "Auguste, Entrana's balloon. mejrs NPCList_OSRS"},
+    {"npc": "zep_multi_piccard", "x": 2938, "z": 3422, "source": "Assistant Stan (Auguste during the quest), Taverley's balloon. mejrs NPCList_OSRS"},
+    {"npc": "zep_multi_assistant_craft", "x": 2925, "z": 3303, "source": "Assistant Brock, the Crafting Guild's balloon. mejrs NPCList_OSRS"},
+    {"npc": "zep_multi_assistant_varr", "x": 3298, "z": 3483, "source": "Assistant Serf, Varrock's balloon south of the Lumber Yard. mejrs NPCList_OSRS"},
+    {"npc": "zep_multi_assistant_cast", "x": 2460, "z": 3108, "source": "Assistant Marrow, Castle Wars' balloon. mejrs NPCList_OSRS"},
+    {"npc": "zep_multi_assistant_gno", "x": 2480, "z": 3458, "source": "Assistant Le Smith, the Grand Tree's balloon. mejrs NPCList_OSRS"},
+    {"npc": "zep_assist_gno_replacement", "x": 2480, "z": 3457, "source": "Assistant Lori, the Grand Tree's balloon (shown after Monkey Madness II starts). mejrs NPCList_OSRS"}
+  ]
+}

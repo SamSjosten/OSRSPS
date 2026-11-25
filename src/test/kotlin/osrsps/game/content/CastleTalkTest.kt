@@ -13,6 +13,7 @@ import osrsps.game.content.Cadmus.talk
 import osrsps.game.content.Doomsayer.talk
 import osrsps.game.content.Mikasi.talk
 import osrsps.game.content.Perdu.talk
+import osrsps.game.dialogue.ChatFont
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.map.CollisionMap
@@ -20,6 +21,7 @@ import osrsps.map.CollisionMap
 /** Perdu, the Crafting tutor and the bankers, with no dialogue file: every line shows its key. */
 class CastleTalkTest {
     private val h = DialogueHarness()
+    private val diaries = Diaries(World(intArrayOf(), CollisionMap()), ChatFont.APPROXIMATE)
 
     @Test
     fun `Perdu sends a player with no parchment to Ferox Enclave`() {
@@ -150,7 +152,7 @@ class CastleTalkTest {
 
     @Test
     fun `Mikasi, the taskmaster since 242, opens with a menu and comes back to it after saying who she is or goodbye`() {
-        h.talk { with(Mikasi) { talk() } }
+        h.talk { with(Mikasi) { talk(diaries) } }
         h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(1)
         h.expect("mikasi.who_are_you", "mikasi.taskmaster", "mikasi.what_diary", "mikasi.explain", "mikasi.side_panel")
@@ -169,7 +171,7 @@ class CastleTalkTest {
 
     @Test
     fun `Mikasi tells a tier's rewards and the talk ends`() {
-        h.talk { with(Mikasi) { talk() } }
+        h.talk { with(Mikasi) { talk(diaries) } }
         h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(2)
         h.expect("mikasi.my_diary_said")

@@ -35,6 +35,15 @@ val DIARY_VARBITS: Map<Int, VarbitType> = mapOf(
     6320 to VarbitType(1723, 4, 7),
     6321 to VarbitType(1723, 8, 11),
     6322 to VarbitType(1723, 12, 15),
+    // varrock_<tier>_reward (achievement_diary_rewards): 1190 bits 20 to 23; lumbridge_<tier>_reward (..2): 1191 bits 4 to 7.
+    4519 to VarbitType(1190, 20, 20),
+    4520 to VarbitType(1190, 21, 21),
+    4521 to VarbitType(1190, 22, 22),
+    4522 to VarbitType(1190, 23, 23),
+    4535 to VarbitType(1191, 4, 4),
+    4536 to VarbitType(1191, 5, 5),
+    4537 to VarbitType(1191, 6, 6),
+    4538 to VarbitType(1191, 7, 7),
 )
 
 /** The diary table against the client's own task counts, and a task's bits, counts and flags as it is done and undone. */

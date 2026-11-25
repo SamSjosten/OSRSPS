@@ -178,6 +178,10 @@ class HeadlessTreasureTrailsFightTest {
                 // Not on the killing blow: the key goes down with the loot, as the body goes (Codex review on #877).
                 assertTrue(server.world.groundObjs.visibleAt(player, x, z, 0).none { it.id == KEY }, "no key while the man is dying")
                 client.await("the key") { server.world.groundObjs.visibleAt(player, x, z, 0).firstOrNull { it.id == KEY } }
+                // Another kill while that key still lies there drops no second one (exploit review R52C-3).
+                server.world.trails.fights.dropKey(man, player)
+                assertEquals(1, server.world.groundObjs.visibleAt(player, x, z, 0).count { it.id == KEY }, "one key on the ground")
+                server.world.groundObjs.visibleAt(player, x, z, 0).filter { it.id == KEY }.forEach { server.world.groundObjs.remove(it) }
 
                 player.inventory[20] = InvObj(KEY, 1)
                 client.locOp(CHEST, CHEST_X, CHEST_Z, 1)

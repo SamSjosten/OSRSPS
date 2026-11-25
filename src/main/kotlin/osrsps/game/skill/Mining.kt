@@ -6,6 +6,7 @@ import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.trail.SkillingClues
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.script.Op
@@ -179,6 +180,7 @@ class Mining(private val world: World) {
                     player.inventory.add(gemType, 1)
                     player.skills.addTenths(Skill.MINING, type.xpTenths)
                     GEM_ROCK_LINES[gem]?.let { player.message(text[it]) }
+                    world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                     return stop()
                 }
             } else if (type.sizes.isNotEmpty()) {
@@ -189,6 +191,7 @@ class Mining(private val world: World) {
                     player.inventory.add(piece, 1)
                     player.skills.addTenths(Skill.MINING, size.xpTenths)
                     player.message(text[MiningLines.QUARRY, "ore" to oreName])
+                    world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                     return stop()
                 }
             } else if (gemTableRoll(glory)) {
@@ -204,7 +207,9 @@ class Mining(private val world: World) {
                 if (emptied) deplete(loc, rock)
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
+                world.diaries.made(player, ore.id, 1)
                 player.message(text[MiningLines.GET_ORE, "ore" to oreName])
+                world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                 if (emptied) return stop()
                 // Crystals with ore left: the swing goes on (a full backpack ends it on the next run).
             }
@@ -252,6 +257,7 @@ class Mining(private val world: World) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
+                world.diaries.made(player, ore.id, 1)
                 player.message(text[MiningLines.GET_ORE, "ore" to type.key])
                 stop()
                 taken(npc)

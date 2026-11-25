@@ -1,0 +1,113 @@
+{
+ "name": "Post-quest step 8: the Sourhog Cave's hole, blockage and exit rope, and a sourhog's spit",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3150 3345 0",
+   "expectMessage": "Teleported to 3150, 3345, 0",
+   "comment": "south of the strange hole, east of Draynor Manor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 40341,
+   "option": "Climb-down",
+   "x": 3150,
+   "y": 3347,
+   "timeoutMs": 20000,
+   "comment": "the map's multiloc, showing the roped hole (40309) after A Porcine of Interest"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3157,
+   "y": 9713,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "below the exit rope"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 40331,
+   "option": "Climb-over",
+   "x": 3156,
+   "y": 9704,
+   "timeoutMs": 20000,
+   "comment": "the blockage, from its north side"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3156,
+   "y": 9703,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "its south side, by the sourhogs"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "comment": "enough for a few of the spit's 20 to 30 burns"
+  },
+  {
+   "step": "assertSpotanim",
+   "id": 1818,
+   "timeoutMs": 60000,
+   "comment": "sourhog_spit_impact on the player: the sourhogs south of the blockage spit at a player without reinforced goggles (blinding them; HeadlessSourhogCaveTest checks the drain)"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 40331,
+   "option": "Climb-over",
+   "x": 3156,
+   "y": 9704,
+   "timeoutMs": 20000,
+   "comment": "back north"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3156,
+   "y": 9705,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 40330,
+   "option": "Climb-up",
+   "x": 3157,
+   "y": 9714,
+   "timeoutMs": 20000,
+   "comment": "the exit rope"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3150,
+   "y": 3346,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "south of the hole"
+  }
+ ]
+}

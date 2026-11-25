@@ -1,0 +1,178 @@
+{
+ "name": "Achievement diaries: Archmage Sedridor's teleport does a Lumbridge & Draynor easy task and casting Lumbridge Teleport a medium one, and the panel's counts show them (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6311,
+   "value": 0,
+   "comment": "lumbridge_easy_count"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3104 9571 0",
+   "expectMessage": "Teleported to 3104, 9571, 0",
+   "comment": "the Wizards' Tower basement, beside Archmage Sedridor"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Archmage Sedridor",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[sedridor.hello]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[sedridor.greeting name=",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[sedridor.teleport]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[sedridor.teleport]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertSpotanim",
+   "id": 110,
+   "timeoutMs": 20000,
+   "comment": "curse_impact on the player as he sends them"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 34773,
+   "x": 2891,
+   "y": 4847,
+   "timeoutMs": 20000,
+   "comment": "blankrunestone: the player is in the mine (the landing tile is random)"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6311,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "Sedridor's teleport did the easy task: the panel's count goes to 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4453,
+   "value": 1,
+   "comment": "started_lumbridge_diary: the row goes yellow"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "out of the mine, to cast from Lumbridge"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::item 563 1",
+   "expectMessage": "Added 1 x Law rune"
+  },
+  {
+   "step": "command",
+   "text": "::item 556 3",
+   "expectMessage": "Added 3 x Air rune"
+  },
+  {
+   "step": "command",
+   "text": "::item 557 1",
+   "expectMessage": "Added 1 x Earth rune"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 31",
+   "expectMessage": "31"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6312,
+   "value": 0,
+   "comment": "lumbridge_medium_count"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 218,
+   "component": 29,
+   "op": 1,
+   "comment": "magic_spellbook:lumbridge_teleport"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 714,
+   "timeoutMs": 5000,
+   "comment": "human_castteleport"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6312,
+   "value": 1,
+   "timeoutMs": 10000,
+   "comment": "Lumbridge Teleport is the medium task: the count goes to 1 on landing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

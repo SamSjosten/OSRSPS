@@ -60,7 +60,7 @@ class HeadlessPhoenixGangTest {
     private val storeDoor = ZoneLoc(PhoenixGang.STORE_DOOR, LocShape.WALL_STRAIGHT, 3, 3251, 3386, 0)
     private val blackArmDoor = ZoneLoc(PhoenixGang.BLACK_ARM_DOOR, LocShape.WALL_STRAIGHT, 3, 3185, 3388, 0)
     private val ladder = ZoneLoc(PhoenixGang.HIDEOUT_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, 3244, 9783, 0)
-    private val chest = ZoneLoc(PhoenixGang.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3238, 9761, 0)
+    private val chest = ZoneLoc(PhoenixGang.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3235, 9761, 0)
     /** A copy of the hideout's ladder type elsewhere, which mustn't climb anywhere. */
     private val strayLadder = ZoneLoc(PhoenixGang.HIDEOUT_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, 3240, 3390, 0)
 
@@ -68,7 +68,7 @@ class HeadlessPhoenixGangTest {
         World(
             crcs,
             CollisionMap().apply {
-                markLoaded(3247 shr 6, 9779 shr 6); markLoaded(3238 shr 6, 9761 shr 6)
+                markLoaded(3247 shr 6, 9779 shr 6); markLoaded(3235 shr 6, 9761 shr 6)
                 markLoaded(3251 shr 6, 3386 shr 6); markLoaded(3185 shr 6, 3388 shr 6); markLoaded(3240 shr 6, 3390 shr 6)
             },
             objTypes = ObjTypes.of(key, crossbow), locTypes = types,
@@ -155,12 +155,12 @@ class HeadlessPhoenixGangTest {
                 client.awaitAt(3247, 9780)
 
                 // The chest opens on nothing, and shuts again.
-                client.tele(3238, 9762)
+                client.tele(3235, 9762)
                 client.locOp(chest.id, chest.x, chest.z, PhoenixGang.OP1)
                 client.message("gang_house.chest_search")
                 client.message("gang_house.chest_nothing")
-                client.await("the chest open") { world.locs[3238, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST_OPEN } }
-                client.await("the chest shut") { world.locs[3238, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST } }
+                client.await("the chest open") { world.locs[3235, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST_OPEN } }
+                client.await("the chest shut") { world.locs[3235, 9761, 0, LAYER_CENTREPIECE]?.takeIf { it.id == PhoenixGang.CHEST } }
 
                 // Up the ladder to the alley.
                 client.tele(3244, 9782)

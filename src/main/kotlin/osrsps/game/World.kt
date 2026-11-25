@@ -130,12 +130,15 @@ import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
+import osrsps.game.content.registerDigsiteCamp
+import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -191,6 +194,7 @@ import osrsps.game.content.registerKaramjaVolcano
 import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerBarnabyShip
+import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -537,6 +541,9 @@ class World(
 
     val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+
+    /** What [player] carries in grams now, from their backpack and worn items, rather than at the last tick's update. */
+    fun weightNow(player: Player): Int = itemWeights.total(player)
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
@@ -703,7 +710,8 @@ class World(
                 it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.ClanHall.INSTANCE_LOCS
         },
     )
 
@@ -737,7 +745,10 @@ class World(
         hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
-        npcKilled = { npc, killer -> slayer.killed(npc, killer) },
+        npcKilled = { npc, killer ->
+            slayer.killed(npc, killer)
+            killer?.let { diaries.killed(it, npc) }
+        },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
@@ -996,6 +1007,12 @@ class World(
     /** The spirit trees; see [osrsps.game.content.SpiritTrees]. */
     val spiritTrees = osrsps.game.content.SpiritTrees(this)
 
+    /** The balloon transport system; see [osrsps.game.content.Balloons]. */
+    val balloons = osrsps.game.content.Balloons(this)
+
+    /** The balloon log storage; see [osrsps.game.content.LogStorage]. */
+    val logStorage = osrsps.game.content.LogStorage(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1019,6 +1036,8 @@ class World(
 
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+    /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
+    val clanHall = osrsps.game.content.ClanHall(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1080,6 +1099,9 @@ class World(
 
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
+    /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
+    val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1226,6 +1248,8 @@ class World(
         registerDigsiteDigs(this)
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
+        registerDigsiteCamp(this)
+        registerSourhogCave(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1272,6 +1296,7 @@ class World(
         registerMorUlRekInner(this)
         registerInfernalEels(this)
         registerBarnabyShip(this)
+        registerBrimhavenTown(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1286,6 +1311,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1295,6 +1321,7 @@ class World(
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         registerMisthalinOptionPack(this)
+        registerBarbarianAnvil(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -1308,6 +1335,8 @@ class World(
         canoes.register()
         fairyRings.register()
         spiritTrees.register()
+        balloons.register()
+        logStorage.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1332,6 +1361,7 @@ class World(
         alchemy.register()
         superheat.register()
         jewelleryEnchant.register()
+        jewelleryTeleports.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1340,6 +1370,7 @@ class World(
         ourania.register()
         houses.register()
         furniture.register()
+        clanHall.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -3735,6 +3766,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            balloons.forget(player)
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)

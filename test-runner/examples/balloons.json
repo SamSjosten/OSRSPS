@@ -1,0 +1,37 @@
+{
+ "name": "Travel networks step T5: Varrock's balloon basket opens the map, Travel to Castle Wars burns a yew log and lands beside its basket, Assistant Marrow's Fly flies back to Varrock on a willow log, and a trip without its log stays put (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or held; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel firemaking 50"},
+  {"step": "command", "text": "::tele 3296 3480 0", "expectMessage": "Teleported to 3296, 3480, 0", "comment": "south of Varrock's basket (3296, 3481)"},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "locOption", "loc": "Basket", "option": "Use", "x": 3296, "y": 3481},
+  {"step": "assertInterface", "interfaceId": 469, "comment": "zep_balloon_map"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 469, "component": 13, "op": 1, "comment": "Castle Wars, with no yew logs"},
+  {"step": "assertMessage", "contains": "[balloon.need_logs", "timeoutMs": 5000},
+  {"step": "assertLocation", "x": 3296, "y": 3480, "plane": 0},
+
+  {"step": "command", "text": "::item 1515", "comment": "yew logs"},
+  {"step": "command", "text": "::item 1519", "comment": "willow logs, for the way back"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 469, "component": 13, "op": 1, "comment": "Castle Wars"},
+  {"step": "assertLocation", "x": 2461, "y": 3108, "plane": 0, "timeoutMs": 10000, "comment": "south of Castle Wars' basket"},
+  {"step": "assertInventory", "itemId": 1515, "count": 0},
+  {"step": "waitTicks", "ticks": 3},
+
+  {"step": "npcOption", "npc": "Assistant Marrow", "option": "Fly"},
+  {"step": "assertInterface", "interfaceId": 469},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 469, "component": 18, "op": 1, "comment": "Varrock"},
+  {"step": "assertLocation", "x": 3296, "y": 3480, "plane": 0, "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 1519, "count": 0},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
