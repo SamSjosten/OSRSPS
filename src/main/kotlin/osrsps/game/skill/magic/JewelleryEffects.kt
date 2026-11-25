@@ -51,8 +51,8 @@ class ChargedJewel(val key: String, val obj: Int, val wearpos: Int, val uses: In
  * the **bracelet of slaughter** (30) counts one as none 25% of the time, the XP still given. The cache gives each its
  * Check (worn, and for some in the inventory) and Break. The expeditious bracelet's message is the Wiki's.
  *
- * U6b, guessed: every other message and the Break question; the chemistry roll only on single potions whose 3-dose
- * form is made (not the potions made by the dose), its use spent even when a full backpack then stops the potion; the
+ * U6b, guessed: every other message and the Break question; the chemistry roll only on the potions of a secondary on an
+ * unfinished potion whose 3-dose form is made (not the mixed ones, such as stamina by the dose), its use spent even when a full backpack then stops the potion; the
  * soft clay's mining message naming it; a superior's kill counted by the bracelets as any other. Not built: the amulet
  * of chemistry's Options (keep making or stop when it crumbles), the alchemist's amulet, Varrock armour's second bar,
  * the Trahaearn mine's double soft clay, the Combat Achievements' regenerating bracelets, and the inoculation bracelet

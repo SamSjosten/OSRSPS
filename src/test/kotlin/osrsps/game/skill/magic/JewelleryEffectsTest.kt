@@ -106,6 +106,15 @@ class JewelleryEffectsTest {
     }
 
     @Test
+    fun `an amulet of chemistry takes the secondary-on-unfinished potions, not those mixed by the dose`() {
+        val data = osrsps.game.skill.HerbloreData.load()
+        val mixed = data.mixing.values.flatten().map { it.key }
+        assertTrue("stamina_3" in mixed && "extended_antifire_3" in mixed)
+        assertTrue(mixed.none { it in data.chemistryPotions }, "no mixing recipe")
+        assertEquals(data.potions.size, data.chemistryPotions.size)
+    }
+
+    @Test
     fun `an amulet of bounty saves two of three allotment seeds about a quarter of the time`(@TempDir dir: Path) = withPlayer(dir) { effects, player ->
         player.equipment[WearPos.NECK] = InvObj(BOUNTY, 1)
         assertEquals(1, effects.allotmentSeeds(player, 1), "not from fewer than three")

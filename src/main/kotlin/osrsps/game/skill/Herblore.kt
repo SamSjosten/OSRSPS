@@ -45,6 +45,13 @@ class HerbloreData(
     /** The mixing recipes made one at a time on each use, with no Make-X box (sanfew serum's steps), by key. */
     val oneAtATime: Set<String> = emptySet(),
 ) {
+    /**
+     * The recipes an amulet of chemistry works on: the finished potions of a secondary on an unfinished potion, not the
+     * mixing ones (super combat, sanfew, and stamina and extended antifire made by the dose). Guessed, see
+     * [osrsps.game.skill.magic.JewelleryEffects].
+     */
+    val chemistryPotions: Set<String> = potions.values.mapTo(HashSet()) { it.key }
+
     companion object {
         const val RESOURCE = "/skills/herblore.json"
 
