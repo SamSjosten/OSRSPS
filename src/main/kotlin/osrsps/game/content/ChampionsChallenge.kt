@@ -104,9 +104,9 @@ object ChampionsChestLines : Lines("champions_chest", "Transcript:Chest of Champ
  *   duel starts, and [osrsps.game.combat.Prayers.barred])
  *   and no special attacks ([osrsps.game.combat.SpecialAttacks.barred]). No teleport leaves the basement
  *   ([osrsps.game.combat.Teleblock.refusal]; Larxus points to the ladder).
- * - **The portcullis** ([PORTCULLIS]) lets the player out of the arena without ending the duel; **the ladder** behind it
- *   ([ARENA_LADDER]) takes them up beside Larxus and ends it, the champion gone (the Wiki). Logging out or dying ends it
- *   too; the arrangement stays. A death there leaves the grave beside the guild's trapdoor upstairs ([deathPlace]).
+ * - **The portcullis** ([PORTCULLIS]) lets the player out of the arena and ends the duel; **the ladder** behind it
+ *   ([ARENA_LADDER]) takes them up beside Larxus. Logging out, dying, or holding what the duel's rule bars ends it too
+ *   ([watch]); the arrangement stays. A death there leaves the grave beside the guild's trapdoor upstairs ([deathPlace]).
  * - **A champion beaten** gives the Wiki's Hitpoints and Slayer XP, sets its bit of varp 617
  *   (`champions_defeated`: its banner on the north wall shows, varbits 1452 to 1462, and the Chest of Champions opens,
  *   varbit 6278), and the tenth brings Leon d'Cour's challenge. Leon beaten, his line and the cape from Larxus.
@@ -222,7 +222,11 @@ class ChampionsChallenge(private val world: World) {
     fun lampsWaiting(player: Player): List<Champion> = Champion.entries.filter { defeated(player, it) && !lampClaimed(player, it) }
 
     /** Whether [player] holds a champion's lamp. */
-    private fun holdsLamp(player: Player): Boolean = player.inventory.count(LAMP) > 0
+    /**
+     * Whether [player] has a champion's lamp anywhere: carried, worn, banked, dropped or in their grave, so the chest
+     * gives no second one while the first is put away (exploit review R58B-4).
+     */
+    private fun holdsLamp(player: Player): Boolean = DigsiteCamp.owns(world, player, LAMP)
 
     /** Whether ten champions are beaten and Leon not yet. */
     fun leonWaiting(player: Player): Boolean = Champion.TEN.all { defeated(player, it) } && !defeated(player, Champion.LEON)
@@ -379,12 +383,23 @@ class ChampionsChallenge(private val world: World) {
         return npc
     }
 
-    /** The duel ends once its player has logged out, died or left the basement, the champion going with it. */
+    /**
+     * The duel ends once its player has logged out, died or left the arena (the portcullis, the ladder or a teleport
+     * out), the champion going with it; checked every tick. It ends too as soon as the player holds or wears what the
+     * duel's rule bars, Larxus's line telling them why: armour put on in the lesser demon's duel, or food picked up
+     * from the floor or traded in the ghoul's or Leon's (exploit review R58B-1, R58B-2).
+     */
     private fun watch(key: String, npc: Npc) {
         world.npcScripts.later(WATCH_TICKS) {
             if (fights[key] !== npc) return@later
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key }
-            if (npc.dead || player == null || player.dead || !inBasement(player.x, player.z, player.level)) return@later endFight(key)
+            if (npc.dead || player == null || player.dead || !inArena(player.x, player.z, player.level)) return@later endFight(key)
+            val champion = Champion.ofNpc(npc.type.id)
+            val broken = champion?.let { itemRefusal(player, it) }
+            if (broken != null) {
+                world.message(player, broken)
+                return@later endFight(key)
+            }
             watch(key, npc)
         }
     }
@@ -397,8 +412,10 @@ class ChampionsChallenge(private val world: World) {
         if (!npc.dead && world.npcs[npc.index] === npc) world.removeNpc(npc)
     }
 
+    /** Out through the portcullis: the duel ends, as the ladder's does (exploit review R58B-3); the arrangement stays. */
     suspend fun ScriptContext.throughPortcullis() {
         arriveDelay()
+        end(player)
         world.teleport(player, GATE.x, GATE.z, 0)
     }
 
@@ -541,8 +558,8 @@ class ChampionsChallenge(private val world: World) {
         const val VARP_DEFEATED = 617
         const val LAMP_SHIFT = 16
 
-        /** Ticks between the checks that a duel's player is still there ([watch]). */
-        const val WATCH_TICKS = 2
+        /** Ticks between the checks that a duel's player is still there and keeps to its items ([watch]). */
+        const val WATCH_TICKS = 1
 
         /** Where Climb-down puts the player, in the arena west of the portcullis (guessed). */
         val ARENA = DorgeshuunTunnels.Spot(3178, 9758)
@@ -555,6 +572,12 @@ class ChampionsChallenge(private val world: World) {
 
         /** Where a grave from the basement goes: the rug beside the guild's trapdoor (3190,3355), ground floor (guessed tile). */
         val GRAVE = DorgeshuunTunnels.Spot(3190, 3356)
+
+        /** The portcullis's x (10553 at 3181,9758): the arena is the basement west of it. */
+        const val PORTCULLIS_X = 3181
+
+        /** Whether a tile is in the arena, west of the portcullis, where a duel is fought. */
+        fun inArena(x: Int, z: Int, level: Int): Boolean = inBasement(x, z, level) && x < PORTCULLIS_X
 
         /** Whether a tile is in the Champions' Guild's basement, where no teleport works. */
         fun inBasement(x: Int, z: Int, level: Int): Boolean = level == 0 && x in 3150..3191 && z in 9740..9780
