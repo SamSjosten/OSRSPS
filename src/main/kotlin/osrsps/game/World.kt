@@ -3368,7 +3368,7 @@ class World(
         if (player.scripts.delayed) return@act
         if (!dialogues.resume(player, interfaceId, componentId, sub) && !WildernessDitch.toggle(player, interfaceId, componentId) &&
             !bankPinSettings.resume(player, interfaceId, componentId) &&
-            !clans.reviewApplicant(player, interfaceId, componentId, sub)
+            !clans.reviewApplicant(player, interfaceId, componentId, sub) && !clans.clickBoard(player, interfaceId, componentId, sub)
         ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
