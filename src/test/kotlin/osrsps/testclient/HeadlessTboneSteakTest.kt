@@ -67,6 +67,30 @@ class HeadlessTboneSteakTest {
         }
     }
 
+    @Test
+    fun `a cooked t-bone steak lifts a drained Strength by 2, not back to its level`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel strength 99") { it.contains("set to level 99") }
+                client.commandReply("boost strength 50") { it == "Strength is now 50/99" }
+                client.command("item ${Cooking.TBONE.cooked} 2")
+                val first = client.slotOf(Cooking.TBONE.cooked)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, first, Cooking.TBONE.cooked)
+                client.await("Strength 52") { client.stat(STRENGTH)?.takeIf { it.level == 52 } }
+
+                client.commandReply("boost strength 100") { it == "Strength is now 100/99" }
+                client.await("Strength 100") { client.stat(STRENGTH)?.takeIf { it.level == 100 } }
+                client.awaitTicks(4) // past the 3-tick eating delay
+                val second = client.slotOf(Cooking.TBONE.cooked)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, second, Cooking.TBONE.cooked)
+                client.await("eaten") { if (client.inventory(BACKPACK).none { it?.id == Cooking.TBONE.cooked }) Unit else null }
+                // Capped at 99 + 2.
+                client.await("Strength 101") { client.stat(STRENGTH)?.takeIf { it.level == 101 } }
+            }
+        }
+    }
+
     private companion object {
         const val RANGE_X = 3224
         const val RANGE_Z = 3218
