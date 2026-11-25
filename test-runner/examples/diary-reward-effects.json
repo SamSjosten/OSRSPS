@@ -1,8 +1,15 @@
 {
  "name": "Achievement diaries: the Explorer's ring 3 teleports to the cabbage patch and counts its uses, and Twiggy O'Korn talks south of Draynor bank (::keys on)",
+ "account": "test",
  "steps": [
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
   },
   {
    "step": "waitTicks",
@@ -13,10 +20,6 @@
    "step": "command",
    "text": "::keys on",
    "expectMessage": "Dialogue shows keys"
-  },
-  {
-   "step": "command",
-   "text": "::empty"
   },
   {
    "step": "command",
@@ -91,7 +94,12 @@
   },
   {
    "step": "command",
-   "text": "::empty"
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
   }
  ]
 }
