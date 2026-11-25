@@ -26,8 +26,8 @@ import osrsps.map.LocCollisionType
  * Karamja step K3.3 through the headless client: Saniboch refusing the shut entrance without 875 coins and taking them
  * through his talk or his Pay option, a million paid on top for good lasting through visits and a new login, the
  * entrance using up a one-visit fee and the exit leading back out, a vine chopped through with an axe and the level and
- * parted by hand on the way back, and the entrance pipe needing 22 Agility only going deeper. test-
- * runner/examples/brimhaven-dungeon.json does the same on the real map.
+ * parted by hand on the way back, and the entrance pipe needing 22 Agility only going deeper, and both stairs up and
+ * down. test- runner/examples/brimhaven-dungeon.json does the same on the real map.
  */
 class HeadlessBrimhavenDungeonTest {
     private val saniboch = NpcType(BrimhavenDungeon.SANIBOCH, "Saniboch", ops = listOf("Talk-to", null, "Pay", null, null), internalName = "tribesman_doorman")
@@ -41,6 +41,10 @@ class HeadlessBrimhavenDungeonTest {
         ZoneLoc(VINE, 10, 3, 2690, 9564, 0),
         ZoneLoc(PIPE, 10, 1, 2655, 9571, 0),
         ZoneLoc(PIPE_SOUTH, 10, 3, 2655, 9567, 0),
+        ZoneLoc(21722, 10, 0, 2648, 9592, 0),
+        ZoneLoc(21724, 10, 3, 2644, 9593, 2),
+        ZoneLoc(21725, 10, 2, 2635, 9514, 0),
+        ZoneLoc(21726, 10, 2, 2635, 9511, 2),
     )
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
@@ -191,6 +195,28 @@ class HeadlessBrimhavenDungeonTest {
                 client.closed()
                 client.locOp(BrimhavenDungeon.ENTRANCE, 2743, 3153, BrimhavenDungeon.ENTER)
                 client.arrives(BrimhavenDungeon.INSIDE.x, BrimhavenDungeon.INSIDE.z)
+            }
+        }
+    }
+
+    @Test
+    fun `both stairs climb to the upper level and back down to where the map has them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.ready()
+                // Each pair: the way up from level 0, then the way down from where it lands.
+                for ((up, down) in listOf(Triple(21722, 2648, 9592) to Triple(21724, 2644, 9593), Triple(21725, 2635, 9514) to Triple(21726, 2635, 9511))) {
+                    client.command("tele ${up.second} ${up.third - 1} 0")
+                    client.await("beside ${up.first}") { client.position?.takeIf { it == Coord(up.second, up.third - 1, 0) } }
+                    client.locOp(up.first, up.second, up.third, BrimhavenDungeon.CLIMB)
+                    val top = BrimhavenDungeon.STAIRS.getValue(up.first)
+                    assertEquals(2, top.level)
+                    client.await("up ${up.first}") { client.position?.takeIf { it == Coord(top.x, top.z, top.level) } }
+                    client.locOp(down.first, down.second, down.third, BrimhavenDungeon.CLIMB)
+                    val bottom = BrimhavenDungeon.STAIRS.getValue(down.first)
+                    assertEquals(0, bottom.level)
+                    client.await("down ${down.first}") { client.position?.takeIf { it == Coord(bottom.x, bottom.z, bottom.level) } }
+                }
             }
         }
     }
