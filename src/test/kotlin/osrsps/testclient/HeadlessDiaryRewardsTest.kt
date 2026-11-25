@@ -15,6 +15,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.combat.Deaths
 import osrsps.game.content.AntiqueLamps
 import osrsps.game.content.DIARY_VARBITS
 import osrsps.game.content.DiaryArea
@@ -35,15 +36,17 @@ class HeadlessDiaryRewardsTest {
 
     private val mikasi = talker(Mikasi.ID, "Mikasi")
     private val toby = talker(VarrockSweepTalkers.TOBY, "Toby")
+    private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
     private val objs = ObjTypes.of(
         *(DiaryArea.LUMBRIDGE.rewards + DiaryArea.VARROCK.rewards).map { ObjType(it, "Diary reward", iops = listOf(null, null, null, null, "Drop")) }.toTypedArray(),
         *AntiqueLamps.Lamp.entries.map { ObjType(it.obj, "Antique lamp") }.toTypedArray(),
+        ObjType(LOBSTER, "Lobster", cost = 150),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
-            npcTypes = NpcTypes.of(mikasi, toby), objTypes = objs,
+            npcTypes = NpcTypes.of(mikasi, toby, grave), objTypes = objs,
             npcSpawns = listOf(
                 NpcSpawn(mikasi, 3224, 3218, wander = 0, source = "test"),
                 NpcSpawn(toby, 3220, 3218, wander = 0, source = "test"),
@@ -246,8 +249,45 @@ class HeadlessDiaryRewardsTest {
         }
     }
 
+    @Test
+    fun `a reward in the player's grave isn't lost, and once the grave is gone another is given`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val carol = server.world.playerNamed("carol")!!
+                val armour = DiaryArea.VARROCK.rewards[0]
+                client.done("diary complete varrock easy all")
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.claim_easy]", "[toby.well_done]", "[toby.yes_please]", "[toby.armour_easy]", "[toby.wow_thanks]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                client.awaitCount(armour, 1)
+                client.closeModal()
+
+                // Three lobsters are kept on death; the armour, worth less, goes to the grave (exploit review R55A-1).
+                client.command("item $LOBSTER 3")
+                client.awaitCount(LOBSTER, 3)
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.await("the respawn", timeoutMillis = 10_000) { Unit.takeIf { !carol.dead && client.count(LOBSTER) == 3 } }
+                client.await("the armour in the grave") { Unit.takeIf { (server.world.deaths.graveOf(carol)?.items?.count(armour) ?: 0L) > 0L } }
+                client.awaitCount(armour, 0)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.hello]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                client.closeModal()
+
+                // The grave collapses: now the armour is lost and he offers another.
+                server.world.deaths.graveOf(carol)!!.ticksLeft = 1
+                client.await("the grave gone", timeoutMillis = 10_000) { Unit.takeIf { server.world.deaths.graveOf(carol) == null } }
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.hello]")
+                client.menu("[toby.another_platebody]", "[toby.who]", "[toby.question]", "[toby.bye]")
+            }
+        }
+    }
+
     private companion object {
         const val ACHIEVEMENT_DIARY_REWARDS = 1190
+        const val LOBSTER = 379
         const val ACHIEVEMENT_DIARY_REWARDS2 = 1191
 
         /** iop5 (Drop) is button op 7. */
