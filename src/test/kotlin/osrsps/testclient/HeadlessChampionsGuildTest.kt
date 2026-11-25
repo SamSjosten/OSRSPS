@@ -141,7 +141,7 @@ class HeadlessChampionsGuildTest {
     }
 
     @Test
-    fun `walking in through the door another player opened is the diary task too, and waiting outside isn't`(@TempDir dir: Path) {
+    fun `running in through the door another player opened is the diary task too, and waiting outside isn't`(@TempDir dir: Path) {
         // Live's tick length, so the door's three ticks open leave time to walk through.
         server(dir, cycleMillis = 600).use { server ->
             server.login("bob").use { bob ->
@@ -149,16 +149,19 @@ class HeadlessChampionsGuildTest {
                     fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
                     bob.await("bob's login rebuild") { bob.position }
                     carol.await("carol's login rebuild") { carol.position }
-                    carol.tele(3191, 3364)
+                    // Two tiles back and running: the second tick's first step lands on the doorway tile and its second
+                    // carries her past it, so no tick ends on the doorway (Codex on #932).
+                    carol.tele(3191, 3365)
                     bob.tele(3190, 3364)
+                    server.world.playerNamed("carol")!!.runEnabled = true
                     carol.awaitTicks(2)
                     assertEquals(0, carol.diaryTasksDone(), "outside the door")
                     bob.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
                     bob.chat("guildmaster.welcome")
                     val world = server.world
                     carol.await("the door open") { Unit.takeIf { world.locs[3191, 3363, 0, 0]?.id != VarrockChampionsGuild.DOOR } }
-                    carol.walk(3191, 3361)
-                    carol.await("carol inside", timeoutMillis = 10_000) { carol.position?.takeIf { it.z < 3363 } }
+                    carol.walk(3191, 3359)
+                    carol.await("carol inside", timeoutMillis = 10_000) { carol.position?.takeIf { it.z < 3362 } }
                     carol.await("carol's diary task") { Unit.takeIf { carol.diaryTasksDone() == 1 } }
                 }
             }
