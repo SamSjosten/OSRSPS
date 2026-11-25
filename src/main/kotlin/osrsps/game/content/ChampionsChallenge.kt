@@ -388,6 +388,8 @@ class ChampionsChallenge(private val world: World) {
      * out), the champion going with it; checked every tick. It ends too as soon as the player holds or wears what the
      * duel's rule bars, Larxus's line telling them why: armour put on in the lesser demon's duel, or food picked up
      * from the floor or traded in the ghoul's or Leon's (exploit review R58B-1, R58B-2).
+     * Guessed: no Wiki page or recording shows the duel ending this way, or its one-tick check; live may only refuse
+     * the attack. Ending it is this server's own guard so a barred item can't be used mid-duel.
      */
     private fun watch(key: String, npc: Npc) {
         world.npcScripts.later(WATCH_TICKS) {
