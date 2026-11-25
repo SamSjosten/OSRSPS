@@ -753,15 +753,17 @@ class Clans(
     /**
      * Puts [amount] coins into [clan]'s coffer, or takes them out when negative, saved at once, and the new sum to every
      * online member. A withdrawal tells every online member who took how much (the Wiki: withdrawing "will always notify
-     * all members of the clan"; the line is guessed).
+     * all members of the clan"; the line is guessed). False, with nothing changed or sent, when the clan file can't be
+     * written (exploit review R58C-2).
      */
-    fun changeCoffer(clan: ClanStore.Clan, amount: Int, by: Player) {
-        store.setCoffer(clan, clan.coffer + amount)
+    fun changeCoffer(clan: ClanStore.Clan, amount: Int, by: Player): Boolean {
+        if (!store.setCoffer(clan, clan.coffer + amount)) return false
         for (member in clan.members) {
             val online = playerByKey(member.key) ?: continue
             send(online, VarClan(VARCLAN_COFFER, VarClan.VarClanIntData(clan.coffer)))
             if (amount < 0) tell(online, ClanLines.COFFER_WITHDRAWN, by.username, (-amount).toString())
         }
+        return true
     }
 
     /** Apply, confirmed: [player] becomes an applicant of the clan with [clanId], if still its guest and in no clan. */

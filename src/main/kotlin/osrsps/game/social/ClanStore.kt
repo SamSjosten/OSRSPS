@@ -14,9 +14,13 @@ import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 
 private val logger = KotlinLogging.logger {}
 
@@ -92,10 +96,16 @@ class ClanStore(private val file: Path? = null) {
     /** Every clan, oldest first. */
     fun all(): Collection<Clan> = clans.values
 
-    /** Sets the coins in [clan]'s coffer and saves at once: coins came out of or went into someone's inventory. */
-    fun setCoffer(clan: Clan, coins: Int) {
+    /**
+     * Sets the coins in [clan]'s coffer and saves at once: coins came out of or went into someone's inventory. When the
+     * file can't be written the coffer stays as it was and this is false, so the coins don't move (exploit review R58C-2).
+     */
+    fun setCoffer(clan: Clan, coins: Int): Boolean {
+        val before = clan.coffer
         clan.coffer = coins
-        save()
+        if (save()) return true
+        clan.coffer = before
+        return false
     }
 
     /** Puts [clan] on the recruitment boards or takes it off, written at the next [flush]. */
@@ -214,20 +224,32 @@ class ClanStore(private val file: Path? = null) {
     }
 
     /**
-     * Writes every clan; a failure is logged and the clans stay as they are in the game, written at the next change or
-     * the next [flush].
+     * Writes every clan, forced to the disk as player saves are (exploit review R58C-2), and whether it was written; a
+     * failure is logged and the clans stay as they are in the game, written at the next change or the next [flush].
      */
-    fun save() {
-        val file = file ?: return
+    fun save(): Boolean {
+        val file = file ?: return true
         unwritten = true
         try {
-            file.parent?.let(Files::createDirectories)
+            val dir = file.toAbsolutePath().parent
+            Files.createDirectories(dir)
             val temp = file.resolveSibling("${file.fileName}.tmp")
-            Files.writeString(temp, format.encodeToString(JsonObject.serializer(), toJson()))
+            FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { channel ->
+                val bytes = ByteBuffer.wrap(format.encodeToString(JsonObject.serializer(), toJson()).toByteArray(Charsets.UTF_8))
+                while (bytes.hasRemaining()) channel.write(bytes)
+                channel.force(true)
+            }
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped there.
+            try {
+                FileChannel.open(dir, StandardOpenOption.READ).use { it.force(true) }
+            } catch (_: IOException) {
+            }
             unwritten = false
+            return true
         } catch (e: Exception) {
             logger.error(e) { "Couldn't write ${file.fileName}; trying again at the next autosave" }
+            return false
         }
     }
 
