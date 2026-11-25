@@ -12,6 +12,8 @@ import osrsps.game.ObjTypes
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Spells
+import osrsps.game.content.Kudos
+import osrsps.game.content.MuseumFinds
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
@@ -19,6 +21,7 @@ import osrsps.game.script.ScriptContext
 /** What jewellery enchanting says; its words are on the server (data/dialogue.txt), not in git. */
 object JewelleryEnchantLines : Lines("jewellery_enchant", "Jewellery Enchantments") {
     val WRONG_ITEM = line("wrong_item", "casting an enchantment on an item that spell doesn't enchant; words guessed")
+    val NEED_LESSON = line("need_lesson", "Lvl-3 Enchant on a ruby necklace before a Varrock Museum archaeologist has taught the Digsite pendant's enchantment; words guessed")
 }
 
 /** One item a spell enchants: [plain] becomes [enchanted]; [ring] picks the ring's animation and graphic. */
@@ -106,6 +109,12 @@ class JewelleryEnchantData(val enchantments: List<JewelleryEnchantment>) {
  * same item in the backpack; and that Lvl-5 makes the uncharged dragonstone jewellery, as the Wiki lists it.
  */
 class JewelleryEnchant(private val world: World, private val data: JewelleryEnchantData) {
+    private val digsitePendants = setOfNotNull(world.objTypes.find("necklace_of_digsite_5")?.id)
+
+    /** Whether an archaeologist has taught the pendant's enchantment ([MuseumFinds]); a cache without the varbit, never. */
+    private fun ScriptContext.knowsPendant(): Boolean =
+        world.varTypes.varbit(Kudos.VARBIT_NECKLACE) != null && MuseumFinds.knowsNecklace(player)
+
     fun register() {
         for (enchantment in data.enchantments) {
             world.handlers.onSpellOnObj(Spells.SPELLBOOK, enchantment.spell.component) { op ->
@@ -121,6 +130,12 @@ class JewelleryEnchant(private val world: World, private val data: JewelleryEnch
         val pair = enchantment.items.firstOrNull { it.plain == obj }
         if (pair == null) {
             player.message(world.textFor(player)[JewelleryEnchantLines.WRONG_ITEM])
+            return
+        }
+        // The Digsite pendant's enchantment is the museum's to teach (OSRS Wiki, Digsite pendant: "cannot be enchanted
+        // until the spell has been learnt" from an archaeologist shown the clean necklace; exploit review R57B-1).
+        if (pair.enchanted in digsitePendants && !knowsPendant()) {
+            player.message(world.textFor(player)[JewelleryEnchantLines.NEED_LESSON])
             return
         }
         if (!casting.hasLevel(player, spell)) return

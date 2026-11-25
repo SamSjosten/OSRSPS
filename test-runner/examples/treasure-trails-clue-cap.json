@@ -1,0 +1,29 @@
+{
+ "name": "Treasure Trails clue cap (exploit review R55B-4): a dropped easy clue isn't taken back once two easy scroll boxes make the cap; the suspicion line, and the clue stays on the floor (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases.", "comment": "no scroll cases, so the easy cap is 2"},
+
+  {"step": "command", "text": "::clue easy", "expectMessage": "Clue (easy):"},
+  {"step": "assertInventory", "item": "Clue scroll (easy)", "count": 1},
+  {"step": "itemOption", "item": "Clue scroll (easy)", "option": "Drop"},
+  {"step": "assertGroundItem", "item": "Clue scroll (easy)", "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Clue scroll (easy)", "count": 0},
+
+  {"step": "command", "text": "::item 24362 2", "expectMessage": "Added 2 x Scroll box (easy)", "comment": "two easy boxes: the cap"},
+  {"step": "takeItem", "item": "Clue scroll (easy)"},
+  {"step": "assertMessage", "contains": "[trail.suspicion_easy]", "timeoutMs": 5000},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertInventory", "item": "Clue scroll (easy)", "count": 0, "comment": "not taken"},
+  {"step": "assertInventory", "item": "Scroll box (easy)", "count": 2},
+  {"step": "assertGroundItem", "item": "Clue scroll (easy)", "comment": "still where it lies"},
+
+  {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -45,6 +46,15 @@ class ClanStore(private val file: Path? = null) {
         /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
         val settings = HashMap<Int, Int>()
 
+        /** Whether it is on the clan recruitment boards (List your clan). */
+        var listed = false
+
+        /** The coins in its coffer, in the clan hall. */
+        var coffer = 0
+
+        /** Its interests, a bit each in enum_3792's order; nothing sets them yet. */
+        var interests = 0
+
         /** Players banned from its channel, oldest first. */
         val banned = ArrayList<Banned>()
 
@@ -78,6 +88,21 @@ class ClanStore(private val file: Path? = null) {
 
     /** The clan with [id], or null once it is deleted. */
     fun byId(id: Long): Clan? = clans[id]
+
+    /** Every clan, oldest first. */
+    fun all(): Collection<Clan> = clans.values
+
+    /** Sets the coins in [clan]'s coffer and saves at once: coins came out of or went into someone's inventory. */
+    fun setCoffer(clan: Clan, coins: Int) {
+        clan.coffer = coins
+        save()
+    }
+
+    /** Puts [clan] on the recruitment boards or takes it off, written at the next [flush]. */
+    fun setListed(clan: Clan, listed: Boolean) {
+        clan.listed = listed
+        unwritten = true
+    }
 
     /** The day (days since 1970) [key] last founded a clan, or null. */
     fun foundedDay(key: String): Long? = founded[key]
@@ -225,6 +250,9 @@ class ClanStore(private val file: Path? = null) {
                         }
                     }
                     putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
+                    if (clan.listed) put("listed", true)
+                    if (clan.coffer != 0) put("coffer", clan.coffer)
+                    if (clan.interests != 0) put("interests", clan.interests)
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
                             addJsonObject {
@@ -260,6 +288,9 @@ class ClanStore(private val file: Path? = null) {
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
             // Files from before settings, applications or bans have none.
             for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
+            clan.listed = obj["listed"]?.jsonPrimitive?.boolean ?: false
+            clan.coffer = obj["coffer"]?.jsonPrimitive?.int ?: 0
+            clan.interests = obj["interests"]?.jsonPrimitive?.int ?: 0
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
                 clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())

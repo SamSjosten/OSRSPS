@@ -65,6 +65,16 @@ object ClerkLines : Lines("clan_clerk", "Transcript:Clerk (Clan Hub)") {
  * - Items (op 3) opens the same box at once (inferred: the Wiki doesn't say what it does).
  * - The cloak and vexillum are the clan's colour ([osrsps.game.social.Clans.colour], the clan's motif, which the clan
  *   settings page's motif button changes): one item of each colour in the cache, black to pink.
+ * - View on the recruitment table (41728 at 3177, 3469) and the board on the wall (41730 at 3185, 3476) opens the Clan
+ *   Recruitment Board ([osrsps.game.social.Clans.openBoard]): the clans listed, whose guest requirements the player
+ *   meets, through the board's interest filters; View clan opens a clan's settings page as its guest, with Apply.
+ *   List your clan / De-list puts a recruiter's clan on the boards or takes it off; Applicants opens the applicants
+ *   page. Sources for it: the Wiki's Clan recruitment board page (where they are, View, and filtering by interests;
+ *   nothing on who lists or for how long) and the 242 cache's clans_board (700) and its clan_board_* scripts; the
+ *   Recruitment permission's text (struct_2951) is "Rank required to admit other players into the clan, and to list the
+ *   clan on the public Recruitment Board". Guessed: that a listing lasts until De-list, and that a clan's own members
+ *   don't see it.
+ *   Not built: setting a clan's interests (clans_interests' Save sends no choice the server can read), Report name.
  *
  * Guessed: what he says to someone in no clan (a line of our own), the box's title, that he gives one at a time
  * whatever the box's quantity, and that he stands still (mejrs's live list has him on one tile).
@@ -73,6 +83,11 @@ object ClanHub {
     const val CLERK = 10759
     const val TALK_TO = 1
     const val ITEMS = 3
+
+    /** The Hub's clan recruitment boards: the table (clan_recruitment_table) and the one on the wall (clan_recruitment_board). */
+    const val RECRUITMENT_TABLE = 41728
+    const val RECRUITMENT_BOARD = 41730
+    const val VIEW = 1
 
     /** The clan cloaks and vexilla, by colour in enum_3819's order (the cache: black, orange, blue, ..., pink). */
     val CLOAKS = intArrayOf(25712, 25714, 25715, 25716, 25717, 25718, 25719, 25720)
@@ -238,5 +253,11 @@ fun registerClanHub(world: World) {
     with(ClanHub) {
         world.handlers.onNpc(CLERK, TALK_TO) { op -> world.dialogues.start(this, op.npc) { clerk(world) } }
         world.handlers.onNpc(CLERK, ITEMS) { op -> world.dialogues.start(this, op.npc) { items(world) } }
+        for (board in listOf(RECRUITMENT_TABLE, RECRUITMENT_BOARD)) {
+            world.handlers.onLoc(board, VIEW) {
+                arriveDelay()
+                world.clans.openBoard(player)
+            }
+        }
     }
 }

@@ -3,7 +3,9 @@ package osrsps.game.combat
 import osrsps.game.Player
 import osrsps.game.Wilderness
 import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.content.ChampionsChallenge
 import osrsps.game.content.HomeTeleportLines
+import osrsps.game.content.LarxusLines
 import osrsps.game.dialogue.Line
 
 /**
@@ -35,7 +37,8 @@ object Teleblock {
      * The lines refusing any teleport of [player], standing at Wilderness level [level], or empty when they may: every
      * teleport stops above level 20 Wilderness ([Wilderness.TELEPORT_LIMIT]), and all of them while Tele Blocked.
      * Guessed: the level is told first when both hold. A teleport that works deeper (dragonstone jewellery's, to level
-     * 30) passes its own [limit] and the [tooDeep] lines that go with it.
+     * 30) passes its own [limit] and the [tooDeep] lines that go with it. None leaves the Champions' Guild's basement,
+     * where Larxus points to the ladder ([ChampionsChallenge.inBasement]).
      */
     fun refusal(
         player: Player,
@@ -44,6 +47,7 @@ object Teleblock {
         tooDeep: List<Line> = listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2),
     ): List<Line> = when {
         level > limit -> tooDeep
+        ChampionsChallenge.inBasement(player.x, player.z, player.level) -> listOf(LarxusLines.LADDER)
         player.teleblockTicks > 0 -> listOf(PvpLines.TELEPORT_BLOCKED)
         else -> emptyList()
     }

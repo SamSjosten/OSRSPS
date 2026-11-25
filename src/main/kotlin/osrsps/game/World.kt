@@ -142,6 +142,7 @@ import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
+import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -198,6 +199,9 @@ import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
+import osrsps.game.content.registerBrimhavenAgilityArena
+import osrsps.game.content.AgilityArena
+import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -232,6 +236,7 @@ import osrsps.game.content.registerWizardsTowerPeople
 import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
+import osrsps.game.content.ChampionsChallenge
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.WildernessLairFee
@@ -505,6 +510,12 @@ class World(
 
     val npcs = Npcs(collision, random)
 
+    /**
+     * Where an NPC of a type puts its drop, when not on its south-west tile: Brutus's on his tile nearest the killer
+     * (killer null when there is none).
+     */
+    val dropTiles = HashMap<Int, (Npc, Player?) -> osrsps.map.Tile>()
+
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
     val npcScripts = NpcScripts(npcs) { tick }
 
@@ -519,6 +530,8 @@ class World(
 
     /** Brutus's fields, one a player ([osrsps.game.content.BrutusPens]). */
     val brutusPens = osrsps.game.content.BrutusPens(this)
+    /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
+    val championsChallenge = ChampionsChallenge(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -754,6 +767,7 @@ class World(
         npcKilled = { npc, killer ->
             slayer.killed(npc, killer)
             killer?.let { diaries.killed(it, npc) }
+            championsChallenge.killed(npc, killer)
         },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
@@ -767,6 +781,8 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
+        hurtAlive = { jewelleryEffects.hurt(it) },
+        dropPvpHits = { pvpCombat.dropIncoming(it) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -861,6 +877,7 @@ class World(
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
         inferno.deathPlace(player)?.let { return it }
+        championsChallenge.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return EdgevilleRespawn.deathPlace(this, player)
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
@@ -1003,6 +1020,9 @@ class World(
     }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
+
+    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
+    val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
     /** The River Lum's canoe stations; see [Canoes]. */
@@ -1046,6 +1066,8 @@ class World(
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
+    val clanCoffer = osrsps.game.content.ClanCoffer(this)
+    val clanParty = osrsps.game.content.ClanParty(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1110,6 +1132,9 @@ class World(
 
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
+
+    /** The phoenix necklace, necklace of faith and ring of life; see [osrsps.game.skill.magic.JewelleryEffects]. */
+    val jewelleryEffects = osrsps.game.skill.magic.JewelleryEffects(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1260,6 +1285,7 @@ class World(
         registerExamCentre(this)
         registerDigsiteCamp(this)
         registerSourhogCave(this)
+        registerChampionsChallenge(this, championsChallenge)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1307,6 +1333,7 @@ class World(
         registerBarnabyShip(this)
         registerBrimhavenTown(this)
         registerBrimhavenDungeon(this)
+        registerBrimhavenAgilityArena(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1372,6 +1399,7 @@ class World(
         superheat.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
+        jewelleryEffects.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1382,6 +1410,8 @@ class World(
         furniture.register()
         kitchen.register()
         clanHall.register()
+        clanCoffer.register()
+        clanParty.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -1709,6 +1739,7 @@ class World(
         }
         endEmptyInstances()
         groundObjs.process()
+        agilityArena.process(tick)
         archiveRaids.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
@@ -2181,6 +2212,8 @@ class World(
         // Without what a raid run would take back, a trade's offer back in first (R26A-1): in a run, saved at its exit,
         // or out of one before the next tick settles them.
         val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
+        // Logging out in the Brimhaven Agility Arena puts the player back in its entrance hut.
+        BrimhavenAgilityArena.savedAt(player)?.let { return PlayerSave.of(player, inventory, bank, x = it.x, z = it.z, level = it.level, held = held) }
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
@@ -2964,6 +2997,7 @@ class World(
         if (omnishopScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (clanParty.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
@@ -3273,20 +3307,23 @@ class World(
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        // A champion's scroll for a champion the killer has beaten doesn't drop.
+        val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
+        val at = dropTiles[npc.type.id]?.invoke(npc, killer) ?: osrsps.map.Tile(npc.x, npc.z)
         for (rolled in drops) {
             // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
             val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
             val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
-                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
+                groundObjs.addPrivate(drop.type, drop.count, at.x, at.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)
             } else {
-                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
+                groundObjs.addPublic(drop.type, drop.count, at.x, at.z, npc.level, despawn)
             }
         }
     }
@@ -3358,7 +3395,7 @@ class World(
         if (player.scripts.delayed) return@act
         if (!dialogues.resume(player, interfaceId, componentId, sub) && !WildernessDitch.toggle(player, interfaceId, componentId) &&
             !bankPinSettings.resume(player, interfaceId, componentId) &&
-            !clans.reviewApplicant(player, interfaceId, componentId, sub)
+            !clans.reviewApplicant(player, interfaceId, componentId, sub) && !clans.clickBoard(player, interfaceId, componentId, sub)
         ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }

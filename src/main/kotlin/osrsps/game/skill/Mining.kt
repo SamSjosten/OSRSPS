@@ -202,13 +202,16 @@ class Mining(private val world: World) {
                     GEM_LINES[gem]?.let { player.message(text[it]) }
                 }
             } else if (SuccessRoll.roll(world.random, type.low, type.high, level)) {
-                val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
+                // Clay comes out soft with a bracelet of clay worn, a use spent (the Wiki's Bracelet of clay).
+                val mined = world.jewelleryEffects.minedOre(player, type.ore)
+                val ore = world.objTypes[mined] ?: error("No obj type $mined for ${type.key} ore")
                 val emptied = takeYield(type, loc.x, loc.z, loc.level)
                 if (emptied) deplete(loc, rock)
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
-                world.diaries.made(player, ore.id, 1)
-                player.message(text[MiningLines.GET_ORE, "ore" to oreName])
+                // The diary counts what the rock gave, soft clay from a bracelet of clay as clay (guessed).
+                world.diaries.made(player, type.ore, 1)
+                player.message(text[MiningLines.GET_ORE, "ore" to if (mined == type.ore) oreName else ore.name.lowercase()])
                 world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                 if (emptied) return stop()
                 // Crystals with ore left: the swing goes on (a full backpack ends it on the next run).

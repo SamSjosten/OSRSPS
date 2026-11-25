@@ -243,11 +243,11 @@
   },
   {
    "step": "assertLocation",
-   "x": 3244,
-   "y": 3382,
+   "x": 3243,
+   "y": 3383,
    "plane": 0,
    "timeoutMs": 20000,
-   "comment": "beside the street's ladder, on the side the player stood"
+   "comment": "beside the street's ladder: the tile south of it (the side the player stood) is walled off, so the first open one, west (nightly Nov 25)"
   },
   {
    "step": "command",

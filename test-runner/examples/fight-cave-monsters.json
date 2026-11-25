@@ -18,9 +18,11 @@
     {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 3, rotation 1: 2 alive (Tz-Kek #", "comment": "the two level 22s"},
     {"step": "command", "text": "::fightcave next", "expectMessage": "Took wave 3's monsters out."},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=4]", "timeoutMs": 20000},
+    {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto-retaliate off, so the player doesn't walk up to the Tok-Xil"},
     {"step": "command", "text": "::fightcave 7 1", "expectMessage": "Fight cave: wave 7 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=7]", "timeoutMs": 15000},
-    {"step": "assertAnimation", "npc": "Tok-Xil", "id": 2633, "timeoutMs": 30000, "comment": "magmaquris_spine_attack: it fires from where it stands"},
+    {"step": "assertHitsplat", "self": true, "amount": 0, "timeoutMs": 60000, "comment": "the Tok-Xil's spines, a 0 under ::god: with auto-retaliate off the player stays put, so it holds at its 15 tiles and never punches. Its animation isn't asserted: holding there, a 3x3 Tok-Xil's south-west tile is up to 17 tiles off, past the client's view (nightly 2026-11-23); HeadlessFightCaveTest checks the spine animation"},
+    {"step": "command", "text": "::npcs 20", "expectMessage": "Tok-Xil", "comment": "it is still there, holding off"},
     {"step": "command", "text": "::fightcave 15 1", "expectMessage": "Fight cave: wave 15 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=15]", "timeoutMs": 15000},
     {"step": "assertHitsplat", "self": true, "amount": 0, "comment": "the Yt-MejKot's swing: it has come up beside the player", "timeoutMs": 60000},
@@ -31,6 +33,7 @@
     {"step": "assertDialogue", "contains": "[fight_cave.reward]", "speaker": "TzHaar-Mej-Jal", "timeoutMs": 10000, "comment": "it opens once the player is outside, after the command's reply"},
     {"step": "finishDialogue"},
     {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172:"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

@@ -33,7 +33,7 @@
   {"step": "assertMessage", "contains": "bryophyta.chest_loot", "timeoutMs": 10000},
   {"step": "assertMessage", "contains": "bryophyta.kill_count", "timeoutMs": 10000},
   {"step": "assertInventory", "item": "Mossy key", "count": 1, "timeoutMs": 10000, "comment": "one key used"},
-  {"step": "assertGroundItem", "item": "Clue scroll (beginner)", "timeoutMs": 10000, "comment": "the chest's clue always comes"},
+  {"step": "assertGroundItem", "item": "Scroll box (beginner)", "timeoutMs": 10000, "comment": "the chest's clue always comes, as its scroll box (Treasure Trails step TT9); ::scenario empties the bank, so the cap has room"},
   {"step": "locOption", "locId": 32535, "option": "Clamber", "comment": "the rock pile out"},
   {"step": "assertLocation", "x": 3174, "y": 9900, "plane": 0, "timeoutMs": 15000, "comment": "the sewer side of the gate"},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},

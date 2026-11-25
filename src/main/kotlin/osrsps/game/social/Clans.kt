@@ -4,6 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.clan.ClanChannelFull
 import net.rsprot.protocol.game.outgoing.clan.ClanSettingsFull
 import net.rsprot.protocol.game.outgoing.clan.MessageClanChannel
+import net.rsprot.protocol.game.outgoing.clan.VarClan
+import net.rsprot.protocol.game.outgoing.clan.VarClanDisable
+import net.rsprot.protocol.game.outgoing.clan.VarClanEnable
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.message.OutgoingGameMessage
@@ -189,6 +192,9 @@ class Clans(
     /** The applicants each recruiter's applicants page lists, by slot: their save keys. */
     private val shownApplicants = HashMap<String, List<String>>()
 
+    /** The clans each player's recruitment board lists, by entry: their ids, by the player's save key. */
+    private val boardShown = HashMap<String, List<Long>>()
+
     /** The applicant each recruiter chose (Review) on the applicants page, by save key: theirs. */
     private val reviewing = HashMap<String, String>()
 
@@ -257,6 +263,7 @@ class Clans(
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
         recolour(player, colour(clan))
         send(player, settingsFull(clan))
+        sendProfile(player, clan)
         joinChannel(player, clan)
     }
 
@@ -271,9 +278,11 @@ class Clans(
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
             send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
             send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+            send(player, VarClanDisable)
         } else {
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
             send(player, settingsFull(clan))
+            sendProfile(player, clan)
             val members = channels[clan.id]
             send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         }
@@ -305,6 +314,7 @@ class Clans(
         listening.remove(player.saveKey)
         infoAsGuest.remove(player.saveKey)
         shownApplicants.remove(player.saveKey)
+        boardShown.remove(player.saveKey)
         reviewing.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
         pickingPermission.remove(player.saveKey)
@@ -437,6 +447,7 @@ class Clans(
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
             send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
             send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+            send(player, VarClanDisable)
             showRecruit(player)
             if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
         }
@@ -586,6 +597,173 @@ class Clans(
         return true
     }
 
+    /**
+     * View on a clan recruitment board: clans_board as the main modal, its List your clan / De-list button by varp if1
+     * (1 while the player's clan is listed), then the clans listed. Its buttons, filters and entries answer with
+     * resume_pausebutton (script890, clan_board_filterop, clan_board_entry_op), so each gets the pause button event.
+     */
+    fun openBoard(player: Player) {
+        openModal(player, BOARD)
+        setEvents(player, BOARD, BOARD_UNIVERSE, 0, BOARD_BUTTONS - 1, 0, EVENT_PAUSE_BUTTON)
+        setEvents(player, BOARD, BOARD_FILTERS, 0, INTERESTS - 1, 0, EVENT_PAUSE_BUTTON)
+        setEvents(player, BOARD, BOARD_LIST, 0, BOARD_SLOTS * 2 - 1, 0, EVENT_PAUSE_BUTTON)
+        showBoardButton(player)
+        showBoard(player)
+    }
+
+    /** The clans [player]'s board lists now: listed, not their own, whose guest requirements they meet, through the filters. */
+    fun boardClans(player: Player): List<ClanStore.Clan> {
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        val exclude = varp(player, VARP_BOARD_EXCLUDE)
+        return store.all().filter {
+            it.listed && it.member(player.saveKey) == null && meetsGuestRequirements(player, it) &&
+                it.interests and require == require && it.interests and exclude == 0
+        }.take(BOARD_SLOTS)
+    }
+
+    /**
+     * The board's list: clan_board_addline for each of its 45 entries, the last drawing the list (an empty text clears an
+     * entry). Each entry is name|size|age shown|age to sort by|interests|combat level|skill total, the interests a 0/1
+     * character for each of enum_3792's 16 (script4371 names those set, white where the player's filter asks for them),
+     * and the two requirements left empty when the clan has none. Its age is the days since it was founded, shown and
+     * sorted by as a number (guessed: the Wiki doesn't show the column).
+     */
+    private fun showBoard(player: Player) {
+        val clans = boardClans(player)
+        boardShown[player.saveKey] = clans.map { it.id }
+        val today = now().atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        for (slot in 0 until BOARD_SLOTS) {
+            val clan = clans.getOrNull(slot)
+            val line = if (clan == null) "" else {
+                val days = (today - Instant.ofEpochMilli(clan.createdMillis).atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()).coerceAtLeast(0)
+                val interests = (0 until INTERESTS).joinToString("") { if (clan.interests and (1 shl it) != 0) "1" else "0" }
+                val combat = guestRequirement(clan, GuestRequirement.COMBAT).takeIf { it > 0 }?.toString().orEmpty()
+                val total = guestRequirement(clan, GuestRequirement.SKILL_TOTAL).takeIf { it > 0 }?.toString().orEmpty()
+                listOf(clan.name, clan.members.size.toString(), days.toString(), days.toString(), interests, combat, total).joinToString("|")
+            }
+            runClientScript(player, SCRIPT_BOARD_ADD_LINE, listOf(slot, line, require))
+        }
+    }
+
+    private fun showBoardButton(player: Player) {
+        setVarp(player, VARP_BOARD_LISTED, if (clanOf(player)?.listed == true) 1 else 0)
+    }
+
+    /**
+     * A resume_pausebutton on the board: one of its buttons (on clans_board:universe by enum_3804: List your clan / De-list,
+     * Applicants, Refresh, Reset), a filter (clans_board:filters, by interest) or an entry (clans_board:list: View clan,
+     * or Report name, which comes 45 on). Returns whether it was the board's.
+     */
+    fun clickBoard(player: Player, interfaceId: Int, component: Int, sub: Int): Boolean {
+        if (interfaceId != BOARD) return false
+        if (BOARD !in player.modals.values) return true
+        when (component) {
+            BOARD_UNIVERSE -> when (sub) {
+                BOARD_MY_CLAN -> toggleListed(player)
+                BOARD_APPLICANTS -> openApplicants(player)
+                BOARD_REFRESH -> showBoard(player)
+                BOARD_RESET -> {
+                    setVarp(player, VARP_BOARD_REQUIRE, 0)
+                    setVarp(player, VARP_BOARD_EXCLUDE, 0)
+                    showBoard(player)
+                }
+            }
+            BOARD_FILTERS -> if (sub in 0 until INTERESTS) cycleFilter(player, sub)
+            BOARD_LIST -> {
+                val id = boardShown[player.saveKey]?.getOrNull(sub) ?: return true
+                val clan = store.byId(id) ?: return true.also { showBoard(player) }
+                viewClan(player, clan)
+            }
+        }
+        return true
+    }
+
+    /**
+     * A filter's Change filter: off, then wanted (macro_bee_pos_3's bit, which clan_board_filterupdate draws as
+     * radio_buttons,2), then not wanted (macro_bee_pos_4's, radio_buttons,1), then off again (the order is guessed).
+     */
+    private fun cycleFilter(player: Player, interest: Int) {
+        val bit = 1 shl interest
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        val exclude = varp(player, VARP_BOARD_EXCLUDE)
+        when {
+            require and bit != 0 -> {
+                setVarp(player, VARP_BOARD_REQUIRE, require and bit.inv())
+                setVarp(player, VARP_BOARD_EXCLUDE, exclude or bit)
+            }
+            exclude and bit != 0 -> setVarp(player, VARP_BOARD_EXCLUDE, exclude and bit.inv())
+            else -> setVarp(player, VARP_BOARD_REQUIRE, require or bit)
+        }
+        showBoard(player)
+    }
+
+    /** List your clan / De-list: for those the clan's Recruitment permission allows (struct_2951's text says so). */
+    private fun toggleListed(player: Player) {
+        val clan = clanOf(player) ?: return tell(player, ClanLines.BOARD_NO_CLAN)
+        if (!isRecruiter(player, clan)) return tell(player, ClanLines.BOARD_NOT_ALLOWED)
+        store.setListed(clan, !clan.listed)
+        tell(player, if (clan.listed) ClanLines.BOARD_LISTED else ClanLines.BOARD_DELISTED, clan.name)
+        for (member in clan.members) playerByKey(member.key)?.let { if (online(it) && BOARD in it.modals.values) showBoardButton(it) }
+        showBoard(player)
+    }
+
+    /**
+     * View clan: the clan's settings page as a guest, with Apply (inferred from the board's text, "accepting
+     * applications"): the clan is loaded as the player's guest clan as Find does, dropping any other.
+     */
+    private fun viewClan(player: Player, clan: ClanStore.Clan) {
+        if (clan.member(player.saveKey) != null) return openInfo(player, asGuest = false)
+        if (guestClanOf(player)?.id != clan.id) {
+            guestClanOf(player)?.let { leaveChannel(player, it, tell = true, clanType = CLAN_TYPE_LISTENED) }
+            listening[player.saveKey] = clan.id
+            setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_CONNECTED)
+            send(player, settingsFull(clan, CLAN_TYPE_LISTENED))
+        }
+        openInfo(player, asGuest = true)
+    }
+
+    private fun varp(player: Player, id: Int): Int = if (id < player.vars.types.varpCount) player.vars[id] else 0
+
+    private fun setVarp(player: Player, id: Int, value: Int) {
+        if (id < player.vars.types.varpCount) player.vars[id] = value
+    }
+
+    /**
+     * The clan's profile vars, which the client reads with clanprofile_find and %varclan: VARCLAN_ENABLE, then the coffer's
+     * coins (varclan_3, which clan_storage_main_drawcoins draws). Inferred: sent with the clan settings, to members only.
+     */
+    private fun sendProfile(player: Player, clan: ClanStore.Clan) {
+        send(player, VarClanEnable)
+        send(player, VarClan(VARCLAN_COFFER, VarClan.VarClanIntData(clan.coffer)))
+    }
+
+    /** Whether [player] may deposit into [clan]'s coffer (its Deposit into coffer permission, varclansetting 19). */
+    fun mayDeposit(player: Player, clan: ClanStore.Clan): Boolean = clan.member(player.saveKey) != null && has(player, clan, VAR_COFFER_DEPOSIT)
+
+    /** Whether [player] may withdraw from [clan]'s coffer (its Withdraw from coffer permission, varclansetting 20). */
+    fun mayWithdraw(player: Player, clan: ClanStore.Clan): Boolean = clan.member(player.saveKey) != null && has(player, clan, VAR_COFFER_WITHDRAW)
+
+    /**
+     * Whether [player] in [clan]'s hall has party permission [id] ([VAR_PARTY_DEPOSIT], [VAR_PARTY_LEVER] or
+     * [VAR_PARTY_BALLOONS]): a member by rank, anyone else as a guest.
+     */
+    fun mayParty(player: Player, clan: ClanStore.Clan, id: Int): Boolean = has(player, clan, id)
+
+    /**
+     * Puts [amount] coins into [clan]'s coffer, or takes them out when negative, saved at once, and the new sum to every
+     * online member. A withdrawal tells every online member who took how much (the Wiki: withdrawing "will always notify
+     * all members of the clan"; the line is guessed).
+     */
+    fun changeCoffer(clan: ClanStore.Clan, amount: Int, by: Player) {
+        store.setCoffer(clan, clan.coffer + amount)
+        for (member in clan.members) {
+            val online = playerByKey(member.key) ?: continue
+            send(online, VarClan(VARCLAN_COFFER, VarClan.VarClanIntData(clan.coffer)))
+            if (amount < 0) tell(online, ClanLines.COFFER_WITHDRAWN, by.username, (-amount).toString())
+        }
+    }
+
     /** Apply, confirmed: [player] becomes an applicant of the clan with [clanId], if still its guest and in no clan. */
     fun apply(player: Player, clanId: Long) {
         val clan = guestClanOf(player)?.takeIf { it.id == clanId } ?: return
@@ -628,6 +806,7 @@ class Clans(
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
         send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+        send(player, VarClanDisable)
         infoAsGuest.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
         pickingPermission.remove(player.saveKey)
@@ -660,6 +839,7 @@ class Clans(
         // Cloaks and vexilla kept from another clan take this one's colour at once, not at the next login.
         recolour(player, colour(clan))
         sendSettings(clan)
+        sendProfile(player, clan)
         joinChannel(player, clan)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
@@ -1219,6 +1399,8 @@ class Clans(
             setVarbit(founder, VARBIT_FOUNDER_MEMBER, 0)
             setVarbit(founder, VARBIT_AFFINITY, AFFINITY_CONNECTED)
             send(founder, settingsFull(clan))
+            // The coffer's profile vars too, as at login and on joining (Codex on PR 954).
+            sendProfile(founder, clan)
             joinChannel(founder, clan)
             tell(founder, ClanLines.FORMED, name)
             showRecruit(founder)
@@ -1719,6 +1901,7 @@ class Clans(
                 PERMISSIONS to ("clans_permissions" to mapOf(PERMISSIONS_EXIT to "exit", PERMISSIONS_LIST to "list_contents", PERMISSIONS_POPUP to "popup")),
                 APPLICANTS to ("clans_applicants" to mapOf(APPLICANTS_LIST to "list", APPLICANTS_ENTRIES.first to "00", APPLICANTS_ENTRIES.last to "19", APPLICANTS_EXIT to "exit", APPLICANTS_REFRESH to "refresh", APPLICANTS_REJECT to "reject", APPLICANTS_ACCEPT to "accept")),
                 POPUPOVERLAY to ("popupoverlay" to emptyMap()),
+                BOARD to ("clans_board" to mapOf(BOARD_UNIVERSE to "universe", BOARD_FILTERS to "filters", BOARD_LIST to "list")),
             )
 
         /** The Clans tab (side_channels) and its contents. */
@@ -1843,6 +2026,25 @@ class Clans(
         const val VAR_BAN_FROM_CHAT = 18
         const val VAR_ICONS = 25
 
+        /**
+         * Deposit into coffer (struct_2963) and Withdraw from coffer (struct_2964, resting on it): any member by default
+         * for depositing (the Wiki: "Any member of the clan is able to deposit"), the owner for withdrawing (guessed).
+         */
+        const val VAR_COFFER_DEPOSIT = 19
+        const val VAR_COFFER_WITHDRAW = 20
+
+        /**
+         * The party chest's permissions (proc clan_permission_get): Deposit in the party chest (struct_4387), Pull the
+         * lever for the party chest (struct_4388) and Get drops from party balloons (struct_4389). Each struct's
+         * param_1253 is -1, Guest, taken as both floor and default as for Enter clan hall.
+         */
+        const val VAR_PARTY_DEPOSIT = 94
+        const val VAR_PARTY_LEVER = 95
+        const val VAR_PARTY_BALLOONS = 96
+
+        /** varclan_3: the coins in the clan's coffer. */
+        const val VARCLAN_COFFER = 3
+
         /** Enter clan hall (struct_2969): Guest is both its floor and its default (param_1253, -1). */
         const val VAR_ENTER_HALL = 23
 
@@ -1905,7 +2107,8 @@ class Clans(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
             VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_FOUNDER, PERM_KICK to RANK_OWNER,
-            VAR_ENTER_HALL to RANK_GUEST,
+            VAR_ENTER_HALL to RANK_GUEST, VAR_COFFER_DEPOSIT to RANK_FOUNDER, VAR_COFFER_WITHDRAW to RANK_OWNER,
+            VAR_PARTY_DEPOSIT to RANK_GUEST, VAR_PARTY_LEVER to RANK_GUEST, VAR_PARTY_BALLOONS to RANK_GUEST,
         )
 
         /**
@@ -1916,10 +2119,11 @@ class Clans(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR,
             VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_GUEST, VAR_ENTER_HALL to RANK_GUEST,
+            VAR_PARTY_DEPOSIT to RANK_GUEST, VAR_PARTY_LEVER to RANK_GUEST, VAR_PARTY_BALLOONS to RANK_GUEST,
         )
 
         /** The permission each rests on (param_1254): it never needs less than that one. */
-        val PERMISSION_BASES = mapOf(VAR_EXPEL to VAR_ASSIGN_RANKS, PERM_KICK to PERM_TALK, VAR_BAN_FROM_CHAT to PERM_KICK)
+        val PERMISSION_BASES = mapOf(VAR_EXPEL to VAR_ASSIGN_RANKS, PERM_KICK to PERM_TALK, VAR_BAN_FROM_CHAT to PERM_KICK, VAR_COFFER_WITHDRAW to VAR_COFFER_DEPOSIT)
 
         /** clans_permissions: the permissions page, its Back button, its buttons' list and the popup's place. */
         const val INFO_PERMISSIONS = 23
@@ -1939,7 +2143,9 @@ class Clans(
             5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 7 to PERM_TALK, 8 to PERM_KICK, 9 to VAR_BAN_FROM_CHAT,
             // Enter clan hall (struct_2969): enum_3831's first, after the guest toggles (10 to 14), events (15 to 17) and
             // coffer (18, 19) in enum_3825's order, as clan_permission_init numbers the buttons (Codex on PR 911).
+            18 to VAR_COFFER_DEPOSIT, 19 to VAR_COFFER_WITHDRAW,
             20 to VAR_ENTER_HALL,
+            22 to VAR_PARTY_DEPOSIT, 23 to VAR_PARTY_LEVER, 24 to VAR_PARTY_BALLOONS,
         )
 
         /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */
@@ -1951,6 +2157,35 @@ class Clans(
         const val APPLICANTS = 699
         const val APPLICANTS_LIST = 11
         const val APPLICANTS_SLOTS = 20
+
+        /** clans_board, the Clan Recruitment Board, and its components (rev 242). */
+        const val BOARD = 700
+        const val BOARD_UNIVERSE = 1
+        const val BOARD_FILTERS = 5
+        const val BOARD_LIST = 20
+
+        /** The buttons' children of clans_board:universe, by enum_3804. */
+        const val BOARD_MY_CLAN = 0
+        const val BOARD_APPLICANTS = 1
+        const val BOARD_REFRESH = 2
+        const val BOARD_RESET = 3
+        const val BOARD_BUTTONS = 4
+
+        /** The board's entries (clans_board:00 to :44, enum_3803). */
+        const val BOARD_SLOTS = 45
+
+        /** clan_board_addline: (entry, the clan's fields, the interests to show white). */
+        const val SCRIPT_BOARD_ADD_LINE = 4357
+
+        /** The interests (enum_3792): F2P to Soul Wars. */
+        const val INTERESTS = 16
+
+        /** if1: 1 while the player's clan is listed (script4356 then labels the button De-list). */
+        const val VARP_BOARD_LISTED = 261
+
+        /** macro_bee_pos_3 and _4: the board's filters, the interests wanted and not wanted, a bit each. */
+        const val VARP_BOARD_REQUIRE = 807
+        const val VARP_BOARD_EXCLUDE = 808
 
         /** The list's entries, clans_applicants:00 to :19 (enum_3805 maps slot n to component 12 + n). */
         val APPLICANTS_ENTRIES = 12 until 12 + APPLICANTS_SLOTS
@@ -2101,6 +2336,11 @@ object ClanLines : Lines("clan", "Clans") {
     val RECRUIT_DECLINED = line("recruit_declined", "the recruiter, when the invitee says no (guessed)", "name")
     val RECRUITED = line("recruited", "the invitee, once they joined the clan (guessed)", "name")
     val RECRUIT_ACCEPTED = line("recruit_accepted", "the recruiter, when the invitee joined (guessed)", "name")
+    val BOARD_NO_CLAN = line("board_no_clan", "the recruitment board's List your clan in no clan (guessed)")
+    val BOARD_NOT_ALLOWED = line("board_not_allowed", "List your clan or De-list below the clan's Recruitment permission (guessed)")
+    val BOARD_LISTED = line("board_listed", "List your clan: the clan is on the recruitment board now (guessed)", "clan")
+    val COFFER_WITHDRAWN = line("coffer_withdrawn", "every online member, when someone withdraws from the clan's coffer (guessed)", "name", "amount")
+    val BOARD_DELISTED = line("board_delisted", "De-list: the clan is off the recruitment board (guessed)", "clan")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
     val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
     val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
