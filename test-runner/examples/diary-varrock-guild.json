@@ -1,0 +1,100 @@
+{
+ "name": "Achievement diaries: walking in through the Champions' Guild door does the Varrock medium task, and the panel's count shows it (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6320,
+   "value": 0,
+   "comment": "varrock_medium_count"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3191 3365 0",
+   "expectMessage": "Teleported to 3191, 3365, 0",
+   "comment": "outside the guild's door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6320,
+   "value": 0,
+   "comment": "standing outside does nothing"
+  },
+  {
+   "step": "locOption",
+   "locId": 1805,
+   "option": "Open",
+   "x": 3191,
+   "y": 3363,
+   "timeoutMs": 20000,
+   "comment": "the guild's door"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guildmaster.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3191,
+   "y": 3362,
+   "plane": 0,
+   "comment": "through the door, inside"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6320,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the crossing is the medium task: the count goes to 1"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

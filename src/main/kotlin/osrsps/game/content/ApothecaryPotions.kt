@@ -81,8 +81,14 @@ object ApothecaryPotions {
     }
 
     /** Makes up to [wanted] of [potion] for [player]; returns how many it made. */
-    fun make(world: World, player: Player, potion: Potion, wanted: Int): Int =
-        make(player, potion, wanted, world.textFor(player), world.objTypes, player::message)
+    fun make(world: World, player: Player, potion: Potion, wanted: Int): Int {
+        val made = make(player, potion, wanted, world.textFor(player), world.objTypes, player::message)
+        if (made > 0 && potion.potion == STRENGTH_POTION) world.diaries.complete(player, DiaryTask.VARROCK_MEDIUM_1)
+        return made
+    }
+
+    /** `4dose1strength`, the strength potion(4) he makes. */
+    const val STRENGTH_POTION = 113
 
     internal fun make(player: Player, potion: Potion, wanted: Int, text: DialogueText, objTypes: ObjTypes, message: (String) -> Unit): Int {
         if (potion.takes.any { (obj, count) -> player.inventory.count(obj) < count }) {
