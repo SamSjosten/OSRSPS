@@ -52,13 +52,14 @@
   {
    "step": "clickWidget",
    "interfaceId": 240,
-   "component": 15,
+   "component": 17,
    "op": 1,
-   "comment": "xpreward:mining. The icons run in enum_681's order from component 3 (Agility is 10, as random-events-genie.json clicks), so Mining is 15; 17 was Fishing, greyed out at level 1"
+   "comment": "the pickaxe: the icons run row by row, six wide, from component 2 (Agility 10 as in random-events-genie.json, Slayer 15 as a run on 217 showed), so Mining at row 3, column 4 is 17 (inferred)"
   },
   {
    "step": "waitTicks",
-   "ticks": 1
+   "ticks": 3,
+   "comment": "let the client mark the choice before Confirm"
   },
   {
    "step": "clickWidget",
@@ -69,7 +70,8 @@
   },
   {
    "step": "assertMessage",
-   "contains": "antique_lamp.granted"
+   "contains": "antique_lamp.granted amount=2,500 skill=Mining",
+   "timeoutMs": 10000
   },
   {
    "step": "assertInterface",
