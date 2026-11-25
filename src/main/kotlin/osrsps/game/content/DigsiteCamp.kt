@@ -85,10 +85,10 @@ object DigsiteCamp {
     const val BARREL_SEARCH = 2
     const val TAKE = 1
 
-    /** Carried, worn, banked, or dropped by the player and still on the floor (exploit review R55C-2). */
+    /** Carried, worn, banked, dropped by the player and still on the floor, or in their grave (exploit review R55C-2). */
     fun owns(world: World, player: Player, obj: Int): Boolean =
         player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0 ||
-            world.groundObjs.hasDropped(player, obj)
+            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0
 
     fun barrelOpen(player: Player): Boolean =
         player.vars.types.varbit(BARREL_VARBIT) != null && player.vars.getVarbit(BARREL_VARBIT) == 1
