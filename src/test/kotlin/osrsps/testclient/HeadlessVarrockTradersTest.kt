@@ -81,11 +81,25 @@ class HeadlessVarrockTradersTest {
 
     private fun HeadlessClient.over() = await("the talk over") { if (dialogueView == null) Unit else null }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     @Test
     fun `Benny sells the Varrock Herald for 50 coins, and not to a player with less`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
+                // No cash: no paper, and no diary task.
+                client.talkTo(benny.id)
+                client.pick(3, "benny.can_i", "benny.how_much", "benny.herald", "benny.anything")
+                client.chat("benny.herald")
+                client.chat("benny.illiterate")
+                client.chat("benny.captivating")
+                client.chat("benny.maybe")
+                client.chat("benny.no_cash")
+                client.over()
+                assertEquals(0, client.held(VarrockTraders.NEWSPAPER))
+                assertEquals(0, client.diaryTasksDone(), "no paper bought")
+
                 client.hold(COINS, 60)
                 client.talkTo(benny.id)
                 client.pick(1, "benny.can_i", "benny.how_much", "benny.herald", "benny.anything")
@@ -95,16 +109,8 @@ class HeadlessVarrockTradersTest {
                 client.chat("benny.sure")
                 client.await("the newspaper") { if (client.held(VarrockTraders.NEWSPAPER) == 1) Unit else null }
                 assertEquals(10, client.held(COINS))
-
-                client.talkTo(benny.id)
-                client.pick(3, "benny.can_i", "benny.how_much", "benny.herald", "benny.anything")
-                client.chat("benny.herald")
-                client.chat("benny.illiterate")
-                client.chat("benny.captivating")
-                client.chat("benny.maybe")
-                client.chat("benny.no_cash")
-                client.over()
-                assertEquals(10, client.held(COINS))
+                // Buying the Varrock Herald is the Varrock easy diary task.
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 assertEquals(1, client.held(VarrockTraders.NEWSPAPER))
             }
         }
@@ -245,9 +251,15 @@ class HeadlessVarrockTradersTest {
                 client.chat("apothecary.greeting")
                 client.pick(1, "apothecary.potions", "apothecary.something_else", "apothecary.no_thanks")
                 client.await("the potions screen") { if (ApothecaryPotions.INTERFACE in client.openInterfaces()) Unit else null }
+                // An energy potion without its ingredients: nothing made, so no diary task.
+                client.ifButton(ApothecaryPotions.INTERFACE, ENERGY, ApothecaryPotions.BUY_1)
+                client.awaitMessage("no ingredients first") { it == DialogueText.NONE[ApothecaryPotionsLines.NO_INGREDIENTS, "potion" to "energy potions"] }
+                assertEquals(0, client.diaryTasksDone(), "no potion made")
                 // Buy-All: three of each ingredient, but 12 coins pay for two.
                 client.ifButton(ApothecaryPotions.INTERFACE, STRENGTH, ApothecaryPotions.BUY_ALL)
                 client.await("two strength potions") { if (client.held(STRENGTH_POTION) == 2) Unit else null }
+                // A strength potion from him is the Varrock medium diary task.
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 assertEquals(2, client.held(COINS))
                 assertEquals(1, client.held(ApothecaryPotions.LIMPWURT_ROOT))
                 assertEquals(1, client.held(ApothecaryPotions.RED_SPIDERS_EGGS))

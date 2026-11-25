@@ -81,6 +81,7 @@ class HeadlessSlayerMastersTest {
                 client.npcOp(npc.index, SlayerMasters.ASSIGNMENT)
                 client.says("[slayer_master.too_weak]")
                 assertEquals(0, client.varp(Slayer.VARP_COUNT))
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "no task given, no diary task")
 
                 client.combat(40)
                 client.npcOp(npc.index, SlayerMasters.ASSIGNMENT)
@@ -89,6 +90,8 @@ class HeadlessSlayerMastersTest {
                 assertTrue(amount in 40..80, "amount $amount")
                 assertEquals(3, client.varp(Slayer.VARP_TARGET))
                 assertEquals(amount, client.varp(Slayer.VARP_COUNT))
+                // A task from Vannaka is the Varrock medium diary's task.
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
                 client.pick(1)
                 client.says("[slayer_master.tips]")
                 client.says("[slayer_tip.rats]")

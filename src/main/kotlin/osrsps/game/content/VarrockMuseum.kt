@@ -366,7 +366,11 @@ fun registerVarrockMuseum(world: World) {
             if (goIn) throughGate(world)
         }
         world.handlers.onNpc(DOOR_GUARD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { doorGuard() } }
-        world.handlers.onNpc(CURATOR, TALK_TO) { op -> world.dialogues.start(this, op.npc) { curator() } }
+        world.handlers.onNpc(CURATOR, TALK_TO) { op ->
+            // "Speak to Haig Halen after obtaining at least 50 kudos" (the Varrock Diary page).
+            if (Kudos.total(player) >= 50) world.diaries.complete(player, DiaryTask.VARROCK_EASY_11)
+            world.dialogues.start(this, op.npc) { curator() }
+        }
         // She stands behind her information booth; the player talks to her across it, as to a banker.
         world.npcInteractions.reachOverCounter(CLERK)
         world.handlers.onNpc(CLERK, TALK_TO) { op ->

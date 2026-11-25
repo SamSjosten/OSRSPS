@@ -426,6 +426,7 @@ fun registerStrongholdOfSecurity(world: World) {
         world.handlers.onLoc(WAR_LADDER_DOWN, CLIMB_DOWN) { op ->
             if (!isAt(op.loc!!, WAR_LADDER_DOWN_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             climbTo(world, Climbing.ANIM_PICKUP_FLOOR, FAMINE_LANDING)
+            world.diaries.complete(player, DiaryTask.VARROCK_EASY_5)
         }
         world.handlers.onLoc(FAMINE_LADDER_UP, CLIMB_UP) { op ->
             if (!isAt(op.loc!!, FAMINE_LADDER_UP_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)

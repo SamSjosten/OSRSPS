@@ -38,6 +38,15 @@ class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: 
         val LUMBRIDGE_BASEMENT = DiaryZone(3206, 9613, 3221, 9626, 0)
         val WISE_OLD_MAN_HOUSE = DiaryZone(3087, 3251, 3094, 3255, 0)
 
+        /** Guessed: the mine south-east of Varrock, round its rocks at 3281 to 3290, 3360 to 3371. */
+        val VARROCK_SE_MINE = DiaryZone(3278, 3357, 3294, 3374, 0)
+
+        /** Guessed: the Lumber Yard inside its fence, with the sawmill. */
+        val LUMBER_YARD = DiaryZone(3294, 3486, 3330, 3520, 0)
+
+        /** Guessed: Barbarian Village, from the river to the longhall, every floor. */
+        val BARBARIAN_VILLAGE = DiaryZone(3072, 3400, 3112, 3447)
+
         /** Guessed: round Quest Helper's altar at 3377,3285, in the Emir's Arena's prayer room. */
         val EMIRS_ARENA_ALTAR = DiaryZone(3370, 3278, 3384, 3292, 0)
     }
@@ -68,6 +77,14 @@ internal object DiaryHooks {
         Made(LightSources.MINING_HELMET_LIT, DiaryTask.LUMBRIDGE_HARD_9, DiaryZone.LUMBRIDGE_BASEMENT),
         Made(ADAMANT_PLATEBODY, DiaryTask.LUMBRIDGE_ELITE_4, DiaryZone.DRAYNOR_SEWERS),
         Made(WATER_RUNE, DiaryTask.LUMBRIDGE_ELITE_5, min = 140),
+        Made(IRON_ORE, DiaryTask.VARROCK_EASY_3, DiaryZone.VARROCK_SE_MINE),
+        Made(PLANK, DiaryTask.VARROCK_EASY_4, DiaryZone.LUMBER_YARD),
+        // Inferred: the bowl spun anywhere, its firing in the village's oven counts.
+        Made(BOWL, DiaryTask.VARROCK_EASY_10, DiaryZone.BARBARIAN_VILLAGE),
+        Made(EARTH_RUNE, DiaryTask.VARROCK_EASY_12),
+        Made(RAW_TROUT, DiaryTask.VARROCK_EASY_13, DiaryZone.BARBARIAN_VILLAGE),
+        // "Make 20 Mahogany Planks in one go": at any sawmill.
+        Made(MAHOGANY_PLANK, DiaryTask.VARROCK_MEDIUM_10, min = 20),
     )
 
     /** Pray-at with Smite on, by the altar's place. */
@@ -107,4 +124,16 @@ internal object DiaryHooks {
     const val OAK_LOGS = 1521
     const val WILLOW_LOGS = 1519
     const val ADAMANT_PLATEBODY = 1123
+    const val EARTH_RUNE = 557
+    const val RAW_TROUT = 335
+    const val PLANK = 960
+    const val MAHOGANY_PLANK = 8782
+    const val BOWL = 1923
+
+    /** `fai_varrock_dead_tree`, the Lumber Yard's dying trees, and the tea stall loc. */
+    const val DYING_TREE = 3648
+    const val TEA_STALL = 635
+
+    const val VARROCK_FENCE = "shortcut_varrock_fence"
+    const val THESSALIA_SHOP = "thessalias_fine_clothes"
 }
