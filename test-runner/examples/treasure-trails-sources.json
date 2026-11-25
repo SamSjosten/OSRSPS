@@ -6,7 +6,7 @@
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
   {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
-  {"step": "command", "text": "::clue lucky on", "expectMessage": "Every skilling clue roll hits."},
+  {"step": "command", "text": "::clue lucky on", "expectMessage": "Every skilling and casket clue roll hits."},
 
   {"step": "command", "text": "::item net", "expectMessage": "Added 1 x Small fishing net"},
   {"step": "command", "text": "::tele 3087 3228 0", "comment": "the Draynor shore by the Net/Bait spots"},
@@ -21,7 +21,7 @@
   {"step": "assertInventory", "item": "Scroll box (elite)", "comment": "one, or two if another shrimp came meanwhile"},
   {"step": "command", "text": "::empty"},
 
-  {"step": "command", "text": "::clue lucky off", "expectMessage": "Skilling clue rolls as the Wiki's."},
+  {"step": "command", "text": "::clue lucky off", "expectMessage": "Skilling and casket clue rolls as the Wiki's."},
   {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

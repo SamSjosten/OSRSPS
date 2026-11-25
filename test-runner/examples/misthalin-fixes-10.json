@@ -1,0 +1,22 @@
+{
+ "name": "Misthalin fixes 10: the barbarian anvil in Barbarian Village's pottery makes a bronze hasta from a bronze bar and logs with a hammer (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts it back"},
+  {"step": "command", "text": "::setlevel smithing 5", "expectMessage": "5"},
+  {"step": "command", "text": "::item 2347 1", "comment": "a hammer"},
+  {"step": "command", "text": "::item 2349 1", "comment": "a bronze bar"},
+  {"step": "command", "text": "::item 1511 1", "comment": "logs"},
+  {"step": "command", "text": "::tele 3083 3411 0", "expectMessage": "Teleported to 3083, 3411, 0", "comment": "beside the anvil"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 25349, "option": "Smith", "x": 3082, "y": 3411, "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 270, "timeoutMs": 10000, "comment": "the Make-X box: bronze spear, bronze hasta"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 16, "comment": "the hasta"},
+  {"step": "assertMessage", "contains": "[barbarian_anvil.made item=bronze hasta]", "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Bronze hasta", "count": 1, "timeoutMs": 5000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

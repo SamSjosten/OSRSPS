@@ -20,7 +20,7 @@ import osrsps.game.content.ShearedRam
  * Wilderness, bird houses, twitcher's gloves.
  */
 class SkillingClues(private val world: World, private val trails: TreasureTrails) {
-    /** Players (save keys) whose every roll hits, set by `::clue lucky` for tests and runner scripts. Not saved. */
+    /** Players (save keys) whose every roll hits (and every casket's master roll), set by `::clue lucky` for tests and runner scripts. Not saved. */
     val lucky = HashSet<String>()
 
     /** A successful [skill] action whose base chance is [base] (one of [MINING], [WOODCUTTING] or [FISHING]'s). */

@@ -415,6 +415,8 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
 | Cannonballs (`Cannonballs.kt`): a bar or the ammo mould used on a furnace with the mould held casts one bar into 4, 8 ticks then 10; bronze 5 (8.8 XP a bar), iron 20 (17.2), steel 35 (25.6), mithril 55 (34), adamant 75 (42.4), rune 90 (50.8); the double ammo mould casts two bars into 8 for twice the XP | OSRS Wiki, Steel cannonball and the other cannonball pages, Double ammo mould |
 | Cannonballs: Dwarf Cannon and Sleeping Giants count as done; a double mould casting a last odd bar into 4; one message a cast; the animation | guessed |
+| The barbarian anvil (`BarbarianAnvil.kt`, `brut_anvil` 25349 in Barbarian Village's pottery, 3082,3411): Smith, or a bar or logs used on it, makes a spear or a hasta from a bar and its logs with a hammer, 4 ticks each: bronze and logs 5 (25 XP), iron and oak 20 (50), steel and willow 35 (75), mithril and maple 55 (100), adamantite and yew 75 (125), runite and magic 90 (150); Barbarian Training counts as done | OSRS Wiki, Barbarian anvil, Barbarian Training and each spear's and hasta's page (read 2026-11-19) |
+| Barbarian anvil: the box offering a spear and a hasta for every metal held, the anvil animation, the messages | guessed |
 | Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, granite cannonballs, the ancient furnace, jewellery, blurite and lovakite | out of scope |
 
 ### Fletching

@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import osrsps.game.Player
 import osrsps.game.VarTypes
+import osrsps.game.skill.LightSources
 
 /** Which actions where do which diary task: the place checks, the counts and the names. */
 class DiaryHooksTest {
@@ -21,6 +22,18 @@ class DiaryHooksTest {
         assertEquals(listOf(DiaryTask.LUMBRIDGE_EASY_4), DiaryHooks.made(DiaryHooks.MADE, at(2716, 4836), DiaryHooks.WATER_RUNE, 3))
         assertEquals(listOf(DiaryTask.LUMBRIDGE_MEDIUM_12), DiaryHooks.made(DiaryHooks.MADE, at(2585, 4838), DiaryHooks.LAVA_RUNE, 1))
         assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(2655, 4839), DiaryHooks.LAVA_RUNE, 1), "the earth altar")
+    }
+
+    @Test
+    fun `the hard and elite items, a lit helmet in the basement, a platebody in the sewers, 140 water runes at once`() {
+        assertEquals(listOf(DiaryTask.LUMBRIDGE_HARD_9), DiaryHooks.made(DiaryHooks.MADE, at(3210, 9620), LightSources.MINING_HELMET_LIT, 1))
+        assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(3210, 3220), LightSources.MINING_HELMET_LIT, 1))
+        assertEquals(listOf(DiaryTask.LUMBRIDGE_ELITE_4), DiaryHooks.made(DiaryHooks.MADE, at(3112, 9689), DiaryHooks.ADAMANT_PLATEBODY, 1))
+        assertEquals(
+            listOf(DiaryTask.LUMBRIDGE_EASY_4, DiaryTask.LUMBRIDGE_ELITE_5),
+            DiaryHooks.made(DiaryHooks.MADE, at(2716, 4836), DiaryHooks.WATER_RUNE, 140),
+        )
+        assertEquals(listOf(DiaryTask.LUMBRIDGE_EASY_4), DiaryHooks.made(DiaryHooks.MADE, at(2716, 4836), DiaryHooks.WATER_RUNE, 139))
     }
 
     @Test

@@ -18,7 +18,7 @@ import osrsps.game.npc.NpcSpawn
  * - The fight ends with no win if the player logs out, stays more than [LEAVE_RANGE] tiles from its NPCs for
  *   [FIGHT_TICKS], or the trail moves on; its NPCs go, and the next Dig or emote brings them back. A long fight fought
  *   up close never runs out (Codex review on #878).
- * - One of a key step's monsters, killed by a player holding that step's clue but not its key (backpack or bank),
+ * - One of a key step's monsters, killed by a player holding that step's clue but not its key (backpack, bank or on the ground for them),
  *   drops the key under it, for that player only. Search or Open on the step's chest or drawers with the key takes it
  *   and gives the next clue; without it the player is told it's locked.
  *
@@ -81,7 +81,8 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
             val step = trails.data.byItem[obj.id] ?: continue
             val key = step.targets.first() as? TrailTarget.Key ?: continue
             if (npc.type.id !in key.npcs || step !in trails.pool(tier) || killer.trails[tier]?.step != step.key) continue
-            if (killer.inventory.count(key.key) > 0 || killer.bank.count(key.key) > 0) return
+            // One dropped for them and still on the ground counts too (exploit review R52C-3).
+            if (killer.inventory.count(key.key) > 0 || killer.bank.count(key.key) > 0 || world.groundObjs.hasDropped(killer, key.key)) return
             val type = world.objTypes[key.key] ?: return
             world.groundObjs.addPrivate(type, 1, npc.x, npc.z, npc.level, killer.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
             return

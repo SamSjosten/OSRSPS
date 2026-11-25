@@ -41,7 +41,8 @@ as the client reads them.
 RSProx starts its RuneLite in developer mode with the RuneLite folder `C:\RSPS\.rlcustom`, and developer mode loads every
 jar in `sideloaded-plugins` at startup.
 
-1. Download `test-runner-jar` from the latest `build` run on GitHub Actions and unzip it.
+1. Fetch `test-runner-jar` with `powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\repo-fetch.ps1 -Artifact test-runner-jar -OutFile C:\RSPS\downloads\test-runner-jar.zip` and unzip it
+   (it takes only this repository's own `main` builds; an artifact picked by hand from the Actions page could be a fork pull request's, and developer mode runs whatever jar is in `sideloaded-plugins`, exploit review R54C-1).
 2. Copy `test-runner-<version>.jar` to `C:\RSPS\.rlcustom\sideloaded-plugins\` (remove an older test-runner jar).
 3. Start `C:\RSPS\RSProx.cmd`. **OSRSPS Test Runner** is on by default; its folders are created on first start.
 
