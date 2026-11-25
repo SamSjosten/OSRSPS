@@ -22,7 +22,7 @@
     {"step": "chooseOption", "text": "[izzy.here_you_go]"},
     {"step": "continueDialogue", "comment": "the player says it"},
     {"step": "continueDialogue", "comment": "[izzy.suits_you]"},
-    {"step": "assertInventory", "item": "Agility cape", "count": 1, "comment": "untrimmed if the account has no other 99; a failure here naming Agility cape(t) means it has one"},
+    {"step": "assertInventory", "item": "Agility cape(t)", "count": 1, "comment": "trimmed: the gathering scenario's 99 Mining is another 99"},
     {"step": "assertInventory", "item": "Agility hood", "count": 1},
     {"step": "npcOption", "npc": "Cap'n Izzy No-Beard", "option": "Talk-to", "timeoutMs": 20000},
     {"step": "continueDialogue", "comment": "[izzy.ahoy_capn]"},

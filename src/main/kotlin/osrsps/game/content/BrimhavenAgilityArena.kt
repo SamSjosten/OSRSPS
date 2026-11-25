@@ -179,14 +179,19 @@ class AgilityArena(private val world: World) {
      * True when the arrow is due to move but nobody was in the arena to see it: the draw waits for the next player in,
      * so an empty arena takes nothing from [World.random] and seeded runs elsewhere replay as before.
      */
+    @Volatile
     private var due = true
 
     /** How often the arrow moves; tests hold it still or hurry it. */
+    @Volatile
     internal var rotateTicks = BrimhavenAgilityArena.ROTATE_TICKS
     private var movedAt = 0L
     private val tagged = HashSet<String>()
     private val paid = HashSet<String>()
     private val shown = HashMap<String, Int>()
+
+    /** Tests: moves the arrow once on the next tick a player is in the arena, whatever [rotateTicks] is. */
+    internal fun moveArrow() { due = true }
 
     fun pay(player: Player) { paid += player.saveKey }
     fun usePaid(player: Player): Boolean = paid.remove(player.saveKey)

@@ -170,10 +170,9 @@ class HeadlessAgilityArenaTest {
                 assertEquals(1L, client.held(BrimhavenAgilityArena.TICKET))
                 // Once it moves, to another dispenser, the next tag pays again.
                 val arrows = client.arrows().size
-                arena.rotateTicks = 1
+                // Exactly one move: the timer stays held, so a slow test thread can't see a second one.
+                arena.moveArrow()
                 client.await("the arrow to move") { if (client.arrows().size > arrows) Unit else null }
-                arena.rotateTicks = Int.MAX_VALUE
-                client.awaitTicks(2)
                 val next = BrimhavenAgilityArena.DISPENSERS[arena.active]
                 assertTrue(next != active, "the arrow moves to another dispenser")
                 client.tele(next.x, next.z - 1, 3)
