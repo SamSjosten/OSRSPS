@@ -356,6 +356,7 @@ class Diaries(private val world: World, private val font: ChatFont) {
         player.vars[task.varp] = player.vars[task.varp] and (1 shl task.bit).inv()
         // The emotes done so far go too, so the reset starts the task afresh (Codex on #932).
         if (task == DiaryTask.VARROCK_MEDIUM_5) player.charges[SOS_EMOTES_CHARGE] = 0
+        if (task == DiaryTask.VARROCK_HARD_1) player.charges[SPOTTIER_BOUGHT_CHARGE] = 0
         refresh(player, task.area)
         val reward = task.area.rewardVarbits[task.tier.ordinal]
         if (player.vars.types.varbit(reward) != null) player.vars.setVarbit(reward, 0)
