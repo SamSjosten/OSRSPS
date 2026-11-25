@@ -1,5 +1,5 @@
 {
- "name": "Achievement diaries: Toby gives Varrock armour 1 and the easy lamp, opens the diary tab and gives the armour again (::keys on)",
+ "name": "Achievement diaries: Toby gives Varrock armour 1 and the easy lamp, opens the diary tab, turns down another armour with a full pack and gives it with room (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -155,6 +155,69 @@
   {
    "step": "command",
    "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::item 13148 28",
+   "comment": "a full pack of elite lamps: no room for another platebody"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5525,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.another_platebody]",
+   "comment": "offered, as the armour is gone"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.another_platebody]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.no_space]",
+   "comment": "turned down, and nothing lands on the floor (exploit review R55A-1)"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Varrock armour 1",
+   "absent": true
+  },
+  {
+   "step": "assertInventory",
+   "item": "Varrock armour 1",
+   "count": 0
+  },
+  {
+   "step": "walk",
+   "x": 3228,
+   "y": 3418,
+   "comment": "a step away shuts his menu"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "walk",
+   "x": 3226,
+   "y": 3416
   },
   {
    "step": "waitTicks",

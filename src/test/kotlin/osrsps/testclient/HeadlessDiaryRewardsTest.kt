@@ -7,6 +7,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameFrame
 import osrsps.game.Inventory
+import osrsps.game.InventoryTab
 import osrsps.game.JournalTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -35,7 +36,7 @@ class HeadlessDiaryRewardsTest {
     private val mikasi = talker(Mikasi.ID, "Mikasi")
     private val toby = talker(VarrockSweepTalkers.TOBY, "Toby")
     private val objs = ObjTypes.of(
-        *(DiaryArea.LUMBRIDGE.rewards + DiaryArea.VARROCK.rewards).map { ObjType(it, "Diary reward") }.toTypedArray(),
+        *(DiaryArea.LUMBRIDGE.rewards + DiaryArea.VARROCK.rewards).map { ObjType(it, "Diary reward", iops = listOf(null, null, null, null, "Drop")) }.toTypedArray(),
         *AntiqueLamps.Lamp.entries.map { ObjType(it.obj, "Antique lamp") }.toTypedArray(),
     )
 
@@ -83,12 +84,35 @@ class HeadlessDiaryRewardsTest {
         await("'$command' done") { Unit.takeIf { messages().drop(before).any { "task(s) done" in it.text } } }
     }
 
+    private fun HeadlessClient.fill(n: Int) {
+        command("item ${AntiqueLamps.Lamp.ELITE.obj} $n")
+        awaitCount(AntiqueLamps.Lamp.ELITE.obj, n)
+    }
+
+    private fun HeadlessClient.emptied() {
+        command("empty")
+        await("an empty pack") { Unit.takeIf { inventory(Inventory.INV).all { it == null } } }
+    }
+
+    private fun HeadlessClient.diaryRewardsOnGround() = groundObjs().count { it.id in DiaryArea.LUMBRIDGE.rewards || it.id in DiaryArea.VARROCK.rewards }
+
     @Test
     fun `Mikasi gives the easy ring and lamp, once, and the ring again when it's lost`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.done("diary complete lumbridge easy all")
+
+                // One free space: the claim is turned down, and nothing is claimed or dropped (exploit review R55A-2).
+                client.fill(27)
+                client.talk(Mikasi.ID)
+                client.chat("[mikasi.claim_easy]", "[mikasi.want_reward]", "[mikasi.yes_please]", "[mikasi.no_space]")
+                client.await("the talk over") { Unit.takeIf { client.dialogueView == null } }
+                assertEquals(0, client.varp(ACHIEVEMENT_DIARY_REWARDS2), "not claimed")
+                assertEquals(0, client.count(DiaryArea.LUMBRIDGE.rewards[0]))
+                assertEquals(0, client.diaryRewardsOnGround(), "nothing on the floor")
+                client.emptied()
+
                 client.talk(Mikasi.ID)
                 client.chat("[mikasi.claim_easy]", "[mikasi.want_reward]", "[mikasi.yes_please]", "[mikasi.ring_easy]", "[mikasi.wow_thanks]", "[mikasi.lose_ring]")
                 client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
@@ -105,6 +129,17 @@ class HeadlessDiaryRewardsTest {
 
                 client.command("empty")
                 client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 0)
+                // A full pack: another ring is turned down, and none lands on the floor (exploit review R55A-1).
+                client.fill(28)
+                client.talk(Mikasi.ID)
+                client.menu("[mikasi.another_ring]", "[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.chooseOption(1)
+                client.chat("[mikasi.another_ring]", "[mikasi.no_space]")
+                client.menu("[mikasi.another_ring]", "[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                assertEquals(0, client.count(DiaryArea.LUMBRIDGE.rewards[0]))
+                assertEquals(0, client.diaryRewardsOnGround(), "nothing on the floor")
+                client.closeModal()
+                client.emptied()
                 client.talk(Mikasi.ID)
                 client.menu("[mikasi.another_ring]", "[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
                 client.chooseOption(1)
@@ -140,6 +175,15 @@ class HeadlessDiaryRewardsTest {
                 client.awaitCount(DiaryArea.LUMBRIDGE.rewards[2], 1)
                 assertEquals(1, client.count(DiaryArea.LUMBRIDGE.rewards[0]), "the easy ring isn't given again")
                 assertEquals(0, client.count(DiaryArea.LUMBRIDGE.rewards[1]), "nor the medium one")
+                client.closeModal()
+
+                // Dropped, it lies on the floor still, so it isn't lost and no other is given (exploit review R55A-1).
+                val hard = DiaryArea.LUMBRIDGE.rewards[2]
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, DROP_BUTTON_OP, client.inventory(Inventory.INV).indexOfFirst { it?.id == hard }, hard)
+                client.await("the ring on the floor") { Unit.takeIf { client.groundObjs().any { it.id == hard } } }
+                client.awaitCount(hard, 0)
+                client.talk(Mikasi.ID)
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
             }
         }
     }
@@ -177,10 +221,26 @@ class HeadlessDiaryRewardsTest {
                 client.chat("[toby.diary_2]")
                 client.closeModal()
 
+                // Lost, with a full pack: another platebody is turned down, and none lands on the floor (exploit review R55A-1).
+                client.closeModal()
+                client.emptied()
+                client.fill(28)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.hello]")
+                client.menu("[toby.another_platebody]", "[toby.who]", "[toby.question]", "[toby.bye]")
+                client.chooseOption(1)
+                client.chat("[toby.another_platebody]", "[toby.no_space]")
+                client.menu("[toby.another_platebody]", "[toby.who]", "[toby.question]", "[toby.bye]")
+                assertEquals(0, client.count(DiaryArea.VARROCK.rewards[0]))
+                assertEquals(0, client.diaryRewardsOnGround(), "nothing on the floor")
+                client.closeModal()
+                client.emptied()
+
                 client.done("diary complete varrock elite all")
                 client.talk(VarrockSweepTalkers.TOBY)
                 client.chat("[toby.claim_elite]", "[toby.elite_earlier]")
-                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                // The easy platebody is still lost from above, so he offers another.
+                client.menu("[toby.another_platebody]", "[toby.who]", "[toby.question]", "[toby.bye]")
                 assertTrue(client.count(DiaryArea.VARROCK.rewards[3]) == 0)
             }
         }
@@ -189,5 +249,8 @@ class HeadlessDiaryRewardsTest {
     private companion object {
         const val ACHIEVEMENT_DIARY_REWARDS = 1190
         const val ACHIEVEMENT_DIARY_REWARDS2 = 1191
+
+        /** iop5 (Drop) is button op 7. */
+        const val DROP_BUTTON_OP = 7
     }
 }
