@@ -397,6 +397,7 @@ object DialogueLines {
         DavonLines,
         DeadMansBartenderLines,
         AlfonseLines,
+        SanibochLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
