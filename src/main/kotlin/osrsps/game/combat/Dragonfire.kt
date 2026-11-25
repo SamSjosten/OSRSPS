@@ -17,8 +17,11 @@ object DragonfireLines : Lines("dragonfire", "Dragonfire") {
  * swing (Mod Ash via the Wiki's Dragonfire page: 1 in 6). [anim] and [cast] are its animation and the spotanim on it.
  * A [metallic] dragon's (bronze, iron, steel...) is typeless: Protect from Magic does nothing against it (the Wiki's
  * Dragonfire page, read 2026-11-25: "Metallic dragons, Drakes, and Galvek are unaffected by Protect from Magic").
+ * A dragon with a [range] (the metal dragons, which breathe from a distance on live) breathes at a player it can't reach
+ * but sees within that many tiles, each time its attack is due, so standing out of its reach is no safespot. 0 is
+ * melee reach only.
  */
-data class NpcDragonfire(val chance: Int, val anim: Int = -1, val cast: Int = -1, val metallic: Boolean = false)
+data class NpcDragonfire(val chance: Int, val anim: Int = -1, val cast: Int = -1, val metallic: Boolean = false, val range: Int = 0)
 
 /**
  * The chromatic dragons' dragonfire table (the Wiki's Dragonfire page, Damage reduction, read 2026-11-15): unprotected
