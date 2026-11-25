@@ -22,8 +22,13 @@
    "comment": "::reset at the end puts the account back"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
    "step": "command",
-   "text": "::setlevel mining 30"
+   "text": "::setlevel mining 30",
+   "expectMessage": "Mining set to level 30"
   },
   {
    "step": "command",
@@ -54,7 +59,7 @@
    "interfaceId": 240,
    "component": 17,
    "op": 1,
-   "comment": "the pickaxe: the icons run row by row, six wide, from component 2 (Agility 10 as in random-events-genie.json, Slayer 15 as a run on 217 showed), so Mining at row 3, column 4 is 17 (inferred)"
+   "comment": "xpreward:mining, row 3 column 4 (osrs-dumps xpreward.if3: attack is 2, then six to a row with sailing at 7)"
   },
   {
    "step": "waitTicks",
