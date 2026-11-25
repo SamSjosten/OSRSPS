@@ -76,7 +76,7 @@ sealed interface AgilityMove {
      * Walks the player along [path] one tile a tick, through whatever is in the way, with [anim] as every walking and
      * standing animation of their stance meanwhile (a log balance's, a tightrope's).
      */
-    data class Walk(val path: List<Tile>, val anim: Int) : AgilityMove
+    data class Walk(val path: List<Tile>, val anim: Int, val ticks: Int = 0) : AgilityMove
 
     /**
      * Slides the player from where they stand to [to] (the client's exact move), starting [startCycles] client cycles
@@ -281,6 +281,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
             "walk" -> AgilityMove.Walk(
                 json.getValue("path").jsonArray.map { it.jsonArray.let { tile -> Tile(tile[0].jsonPrimitive.int, tile[1].jsonPrimitive.int) } },
                 json.int("anim"),
+                json["ticks"]?.jsonPrimitive?.int ?: 0,
             )
             "slide" -> AgilityMove.Slide(
                 tile(json.getValue("to").jsonArray), json.int("anim"), json.int("startCycles"), json.int("endCycles"), json.int("ticks"),
@@ -488,11 +489,26 @@ class Agility(private val world: World, val data: AgilityData) {
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
         try {
-            forcedWalk(steps(Tile(player.x, player.z), move.path))
+            val steps = steps(Tile(player.x, player.z), move.path)
+            if (move.ticks <= steps.size) forcedWalk(steps) else pacedWalk(steps, move.ticks)
         } finally {
             // The stance goes back even if the walk is cut short (a logout).
             player.stanceOverride = null
         }
+    }
+
+    /**
+     * Walks [steps] spread evenly over [ticks] ticks, for an obstacle slower than a tile a tick (the Brimhaven arena's
+     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due.
+     */
+    private suspend fun ScriptContext.pacedWalk(steps: List<Tile>, ticks: Int) {
+        val start = world.tick
+        for ((i, step) in steps.withIndex()) {
+            val due = start + ticks.toLong() * i / steps.size
+            while (world.tick < due) delay(1)
+            forcedWalk(listOf(step))
+        }
+        while (world.tick < start + ticks) delay(1)
     }
 
     /**

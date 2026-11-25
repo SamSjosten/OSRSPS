@@ -58,7 +58,8 @@ class HeadlessAgilityArenaTest {
     ) + BrimhavenAgilityArena.DISPENSERS.map { ZoneLoc(BrimhavenAgilityArena.DISPENSER, 10, 0, it.x, it.z, it.level) } +
         // The western planks, ends and middle pieces, and a climbing rope in the pit below their east end.
         PLANKS.flatMap { (z, ids) -> ids.mapIndexed { i, (id, angle) -> ZoneLoc(id, 22, angle, 2764 + i, z, 3) } } +
-        ZoneLoc(BrimhavenAgilityArena.CLIMBING_ROPE, 10, 0, 2771, 9557, 0)
+        ZoneLoc(BrimhavenAgilityArena.CLIMBING_ROPE, 10, 0, 2771, 9557, 0) +
+        ZoneLoc(MONKEY_BARS, 22, 0, 2771, 9570, 3)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -367,11 +368,33 @@ class HeadlessAgilityArenaTest {
         }
     }
 
+    @Test
+    fun `the monkey bars take 13 ticks across, not a tile a tick`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("mo").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2771, 9570, 3)
+                client.awaitTicks(2)
+                client.locOp(MONKEY_BARS, 2771, 9570, 1)
+                client.await("on the bars") { client.position?.takeIf { it.z > 9570 } }
+                val started = server.world.tick
+                client.await("across") { client.position?.takeIf { it == Coord(2771, 9577, 3) } }
+                val took = server.world.tick - started
+                // The first tile is taken as the walk starts, so 6 more tiles across the rest of the 13 ticks.
+                assertTrue(took in 10..13, "the bars took $took ticks after the first tile")
+            }
+        }
+    }
+
     private fun endAt(z: Int) = PLANKS.getValue(z).last().first
 
     private companion object {
         const val AGILITY = 16
         const val HITPOINTS = 3
+        const val MONKEY_BARS = 3564
 
         /** The western planks by row, west to east: loc id and angle, as the 242 map has them. */
         val PLANKS = mapOf(
