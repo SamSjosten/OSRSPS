@@ -210,15 +210,15 @@
   },
   {
    "step": "command",
-   "text": "::tele 3238 9762 0",
-   "expectMessage": "Teleported to 3238, 9762, 0",
+   "text": "::tele 3235 9762 0",
+   "expectMessage": "Teleported to 3235, 9762, 0",
    "comment": "beside the chest"
   },
   {
    "step": "locOption",
    "locId": 2403,
    "option": "Open",
-   "x": 3238,
+   "x": 3235,
    "y": 9761,
    "timeoutMs": 20000
   },

@@ -178,6 +178,17 @@ object DorgeshuunTunnels {
     val TUNNEL_MAZE_END = Spot(3245, 9648)
     val TUNNEL_MILL_END = Spot(3245, 9662)
 
+    /**
+     * The one tile each cellar climb and tunnel stands on (exploit review R52A-2): a copy of the type anywhere else
+     * moves nobody. [DorgeshuunPlacementAuditTest] checks the real map has no other copy.
+     */
+    val PLACED = mapOf(
+        MILL_TRAPDOOR to Destination(3230, 3286, 0),
+        MILL_LADDER to Destination(3240, 9695, 0),
+        TUNNEL_MAZE_SIDE to Destination(3245, 9649, 0),
+        TUNNEL_MILL_SIDE to Destination(3245, 9661, 0),
+    )
+
     /** human_longcrawl, as the Grand Exchange tunnel's (guessed). */
     const val ANIM_CRAWL = 2796
     const val CRAWL_TICKS = 3
@@ -380,21 +391,24 @@ fun registerDorgeshuunTunnels(world: World) = with(DorgeshuunTunnels) {
         if (shop) world.shopTypes.ofNpc(NARDOK)?.let { world.shopScreen.open(player, it) }
     }
 
-    world.handlers.onLoc(MILL_TRAPDOOR, OP_1) {
+    world.handlers.onLoc(MILL_TRAPDOOR, OP_1) { op ->
         arriveDelay()
+        if (!placedAt(world, op.loc, PLACED[MILL_TRAPDOOR])) return@onLoc
         player.anim(Climbing.ANIM_PICKUP_FLOOR)
         delay(1)
         world.teleport(player, MILL_BELOW.x, MILL_BELOW.z, MILL_BELOW.level)
     }
-    world.handlers.onLoc(MILL_LADDER, OP_1) {
+    world.handlers.onLoc(MILL_LADDER, OP_1) { op ->
         arriveDelay()
+        if (!placedAt(world, op.loc, PLACED[MILL_LADDER])) return@onLoc
         player.anim(Climbing.ANIM_REACH_FOR_LADDER)
         delay(1)
         world.teleport(player, MILL_ABOVE.x, MILL_ABOVE.z, MILL_ABOVE.level)
     }
     for ((tunnel, to) in listOf(TUNNEL_MAZE_SIDE to TUNNEL_MILL_END, TUNNEL_MILL_SIDE to TUNNEL_MAZE_END)) {
-        world.handlers.onLoc(tunnel, OP_1) {
+        world.handlers.onLoc(tunnel, OP_1) { op ->
             arriveDelay()
+            if (!placedAt(world, op.loc, PLACED[tunnel])) return@onLoc
             player.anim(ANIM_CRAWL)
             delay(CRAWL_TICKS)
             world.teleport(player, to.x, to.z, to.level)

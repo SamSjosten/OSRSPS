@@ -946,6 +946,39 @@ class HeadlessClanTest {
     }
 
     @Test
+    fun `Enter clan hall is set on the permissions page, and a guest is kept out once it is a member rank`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        found(server, alice, bob, "Odins Gate")
+                        val clans = server.world.clans
+                        val clan = clans.clanNamed("Odins Gate")!!
+                        val carolP = server.world.playerNamed("carol")!!
+                        assertTrue(clans.mayEnterHall(carolP, clan), "guests by default")
+
+                        alice.yourClanTab()
+                        alice.await("the clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                        alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                        alice.await("the settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                        alice.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                        alice.await("the permissions page") { alice.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+                        val popupAt = Clans.component(Clans.PERMISSIONS, Clans.PERMISSIONS_POPUP)
+
+                        // Enter clan hall (slot 20) runs from Guest; rank 0 picked, guests stay out.
+                        val since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 20)
+                        assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_GUEST, Clans.RANK_GUEST, Clans.RANK_OWNER, 0, popupAt), alice.await("the enter list") { alice.rankPopup(since) })
+                        alice.resumeCount(0 + 1)
+                        alice.await("Enter at 0") { Unit.takeIf { clans.setting(clan, Clans.VAR_ENTER_HALL) == Clans.RANK_FOUNDER } }
+                        assertFalse(clans.mayEnterHall(carolP, clan))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `Talk in chat lets guests talk and Kick from chat lets members kick, set on the permissions page`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

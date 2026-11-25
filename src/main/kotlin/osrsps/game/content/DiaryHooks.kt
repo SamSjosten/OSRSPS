@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.Player
+import osrsps.game.skill.LightSources
 
 /**
  * A box of tiles a task has to be done in, on [level] or on any level when it is null. Each is Quest Helper's zone for
@@ -34,6 +35,11 @@ class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: 
         val DRAYNOR_SEWERS = DiaryZone(3077, 9641, 3132, 9699, 0)
         val LUMBRIDGE_SWAMP_CAVES = DiaryZone(3140, 9537, 3261, 9602, 0)
         val FIRE_ALTAR = DiaryZone(2553, 4802, 2623, 4863, 0)
+        val LUMBRIDGE_BASEMENT = DiaryZone(3206, 9613, 3221, 9626, 0)
+        val WISE_OLD_MAN_HOUSE = DiaryZone(3087, 3251, 3094, 3255, 0)
+
+        /** Guessed: round Quest Helper's altar at 3377,3285, in the Emir's Arena's prayer room. */
+        val EMIRS_ARENA_ALTAR = DiaryZone(3370, 3278, 3384, 3292, 0)
     }
 }
 
@@ -58,7 +64,14 @@ internal object DiaryHooks {
         Made(COIF, DiaryTask.LUMBRIDGE_MEDIUM_7, DiaryZone.LUMBRIDGE_COW_PEN),
         Made(WILLOW_LOGS, DiaryTask.LUMBRIDGE_MEDIUM_8, DiaryZone.DRAYNOR),
         Made(LAVA_RUNE, DiaryTask.LUMBRIDGE_MEDIUM_12, DiaryZone.FIRE_ALTAR),
+        // A mining helmet lit counts as one made lit.
+        Made(LightSources.MINING_HELMET_LIT, DiaryTask.LUMBRIDGE_HARD_9, DiaryZone.LUMBRIDGE_BASEMENT),
+        Made(ADAMANT_PLATEBODY, DiaryTask.LUMBRIDGE_ELITE_4, DiaryZone.DRAYNOR_SEWERS),
+        Made(WATER_RUNE, DiaryTask.LUMBRIDGE_ELITE_5, min = 140),
     )
+
+    /** Pray-at with Smite on, by the altar's place. */
+    val SMITE_ALTARS = listOf(DiaryZone.EMIRS_ARENA_ALTAR to DiaryTask.LUMBRIDGE_HARD_10)
 
     /**
      * Logs lit. Inferred: "Chop and burn some oak logs in Lumbridge" counts when they're burned there, whoever chopped
@@ -93,4 +106,5 @@ internal object DiaryHooks {
     const val COIF = 1169
     const val OAK_LOGS = 1521
     const val WILLOW_LOGS = 1519
+    const val ADAMANT_PLATEBODY = 1123
 }
