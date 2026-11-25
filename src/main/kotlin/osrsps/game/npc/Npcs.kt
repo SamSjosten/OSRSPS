@@ -200,6 +200,18 @@ class Npcs(
     }
 
     /**
+     * Whether [npc] could go [steps] steps of [dx], [dz] in a straight line from where it stands, as the map has it (walls
+     * and blocked tiles; other NPCs aren't counted): for a charge that is never made into a wall (Brutus).
+     */
+    fun clearLine(npc: Npc, dx: Int, dz: Int, steps: Int): Boolean {
+        val size = npc.type.size
+        for (i in 0 until steps) {
+            if (!Steps.canStep(collision, npc.level, npc.x + dx * i, npc.z + dz * i, dx, dz, size)) return false
+        }
+        return true
+    }
+
+    /**
      * The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes: those in play
      * ([inPlay]), or with [hidden] the hidden ones too (::npcs lists them).
      */

@@ -796,6 +796,10 @@ class MeleeCombat(
     fun reaches(npc: Npc, player: Player): Boolean =
         npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
 
+    /** Whether [npc], with its south-west tile on [x], [z], would reach [player] from there: where a boss lands beside them. */
+    fun reachesFrom(npc: Npc, x: Int, z: Int, player: Player): Boolean =
+        npc.level == player.level && Reach.reachedEntity(collision, npc.level, x, z, npc.type.size, player.x, player.z, 1, 1)
+
     /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
     fun sees(npc: Npc, player: Player): Boolean =
         npc.level == player.level && LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
