@@ -75,7 +75,7 @@ object MuseumTimelineLines : Lines("historian_minas_timeline", "Transcript:Histo
  * line is said, so walking away later loses neither; a lamp that doesn't fit dropped under the player; Making History's
  * and Curse of the Empty Lord's lamps given with the Shield of Arrav lamp lines (the transcript shows no lamp for
  * either); `vm_soa_vis` (the shield's case shown) set with Shield of Arrav's display. Left out: rubbing the lamps (no lamp
- * interface yet) and the displays' Study.
+ * interface yet); the displays' Study is [MuseumDisplays].
  */
 object MuseumTimeline {
     const val VARBIT_STAFF_OF_ARMADYL = 3650

@@ -33,6 +33,9 @@ val MUSEUM_VARBITS: Map<Int, VarbitType> = mapOf(
         MuseumTimeline.VARBIT_SALVE_KNIGHTS to VarbitType(1011, 9, 10),
         MuseumTimeline.VARBIT_DEFENDER to VarbitType(1011, 21, 21),
         MuseumTimeline.VARBIT_SHIELD_SHOWN to VarbitType(1011, 22, 22),
+        MuseumDisplays.VARBIT_TABLET to VarbitType(1011, 0, 0),
+        MuseumDisplays.VARBIT_TALISMAN to VarbitType(1011, 1, 1),
+        MuseumDisplays.VARBIT_GOLEM_STATUETTE to VarbitType(437, 17, 17),
     ) + (MuseumTimeline.VARBIT_OBSERVATORY..MuseumTimeline.VARBIT_RUNES).associateWith { VarbitType(1011, 11 + it - 3652, 11 + it - 3652) }
 
 /** Kudos counted from the museum's varbits, the clerk's rewards, and cleaning never turning up a find twice (R29B-2). */
