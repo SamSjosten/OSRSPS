@@ -78,6 +78,9 @@ class ClanParty(private val world: World) {
 
     private val parties = HashMap<Long, Party>()
 
+    /** The tick of each player's last confirm that moved items, by save key: one per [CONFIRM_TICKS] (Codex on PR 959). */
+    private val lastConfirm = HashMap<String, Long>()
+
     fun register() {
         world.handlers.onLoc(CHEST_CLOSED, OPEN) { op ->
             arriveDelay()
@@ -230,6 +233,11 @@ class ClanParty(private val world: World) {
     private fun confirm(player: Player) {
         val (clan, party) = partyHere(player) ?: return
         if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
+        if (player.priceChecker.contents().isEmpty()) return
+        // Each confirm writes the donor's save, so they're spaced out: a client can't stall the tick with saves.
+        val last = lastConfirm[player.saveKey]
+        if (last != null && world.tick - last < CONFIRM_TICKS) return
+        lastConfirm[player.saveKey] = world.tick
         var full = false
         val moved = ArrayList<Pair<osrsps.game.ObjType, Int>>()
         for ((slot, obj) in player.priceChecker.contents()) {
@@ -348,6 +356,9 @@ class ClanParty(private val world: World) {
         const val SHUT = 3
         const val CHECK_PERMISSIONS = 4
         const val PULL = 1
+
+        /** Ticks between one player's confirms. A guess: live's rate isn't known. */
+        const val CONFIRM_TICKS = 2L
         const val BURST = 1
 
         /** balloon_yellow to balloon3, and each one's burst look. */
