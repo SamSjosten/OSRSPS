@@ -28,7 +28,7 @@ class HeadlessMixingTest {
         objs[SUPER_COMBAT] = ObjType(SUPER_COMBAT, "Super combat potion(4)", tradeable = true)
         objs[AMYLASE] = ObjType(AMYLASE, "Amylase crystal", stackable = true, tradeable = true)
         objs[VIAL] = ObjType(VIAL, "Vial", tradeable = true)
-        World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), cycleMillis = millis)
+        World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(WEST_BANK_X shr 6, WEST_BANK_Z shr 6) }, objTypes = ObjTypes(objs), cycleMillis = millis)
     }
 
     private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filter { it?.id == id }.sumOf { it!!.count }
@@ -79,6 +79,27 @@ class HeadlessMixingTest {
                 for (id in listOf(TORSTOL, SUPER_ATTACK, SUPER_STRENGTH, SUPER_DEFENCE)) assertEquals(0, client.count(id), "item $id used")
                 assertEquals(2, client.count(VIAL), "two of the three potions' vials back")
                 assertEquals(150, client.await("150 XP") { client.xpOver99().takeIf { it >= 150 } })
+            }
+        }
+    }
+
+    @Test
+    fun `a super combat mixed in Varrock's West Bank is the Varrock elite diary task, and one mixed outside isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bea").use { client ->
+                client.ready()
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                for (id in listOf(TORSTOL, SUPER_ATTACK, SUPER_STRENGTH, SUPER_DEFENCE)) client.give(id)
+                client.mix(TORSTOL, SUPER_ATTACK)
+                client.await("the super combat") { if (client.count(SUPER_COMBAT) == 1) Unit else null }
+                assertEquals(0, diaryTasksDone(), "outside the West Bank")
+
+                client.command("tele $WEST_BANK_X $WEST_BANK_Z 0")
+                client.await("in the West Bank") { client.position?.takeIf { it.x == WEST_BANK_X && it.z == WEST_BANK_Z } }
+                for (id in listOf(TORSTOL, SUPER_ATTACK, SUPER_STRENGTH, SUPER_DEFENCE)) client.give(id)
+                client.mix(TORSTOL, SUPER_ATTACK)
+                client.await("the second super combat") { if (client.count(SUPER_COMBAT) == 2) Unit else null }
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
             }
         }
     }
@@ -151,6 +172,9 @@ class HeadlessMixingTest {
         const val SUPER_STRENGTH = 2440
         const val SUPER_DEFENCE = 2442
         const val SUPER_COMBAT = 12695
+        /** Inside the diary's West Bank box. */
+        const val WEST_BANK_X = 3185
+        const val WEST_BANK_Z = 3440
         const val SUPER_ENERGY_3 = 3018
         const val STAMINA_3 = 12627
         const val AMYLASE = 12640

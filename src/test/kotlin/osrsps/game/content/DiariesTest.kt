@@ -98,6 +98,20 @@ class DiariesTest {
     }
 
     @Test
+    fun `resetting a task that remembers progress clears that progress too, and other resets leave it`() {
+        val player = player()
+        player.charges[Diaries.SOS_EMOTES_CHARGE] = 15
+        player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE] = 1
+        diaries.undo(player, DiaryTask.VARROCK_EASY_1)
+        assertEquals(15, player.charges[Diaries.SOS_EMOTES_CHARGE])
+        assertEquals(1, player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE])
+        diaries.undo(player, DiaryTask.VARROCK_MEDIUM_5)
+        assertEquals(0, player.charges[Diaries.SOS_EMOTES_CHARGE])
+        diaries.undo(player, DiaryTask.VARROCK_HARD_1)
+        assertEquals(0, player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE])
+    }
+
+    @Test
     fun `the second varp holds the later tasks`() {
         val player = player()
         player.mark(DiaryTask.VARROCK_ELITE_5)

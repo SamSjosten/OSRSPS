@@ -301,6 +301,7 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
     delay(SkullSceptre.TELEPORT_TICKS)
     world.teleport(player, Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0)
     player.anim(-1)
+    world.diaries.complete(player, DiaryTask.VARROCK_HARD_5)
 }
 
 /** Fragments or a piece used on the imbued sceptre: charges up to [SkullSceptre.MAX_CHARGES], the rest kept. */

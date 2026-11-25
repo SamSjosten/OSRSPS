@@ -1,0 +1,298 @@
+{
+ "name": "Achievement diaries: Varrock's other hard and elite hooks on the live map. A super combat mixed in the West Bank (not the street outside), a summer pie baked in the Cooks' Guild (not Lumbridge's kitchen), and Pray-at the palace altar with Smite on (not off) each count once (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6321,
+   "value": 0,
+   "comment": "varrock_hard_count"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0,
+   "comment": "varrock_elite_count"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel herblore 90"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3185 3430 0",
+   "expectMessage": "Teleported to 3185, 3430, 0",
+   "comment": "the street south of the West Bank, outside it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::item 269 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2436 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2440 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2442 1"
+  },
+  {
+   "step": "useItemOnItem",
+   "itemId": 269,
+   "onItemId": 2436,
+   "comment": "torstol on the super attack"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 12695,
+   "count": 1,
+   "timeoutMs": 10000,
+   "comment": "a super combat potion(4)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0,
+   "comment": "mixed outside the West Bank"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3185 3440 0",
+   "expectMessage": "Teleported to 3185, 3440, 0",
+   "comment": "inside the West Bank"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::item 269 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2436 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2440 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 2442 1"
+  },
+  {
+   "step": "useItemOnItem",
+   "itemId": 269,
+   "onItemId": 2436
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 12695,
+   "count": 2,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the elite count goes to 1"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel cooking 99"
+  },
+  {
+   "step": "command",
+   "text": "::boost cooking 120",
+   "expectMessage": "Cooking is now 120/99",
+   "comment": "well past burning"
+  },
+  {
+   "step": "command",
+   "text": "::item 7216 1"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3214 0",
+   "expectMessage": "Teleported to 3210, 3214, 0",
+   "comment": "Lumbridge Castle's kitchen"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "useItemOnLoc",
+   "itemId": 7216,
+   "loc": "Cooking range",
+   "comment": "the nearest range"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 7218,
+   "count": 1,
+   "timeoutMs": 15000,
+   "comment": "a summer pie"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 1,
+   "comment": "baked outside the Cooks' Guild"
+  },
+  {
+   "step": "command",
+   "text": "::item 7216 1"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3144 3452 0",
+   "expectMessage": "Teleported to 3144, 3452, 0",
+   "comment": "the Cooks' Guild's north-east room, by its range"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "useItemOnLoc",
+   "itemId": 7216,
+   "locId": 7183,
+   "x": 3145,
+   "y": 3453
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 7218,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 2,
+   "timeoutMs": 5000,
+   "comment": "the elite count goes to 2"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 52"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3494 1",
+   "expectMessage": "Teleported to 3210, 3494, 1",
+   "comment": "the palace chapel, first floor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Pray-at",
+   "x": 3208,
+   "y": 3494,
+   "comment": "Smite off"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6321,
+   "value": 0,
+   "comment": "Smite off: no task"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 32,
+   "comment": "Smite on"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Pray-at",
+   "x": 3208,
+   "y": 3494
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6321,
+   "value": 1,
+   "timeoutMs": 20000,
+   "comment": "the hard count goes to 1"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

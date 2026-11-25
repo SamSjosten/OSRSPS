@@ -25,13 +25,14 @@ import osrsps.game.skill.Smithing
 import osrsps.map.CollisionMap
 
 /**
- * Three Lumbridge & Draynor diary tasks done through their real actions, each next to a near miss that does nothing:
- * Pray-at with Smite on at the Emir's Arena altar (not at Lumbridge's, and not with Smite off), an adamant platebody
- * smithed in Draynor Sewers (not at an anvil outside them), and 140 water runes or more crafted at once (not fewer;
- * any water runes are the easy task).
+ * Lumbridge & Draynor and Varrock diary tasks done through their real actions, each next to a near miss that does
+ * nothing: Pray-at with Smite on at the Emir's Arena altar (not at Lumbridge's, and not with Smite off) and at the
+ * palace's on its first floor (not on the ground floor), an adamant platebody smithed in Draynor Sewers (not at an
+ * anvil outside them), 140 water runes or more crafted at once and 100 earth runes (not fewer; any are the easy tasks).
  */
 class HeadlessDiaryHardTasksTest {
     private val water = RuneCrafting.RECIPES.first { it.key == "water" }
+    private val earth = RuneCrafting.RECIPES.first { it.key == "earth" }
 
     // Shaped like the cache's Smite obj (prayers.json names it xmas16_marionette_red): 630 the bit, 1751 the prayer
     // book component, 1752 the name, 1753 the level, 1755 the sound.
@@ -43,10 +44,10 @@ class HeadlessDiaryHardTasksTest {
     private val smite = prayerObj(SMITE_OBJ, "Smite", 23, SMITE_COMPONENT, 52)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val ids = listOf(Mining.RUNE_ESSENCE, water.rune, Smithing.HAMMER, Smithing.ADAMANTITE.obj, SMITE_OBJ) +
+        val ids = listOf(Mining.RUNE_ESSENCE, water.rune, earth.rune, Smithing.HAMMER, Smithing.ADAMANTITE.obj, SMITE_OBJ) +
             AnvilItems.BY_BAR.getValue(Smithing.ADAMANTITE.obj).map { it.obj }
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
-        for (id in ids) objs[id] = ObjType(id, "Obj $id", stackable = id == water.rune)
+        for (id in ids) objs[id] = ObjType(id, "Obj $id", stackable = id == water.rune || id == earth.rune)
         objs[Mining.RUNE_ESSENCE] = ObjType(Mining.RUNE_ESSENCE, "Rune essence")
         objs[SMITE_OBJ] = smite
         val objTypes = ObjTypes(objs)
@@ -57,10 +58,11 @@ class HeadlessDiaryHardTasksTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(SEWER_ANVIL_X shr 6, SEWER_ANVIL_Z shr 6)
                 markLoaded(EMIR_ALTAR_X shr 6, EMIR_ALTAR_Z shr 6)
+                markLoaded(PALACE_ALTAR_X shr 6, PALACE_ALTAR_Z shr 6)
             },
             objTypes = objTypes, random = GameRandom(3), prayerList = Prayers.load(objTypes),
             locTypes = LocTypes(
-                listOf(loc(Smithing.ANVIL, "Smith"), loc(Church.ALTAR, "Pray-at", 2), loc(water.altar, "Craft-rune", 3)).associateBy { it.id },
+                listOf(loc(Smithing.ANVIL, "Smith"), loc(Church.ALTAR, "Pray-at", 2), loc(water.altar, "Craft-rune", 3), loc(earth.altar, "Craft-rune", 3)).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Smithing.ANVIL, LocShape.CENTREPIECE_STRAIGHT, 0, LUMBRIDGE_ANVIL_X, LUMBRIDGE_ANVIL_Z, 0))
@@ -68,6 +70,10 @@ class HeadlessDiaryHardTasksTest {
                 add(ZoneLoc(Church.ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, LUMBRIDGE_ALTAR_X, LUMBRIDGE_ALTAR_Z, 0))
                 add(ZoneLoc(Church.ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, EMIR_ALTAR_X, EMIR_ALTAR_Z, 0))
                 add(ZoneLoc(water.altar, LocShape.CENTREPIECE_STRAIGHT, 0, WATER_ALTAR_X, WATER_ALTAR_Z, 0))
+                add(ZoneLoc(earth.altar, LocShape.CENTREPIECE_STRAIGHT, 0, EARTH_ALTAR_X, EARTH_ALTAR_Z, 0))
+                // The palace's altar on its first floor, and one under it on the ground floor for the near miss.
+                add(ZoneLoc(Church.ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, PALACE_ALTAR_X, PALACE_ALTAR_Z, 1))
+                add(ZoneLoc(Church.ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, PALACE_ALTAR_X, PALACE_ALTAR_Z, 0))
             },
             varTypes = VARS,
             cycleMillis = millis,
@@ -89,13 +95,13 @@ class HeadlessDiaryHardTasksTest {
         await("$skill $level") { stat(id)?.takeIf { it.level == level } }
     }
 
-    private fun HeadlessClient.tele(x: Int, z: Int) {
-        command("tele $x $z 0")
-        await("at $x, $z") { position?.takeIf { it.x == x && it.z == z } }
+    private fun HeadlessClient.tele(x: Int, z: Int, level: Int = 0) {
+        command("tele $x $z $level")
+        await("at $x, $z, $level") { position?.takeIf { it.x == x && it.z == z && it.level == level } }
     }
 
     @Test
-    fun `Pray-at with Smite on does the hard task at the Emir's Arena altar only`(@TempDir dir: Path) {
+    fun `Pray-at with Smite on does the hard tasks at the Emir's Arena altar and the palace's only`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -118,6 +124,15 @@ class HeadlessDiaryHardTasksTest {
                 client.tele(EMIR_ALTAR_X - 1, EMIR_ALTAR_Z)
                 client.locOp(Church.ALTAR, EMIR_ALTAR_X, EMIR_ALTAR_Z, 1)
                 client.await("the diary task") { Unit.takeIf { client.tasksDone() == 1 } }
+
+                // Varrock's hard task: the palace's altar, on its first floor, not one under it.
+                client.tele(PALACE_ALTAR_X - 1, PALACE_ALTAR_Z, 0)
+                client.locOp(Church.ALTAR, PALACE_ALTAR_X, PALACE_ALTAR_Z, 1)
+                client.awaitTicks(3)
+                assertEquals(1, client.tasksDone(), "the palace's ground floor")
+                client.tele(PALACE_ALTAR_X - 1, PALACE_ALTAR_Z, 1)
+                client.locOp(Church.ALTAR, PALACE_ALTAR_X, PALACE_ALTAR_Z, 1)
+                client.await("the Varrock diary task") { Unit.takeIf { client.tasksDone() == 2 } }
             }
         }
     }
@@ -174,6 +189,31 @@ class HeadlessDiaryHardTasksTest {
         }
     }
 
+    @Test
+    fun `100 earth runes at once do the Varrock elite task, and fewer don't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Level 99: four earth runes an essence.
+                client.level("runecraft", RUNECRAFT, 99)
+                client.tele(EARTH_ALTAR_X - 2, EARTH_ALTAR_Z)
+
+                client.give(Mining.RUNE_ESSENCE, 24)
+                client.locOp(earth.altar, EARTH_ALTAR_X, EARTH_ALTAR_Z, 1)
+                client.await("96 runes") { if (client.count(earth.rune) == 96) Unit else null }
+                // Any earth runes are the easy task; 96 aren't the elite one.
+                client.await("the easy task") { Unit.takeIf { client.tasksDone() == 1 } }
+                client.awaitTicks(2)
+                assertEquals(1, client.tasksDone(), "96 isn't 100")
+
+                client.give(Mining.RUNE_ESSENCE, 25)
+                client.locOp(earth.altar, EARTH_ALTAR_X, EARTH_ALTAR_Z, 1)
+                client.await("100 more runes") { if (client.count(earth.rune) == 96 + 100) Unit else null }
+                client.await("the elite task") { Unit.takeIf { client.tasksDone() == 2 } }
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val PRAYER = 5
@@ -196,6 +236,11 @@ class HeadlessDiaryHardTasksTest {
         const val EMIR_ALTAR_Z = 3285
         const val WATER_ALTAR_X = 3224
         const val WATER_ALTAR_Z = 3222
+        const val EARTH_ALTAR_X = 3216
+        const val EARTH_ALTAR_Z = 3222
+        /** Guessed: the palace's altar, inside the diary's first-floor box (an altar 409 like the church's). */
+        const val PALACE_ALTAR_X = 3208
+        const val PALACE_ALTAR_Z = 3495
 
         val VARS = VarTypes(
             6_000,

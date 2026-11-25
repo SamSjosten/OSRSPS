@@ -41,6 +41,8 @@ class EquipmentTab(
     private val spells: Spells = Spells.NONE,
     /** The words of [EquipmentLines] for a player, as the dialogue file has them. */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** An item worn from the inventory, for the diaries. */
+    private val worn: (Player, Int) -> Unit = { _, _ -> },
 ) {
     /** A click on the equipment tab: its stats button or one of its slots, which are a component each. */
     fun clickWornItems(player: Player, component: Int, op: Int): Boolean {
@@ -106,7 +108,12 @@ class EquipmentTab(
     }
 
     /** Wears the item in inventory [slot], from the inventory's Wear/Wield/Equip or the stats screen's Equip. */
-    fun wear(player: Player, slot: Int) = report(player, equipment.wear(player, slot))
+    fun wear(player: Player, slot: Int) {
+        val obj = player.inventory[slot]?.id
+        val result = equipment.wear(player, slot)
+        if (result == EquipResult.Done && obj != null) worn(player, obj)
+        report(player, result)
+    }
 
     /** Takes off what is worn in [wearpos], as a slot's Remove does: the bank's worn items view's too. */
     fun remove(player: Player, wearpos: Int) = report(player, equipment.remove(player, wearpos))

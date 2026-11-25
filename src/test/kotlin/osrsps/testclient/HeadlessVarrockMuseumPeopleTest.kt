@@ -10,6 +10,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.content.Kudos
 import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.MuseumAdventurerLines
 import osrsps.game.content.MuseumTimeline
@@ -97,6 +98,8 @@ class HeadlessVarrockMuseumPeopleTest {
         over()
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     /** The text of the chat box showing now. */
     private fun HeadlessClient.chatText() = (awaitDialogue("a chat box") { it is DialogueView.Chat } as DialogueView.Chat).text
 
@@ -162,6 +165,11 @@ class HeadlessVarrockMuseumPeopleTest {
                 // Turned down he asks again; taken on, his quiz begins (HeadlessNaturalHistoryQuizTest).
                 client.walk(orlando.id, "orlando_smith", *opening, "2:sure,no_thanks", "no_thanks_said", "fair_dinkum")
                 client.walk(orlando.id, "orlando_smith", *opening, "1:sure,no_thanks", "sure", "sure_1", "sure_2", "will_do")
+                // Under 153 Kudos, talking to him does no diary task; with every display done (243), the talk does it.
+                assertEquals(0, client.diaryTasksDone(), "under 153 Kudos")
+                for (source in Kudos.SOURCES) client.setVarbit(source.varbit, maxOf(source.atLeast, client.varbit(source.varbit)))
+                client.talkTo(orlando.id)
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
             }
         }
     }
