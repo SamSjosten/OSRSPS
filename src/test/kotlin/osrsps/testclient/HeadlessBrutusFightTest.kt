@@ -27,6 +27,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
@@ -51,8 +52,11 @@ class HeadlessBrutusFightTest {
         stats = NpcStats(attack = 12, defence = 10, strength = 25, hitpoints = 58, ranged = 1, magic = 8),
     )
 
+    private var map: CollisionMap? = null
+
     private fun server(dir: Path, seed: Long = 5) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
+        this.map = map
         val npcTypes = NpcTypes.of(brutus)
         val objs = arrayOfNulls<ObjType>(protectFromMelee.id + 1)
         objs[protectFromMelee.id] = protectFromMelee
@@ -253,6 +257,33 @@ class HeadlessBrutusFightTest {
                 assertTrue(busyFor >= 3, "the special keeps him busy a while: $busyFor")
                 // Counted from the tick she ran, the special's ticks included, not from the special's end.
                 assertTrue(took <= BrutusFight.OUT_OF_REACH_TICKS + 2, "the huff $took ticks after she ran, $busyFor of them in the special: ${field.fight.lines}")
+            }
+        }
+    }
+
+    @Test
+    fun `hemmed in where he has no room to land, he lands near and stomps her from there`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hana").use { client ->
+                val field = client.goIn(server, "hana", 3262, 3270)
+                val hana = server.world.playerNamed("hana")!!
+                server.world.npcs.freeze(field.boss, 100)
+                // Fenced in on all eight sides, 8 tiles south of him: no tile for his 3 by 3 body beside her.
+                val spot = Tile(field.boss.x + 1, field.boss.z - 8)
+                client.command("tele ${spot.x} ${spot.z} 0")
+                client.await("hemmed in") { client.position?.takeIf { it == Coord(spot.x, spot.z, 0) } }
+                for (dx in -1..1) for (dz in -1..1) if (dx != 0 || dz != 0) map!!.add(spot.x + dx, spot.z + dz, 0, CollisionFlag.LOC)
+                val state = BrutusFight.fight(field.boss)
+                val huffs = state.huffs
+                client.await("the huff", timeoutMillis = 30_000) { Unit.takeIf { state.huffs > huffs } }
+                client.await("the stomp from afar", timeoutMillis = 10_000) { field.fight.lines.firstOrNull { it.contains("stomps hana from afar") } }
+                val lines = field.fight.lines.toList()
+                assertTrue(lines.any { it.contains("lands at") }, "he lands as near as he can: $lines")
+                val stomp = lines.indexOfFirst { it.contains("stomps hana from afar") }
+                assertTrue(lines.subList(0, stomp).last().contains("hit hana for"), "the stomp hits her where she stands: $lines")
+                assertEquals(1, state.farStomps)
+                val gap = maxOf(field.boss.x - hana.x, hana.x - (field.boss.x + 2), field.boss.z - hana.z, hana.z - (field.boss.z + 2)) - 1
+                assertTrue(gap in 1..BrutusFight.NEAR_TILES, "landed $gap tiles off her")
             }
         }
     }

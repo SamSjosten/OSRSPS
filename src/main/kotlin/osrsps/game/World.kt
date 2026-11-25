@@ -508,6 +508,12 @@ class World(
 
     val npcs = Npcs(collision, random)
 
+    /**
+     * Where an NPC of a type puts its drop, when not on its south-west tile: Brutus's on his tile nearest the killer
+     * (killer null when there is none).
+     */
+    val dropTiles = HashMap<Int, (Npc, Player?) -> osrsps.map.Tile>()
+
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
     val npcScripts = NpcScripts(npcs) { tick }
 
@@ -3288,15 +3294,16 @@ class World(
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
+        val at = dropTiles[npc.type.id]?.invoke(npc, killer) ?: osrsps.map.Tile(npc.x, npc.z)
         for (rolled in drops) {
             // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
             val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
             val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
-                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
+                groundObjs.addPrivate(drop.type, drop.count, at.x, at.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)
             } else {
-                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
+                groundObjs.addPublic(drop.type, drop.count, at.x, at.z, npc.level, despawn)
             }
         }
     }
