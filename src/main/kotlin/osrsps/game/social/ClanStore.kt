@@ -104,7 +104,10 @@ class ClanStore(private val file: Path? = null) {
         val before = clan.coffer
         clan.coffer = coins
         if (save()) return true
+        // The file may already hold the new sum (a failed force after the move): write the old one back at once, and
+        // again at the next flush if this fails too (Codex on PR 966).
         clan.coffer = before
+        save()
         return false
     }
 
@@ -240,11 +243,14 @@ class ClanStore(private val file: Path? = null) {
                 channel.force(true)
             }
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-            // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped there.
-            try {
-                FileChannel.open(dir, StandardOpenOption.READ).use { it.force(true) }
+            // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped only when the folder
+            // can't be opened. A failed force is a failed write (Codex on PR 966).
+            val folder = try {
+                FileChannel.open(dir, StandardOpenOption.READ)
             } catch (_: IOException) {
+                null
             }
+            folder?.use { it.force(true) }
             unwritten = false
             return true
         } catch (e: Exception) {
