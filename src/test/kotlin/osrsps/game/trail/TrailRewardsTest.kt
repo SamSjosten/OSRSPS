@@ -56,9 +56,10 @@ class TrailRewardsTest {
             mapOf(TrailTier.BEGINNER to (1 to 3), TrailTier.EASY to (2 to 4), TrailTier.MEDIUM to (3 to 5), TrailTier.HARD to (4 to 6), TrailTier.ELITE to (4 to 6), TrailTier.MASTER to (5 to 7)),
             rolls,
         )
-        // A master clue (as its scroll box) from easy to elite caskets; the scroll cases at the Wiki's counts.
-        assertEquals(listOf(24366), rewards[TrailTier.HARD]!!.extra.map { it.item.type.id })
-        assertEquals(15, rewards[TrailTier.HARD]!!.extra.single().denominator)
+        // The scroll cases at the Wiki's counts. The master scroll box isn't an extra line: TreasureTrails.masterBox rolls
+        // it, under the master cap (exploit review R55B-1: an extra line rolled it a second time, past the cap).
+        val boxes = TrailTier.entries.map { it.scrollBox }.toSet()
+        for (tier in TrailTier.entries) assertEquals(emptyList(), rewards[tier]!!.extra.map { it.item.type.id }.filter { it in boxes }, "$tier")
         assertEquals(listOf(100, 200, 500), rewards[TrailTier.EASY]!!.milestones.map { it.count })
         assertEquals(listOf(30906, 30908), TreasureTrails.SCROLL_CASES.getValue(TrailTier.EASY))
         assertEquals(TreasureTrails.SCROLL_CASES.getValue(TrailTier.EASY), rewards[TrailTier.EASY]!!.milestones.take(2).map { it.type.id })
