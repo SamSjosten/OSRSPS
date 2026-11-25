@@ -39,7 +39,7 @@ class HeadlessFletchingTest {
         objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true)
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, tradeable = true)
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(3),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(VARROCK_X shr 6, VARROCK_Z shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(3),
             cycleMillis = millis, varTypes = VarTypes(6_000, AllSettings.VARBITS),
         )
     }
@@ -282,6 +282,33 @@ class HeadlessFletchingTest {
     }
 
     @Test
+    fun `ten rune darts fletched at once in Varrock are the Varrock elite diary task, and nine or ten in Lumbridge aren't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.ready("ivy")
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                client.give(FEATHER, 30)
+                client.give(RUNE_DART_TIPS, 10)
+                client.use(FEATHER, RUNE_DART_TIPS)
+                client.await("10 darts in Lumbridge") { if (client.count(RUNE_DART) == 10) Unit else null }
+                assertEquals(0, diaryTasksDone(), "Lumbridge isn't Varrock")
+
+                client.command("tele $VARROCK_X $VARROCK_Z 0")
+                client.await("in Varrock") { client.position?.takeIf { it.x == VARROCK_X && it.z == VARROCK_Z } }
+                client.give(RUNE_DART_TIPS, 9)
+                client.use(FEATHER, RUNE_DART_TIPS)
+                client.await("9 more darts") { if (client.count(RUNE_DART) == 19) Unit else null }
+                client.awaitTicks(2)
+                assertEquals(0, diaryTasksDone(), "nine darts")
+                client.give(RUNE_DART_TIPS, 10)
+                client.use(FEATHER, RUNE_DART_TIPS)
+                client.await("10 more darts") { if (client.count(RUNE_DART) == 29) Unit else null }
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+            }
+        }
+    }
+
+    @Test
     fun `with the Make-X for darts setting on, a feather on dart tips opens the box for as many sets as asked`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("iris").use { client ->
@@ -309,6 +336,11 @@ class HeadlessFletchingTest {
         const val BRONZE_ARROW = 882
         const val BRONZE_DART_TIPS = 819
         const val BRONZE_DART = 806
+        const val RUNE_DART_TIPS = 824
+        const val RUNE_DART = 811
+        /** Inside the diary's Varrock box, in the square. */
+        const val VARROCK_X = 3230
+        const val VARROCK_Z = 3430
         const val LOGS = 1511
         const val SHAFTS = 52
         const val JAVELIN_SHAFTS = 19584

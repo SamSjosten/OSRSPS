@@ -27,10 +27,16 @@ class HeadlessFiremakingTest {
         val ground = listOf(null, null, "Take", "Light", null)
         objs[LOGS] = ObjType(LOGS, "Logs", ops = ground, tradeable = true)
         objs[OAK_LOGS] = ObjType(OAK_LOGS, "Oak logs", ops = ground, tradeable = true)
+        objs[YEW_LOGS] = ObjType(YEW_LOGS, "Yew logs", ops = ground, tradeable = true)
         objs[Firemaking.TINDERBOX] = ObjType(Firemaking.TINDERBOX, "Tinderbox", tradeable = true)
         objs[Firemaking.ASHES] = ObjType(Firemaking.ASHES, "Ashes", tradeable = true)
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
+            crcs, CollisionMap().apply {
+                markLoaded(3222 shr 6, 3218 shr 6)
+                markLoaded(SQUARE_X shr 6, SQUARE_Z shr 6)
+                markLoaded(CHURCH_X shr 6, CHURCH_Z shr 6)
+            },
+            objTypes = ObjTypes(objs),
             random = GameRandom(1),
             locTypes = LocTypes(mapOf(Firemaking.FIRE to LocType(Firemaking.FIRE, "Fire", collision = LocCollisionType(width = 1, length = 1)))),
             cycleMillis = millis,
@@ -155,9 +161,39 @@ class HeadlessFiremakingTest {
         }
     }
 
+    @Test
+    fun `yew logs lit in Varrock's church do the hard diary task, and in the square they don't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fern").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${Firemaking.TINDERBOX}")
+                client.command("setlevel firemaking 60")
+                client.command("tele $SQUARE_X $SQUARE_Z 0")
+                client.await("in the square") { client.position?.takeIf { it.x == SQUARE_X && it.z == SQUARE_Z } }
+                client.command("item $YEW_LOGS")
+                client.slotOf(YEW_LOGS)
+                client.use(Firemaking.TINDERBOX, YEW_LOGS)
+                client.seen("[firemaking.catches]", timeoutMillis = 30_000)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "outside the church")
+                client.command("tele $CHURCH_X $CHURCH_Z 0")
+                client.await("in the church") { client.position?.takeIf { it.x == CHURCH_X && it.z == CHURCH_Z } }
+                client.command("item $YEW_LOGS")
+                client.slotOf(YEW_LOGS)
+                client.use(Firemaking.TINDERBOX, YEW_LOGS)
+                client.await("the diary task", 30_000) { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
+            }
+        }
+    }
+
     private companion object {
         const val LOGS = 1511
         const val OAK_LOGS = 1521
+        const val YEW_LOGS = 1515
+        const val SQUARE_X = 3222
+        const val SQUARE_Z = 3430
+        /** Inside the diary's Varrock church box. */
+        const val CHURCH_X = 3255
+        const val CHURCH_Z = 3480
         const val BACKPACK = 93
         const val FIREMAKING = 11
         const val LIGHT = 4

@@ -53,7 +53,7 @@ class HeadlessSkullSceptreTest {
             item(StrongholdOfSecurity.FANCY_BOOTS, "Fancy boots", listOf(null, "Wear", null, null, "Drop")),
         )) objs[type.id] = type
         World(
-            crcs, CollisionMap().apply { markLoaded(2338 shr 6, 5213 shr 6); markLoaded(3081 shr 6, 3421 shr 6); markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(3),
+            crcs, CollisionMap().apply { markLoaded(2338 shr 6, 5213 shr 6); markLoaded(3081 shr 6, 3421 shr 6); markLoaded(3222 shr 6, 3218 shr 6); markLoaded(DEEP_WILD_X shr 6, DEEP_WILD_Z shr 6) }, random = GameRandom(3),
             objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(solztun),
             npcSpawns = listOf(NpcSpawn(solztun, 2338, 5213, source = "test")),
             varTypes = VarTypes(
@@ -91,6 +91,8 @@ class HeadlessSkullSceptreTest {
         chooseOption(option)
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     @Test
     fun `the pieces join into the skull sceptre, whose Invoke takes the player to the Stronghold for a charge until it crumbles`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -111,11 +113,20 @@ class HeadlessSkullSceptreTest {
                 client.awaitDialogue("ten charges") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=10]" }
                 client.continueDialogue()
 
+                // Refused past level 20 Wilderness: no teleport, so no Varrock hard diary task.
+                client.tele(DEEP_WILD_X, DEEP_WILD_Z)
+                client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.INVOKE)
+                client.awaitTicks(SkullSceptre.TELEPORT_TICKS + 2)
+                assertEquals(Coord(DEEP_WILD_X, DEEP_WILD_Z, 0), client.position)
+                assertEquals(0, client.diaryTasksDone(), "a refused Invoke")
+
                 repeat(SkullSceptre.MAX_CHARGES) { used ->
                     client.tele(3222, 3218 + used % 2)
                     client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.INVOKE)
                     val landed = client.await("at the Stronghold after ${used + 1}") { client.position?.takeIf { it == Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0) } }
                     assertEquals(Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0), landed)
+                    // The first teleport that lands does the task; the rest don't do it again.
+                    client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 }
                 client.await("the sceptre crumbled") { client.messages().firstOrNull { it.text == "[skull_sceptre.crumbles]" } }
                 client.await("the sceptre gone") { Unit.takeIf { client.carried(SkullSceptre.SCEPTRE) == 0 } }
@@ -321,6 +332,9 @@ class HeadlessSkullSceptreTest {
 
     private companion object {
         const val WORN = 94
+        /** Level 36 Wilderness, past the sceptre's 20. */
+        const val DEEP_WILD_X = 3100
+        const val DEEP_WILD_Z = 3800
         const val DROP = 5
         const val WORNITEMS_WEAPON = 18
         const val BACKPACK = 93

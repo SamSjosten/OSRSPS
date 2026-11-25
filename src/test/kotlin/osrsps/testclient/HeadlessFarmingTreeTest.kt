@@ -43,11 +43,16 @@ class HeadlessFarmingTreeTest {
         objs[SAPLING_PLACEHOLDER] = ObjType(SAPLING_PLACEHOLDER, "Oak sapling", placeholderlink = SAPLING, placeholdertemplate = 14401)
         for (id in listOf(5331) + (5333..5340)) objs[id] = ObjType(id, "Watering can")
         World(
-            crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6) }, objTypes = ObjTypes(objs),
+            crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6); markLoaded(PALACE_X shr 6, PALACE_Z shr 6) }, objTypes = ObjTypes(objs),
             varTypes = VarTypes(6_000, mapOf(TRANSMIT_A to VarbitType(529, 0, 7)), 21_000),
             random = GameRandom(1),
-            locTypes = LocTypes(mapOf(TREE to LocType(TREE, "null", List(5) { null }, LocCollisionType(width = 3, length = 3), multiloc = true))),
-            staticLocs = StaticLocs().apply { add(ZoneLoc(TREE, LocShape.CENTREPIECE_STRAIGHT, 0, TREE_X, TREE_Z, 0)) },
+            locTypes = LocTypes(
+                listOf(TREE, PALACE_TREE).associateWith { LocType(it, "null", List(5) { null }, LocCollisionType(width = 3, length = 3), multiloc = true) },
+            ),
+            staticLocs = StaticLocs().apply {
+                add(ZoneLoc(TREE, LocShape.CENTREPIECE_STRAIGHT, 0, TREE_X, TREE_Z, 0))
+                add(ZoneLoc(PALACE_TREE, LocShape.CENTREPIECE_STRAIGHT, 0, PALACE_TREE_X, PALACE_TREE_Z, 0))
+            },
             farmingClock = clock::get,
             farmingDiseases = false,
             cycleMillis = millis,
@@ -180,6 +185,64 @@ class HeadlessFarmingTreeTest {
                 client.seen("[farming.stump_cleared]")
                 client.awaitTree(3)
                 client.awaitCount(ROOTS, 4)
+                // Oak roots, in Lumbridge: not the Varrock diary's yew roots.
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") })
+            }
+        }
+    }
+
+    @Test
+    fun `a yew stump dug up in the palace patch for two roots or more is the Varrock hard diary task`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dana").use { client ->
+                client.toLumbridge()
+                client.command("tele $PALACE_X $PALACE_Z")
+                client.await("at the palace tree patch") { client.position?.takeIf { it.x == PALACE_X && it.z == PALACE_Z } }
+                client.give(RAKE)
+                client.give(SPADE)
+                client.locOp(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, 1)
+                client.awaitTree(3)
+                // The yew's first stage runs on the clock, not by ::farmtick (the test above).
+                client.command("farmclock run")
+                client.seen("Farming clock running")
+                client.give(YEW_SAPLING)
+                client.locTarget(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(YEW_SAPLING), YEW_SAPLING)
+                client.awaitTree(35)
+                // The yew's five-minute first stage, then nine growths of 40 minutes.
+                clock.addAndGet(5 * 60_000L)
+                client.awaitTree(36)
+                client.command("farmclock pause")
+                client.command("farmtick 72")
+                client.awaitTree(45)
+                client.locOp(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, 1)
+                client.seen("[farming.checked]")
+                client.awaitTree(46)
+
+                client.give(RUNE_AXE)
+                client.locOp(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, 1)
+                fun fulls() = client.messages().count { it.text == "[woodcutting.inventory_full]" }
+                var full = fulls()
+                val end = System.currentTimeMillis() + 180_000
+                while (client.tree() != 47) {
+                    check(System.currentTimeMillis() < end) { "The yew never fell: tree ${client.tree()}, ${client.messages().takeLast(8).map { it.text }}" }
+                    if (fulls() > full) {
+                        full = fulls()
+                        client.command("empty")
+                        client.await("an empty pack") { if (client.count(YEW_LOGS) == 0) Unit else null }
+                        client.give(RUNE_AXE)
+                        client.locOp(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, 1)
+                    }
+                    Thread.sleep(50)
+                }
+                client.command("empty")
+                client.await("an empty pack") { if (client.count(RUNE_AXE) == 0) Unit else null }
+                client.give(SPADE)
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "not dug up yet")
+                client.locOp(PALACE_TREE, PALACE_TREE_X, PALACE_TREE_Z, 1)
+                client.seen("[farming.stump_cleared]")
+                // 99 Farming: four yew roots.
+                client.awaitCount(YEW_ROOTS, 4)
+                client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
             }
         }
     }
@@ -292,5 +355,14 @@ class HeadlessFarmingTreeTest {
         const val ROOTS = 6043
         const val SECATEURS = 5329
         const val LEAVES = 6022
+        const val YEW_LOGS = 1515
+        const val RUNE_AXE = 1359
+        const val YEW_ROOTS = 6049
+        /** The Varrock palace's tree patch (8390), guessed at its live place, and where the player stands beside it. */
+        const val PALACE_TREE = 8390
+        const val PALACE_TREE_X = 3228
+        const val PALACE_TREE_Z = 3458
+        const val PALACE_X = 3229
+        const val PALACE_Z = 3457
     }
 }
