@@ -72,6 +72,8 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_STEW = line("burnt_stew", "Burnt stew: the message on burning one")
     val COOKED_CURRY = line("cooked_curry", "Curry: the message on cooking one")
     val BURNT_CURRY = line("burnt_curry", "Burnt curry: the message on burning one")
+    val COOKED_TBONE = line("cooked_tbone", "Cooked t-bone steak: the message on cooking one (words not found yet)")
+    val BURNT_TBONE = line("burnt_tbone", "Burnt t-bone steak: the message on burning one (words not found yet)")
     val NO_ROOM = line("no_room", "Cake: the message when there is no room for the cake tin back (guessed)")
 }
 
@@ -455,12 +457,19 @@ class Cooking(private val world: World) {
         val STEW = Food(2001, 2003, 2005, 25, 1170, 68, 392, 78, 412, CookingLines.COOKED_STEW, CookingLines.BURNT_STEW)
         val CURRY = Food(2009, 2011, 2013, 60, 2800, 38, 332, 38, 332, CookingLines.COOKED_CURRY, CookingLines.BURNT_CURRY)
 
+        /**
+         * Brutus's raw t-bone steak (OSRS Wiki, Cooked t-bone steak and Burnt t-bone steak, read 2026-11-22): from 13 for
+         * 90 XP, 92/423 on a fire or range (its chart; it stops burning at 50). Guessed: the Lumbridge range no better,
+         * as the chart has no line for it.
+         */
+        val TBONE = Food(33106, 33109, 33112, 13, 900, 92, 423, 92, 423, CookingLines.COOKED_TBONE, CookingLines.BURNT_TBONE)
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
             LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH, DARK_CRAB,
             REDBERRY_PIE, MEAT_PIE, MUD_PIE, APPLE_PIE, GARDEN_PIE, FISH_PIE, BOTANICAL_PIE, MUSHROOM_PIE, ADMIRAL_PIE,
             DRAGONFRUIT_PIE, WILD_PIE, SUMMER_PIE, PIZZA, CAKE, PITTA,
-            STEW, CURRY,
+            STEW, CURRY, TBONE,
         )
     }
 }
