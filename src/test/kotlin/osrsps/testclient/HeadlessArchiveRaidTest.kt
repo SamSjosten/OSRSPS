@@ -287,7 +287,12 @@ class HeadlessArchiveRaidTest {
         val key = server.world.playerNamed(username)!!.saveKey
         assertEquals(listOf(key), run.loot?.chests?.keys?.toList())
         assertEquals(mapOf(key to 0), run.chestSlots.toMap())
-        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing. Unclaimed: nothing.", commandReply("raid loot") { it.contains("oot") })
+        // The elite clue's scroll box is a 1-in-10 tertiary roll on an unseeded random (#910), so the chest may hold it.
+        val loot = commandReply("raid loot") { it.contains("oot") }
+        assertTrue(
+            Regex("""Loot for 1, no unique\. Your chest is 1, closed: (nothing|Scroll box \(elite\) x1)\. Unclaimed: \1\.""").matches(loot),
+            loot,
+        )
         assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
             // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
@@ -308,6 +313,8 @@ class HeadlessArchiveRaidTest {
         }
         // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
+        // A scroll box left unclaimed waits in the Loot Wheelbarrow and would keep the Archive Door shut for the next run.
+        server.world.playerNamed(username)!!.archiveChest.clear()
     }
 
     @Test
