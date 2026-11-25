@@ -720,9 +720,23 @@ class MeleeCombat(
         // Chase's own far limit may have let go of them; a fighting NPC keeps after them while they are in range.
         if (npc.following !== player) npcs.follow(npc, player)
         val size = npc.type.size
-        if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return
+        if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return breatheFromRange(npc, def, player, tick)
         if (tick < npc.nextAttackTick) return
         swingAt(npc, player, tick)
+    }
+
+    /**
+     * A dragon with a dragonfire [NpcDragonfire.range] that can't reach [player] breathes at them when its attack is due
+     * and they stand in that range and its sight (the metal dragons, R56A-1: else a rock between makes a safespot).
+     */
+    private fun breatheFromRange(npc: Npc, def: NpcCombatDef, player: Player, tick: Long) {
+        val fire = def.dragonfire ?: return
+        if (fire.range <= 0 || tick < npc.nextAttackTick || npc.hidden) return
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+        if (distance !in 1..fire.range || !LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)) return
+        npc.nextAttackTick = tick + def.attackSpeed
+        npc.fightTick = tick
+        breathe(npc, player, fire, tick)
     }
 
     /**

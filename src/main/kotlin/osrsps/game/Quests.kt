@@ -155,6 +155,11 @@ class Quests(val all: List<Quest>) {
             // golem_retrieved_statuette: The Golem takes the statuette from the museum's terracotta case, which then
             // shows empty, its Study saying it was stolen (Wiki, Display case number 30; [osrsps.game.content.MuseumDisplays]).
             355 to 1,
+            // surok_tunnelcheck, surok_portal: What Lies Below leaves the Saradomin statue east of Varrock open over the
+            // Tunnel of Chaos, and the Chaos Altar maze's portal back to the tunnel there (the Wiki's Tunnel of Chaos,
+            // "during and after" the quest; [osrsps.game.content.TunnelOfChaos]).
+            3524 to 1,
+            3529 to 1,
         )
 
         val NONE = Quests(emptyList())
