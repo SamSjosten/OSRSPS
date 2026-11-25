@@ -1195,6 +1195,12 @@ class NpcCombatTest {
         )
         assertEquals(ElementalWeakness(Element.EARTH, 50), def("steel_dragon").weakness)
         assertEquals(ElementalWeakness(Element.WATER, 100), def("firegiant").weakness)
+        // The Wiki's level 86 fire giant: attack +29, strength +31; the grown dragons give 2.5% more XP.
+        assertEquals(listOf(29, 31), def("firegiant").let { listOf(it.attackBonus, it.strengthBonus) })
+        assertEquals(
+            mapOf("red_dragon" to 25, "bronze_dragon" to 25, "iron_dragon" to 25, "steel_dragon" to 25, "firegiant" to 0),
+            listOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant").associateWith { def(it).xpBonusTenths },
+        )
     }
 
     @Test
