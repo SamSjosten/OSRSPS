@@ -1,5 +1,5 @@
 {
- "name": "Achievement diaries: nine rune darts fletched in Varrock do nothing, ten at once do a Varrock elite task, and the panel's count shows it (::keys on)",
+ "name": "Achievement diaries: rune darts fletched in Varrock do the elite task only as ten at once from tips smithed in Varrock; nine, or ten from bought tips, do nothing (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -90,7 +90,82 @@
    "itemId": 811,
    "count": 19,
    "timeoutMs": 5000,
-   "comment": "ten more at once"
+   "comment": "ten more at once, from bought tips"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0,
+   "comment": "bought tips: the task's tips are smithed in Varrock"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel smithing 89"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "comment": "a hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 2363 1",
+   "comment": "a runite bar"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3190 3429 0",
+   "expectMessage": "Teleported to 3190, 3429, 0",
+   "comment": "by the west Varrock smithy (inferred tile)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Anvil",
+   "option": "Smith",
+   "comment": "the nearest anvil"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 312,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 312,
+   "component": 29,
+   "comment": "rune dart tips"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 824,
+   "count": 10,
+   "timeoutMs": 20000,
+   "comment": "ten tips from one bar"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6322,
+   "value": 0
+  },
+  {
+   "step": "useItemOnItem",
+   "itemId": 314,
+   "onItemId": 824
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 811,
+   "count": 29,
+   "timeoutMs": 5000,
+   "comment": "ten from the smithed tips"
   },
   {
    "step": "assertVarbit",

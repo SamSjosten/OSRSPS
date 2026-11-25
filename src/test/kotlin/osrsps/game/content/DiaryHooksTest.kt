@@ -64,7 +64,8 @@ class DiaryHooksTest {
             DiaryHooks.made(DiaryHooks.MADE, at(2655, 4839), DiaryHooks.EARTH_RUNE, 100),
         )
         assertEquals(listOf(DiaryTask.VARROCK_EASY_12), DiaryHooks.made(DiaryHooks.MADE, at(2655, 4839), DiaryHooks.EARTH_RUNE, 99))
-        assertEquals(listOf(DiaryTask.VARROCK_HARD_6), DiaryHooks.made(DiaryHooks.BURNED, at(3256, 3485, 1), DiaryHooks.YEW_LOGS, 1))
+        assertEquals(listOf(DiaryTask.VARROCK_HARD_6), DiaryHooks.made(DiaryHooks.BURNED, at(3256, 3485, 3), DiaryHooks.YEW_LOGS, 1))
+        assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.BURNED, at(3256, 3485, 1), DiaryHooks.YEW_LOGS, 1), "the church's first floor, not the top")
         assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.BURNED, at(3222, 3430), DiaryHooks.YEW_LOGS, 1), "the square")
         assertEquals(listOf(DiaryTask.VARROCK_HARD_9), DiaryHooks.SMITE_ALTARS.filter { it.first.has(at(3208, 3495, 1)) }.map { it.second })
     }

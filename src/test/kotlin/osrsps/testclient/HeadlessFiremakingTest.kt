@@ -12,9 +12,12 @@ import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
+import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.Firemaking
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
 
 /**
  * Gathering step 3 through the headless client: lighting logs from the backpack and on the ground. The rl-client script
@@ -30,6 +33,7 @@ class HeadlessFiremakingTest {
         objs[YEW_LOGS] = ObjType(YEW_LOGS, "Yew logs", ops = ground, tradeable = true)
         objs[Firemaking.TINDERBOX] = ObjType(Firemaking.TINDERBOX, "Tinderbox", tradeable = true)
         objs[Firemaking.ASHES] = ObjType(Firemaking.ASHES, "Ashes", tradeable = true)
+        objs[RUNE_AXE] = ObjType(RUNE_AXE, "Rune axe", tradeable = true)
         World(
             crcs, CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
@@ -38,7 +42,14 @@ class HeadlessFiremakingTest {
             },
             objTypes = ObjTypes(objs),
             random = GameRandom(1),
-            locTypes = LocTypes(mapOf(Firemaking.FIRE to LocType(Firemaking.FIRE, "Fire", collision = LocCollisionType(width = 1, length = 1)))),
+            locTypes = LocTypes(
+                mapOf(
+                    Firemaking.FIRE to LocType(Firemaking.FIRE, "Fire", collision = LocCollisionType(width = 1, length = 1)),
+                    YEW to LocType(YEW, "Yew tree", listOf("Chop down", null, null, null, null), LocCollisionType(width = 1, length = 1)),
+                    YEW_STUMP to LocType(YEW_STUMP, "Tree stump", listOf(null, null, null, null, null), LocCollisionType(width = 1, length = 1)),
+                ),
+            ),
+            staticLocs = StaticLocs().apply { add(ZoneLoc(YEW, LocShape.CENTREPIECE_STRAIGHT, 0, YEW_X, YEW_Z, 0)) },
             cycleMillis = millis,
         )
     }
@@ -162,25 +173,41 @@ class HeadlessFiremakingTest {
     }
 
     @Test
-    fun `yew logs lit in Varrock's church do the hard diary task, and in the square they don't`(@TempDir dir: Path) {
+    fun `yew logs chopped in Varrock and lit on the church's top floor do the hard diary task, and bought ones or the square don't`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("fern").use { client ->
                 client.await("the login rebuild") { client.position }
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                fun light(x: Int, z: Int, level: Int) {
+                    client.command("tele $x $z $level")
+                    client.await("at $x, $z, $level") { client.position?.takeIf { it.x == x && it.z == z && it.level == level } }
+                    client.slotOf(YEW_LOGS)
+                    val catches = client.messages().count { it.text == "[firemaking.catches]" }
+                    client.use(Firemaking.TINDERBOX, YEW_LOGS)
+                    client.await("the fire", 30_000) { Unit.takeIf { client.messages().count { it.text == "[firemaking.catches]" } > catches } }
+                    client.awaitTicks(2)
+                }
                 client.command("item ${Firemaking.TINDERBOX}")
                 client.command("setlevel firemaking 60")
-                client.command("tele $SQUARE_X $SQUARE_Z 0")
-                client.await("in the square") { client.position?.takeIf { it.x == SQUARE_X && it.z == SQUARE_Z } }
+                client.command("setlevel woodcutting 60")
+                // Logs from anywhere but a Varrock yew (::item here) on the top floor: not the task (Codex on #952).
                 client.command("item $YEW_LOGS")
-                client.slotOf(YEW_LOGS)
-                client.use(Firemaking.TINDERBOX, YEW_LOGS)
-                client.seen("[firemaking.catches]", timeoutMillis = 30_000)
-                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "outside the church")
-                client.command("tele $CHURCH_X $CHURCH_Z 0")
-                client.await("in the church") { client.position?.takeIf { it.x == CHURCH_X && it.z == CHURCH_Z } }
+                light(CHURCH_X + 3, CHURCH_Z, CHURCH_TOP)
+                assertEquals(0, diaryTasksDone(), "logs not chopped in Varrock")
+                client.command("item $RUNE_AXE")
+                client.command("tele ${YEW_X + 1} $YEW_Z 0")
+                client.await("by the yew") { client.position?.takeIf { it.x == YEW_X + 1 && it.z == YEW_Z } }
+                client.locOp(YEW, YEW_X, YEW_Z, 1)
+                client.await("yew logs", 30_000) { client.inventory(BACKPACK).indexOfFirst { it?.id == YEW_LOGS }.takeIf { it >= 0 } }
+                // Chopped, but lit in the square or on the church's first floor: still not the task.
+                light(SQUARE_X, SQUARE_Z, 0)
+                assertEquals(0, diaryTasksDone(), "outside the church")
                 client.command("item $YEW_LOGS")
-                client.slotOf(YEW_LOGS)
-                client.use(Firemaking.TINDERBOX, YEW_LOGS)
-                client.await("the diary task", 30_000) { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
+                light(CHURCH_X, CHURCH_Z, 1)
+                assertEquals(0, diaryTasksDone(), "the church's first floor")
+                client.command("item $YEW_LOGS")
+                light(CHURCH_X, CHURCH_Z, CHURCH_TOP)
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
             }
         }
     }
@@ -191,9 +218,16 @@ class HeadlessFiremakingTest {
         const val YEW_LOGS = 1515
         const val SQUARE_X = 3222
         const val SQUARE_Z = 3430
-        /** Inside the diary's Varrock church box. */
+        /** Inside the diary's Varrock church box, whose top floor is level 3. */
         const val CHURCH_X = 3255
         const val CHURCH_Z = 3480
+        const val CHURCH_TOP = 3
+        const val RUNE_AXE = 1359
+        const val YEW = 10822
+        const val YEW_STUMP = 9714
+        /** By the church, inside Varrock. */
+        const val YEW_X = 3249
+        const val YEW_Z = 3470
         const val BACKPACK = 93
         const val FIREMAKING = 11
         const val LIGHT = 4

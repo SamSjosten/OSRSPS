@@ -50,11 +50,8 @@ class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: 
         /** Guessed: round Quest Helper's altar at 3377,3285, in the Emir's Arena's prayer room. */
         val EMIRS_ARENA_ALTAR = DiaryZone(3370, 3278, 3384, 3292, 0)
 
-        /**
-         * Guessed: Varrock's church, every floor, as the Wiki's "at the top of the Varrock church" names a floor nobody
-         * here has checked (Elsie knits on level 1); so a fire on the ground floor counts too.
-         */
-        val VARROCK_CHURCH = DiaryZone(3249, 3469, 3262, 3489)
+        /** The top of Varrock's church: Quest Helper's church4 zone, level 3 (Codex on #952). */
+        val VARROCK_CHURCH = DiaryZone(3249, 3469, 3262, 3489, 3)
 
         /** Guessed: round the palace's tree patch at 3229,3459. */
         val VARROCK_PALACE_TREE_PATCH = DiaryZone(3225, 3455, 3235, 3465, 0)
@@ -170,7 +167,8 @@ internal object DiaryHooks {
     const val SUPER_COMBAT = 12695
     const val SUMMER_PIE = 7218
     const val RUNE_DART = 811
-    const val SPOTTIER_CAPE = 10069
+    const val RUNE_DART_TIP = 824
+    const val SPOTTIER_CAPE = 10071
 
     /** The museum's full kudos, which Orlando Smith's task asks for. */
     const val ORLANDO_KUDOS = 153

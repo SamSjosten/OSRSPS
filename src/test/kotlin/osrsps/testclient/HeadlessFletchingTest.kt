@@ -11,11 +11,19 @@ import osrsps.game.InventoryTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.loc.LocType
+import osrsps.game.loc.LocTypes
+import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
+import osrsps.game.skill.Smithing
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
 
 /**
  * Artisan step 1 through the headless client: a knife on logs, the Make-X box over what they make, and the shared make
@@ -28,7 +36,7 @@ class HeadlessFletchingTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val recipes = data.knifeOnLogs.values.flatten() + data.stringing.values + listOfNotNull(data.headless) + data.arrows.values + data.darts.values
         val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product } + data.knife
-        val objs = arrayOfNulls<ObjType>(ids.max() + 1)
+        val objs = arrayOfNulls<ObjType>(maxOf(ids.max(), Smithing.RUNITE.obj, Smithing.HAMMER) + 1)
         val stacks = (data.arrows.values + data.darts.values + listOfNotNull(data.headless)).flatMap { r -> r.inputs.map { it.obj } + r.product }.toSet()
         for (id in ids) objs[id] = ObjType(id, "Item $id", stackable = id in stacks, tradeable = true)
         objs[SHAFTS] = ObjType(SHAFTS, "Arrow shaft", stackable = true, tradeable = true)
@@ -38,9 +46,13 @@ class HeadlessFletchingTest {
         objs[SHORTBOW] = ObjType(SHORTBOW, "Shortbow", tradeable = true)
         objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true)
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, tradeable = true)
+        objs[Smithing.RUNITE.obj] = ObjType(Smithing.RUNITE.obj, "Runite bar", tradeable = true)
+        objs[Smithing.HAMMER] = ObjType(Smithing.HAMMER, "Hammer", tradeable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(VARROCK_X shr 6, VARROCK_Z shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(3),
-            cycleMillis = millis, varTypes = VarTypes(6_000, AllSettings.VARBITS),
+            locTypes = LocTypes(mapOf(Smithing.ANVIL to LocType(Smithing.ANVIL, "Anvil", listOf("Smith", null, null, null, null), LocCollisionType(width = 1, length = 1)))),
+            staticLocs = StaticLocs().apply { add(ZoneLoc(Smithing.ANVIL, LocShape.CENTREPIECE_STRAIGHT, 0, ANVIL_X, ANVIL_Z, 0)) },
+            cycleMillis = millis, varTypes = VarTypes(6_000, AllSettings.VARBITS + SMITHING_VARBITS),
         )
     }
 
@@ -282,7 +294,7 @@ class HeadlessFletchingTest {
     }
 
     @Test
-    fun `ten rune darts fletched at once in Varrock are the Varrock elite diary task, and nine or ten in Lumbridge aren't`(@TempDir dir: Path) {
+    fun `ten rune darts fletched at once in Varrock from tips smithed there are the Varrock elite diary task, and bought tips or Lumbridge aren't`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ivy").use { client ->
                 client.ready("ivy")
@@ -295,14 +307,25 @@ class HeadlessFletchingTest {
 
                 client.command("tele $VARROCK_X $VARROCK_Z 0")
                 client.await("in Varrock") { client.position?.takeIf { it.x == VARROCK_X && it.z == VARROCK_Z } }
-                client.give(RUNE_DART_TIPS, 9)
-                client.use(FEATHER, RUNE_DART_TIPS)
-                client.await("9 more darts") { if (client.count(RUNE_DART) == 19) Unit else null }
-                client.awaitTicks(2)
-                assertEquals(0, diaryTasksDone(), "nine darts")
+                // Ten bought tips (::item here) fletched in Varrock: the tips weren't smithed there (Codex on #952).
                 client.give(RUNE_DART_TIPS, 10)
                 client.use(FEATHER, RUNE_DART_TIPS)
-                client.await("10 more darts") { if (client.count(RUNE_DART) == 29) Unit else null }
+                client.await("10 more darts") { if (client.count(RUNE_DART) == 20) Unit else null }
+                client.awaitTicks(2)
+                assertEquals(0, diaryTasksDone(), "bought tips")
+
+                // One runite bar smithed at the Varrock anvil makes the ten tips, and fletching them is the task.
+                client.command("setlevel smithing 89")
+                client.await("Smithing 89") { client.stat(SMITHING)?.takeIf { it.level == 89 } }
+                client.give(Smithing.HAMMER)
+                client.give(Smithing.RUNITE.obj)
+                client.locOp(Smithing.ANVIL, ANVIL_X, ANVIL_Z, 1)
+                client.await("the anvil") { if (Smithing.INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(Smithing.INTERFACE, ANVIL_DART_TIPS, 1)
+                client.await("10 smithed tips", 20_000) { if (client.count(RUNE_DART_TIPS) == 10) Unit else null }
+                assertEquals(0, diaryTasksDone(), "smithed, not yet fletched")
+                client.use(FEATHER, RUNE_DART_TIPS)
+                client.await("10 darts from them") { if (client.count(RUNE_DART) == 30) Unit else null }
                 client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
             }
         }
@@ -341,6 +364,17 @@ class HeadlessFletchingTest {
         /** Inside the diary's Varrock box, in the square. */
         const val VARROCK_X = 3230
         const val VARROCK_Z = 3430
+        /** An anvil inside the Varrock box, by the square. */
+        const val ANVIL_X = 3232
+        const val ANVIL_Z = 3430
+        /** Dart tips' component on the anvil (interface 312). */
+        const val ANVIL_DART_TIPS = 29
+        const val SMITHING = 13
+        val SMITHING_VARBITS = mapOf(
+            Smithing.VARBIT_BAR_TYPE to VarbitType(210, 0, 2),
+            Smithing.VARBIT_LAST_BAR to VarbitType(549, 24, 26),
+            Smithing.VARBIT_LAST_ITEM to VarbitType(549, 27, 31),
+        )
         const val LOGS = 1511
         const val SHAFTS = 52
         const val JAVELIN_SHAFTS = 19584
