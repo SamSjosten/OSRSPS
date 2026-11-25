@@ -12,6 +12,7 @@ import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,6 +38,8 @@ class HeadlessClanBoardTest {
             staticLocs = StaticLocs().apply { add(ZoneLoc(ClanHub.RECRUITMENT_TABLE, LocShape.CENTREPIECE_STRAIGHT, 2, TABLE_X, TABLE_Z, 0)) },
             cycleMillis = millis,
             clansDir = dir.resolve("data"),
+            // A fixed clock, so the clan's age (by UTC date) can't tick over midnight mid-test.
+            clansClock = { CLOCK },
         )
     }
 
@@ -114,6 +117,7 @@ class HeadlessClanBoardTest {
     }
 
     private companion object {
+        val CLOCK: Instant = Instant.parse("2026-11-19T12:00:00Z")
         const val TABLE_X = 3177
         const val TABLE_Z = 3469
     }

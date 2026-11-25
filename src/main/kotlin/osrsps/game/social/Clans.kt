@@ -697,7 +697,7 @@ class Clans(
         if (!isRecruiter(player, clan)) return tell(player, ClanLines.BOARD_NOT_ALLOWED)
         store.setListed(clan, !clan.listed)
         tell(player, if (clan.listed) ClanLines.BOARD_LISTED else ClanLines.BOARD_DELISTED, clan.name)
-        for (member in clan.members) playerByKey(member.key)?.let { if (online(it)) showBoardButton(it) }
+        for (member in clan.members) playerByKey(member.key)?.let { if (online(it) && BOARD in it.modals.values) showBoardButton(it) }
         showBoard(player)
     }
 
