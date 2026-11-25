@@ -48,7 +48,8 @@
   },
   {
    "step": "command",
-   "text": "::item 314 20"
+   "text": "::item 314 30",
+   "comment": "feathers for 9 + 10 + 10 darts"
   },
   {
    "step": "command",
@@ -149,6 +150,12 @@
    "count": 10,
    "timeoutMs": 20000,
    "comment": "ten tips from one bar"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[diary.stage stage=1]",
+   "timeoutMs": 5000,
+   "comment": "the stage message"
   },
   {
    "step": "assertVarbit",

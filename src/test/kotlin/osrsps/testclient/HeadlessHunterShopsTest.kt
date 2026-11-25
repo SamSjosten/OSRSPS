@@ -116,7 +116,9 @@ class HeadlessHunterShopsTest {
                 wear(SPOTTED_CAPE)
                 client.awaitTicks(2)
                 assertEquals(false, diaryDone(), "a spotted cape")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.stage") }, "no stage for a spotted cape")
                 buy(SPOTTIER_CAPE, DASHING_FUR, 800)
+                client.seen("[diary.stage stage=1]")
                 assertEquals(false, diaryDone(), "bought, not yet worn")
                 wear(SPOTTIER_CAPE)
                 client.await("the diary task") { Unit.takeIf { diaryDone() } }

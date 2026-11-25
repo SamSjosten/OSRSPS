@@ -199,6 +199,7 @@ class HeadlessFiremakingTest {
                 client.await("by the yew") { client.position?.takeIf { it.x == YEW_X + 1 && it.z == YEW_Z } }
                 client.locOp(YEW, YEW_X, YEW_Z, 1)
                 client.await("yew logs", 30_000) { client.inventory(BACKPACK).indexOfFirst { it?.id == YEW_LOGS }.takeIf { it >= 0 } }
+                client.seen("[diary.stage stage=1]")
                 // Chopped, but lit in the square or on the church's first floor: still not the task.
                 light(SQUARE_X, SQUARE_Z, 0)
                 assertEquals(0, diaryTasksDone(), "outside the church")

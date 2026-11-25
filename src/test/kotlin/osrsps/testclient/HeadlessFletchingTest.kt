@@ -313,6 +313,7 @@ class HeadlessFletchingTest {
                 client.await("10 more darts") { if (client.count(RUNE_DART) == 20) Unit else null }
                 client.awaitTicks(2)
                 assertEquals(0, diaryTasksDone(), "bought tips")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.stage") }, "no stage for bought tips")
 
                 // One runite bar smithed at the Varrock anvil makes the ten tips, and fletching them is the task.
                 client.command("setlevel smithing 89")
@@ -323,6 +324,7 @@ class HeadlessFletchingTest {
                 client.await("the anvil") { if (Smithing.INTERFACE in client.openInterfaces()) Unit else null }
                 client.ifButton(Smithing.INTERFACE, ANVIL_DART_TIPS, 1)
                 client.await("10 smithed tips", 20_000) { if (client.count(RUNE_DART_TIPS) == 10) Unit else null }
+                client.seen("[diary.stage stage=1]")
                 assertEquals(0, diaryTasksDone(), "smithed, not yet fletched")
                 client.use(FEATHER, RUNE_DART_TIPS)
                 client.await("10 darts from them") { if (client.count(RUNE_DART) == 30) Unit else null }
