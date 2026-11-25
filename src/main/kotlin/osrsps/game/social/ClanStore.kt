@@ -49,6 +49,9 @@ class ClanStore(private val file: Path? = null) {
         /** Whether it is on the clan recruitment boards (List your clan). */
         var listed = false
 
+        /** The coins in its coffer, in the clan hall. */
+        var coffer = 0
+
         /** Its interests, a bit each in enum_3792's order; nothing sets them yet. */
         var interests = 0
 
@@ -88,6 +91,12 @@ class ClanStore(private val file: Path? = null) {
 
     /** Every clan, oldest first. */
     fun all(): Collection<Clan> = clans.values
+
+    /** Sets the coins in [clan]'s coffer and saves at once: coins came out of or went into someone's inventory. */
+    fun setCoffer(clan: Clan, coins: Int) {
+        clan.coffer = coins
+        save()
+    }
 
     /** Puts [clan] on the recruitment boards or takes it off, written at the next [flush]. */
     fun setListed(clan: Clan, listed: Boolean) {
@@ -242,6 +251,7 @@ class ClanStore(private val file: Path? = null) {
                     }
                     putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
                     if (clan.listed) put("listed", true)
+                    if (clan.coffer != 0) put("coffer", clan.coffer)
                     if (clan.interests != 0) put("interests", clan.interests)
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
@@ -279,6 +289,7 @@ class ClanStore(private val file: Path? = null) {
             // Files from before settings, applications or bans have none.
             for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
             clan.listed = obj["listed"]?.jsonPrimitive?.boolean ?: false
+            clan.coffer = obj["coffer"]?.jsonPrimitive?.int ?: 0
             clan.interests = obj["interests"]?.jsonPrimitive?.int ?: 0
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject

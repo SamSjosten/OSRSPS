@@ -66,7 +66,8 @@
     "The Champions' Challenge (post-quest step 9, ChampionsChallenge.kt): Larxus, the eleven champions, the Champion Statue open and shut, the portcullis, the arena's ladder and the Chest of Champions' multiloc (the 242 cache, 2026-11-19).",
     "NPCs: Karamja (step K3.3b): Brimhaven Dungeon's wild dogs, fire giants, greater and black demons, and its baby red, red, bronze, iron, steel and baby green dragons (the 242 cache, 2026-11-18).",
     "Locs and NPCs: Karamja (step K3.4): the Brimhaven Agility Arena's Cap'n Izzy No-Beard and Pirate Jackie the Fruit, its ladders and ticket dispensers (the 242 cache, 2026-11-19).",
-    "The poll booths (2026-11-19): every colour's shown types and multilocs under 26492, from the Poll booth page."
+    "The poll booths (2026-11-19): every colour's shown types and multilocs under 26492, from the Poll booth page.",
+    "The clan coffer (2026-11-19): clan_hall_storage (41626), from the Clan Coffer page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -3234,6 +3235,7 @@
     {"loc": 41611, "name": "Bush", "wiki": "Bush (scenery) page, infobox"},
     {"loc": 41615, "name": "Poster"},
     {"loc": 41617, "name": "Portal", "wiki": "Clan hall page (the exit portal, clan_hall_exit_medieval)"},
+    {"loc": 41626, "name": "Clan Coffer"},
     {"loc": 41650, "name": "Altar", "wiki": "Clan hall page (the chapel's altar, clan_medieval_altar)"},
     {"loc": 41724, "name": "Clan hall portal"},
     {"loc": 41728, "name": "Clan recruitment board"},
