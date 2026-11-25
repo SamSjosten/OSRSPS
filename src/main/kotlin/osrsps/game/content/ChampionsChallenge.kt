@@ -94,14 +94,14 @@ object ChampionsChestLines : Lines("champions_chest", "Transcript:Chest of Champ
  *   is, rewards (the chest), Leon d'Cour's challenge once ten champions are beaten, and the champion's cape, as many as
  *   the player wants, once Leon is. A champion's scroll used on him reads out its duel's rules and, on yes, arranges the
  *   duel ([CustomVars.championsVarp] holds the champion arranged); a scroll of a champion already beaten is void and he
- *   takes it; any other item gets his "now go show who's interested".
+ *   takes it; any other item gets his line sending the player off to find a champion.
  * - **The Champion Statue** ([STATUE], by Larxus) opens only with a duel arranged and its Climb-down checks the duel's
  *   items (the ghoul's: a weapon worn and nothing else; the lesser demon's: nothing worn; Leon's: nothing carried) and
  *   puts the player in the arena with their champion, who fights them alone ([fights]).
  * - **The duel's rules** ([Rule]), refused as they are broken: one kind of attack only or one kind barred
  *   ([osrsps.game.combat.Combat.ruled], by the player's attack style), no prayer ([osrsps.game.combat.Prayers.barred])
  *   and no special attacks ([osrsps.game.combat.SpecialAttacks.barred]). No teleport leaves the basement
- *   ([osrsps.game.combat.Teleblock.refusal], "There's a ladder for a reason").
+ *   ([osrsps.game.combat.Teleblock.refusal]; Larxus points to the ladder).
  * - **The portcullis** ([PORTCULLIS]) lets the player out of the arena without ending the duel; **the ladder** behind it
  *   ([ARENA_LADDER]) takes them up beside Larxus and ends it, the champion gone (the Wiki). Logging out or dying ends it
  *   too; the scroll and the arrangement stay.
@@ -121,9 +121,9 @@ object ChampionsChestLines : Lines("champions_chest", "Transcript:Chest of Champ
  * ([CHAMPION_SPAWN]), the tile past the portcullis ([GATE]) and the one the ladder puts the player on ([GALLERY]); the
  * arena not being an instance, each champion fighting its own player alone; the rules judged by the attack style set,
  * the refusals as messages (the Wiki has them as Larxus's lines); the statue swapped for everyone, as a door is; each
- * chathead expression; no animation on Climb-down. Left out: the scrolls' Read, the lesser demon's "materials to make
- * them" check, the music unlock, Leon's champion scroll (unobtainable on live), the drop's members-world and quest point
- * checks (every account has the points).
+ * chathead expression; no animation on Climb-down. Left out: the scrolls' Read, the lesser demon's check for the
+ * materials to make them, the music unlock, Leon's champion scroll (unobtainable on live), the drop's members-world and
+ * quest point checks (every account has the points).
  */
 class ChampionsChallenge(private val world: World) {
     /** The duel each champion fights under. */
