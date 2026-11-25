@@ -27,7 +27,8 @@ RSProx starts its RuneLite with `--developer-mode` and its RuneLite folder is `C
 In developer mode RuneLite loads every `.jar` in `<RuneLite folder>\sideloaded-plugins` at startup,
 so:
 
-1. Download `tick-recorder-jar` from the latest `build` run on GitHub Actions and unzip it.
+1. Fetch `tick-recorder-jar` with `powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\repo-fetch.ps1 -Artifact tick-recorder-jar -OutFile C:\RSPS\downloads\tick-recorder-jar.zip` and unzip it
+   (it takes only this repository's own `main` builds; an artifact picked by hand from the Actions page could be a fork pull request's, and developer mode runs whatever jar is in `sideloaded-plugins`, exploit review R54C-1).
 2. Copy `tick-recorder-<version>.jar` to `C:\RSPS\.rlcustom\sideloaded-plugins\`.
 3. Start `C:\RSPS\RSProx.cmd`, log in, and turn on Recording in the plugin's settings.
 4. Recordings land in `C:\RSPS\.rlcustom\plugin-data\tickrecorder\`. The first start after this

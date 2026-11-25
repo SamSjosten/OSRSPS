@@ -275,6 +275,7 @@ class Cooking(private val world: World) {
             val cooked = world.objTypes[food.cooked] ?: error("No obj type ${food.cooked} for cooked food")
             player.inventory.add(cooked, 1)
             player.skills.addTenths(Skill.COOKING, food.xpTenths)
+            world.diaries.made(player, cooked.id, 1)
             player.message(text.get(food.cookedLine, *named(food.cookedLine, cooked.name)))
         } else {
             val burnt = world.objTypes[food.burnt] ?: error("No obj type ${food.burnt} for burnt food")

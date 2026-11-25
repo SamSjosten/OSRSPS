@@ -173,6 +173,7 @@ object LightSources {
         }
         player.inventory[slot] = InvObj(source.lit, held.count)
         world.message(player, LightSourceLines.LIT, "item" to name)
+        world.diaries.made(player, source.lit, held.count)
     }
 
     private fun ScriptContext.putOut(world: World, slot: Int, source: LightSource) {

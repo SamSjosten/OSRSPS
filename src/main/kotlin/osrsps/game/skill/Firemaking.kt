@@ -106,6 +106,7 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
                 if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.FIREMAKING))) {
                     player.actionDelay = tick + CYCLE
                     lit(obj, log)
+                    world.diaries.burned(player, log.obj)
                     return
                 }
                 // A failed roll strikes again and waits a whole cycle, with no new message (2004Scape).

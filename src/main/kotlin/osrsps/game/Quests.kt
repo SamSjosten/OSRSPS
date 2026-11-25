@@ -135,6 +135,11 @@ class Quests(val all: List<Quest>) {
             // (ent) shows Travel, Talk-to and Last-destination from 2, the lowest value whose form has them (inferred;
             // [osrsps.game.content.SpiritTrees]).
             598 to 2,
+            // The Lost Tribe's varbit (532) ends the quest at 11, which shows Kazgar and Mistag with only Talk-to and
+            // Follow; their Mines/Watermill/Cellar forms (lost_tribe_guide_3ops, lost_tribe_mistag_3ops) are the multinpcs'
+            // entry 12, inferred to be where Death to the Dorgeshuun leaves it. 12 changes nothing else that reads it
+            // (Sigmund in the H.A.M. store and the cellar wall read the same at 11 and 12). Nightly 2026-11-23.
+            532 to 12,
             // The Restless Ghost: the Wizards' Tower basement's altar (restless_ghost_altar) bare, the skull back in the
             // coffin (1, restless_ghost_altar_no_skull).
             2130 to 1,

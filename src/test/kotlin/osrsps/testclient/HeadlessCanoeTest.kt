@@ -175,6 +175,29 @@ class HeadlessCanoeTest {
                 client.seen("[canoe.arrive_pond]")
                 client.seen("[canoe.pond_walk]")
                 assertEquals(35, Wilderness.level(pond.x, pond.z))
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "only Edgeville is the diary's waka trip")
+            }
+        }
+    }
+
+    @Test
+    fun `a waka from Lumbridge to Edgeville is the Lumbridge & Draynor hard diary task, and a stable dugout isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.canoeist(99)
+                client.makeAndFloat(CanoeType.STABLE_DUGOUT)
+                client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
+                val edgeville = CanoeDestination.EDGEVILLE
+                client.await("landed at Edgeville by dugout", timeoutMillis = 20_000) { client.position?.takeIf { it.x == edgeville.x && it.z == edgeville.z } }
+                client.seen("[canoe.sinks]")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "a stable dugout isn't a waka")
+
+                client.tele(LUM_X + 2, LUM_Z - 1)
+                client.makeAndFloat(CanoeType.WAKA)
+                client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
+                val to = CanoeDestination.EDGEVILLE
+                client.await("landed at Edgeville", timeoutMillis = 20_000) { client.position?.takeIf { it.x == to.x && it.z == to.z } }
+                client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
             }
         }
     }

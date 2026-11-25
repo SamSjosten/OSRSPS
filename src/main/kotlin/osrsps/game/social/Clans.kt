@@ -216,6 +216,18 @@ class Clans(
     /** The clan [player] has loaded as a guest, or null. */
     fun guestClanOf(player: Player): ClanStore.Clan? = listening[player.saveKey]?.let { store.byId(it) }
 
+    /**
+     * Whether [player] may go into [clan]'s hall: a member whose rank meets the Enter clan hall permission, or anyone
+     * else when it lets guests in and they aren't on the clan's ban list (the guide's ban list bars players "entering
+     * the Hall as a guest").
+     */
+    fun mayEnterHall(player: Player, clan: ClanStore.Clan): Boolean {
+        val need = permission(clan, VAR_ENTER_HALL)
+        val member = clan.member(player.saveKey)
+        if (member != null) return member.rank >= need
+        return need <= RANK_GUEST && clan.banned(player.saveKey) == null
+    }
+
     /** Whether [player] is in the channel of the clan they have loaded as a guest. */
     fun inGuestChannel(player: Player): Boolean = guestClanOf(player)?.let { channels[it.id]?.contains(player) } == true
 
@@ -1791,6 +1803,9 @@ class Clans(
         const val VAR_BAN_FROM_CHAT = 18
         const val VAR_ICONS = 25
 
+        /** Enter clan hall (struct_2969): Guest is both its floor and its default (param_1253, -1). */
+        const val VAR_ENTER_HALL = 23
+
         /**
          * The clan's motif, varclansetting 11: its two icons (enum_3820, 0 none to 27) and its colour (enum_3819, 0 to 7),
          * each plus 1 in 10 bits, from bit 0 (proc clan_outfit_icon_get_all; 0 is unset).
@@ -1850,6 +1865,7 @@ class Clans(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
             VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_FOUNDER, PERM_KICK to RANK_OWNER,
+            VAR_ENTER_HALL to RANK_GUEST,
         )
 
         /**
@@ -1859,7 +1875,7 @@ class Clans(
         val PERMISSION_FLOORS = mapOf(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR,
-            VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_GUEST,
+            VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_GUEST, VAR_ENTER_HALL to RANK_GUEST,
         )
 
         /** The permission each rests on (param_1254): it never needs less than that one. */
@@ -1881,6 +1897,9 @@ class Clans(
         val PERMISSION_VARS = mapOf(
             0 to VAR_PERMISSION_ACCESS, 1 to VAR_RANK_TITLES, 2 to VAR_ASSIGN_RANKS, 3 to VAR_RECRUITMENT, 4 to VAR_EXPEL,
             5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 7 to PERM_TALK, 8 to PERM_KICK, 9 to VAR_BAN_FROM_CHAT,
+            // Enter clan hall (struct_2969): enum_3831's first, after the guest toggles (10 to 14), events (15 to 17) and
+            // coffer (18, 19) in enum_3825's order, as clan_permission_init numbers the buttons (Codex on PR 911).
+            20 to VAR_ENTER_HALL,
         )
 
         /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */

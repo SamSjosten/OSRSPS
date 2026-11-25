@@ -117,6 +117,7 @@ object NpcSpawnFile {
         "crandor.json",
         "mor-ul-rek.json",
         "dorgeshuun-tunnels.json",
+        "brimhaven.json",
         "balloons.json",
     )
 

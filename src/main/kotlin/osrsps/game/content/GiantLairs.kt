@@ -200,7 +200,9 @@ class GiantLairs(private val world: World) {
         } else if (run.unlooted && takeKey(player, run.lair.key)) {
             run.unlooted = false
             world.message(player, run.lair.lines.chestLoot)
-            world.npcDrops.chests[run.lair.chestTable]?.roll(world.random)?.forEach { drop ->
+            world.npcDrops.chests[run.lair.chestTable]?.roll(world.random)?.forEach { rolled ->
+                // The chest's beginner clue comes as its scroll box, or not at all past the cap (Treasure Trails step TT9).
+                val drop = world.trails.dropFor(player, rolled.type)?.let { rolled.copy(type = it) } ?: return@forEach
                 world.groundObjs.addPrivate(drop.type, drop.count, player.x, player.z, player.level, player.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.LOOT_DESPAWN_TICKS)
                 // The chest's loot is the boss's drop (Bryophyta's essence, Hill giant club): logged as it lands.
                 world.collectionLog.add(player, drop.type.id, drop.count)

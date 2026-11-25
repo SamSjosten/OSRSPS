@@ -1,11 +1,16 @@
 package osrsps.game.content
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.FrameSlot
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.npc.Npc
+import osrsps.game.skill.AgilityLines
+
+private val logger = KotlinLogging.logger {}
 
 /** The words every diary shares: the journal's tier headings and the messages when a task or a tier is done. */
 object DiaryLines : Lines("diary", "Achievement Diary") {
@@ -61,6 +66,9 @@ enum class DiaryTier(val heading: Line) {
  * bars from (`lumbridge_easy_count` ...), [completes] the varbit per tier that turns the row green once all four are
  * set (`lumbridge_diary_easy_complete` ...), and [started] the varbit that turns it from red to yellow. Every id is from
  * the 242 cache (osrs-dumps 2026-11-18b, client procs diary_completion_info and area_task_complete).
+ *
+ * [rewardVarbits] say which tiers' rewards are claimed (`lumbridge_easy_reward` ..., `varrock_easy_reward`
+ * ...), and [rewards] are the item per tier the taskmaster gives (Explorer's ring 1 to 4, Varrock armour 1 to 4).
  */
 enum class DiaryArea(
     val slug: String,
@@ -73,14 +81,18 @@ enum class DiaryArea(
     val title: Line,
     val areaName: Line,
     val taskmaster: Line,
+    val rewardVarbits: List<Int>,
+    val rewards: List<Int>,
 ) {
     LUMBRIDGE(
         "lumbridge", 6, 1194 to 1195, listOf(6311, 6312, 6313, 6314), listOf(4495, 4496, 4497, 4498), 4453,
         DiaryLumbridgeLines.WINDOW, DiaryLumbridgeLines.TITLE, DiaryLumbridgeLines.AREA, DiaryLumbridgeLines.TASKMASTER,
+        listOf(4535, 4536, 4537, 4538), listOf(13125, 13126, 13127, 13128),
     ),
     VARROCK(
         "varrock", 8, 1176 to 1177, listOf(6319, 6320, 6321, 6322), listOf(4479, 4480, 4481, 4482), 4455,
         DiaryVarrockLines.WINDOW, DiaryVarrockLines.TITLE, DiaryVarrockLines.AREA, DiaryVarrockLines.TASKMASTER,
+        listOf(4519, 4520, 4521, 4522), listOf(13104, 13105, 13106, 13107),
     ),
     ;
 
@@ -234,10 +246,50 @@ class Diaries(private val world: World, private val font: ChatFont) {
         return true
     }
 
-    /** Takes [task] back off, for `::diary reset`; the tier's flag goes with it. */
+    /** [count] of [obj] made or gathered at once: any task it does ([DiaryHooks.MADE]). */
+    fun made(player: Player, obj: Int, count: Int) = DiaryHooks.made(DiaryHooks.MADE, player, obj, count).forEach { complete(player, it) }
+
+    /** [log] lit by the player ([DiaryHooks.BURNED]). */
+    fun burned(player: Player, log: Int) = DiaryHooks.made(DiaryHooks.BURNED, player, log, 1).forEach { complete(player, it) }
+
+    /** An NPC the player killed ([DiaryHooks.KILLED]). */
+    fun killed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.KILLED, player, npc.type.name).forEach { complete(player, it) }
+
+    /** An NPC the player pickpocketed ([DiaryHooks.PICKPOCKETED]). */
+    fun pickpocketed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.PICKPOCKETED, player, npc.type.name).forEach { complete(player, it) }
+
+    /** Pray-at on an altar with Smite on ([DiaryHooks.SMITE_ALTARS]). */
+    fun prayedWithSmite(player: Player) {
+        for ((zone, task) in DiaryHooks.SMITE_ALTARS) if (zone.has(player)) complete(player, task)
+    }
+
+    /** The Skill Cape emote in a quest point cape. */
+    fun questCapeEmote(player: Player) {
+        if (DiaryZone.WISE_OLD_MAN_HOUSE.has(player)) complete(player, DiaryTask.LUMBRIDGE_ELITE_6)
+    }
+
+    /** A teleport spell cast (not a tablet broken), by its spell obj. */
+    fun teleported(player: Player, spellObj: Int) {
+        if (spellObj == LUMBRIDGE_TELEPORT_SPELL) complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+    }
+
+    /** A lap of the course whose lap message is [lapLine]. */
+    fun lap(player: Player, lapLine: Line) {
+        when (lapLine) {
+            AgilityLines.DRAYNOR_LAPS -> complete(player, DiaryTask.LUMBRIDGE_EASY_1)
+            AgilityLines.ALKHARID_LAPS -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_1)
+        }
+    }
+
+    /**
+     * Takes [task] back off, for `::diary reset`; the tier's flag goes with it, and its claimed reward, so a test can
+     * claim it again (an admin's command only, so the second lamp is no dupe a player can reach).
+     */
     fun undo(player: Player, task: DiaryTask) {
         player.vars[task.varp] = player.vars[task.varp] and (1 shl task.bit).inv()
         refresh(player, task.area)
+        val reward = task.area.rewardVarbits[task.tier.ordinal]
+        if (player.vars.types.varbit(reward) != null) player.vars.setVarbit(reward, 0)
     }
 
     /** Sets the panel's varbits for [area] from its task bits. */
@@ -248,6 +300,55 @@ class Diaries(private val world: World, private val font: ChatFont) {
             player.vars.setVarbit(area.completes[tier.ordinal], if (tierDone(player, area, tier)) 1 else 0)
         }
         player.vars.setVarbit(area.started, if (area.tasks.any { done(player, it) }) 1 else 0)
+    }
+
+    /** Whether [tier]'s reward in [area] has been claimed; never, in a world whose cache lacks the reward varbits. */
+    fun claimed(player: Player, area: DiaryArea, tier: DiaryTier): Boolean {
+        val varbit = area.rewardVarbits[tier.ordinal]
+        return player.vars.types.varbit(varbit) != null && player.vars.getVarbit(varbit) == 1
+    }
+
+    /** The lowest tier whose tasks are all done and whose reward isn't claimed yet, or null. */
+    fun claimable(player: Player, area: DiaryArea): DiaryTier? =
+        DiaryTier.entries.firstOrNull { tierDone(player, area, it) && !claimed(player, area, it) }
+
+    /** Whether every tier below [tier] is done, which claiming [tier] needs (the Wiki's diary pages). */
+    fun previousDone(player: Player, area: DiaryArea, tier: DiaryTier): Boolean =
+        DiaryTier.entries.take(tier.ordinal).all { tierDone(player, area, it) }
+
+    /** The highest tier claimed in [area], whose item the taskmaster gives again. */
+    fun highestClaimed(player: Player, area: DiaryArea): DiaryTier? =
+        DiaryTier.entries.lastOrNull { claimed(player, area, it) }
+
+    /**
+     * Claims [tier] in [area]: the reward varbit, then the tier's item and lamp, each to the inventory or, without room,
+     * to the floor under the player (guessed for Mikasi, who asks for no space; Toby checks first). Earlier tiers' items
+     * stay with the player, as on live (the Wiki's item pages list each tier as its own item).
+     */
+    fun claim(player: Player, area: DiaryArea, tier: DiaryTier) {
+        player.vars.setVarbit(area.rewardVarbits[tier.ordinal], 1)
+        give(player, area.rewards[tier.ordinal])
+        give(player, AntiqueLamps.Lamp.entries[tier.ordinal].obj)
+    }
+
+    /** The highest claimed tier's item again, for "Can I have another ring?" and its Varrock twin. */
+    fun replace(player: Player, area: DiaryArea) {
+        highestClaimed(player, area)?.let { give(player, area.rewards[it.ordinal]) }
+    }
+
+    /**
+     * Whether the player has the highest claimed tier's item carried, worn or banked; earlier tiers' items don't count,
+     * so a banked Explorer's ring 1 doesn't stop a lost ring 4 being given back (guessed: the Wiki says only that the
+     * taskmaster replaces a lost reward).
+     */
+    fun ownsReward(player: Player, area: DiaryArea): Boolean {
+        val obj = area.rewards[(highestClaimed(player, area) ?: return false).ordinal]
+        return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
+    }
+
+    private fun give(player: Player, obj: Int) {
+        val type = world.objTypes[obj] ?: return logger.warn { "No item $obj in the cache" }
+        world.groundObjs.give(player, type, 1)
     }
 
     /** At login, in case a save's bits and counts disagree (a save from a server that changed the task list). */
@@ -308,6 +409,9 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
         /** Client script that sizes journalscroll's text layer for a line count (`script6845` in osrs-dumps). */
         const val LINE_COUNT_SCRIPT = 6845
+
+        /** `31_lumbridge_teleport`, the standard book's Lumbridge Teleport. */
+        const val LUMBRIDGE_TELEPORT_SPELL = 3289
 
         /** The text layer's width: each line is as wide (the cache's qj components). */
         const val LINE_WIDTH = 404
