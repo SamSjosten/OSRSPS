@@ -14,7 +14,7 @@ import osrsps.game.WearPos
  * prospector kit is built), a second tephra, amethyst, sunstone or guardian fragment (none are built here) and the second
  * gem roll (the Wiki's note for gem rocks, which have no double here). Guessed: the second ore, bar or quarry piece is
  * one more of the same, with its XP, after the first; the second bar takes the ores for it and isn't made without them;
- * a second iron bar is never impure.
+ * a second iron bar is smelted as the first, spending a ring of forging use or else impure half the time.
  */
 object VarrockArmour {
     val PIECES = listOf(13104, 13105, 13106, 13107)

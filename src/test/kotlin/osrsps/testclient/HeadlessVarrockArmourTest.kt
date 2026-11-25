@@ -32,9 +32,9 @@ import osrsps.map.LocShape
  */
 class HeadlessVarrockArmourTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val ids = Smithing.BARS.flatMap { bar -> bar.ores.map { it.first } + bar.obj } + listOf(RUNE_PICKAXE, POT) + VarrockArmour.PIECES
+        val ids = Smithing.BARS.flatMap { bar -> bar.ores.map { it.first } + bar.obj } + listOf(RUNE_PICKAXE, POT, RING_OF_FORGING) + VarrockArmour.PIECES
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
-        for (id in ids) objs[id] = ObjType(id, "Obj $id")
+        for (id in ids) objs[id] = ObjType(id, "Obj $id", internalName = if (id == RING_OF_FORGING) "ring_of_forging" else null)
         World(
             crcs,
             CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(FURNACE_X shr 6, FURNACE_Z shr 6) },
@@ -162,6 +162,34 @@ class HeadlessVarrockArmourTest {
         }
     }
 
+    @Test
+    fun `a second iron bar spends a ring of forging use as the first does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel smithing 15")
+                client.await("level 15") { client.stat(SMITHING)?.takeIf { it.level == 15 } }
+                client.command("tele ${FURNACE_X - 1} $FURNACE_Z 0")
+                client.await("by the furnace") { client.position?.takeIf { it.x == FURNACE_X - 1 && it.z == FURNACE_Z } }
+                wear(server, "carol", VarrockArmour.PIECES[3])
+                val carol = server.world.playerNamed("carol")!!
+                carol.equipment[WearPos.RING] = InvObj(RING_OF_FORGING, 1)
+                client.give(IRON_ORE, 20)
+                client.locOp(Smithing.FURNACE, FURNACE_X, FURNACE_Z, 2)
+                client.await("the Make-X box") { client.clientScripts().firstOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                client.resumePause(Chatbox.SKILLMULTI, barButton(Smithing.IRON), 20)
+                client.await("every ore smelted", timeoutMillis = 60_000) { if (client.count(IRON_ORE) == 0) Unit else null }
+                client.awaitTicks(2)
+                val smelts = client.messages().count { it.text == "[smithing.smelted bar=iron]" }
+                // With the ring every ore is a bar, the armour's second ones too, and every bar a use.
+                assertEquals(20, client.count(Smithing.IRON.obj))
+                assertTrue(smelts < 20, "$smelts smelts gave 20 bars: no second bar")
+                assertEquals(0, client.messages().count { it.text == "[smithing.impure]" })
+                assertEquals(20, carol.charges["jewel_forging"])
+            }
+        }
+    }
+
     /** The Make-X box's button for [bar]. */
     private fun barButton(bar: osrsps.game.skill.Bar) = Chatbox.SKILLMULTI_FIRST_ITEM + Smithing.BARS.indexOf(bar)
 
@@ -177,6 +205,8 @@ class HeadlessVarrockArmourTest {
         const val COPPER_ORE = 436
         const val COPPER = 436
         const val TIN = 438
+        const val IRON_ORE = 440
+        const val RING_OF_FORGING = 2568
         const val RUNE_PICKAXE = 1275
         const val POT = 1931
         const val BACKPACK = 93

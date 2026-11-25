@@ -131,25 +131,29 @@ class Smithing(private val world: World) {
     private fun hasOres(player: Player, bar: Bar): Boolean = bar.ores.all { (ore, count) -> player.inventory.count(ore) >= count }
 
     private fun ScriptContext.smeltOne(bar: Bar, furnace: ZoneLoc) {
+        val type = world.objTypes[bar.obj] ?: error("No obj type ${bar.obj} for a bar")
+        if (!smeltFrom(bar, type)) return
+        player.message(world.textFor(player)[SmithingLines.SMELTED, "bar" to bar.key])
+        // Varrock armour's second bar at the Edgeville furnace, from the ores for it ([VarrockArmour]): smelted as the
+        // first, so a second iron bar spends a ring of forging use, or may be impure without one (guessed).
+        if (hasOres(player, bar) && VarrockArmour.doubleBar(player, world.random, bar.level, furnace.x, furnace.z)) {
+            smeltFrom(bar, type)
+        }
+    }
+
+    /** Takes [bar]'s ores and gives the bar with its XP; false when iron came out impure, the ore lost. */
+    private fun ScriptContext.smeltFrom(bar: Bar, type: osrsps.game.ObjType): Boolean {
         for ((ore, count) in bar.ores) removeObj(player, ore, count)
-        val text = world.textFor(player)
         // The Wiki's Iron bar: half of all iron ore is too impure at a furnace, whatever the level, but none with a ring of
         // forging worn, which spends a use on each (Ring of forging).
         val forged = bar === IRON && world.jewelleryEffects.use(player, world.jewelleryEffects.forging)
         if (bar === IRON && !forged && !world.random.chance(1, 2)) {
-            player.message(text[SmithingLines.IMPURE])
-            return
+            player.message(world.textFor(player)[SmithingLines.IMPURE])
+            return false
         }
-        val type = world.objTypes[bar.obj] ?: error("No obj type ${bar.obj} for a bar")
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.SMITHING, bar.smeltXpTenths)
-        player.message(text[SmithingLines.SMELTED, "bar" to bar.key])
-        // Varrock armour's second bar at the Edgeville furnace, from the ores for it ([VarrockArmour]).
-        if (hasOres(player, bar) && VarrockArmour.doubleBar(player, world.random, bar.level, furnace.x, furnace.z)) {
-            for ((ore, count) in bar.ores) removeObj(player, ore, count)
-            player.inventory.add(type, 1)
-            player.skills.addTenths(Skill.SMITHING, bar.smeltXpTenths)
-        }
+        return true
     }
 
     // Smithing.
