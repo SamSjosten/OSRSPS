@@ -217,7 +217,7 @@ object HouseSaves {
         require(rooms.isNotEmpty()) { "A house with no rooms" }
         require(rooms.size <= House.MAX_ROOMS) { "A house of ${rooms.size} rooms" }
         val portals = rooms.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } }
-        require(portals == 1) { "A house with $portals exit portals" }
+        require(portals >= 1) { "A house with no exit portal" }
         return HouseState(location, rooms)
     }
 

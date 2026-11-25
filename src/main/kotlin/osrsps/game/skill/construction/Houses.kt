@@ -42,7 +42,9 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val ROOM_TOO_FAR = line("room_too_far", "Adding a room that would make the house wider than the player's level allows, {size} by {size} (no source yet)", "size")
     val ROOM_OUTSIDE = line("room_outside", "Adding a room past the edge of the yard (no source yet)")
     val ROOM_NO_DOOR = line("room_no_door", "Adding a room that can't be turned to have a door facing this one (no source yet)")
-    val REMOVE_PORTAL = line("remove_portal", "Removing the room the exit portal is in (ours: no source yet)")
+    val REMOVE_PORTAL = line("remove_portal", "Removing the room the house's only exit portal is in (ours: no source yet)")
+    val REMOVE_ONLY_PORTAL = line("remove_only_portal", "Remove on the house's only exit portal (the Exit portal page: it can't be removed; no source for the words)")
+    val FURNITURE_WATERING_CAN = line("furniture_watering_can", "Planting a bagged plant without a watering can with water in it (the Garden page: one is needed; no source for the words)")
     val FURNITURE_LEVEL = line("furniture_level", "Building furniture above the player's Construction level, {level} (no source yet)", "level")
     val FURNITURE_SKILL_LEVEL = line("furniture_skill_level", "Building furniture above another skill's level it needs, {skill} {level} (the barrels' Cooking; no source yet)", "skill", "level")
     val FURNITURE_CREST = line("furniture_crest", "Building a wall decoration without a family crest (the Dining room page: they need one from Sir Renitee; no source for the words)")
@@ -492,7 +494,10 @@ class Houses(private val world: World) {
     /** The prompt to remove [room], and its removal: the yard's grass back in its cell. */
     private suspend fun remove(context: ScriptContext, house: Open, state: HouseState, room: HouseRoom) {
         val player = context.player
-        if (House.EXIT_PORTAL in room.built.values) return world.message(player, ConstructionLines.REMOVE_PORTAL)
+        // Not the room with the house's only exit portal: a house needs one (the Garden page).
+        if (House.EXIT_PORTAL in room.built.values && state.rooms.all { it === room || House.EXIT_PORTAL !in it.built.values }) {
+            return world.message(player, ConstructionLines.REMOVE_PORTAL)
+        }
         var pick = 0
         world.dialogues.start(context) {
             pick = choice(ConstructionLines.REMOVE_YES, ConstructionLines.REMOVE_NO, title = text(ConstructionLines.REMOVE_TITLE))

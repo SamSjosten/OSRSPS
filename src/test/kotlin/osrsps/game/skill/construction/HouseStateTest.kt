@@ -41,15 +41,18 @@ class HouseStateTest {
     }
 
     @Test
-    fun `a hand-edited save is refused without rooms on the ground floor and one exit portal, and loses what isn't built here`() {
+    fun `a hand-edited save is refused without rooms on the ground floor and an exit portal, and loses what isn't built here`() {
         val garden = """{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}"""
         read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":6758}}]}""")
-        // No rooms, no exit portal, two exit portals.
+        // No rooms, no exit portal: refused. Two gardens each with an exit portal are fine (CON4e: a garden builds one).
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[]}""") }
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1}]}""") }
-        assertFailsWith<IllegalArgumentException> {
-            read("""{"location":"rimmington","rooms":[$garden,{"type":"garden","x":2,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}]}""")
-        }
+        assertEquals(2, read("""{"location":"rimmington","rooms":[$garden,{"type":"garden","x":2,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}]}""").rooms.size)
+        // A garden's trees: a big tree on the big tree space, a tree on the tree space; each the other way round is dropped.
+        assertEquals(mapOf(House.CENTREPIECE_SPACE to House.EXIT_PORTAL, 15362 to 4537, 15363 to 5127),
+            read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"15362":4537,"15363":5127}}]}""").rooms.single().built)
+        assertEquals(mapOf(House.CENTREPIECE_SPACE to House.EXIT_PORTAL),
+            read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"15362":5127,"15363":4537}}]}""").rooms.single().built)
         // A room on another floor is refused; an exit portal anywhere but the garden's centrepiece is dropped, leaving none.
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"floor":2}]}""") }
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"4515":${House.EXIT_PORTAL}}}]}""") }
