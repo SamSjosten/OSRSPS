@@ -113,12 +113,14 @@ class ExplorersRing(private val world: World, private val today: () -> Long = { 
     }
 
     private fun ScriptContext.check(tier: Tier) {
-        val energy = tier.restores - used(player, ENERGY_USED)
+        // The day's uses are shared by every tier, so a lower ring kept after a higher one's uses shows none left, not
+        // fewer than none.
+        val energy = (tier.restores - used(player, ENERGY_USED)).coerceAtLeast(0)
         // No alchemy is built, so none is used: a day's 30 always show.
         when (val limit = tier.teleports) {
             0 -> world.message(player, ExplorersRingLines.CHECK, "energy" to energy, "alchemy" to ALCHEMY_CASTS)
             null -> world.message(player, ExplorersRingLines.CHECK_UNLIMITED, "energy" to energy, "alchemy" to ALCHEMY_CASTS)
-            else -> world.message(player, ExplorersRingLines.CHECK_TELEPORTS, "energy" to energy, "teleports" to limit - used(player, TELEPORTS_USED), "alchemy" to ALCHEMY_CASTS)
+            else -> world.message(player, ExplorersRingLines.CHECK_TELEPORTS, "energy" to energy, "teleports" to (limit - used(player, TELEPORTS_USED)).coerceAtLeast(0), "alchemy" to ALCHEMY_CASTS)
         }
     }
 

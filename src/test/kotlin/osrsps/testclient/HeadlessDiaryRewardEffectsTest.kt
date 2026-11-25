@@ -18,13 +18,17 @@ import osrsps.map.CollisionMap
 
 /**
  * The diary rewards' effects through the headless client: the Explorer's ring 2's three teleports a day to the cabbage
- * patch and then no more, its restore through Functions, and Check counting what's left; Twiggy O'Korn's menu, back
+ * patch and then no more, its restore through Functions, and Check counting what's left, ring 1's none after ring 2's three restores; Twiggy O'Korn's menu, back
  * after "Who are you?", and the talk ending after the cape.
  */
 class HeadlessDiaryRewardEffectsTest {
+    private val ring1 = ExplorersRing.TIERS[0].obj
     private val ring2 = ExplorersRing.TIERS[1].obj
     private val twiggy = NpcType(Twiggy.ID, "Twiggy O'Korn", ops = listOf("Talk-to", null, null, null, null))
-    private val objs = ObjTypes.of(ObjType(ring2, "Explorer's ring 2", iops = listOf("Wear", "Check", "Teleport", "Functions", "Drop")))
+    private val objs = ObjTypes.of(
+        ObjType(ring1, "Explorer's ring 1", iops = listOf("Wear", "Check", "Energy", null, "Drop")),
+        ObjType(ring2, "Explorer's ring 2", iops = listOf("Wear", "Check", "Teleport", "Functions", "Drop")),
+    )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -72,6 +76,20 @@ class HeadlessDiaryRewardEffectsTest {
 
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, CHECK_OP, slot, ring2)
                 client.seen("[explorers_ring.check_teleports energy=2 teleports=0 alchemy=30]")
+
+                // Ring 2's other two restores, then ring 1 (kept from the easy diary) checked: the day's three restores
+                // are more than its two, and it shows none left, not fewer.
+                for (left in 1 downTo 0) {
+                    server.world.playerNamed("alice")!!.runEnergy = 1_000
+                    client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, FUNCTIONS_OP, slot, ring2)
+                    client.awaitDialogue("the functions menu") { it is DialogueView.Menu }
+                    client.chooseOption(1)
+                    client.seen("[explorers_ring.energy left=$left]")
+                }
+                client.command("item $ring1 1")
+                val slot1 = client.slotOf(ring1)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, CHECK_OP, slot1, ring1)
+                client.seen("[explorers_ring.check energy=0 alchemy=30]")
             }
         }
     }

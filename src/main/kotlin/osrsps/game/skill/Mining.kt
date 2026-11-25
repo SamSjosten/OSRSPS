@@ -189,8 +189,11 @@ class Mining(private val world: World) {
                 if (size != null) {
                     val piece = world.objTypes[size.obj] ?: error("No obj type ${size.obj} for ${type.key}")
                     world.locs.replace(loc, rock.empty, revertAfter = respawn(type, loc.x, loc.z, loc.level))
-                    player.inventory.add(piece, 1)
-                    player.skills.addTenths(Skill.MINING, size.xpTenths)
+                    // Varrock armour 2 and up's second piece, the same size with its XP, if there's room (the Wiki's
+                    // Mining enhancers; the same size is guessed).
+                    val count = if (player.inventory.freeSlots > 1 && VarrockArmour.doubleQuarry(player, world.random)) 2 else 1
+                    player.inventory.add(piece, count)
+                    player.skills.addTenths(Skill.MINING, size.xpTenths * count)
                     player.message(text[MiningLines.QUARRY, "ore" to oreName])
                     world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                     return stop()

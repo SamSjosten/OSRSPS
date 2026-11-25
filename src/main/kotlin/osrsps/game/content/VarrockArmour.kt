@@ -11,9 +11,10 @@ import osrsps.game.WearPos
  * bars up to steel, mithril, adamantite or any (by the bar's Smithing level: 30, 50, 70).
  *
  * Left out: armour 3 and 4 standing for a chef's hat at the Cooks' Guild (step 9), armour 4 as a prospector jacket (no
- * prospector kit is built) and the second gem roll (the Wiki's note for gem rocks, which have no double here). Guessed:
- * the second ore or bar is one more of the same, with its XP, after the first; the second bar takes the ores for it and
- * isn't made without them; a second iron bar is never impure.
+ * prospector kit is built), a second tephra, amethyst, sunstone or guardian fragment (none are built here) and the second
+ * gem roll (the Wiki's note for gem rocks, which have no double here). Guessed: the second ore, bar or quarry piece is
+ * one more of the same, with its XP, after the first; the second bar takes the ores for it and isn't made without them;
+ * a second iron bar is never impure.
  */
 object VarrockArmour {
     val PIECES = listOf(13104, 13105, 13106, 13107)
@@ -34,6 +35,15 @@ object VarrockArmour {
     fun doubleOre(player: Player, random: GameRandom, level: Int): Boolean {
         val tier = tier(player) ?: return false
         return level <= ORE_LEVEL[tier] && random.chance(1, 10)
+    }
+
+    /**
+     * Whether the armour mines a second piece of sandstone or granite this time: armour 2 and up (the Wiki's Mining
+     * enhancers, read 2026-11-25), though sandstone's level would let armour 1 in by [ORE_LEVEL].
+     */
+    fun doubleQuarry(player: Player, random: GameRandom): Boolean {
+        val tier = tier(player) ?: return false
+        return tier >= 1 && random.chance(1, 10)
     }
 
     /** Whether the armour smelts a second bar of Smithing level [level] this time, at a furnace on tile [x], [z]. */

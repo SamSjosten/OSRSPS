@@ -38,6 +38,15 @@ class VarrockArmourTest {
     }
 
     @Test
+    fun `sandstone and granite double from armour 2 up, not armour 1`() {
+        val (one, two, _, four) = VarrockArmour.PIECES
+        assertEquals(0, count(1_000) { VarrockArmour.doubleQuarry(wearing(null), it) })
+        assertEquals(0, count(1_000) { VarrockArmour.doubleQuarry(wearing(one), it) }, "armour 1, though sandstone is level 35")
+        assertTrue(count(1_000) { VarrockArmour.doubleQuarry(wearing(two), it) } in 60..140, "armour 2, about 1 in 10")
+        assertTrue(count(1_000) { VarrockArmour.doubleQuarry(wearing(four), it) } > 0)
+    }
+
+    @Test
     fun `bars double at the Edgeville furnace only, up to the tier's bar`() {
         val (one, _, _, four) = VarrockArmour.PIECES
         assertTrue(count(1_000) { VarrockArmour.doubleBar(wearing(one), it, 30, 3109, 3498) } > 0, "steel at Edgeville")
