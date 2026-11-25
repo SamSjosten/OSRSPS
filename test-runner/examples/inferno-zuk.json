@@ -22,6 +22,7 @@
     {"step": "command", "text": "::kill TzKal-Zuk", "expectMessage": "Killed TzKal-Zuk #"},
     {"step": "assertDialogue", "contains": "[ket_keh.impressive]", "speaker": "TzHaar-Ket-Keh", "timeoutMs": 15000},
     {"step": "assertInventory", "itemId": 21295, "count": 1},
+    {"step": "finishDialogue", "comment": "Ket-Keh's reward boxes closed, so the chatbox takes the commands below"},
     {"step": "command", "text": "::empty"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]

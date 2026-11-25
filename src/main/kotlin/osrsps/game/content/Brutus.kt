@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.GameLines
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.instance.Instance
@@ -22,6 +23,7 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
     val DYING = line("dying", "Brutus's overhead as he dies (Transcript:Brutus, Upon death)")
     val GROWLS = line("growls", "Brutus's overhead as he readies his charge (Transcript:Brutus, When charging)")
     val SNORTS = line("snorts", "Brutus's overhead as he readies his stomps (Transcript:Brutus, When stomping)")
+    val KILL_COUNT = line("kill_count", "a kill of Brutus: the kill count (the boss kill-count message; words not recorded yet)", "count")
     val HUFF = line("huff", "Brutus's overhead as he comes for a player out of his reach (Transcript:Brutus, Switching into smart-pathing)")
 }
 
@@ -45,6 +47,11 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
  *   kill (the Wiki's respawn; npc-combat.json). This step gives him his basic attack only; his charge and stomp are
  *   the next step. As he dies he says his last words (Transcript:Brutus). Items used on him are refused with the Wiki's
  *   two messages (an empty bucket has its own).
+ * - **His loot** (step 3; the Wiki's Brutus, Drops, and Bull bones, read 2026-11-22): npc-drops.json's table, on his
+ *   tile nearest the player ("Brutus' drops appear on the his tile closest to the player"). A kill counts for the
+ *   player whose field it is, in the cache's `total_cowboss_kills` ([KILL_COUNT_VARP]), with the kill-count message,
+ *   and the collection log's Brutus page shows it. Bull bones can't be taken, only buried where they lie, for 40
+ *   Prayer XP (no confirmation yet, as giant bones). The steaks cook and eat in Cooking and food.json.
  *
  * GUESSED until recorded: where Release puts the player ([ENTRY], just south of the gate) and where Brutus stands
  * ([SPAWN]: in the field south of the pen, from the Wiki's safespot-cycle tiles near "his respawn point", 3261,3293,
@@ -152,6 +159,19 @@ object Brutus {
 
     const val BUCKET = 1925
 
+    /** `bull_bones`: buried where they fall, never taken (OSRS Wiki, Bull bones), for 40 Prayer XP. */
+    const val BULL_BONES = 33115
+    const val BURY = 3
+    const val BULL_BONES_XP_TENTHS = 400
+
+    /** The cache's `total_cowboss_kills` and `total_cowboss_hardmode_kills`. */
+    const val KILL_COUNT_VARP = 5407
+    const val HARDMODE_KILL_COUNT_VARP = 5408
+
+    /** His tile nearest [x], [z], his south-west tile on [bossX], [bossZ]: where his drop goes (OSRS Wiki, Brutus, Trivia). */
+    fun nearestTile(bossX: Int, bossZ: Int, size: Int, x: Int, z: Int): Tile =
+        Tile(x.coerceIn(bossX, bossX + size - 1), z.coerceIn(bossZ, bossZ + size - 1))
+
     /** The field's map: four by six zones from here, the pen and the eastern field with Gillie's dairy cows. */
     const val FIELD_X = 3240
     const val FIELD_Z = 3256
@@ -175,6 +195,30 @@ fun registerBrutus(world: World, pens: BrutusPens) {
         }
         world.handlers.onObjOnNpc(BOSS) { world.message(player, BrutusLines.NOT_WANTED) }
         world.handlers.onObjOnNpc(BOSS, BUCKET) { world.message(player, BrutusLines.NOT_THE_BUCKET) }
-        world.npcScripts.onDeath(listOf(BOSS)) { it.effects.say(world.dialogueText[BrutusLines.DYING]) }
+        world.npcScripts.onDeath(listOf(BOSS)) { boss ->
+            boss.effects.say(world.dialogueText[BrutusLines.DYING])
+            // Guessed: the kill counts for the player whose field it is (the Wiki doesn't say; the field is theirs alone).
+            val owner = pens.runAt(boss.x, boss.z)?.owner ?: return@onDeath
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == owner && !it.loggedOut } ?: return@onDeath
+            if (KILL_COUNT_VARP < player.vars.types.varpCount) {
+                player.vars[KILL_COUNT_VARP] = player.vars[KILL_COUNT_VARP] + 1
+                world.message(player, BrutusLines.KILL_COUNT, "count" to player.vars[KILL_COUNT_VARP])
+            }
+        }
+        // "Brutus' drops appear on the his tile closest to the player, rather than under his centre or south-west tile".
+        world.dropTiles[BOSS] = { boss, killer ->
+            if (killer == null) Tile(boss.x, boss.z) else nearestTile(boss.x, boss.z, boss.type.size, killer.x, killer.z)
+        }
+        // Bull bones: Bury on the floor, as giant bones (no confirmation yet), and no Take.
+        world.handlers.onGroundObj(BULL_BONES, BURY) { op ->
+            val obj = op.groundObj!!
+            world.message(player, BonesLines.DIG)
+            player.anim(Bones.ANIM_BURY)
+            player.waypoints.clear()
+            delay(1)
+            if (!world.groundObjs.remove(obj)) return@onGroundObj
+            player.skills.addTenths(Skill.PRAYER, BULL_BONES_XP_TENTHS)
+            world.message(player, BonesLines.BURIED)
+        }
     }
 }

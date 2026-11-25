@@ -384,6 +384,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         fire.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a dragonfire chance of 1 in $it" } },
                         breath.anim, breath.cast,
                         fire["metallic"]?.jsonPrimitive?.boolean ?: false,
+                        (fire["range"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..15) { "dragonfire from $it tiles" } },
                     )
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
