@@ -103,14 +103,25 @@ class ClanStore(private val file: Path? = null) {
     fun setCoffer(clan: Clan, coins: Int): Boolean {
         val before = clan.coffer
         clan.coffer = coins
-        if (save()) return true
-        // The file may already hold the new sum (a failed force after the move): write the old one back at once, and
-        // again at the next flush if this fails too (Codex on PR 966).
-        clan.coffer = before
-        save()
-        return false
+        return when (write()) {
+            Written.YES -> true
+            Written.NO -> {
+                clan.coffer = before
+                false
+            }
+            // The file holds the new sum but its move may not have reached the disk (Codex on PR 966). Whichever way
+            // that goes may only lose coins, never make them: a deposit keeps the new sum (the player's side is already
+            // saved without the coins), and a withdrawal goes back to the old one and gives nothing. Either is written
+            // again at the next flush.
+            Written.UNSYNCED -> if (coins > before) {
+                true
+            } else {
+                clan.coffer = before
+                write()
+                false
+            }
+        }
     }
-
     /** Puts [clan] on the recruitment boards or takes it off, written at the next [flush]. */
     fun setListed(clan: Clan, listed: Boolean) {
         clan.listed = listed
@@ -230,11 +241,16 @@ class ClanStore(private val file: Path? = null) {
      * Writes every clan, forced to the disk as player saves are (exploit review R58C-2), and whether it was written; a
      * failure is logged and the clans stay as they are in the game, written at the next change or the next [flush].
      */
-    fun save(): Boolean {
-        val file = file ?: return true
+    fun save(): Boolean = write() == Written.YES
+
+    /** How far a write got: [Written.UNSYNCED] is a file moved into place whose move couldn't be forced to the disk. */
+    private enum class Written { YES, NO, UNSYNCED }
+
+    private fun write(): Written {
+        val file = file ?: return Written.YES
         unwritten = true
+        val dir = file.toAbsolutePath().parent
         try {
-            val dir = file.toAbsolutePath().parent
             Files.createDirectories(dir)
             val temp = file.resolveSibling("${file.fileName}.tmp")
             FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { channel ->
@@ -243,22 +259,26 @@ class ClanStore(private val file: Path? = null) {
                 channel.force(true)
             }
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-            // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped only when the folder
-            // can't be opened. A failed force is a failed write (Codex on PR 966).
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't write ${file.fileName}; trying again at the next autosave" }
+            return Written.NO
+        }
+        // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped only when the folder can't
+        // be opened. A failed force leaves the write unsure (Codex on PR 966).
+        try {
             val folder = try {
                 FileChannel.open(dir, StandardOpenOption.READ)
             } catch (_: IOException) {
                 null
             }
             folder?.use { it.force(true) }
-            unwritten = false
-            return true
         } catch (e: Exception) {
-            logger.error(e) { "Couldn't write ${file.fileName}; trying again at the next autosave" }
-            return false
+            logger.error(e) { "Couldn't force ${file.fileName} to the disk; writing it again at the next autosave" }
+            return Written.UNSYNCED
         }
+        unwritten = false
+        return Written.YES
     }
-
     private fun toJson(): JsonObject = buildJsonObject {
         put("nextId", nextId)
         putJsonArray("clans") {
