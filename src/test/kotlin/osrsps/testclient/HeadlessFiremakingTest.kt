@@ -209,6 +209,15 @@ class HeadlessFiremakingTest {
                 client.command("item $YEW_LOGS")
                 light(CHURCH_X, CHURCH_Z, CHURCH_TOP)
                 client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+                // The task done, another yew chopped says no stage (Codex on #952).
+                client.command("empty")
+                client.command("item $RUNE_AXE")
+                client.command("tele ${YEW_X + 1} $YEW_Z 0")
+                client.await("by the yew again") { client.position?.takeIf { it.x == YEW_X + 1 && it.z == YEW_Z && it.level == 0 } }
+                client.locOp(YEW, YEW_X, YEW_Z, 1)
+                client.await("more yew logs", 30_000) { client.inventory(BACKPACK).indexOfFirst { it?.id == YEW_LOGS }.takeIf { it >= 0 } }
+                client.awaitTicks(2)
+                assertEquals(1, client.messages().count { it.text == "[diary.stage stage=1]" }, "no stage for a task done")
             }
         }
     }

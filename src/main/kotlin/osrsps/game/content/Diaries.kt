@@ -257,8 +257,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
     fun made(player: Player, obj: Int, count: Int) {
         if (DiaryZone.VARROCK.has(player)) {
             when (obj) {
-                DiaryHooks.YEW_LOGS -> stage(player, YEW_CHOPPED_CHARGE, 1, 1)
-                DiaryHooks.RUNE_DART_TIP -> stage(player, DART_TIPS_CHARGE, player.charges[DART_TIPS_CHARGE] + count, DART_TIPS_NEEDED)
+                DiaryHooks.YEW_LOGS -> stage(player, DiaryTask.VARROCK_HARD_6, 1, 1)
+                DiaryHooks.RUNE_DART_TIP -> stage(player, DiaryTask.VARROCK_ELITE_4, player.charges[DART_TIPS_CHARGE] + count, DART_TIPS_NEEDED)
             }
         }
         DiaryHooks.made(DiaryHooks.MADE, player, obj, count).filter { staged(player, it) }.forEach { complete(player, it) }
@@ -355,13 +355,16 @@ class Diaries(private val world: World, private val font: ChatFont) {
      * A spottier cape bought from Asyff for furs: marked, so wearing one afterwards does "trade furs for a spottier cape
      * and wear it". Inferred: the buying marks it once, and any spottier cape worn after counts.
      */
-    fun boughtSpottierCape(player: Player) = stage(player, SPOTTIER_BOUGHT_CHARGE, 1, 1)
+    fun boughtSpottierCape(player: Player) = stage(player, DiaryTask.VARROCK_HARD_1, 1, 1)
 
     /**
-     * Sets a staged task's [charge] to [value] (at most [needed]), and says "stage 1" as it first reaches [needed], as the
-     * live stage message does (Codex on #952). Inferred: said once per stage reached, not again for more of the same.
+     * Sets a staged [task]'s charge to [value] (at most [needed]), and says "stage 1" as it first reaches [needed], as the
+     * live stage message does (Codex on #952). A task already done keeps no stage and says nothing. Inferred: said once per
+     * stage reached, not again for more of the same.
      */
-    private fun stage(player: Player, charge: String, value: Int, needed: Int) {
+    private fun stage(player: Player, task: DiaryTask, value: Int, needed: Int) {
+        if (done(player, task)) return
+        val charge = STAGES.getValue(task)
         val before = player.charges[charge]
         player.charges[charge] = value.coerceAtMost(needed)
         if (before < needed && player.charges[charge] >= needed) player.message(world.textFor(player)[DiaryLines.STAGE, "stage" to 1])

@@ -234,6 +234,10 @@ class HeadlessFarmingTreeTest {
                     }
                     Thread.sleep(50)
                 }
+                // The palace yew's logs are the church task's chop, said once (Codex on #952); digging up the stump is a diary
+                // update, which ends that stage.
+                assertEquals(1, client.messages().count { it.text == "[diary.stage stage=1]" }, "the church task's stage")
+                assertEquals(1, server.world.playerNamed("dana")!!.charges[osrsps.game.content.Diaries.YEW_CHOPPED_CHARGE])
                 client.command("empty")
                 client.await("an empty pack") { if (client.count(RUNE_AXE) == 0) Unit else null }
                 client.give(SPADE)
@@ -243,6 +247,7 @@ class HeadlessFarmingTreeTest {
                 // 99 Farming: four yew roots.
                 client.awaitCount(YEW_ROOTS, 4)
                 client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
+                assertEquals(0, server.world.playerNamed("dana")!!.charges[osrsps.game.content.Diaries.YEW_CHOPPED_CHARGE], "the stage ended")
             }
         }
     }

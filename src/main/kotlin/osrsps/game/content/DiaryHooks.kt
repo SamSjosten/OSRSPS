@@ -107,8 +107,8 @@ internal object DiaryHooks {
         Made(YEW_ROOTS, DiaryTask.VARROCK_HARD_8, DiaryZone.VARROCK_PALACE_TREE_PATCH, min = 2),
         Made(SUPER_COMBAT, DiaryTask.VARROCK_ELITE_1, DiaryZone.VARROCK_WEST_BANK),
         Made(SUMMER_PIE, DiaryTask.VARROCK_ELITE_3, DiaryZone.COOKS_GUILD),
-        // Inferred: "Smith and fletch ten rune darts within Varrock" counts on the fletching, a set of ten at once, wherever
-        // the tips were smithed.
+        // "Smith and fletch ten rune darts within Varrock": a set of ten at once, once ten tips were smithed in Varrock
+        // (the stage, in Diaries).
         Made(RUNE_DART, DiaryTask.VARROCK_ELITE_4, DiaryZone.VARROCK, min = 10),
         Made(EARTH_RUNE, DiaryTask.VARROCK_ELITE_5, min = 100),
     )
@@ -125,7 +125,8 @@ internal object DiaryHooks {
      */
     val BURNED = listOf(
         Made(OAK_LOGS, DiaryTask.LUMBRIDGE_EASY_7, DiaryZone.LUMBRIDGE),
-        // The same for "Chop some yew logs in Varrock and burn them at the top of the Varrock church".
+        // "Chop some yew logs in Varrock and burn them at the top of the Varrock church": once a yew was chopped in Varrock
+        // (the stage, in Diaries).
         Made(YEW_LOGS, DiaryTask.VARROCK_HARD_6, DiaryZone.VARROCK_CHURCH),
     )
 
