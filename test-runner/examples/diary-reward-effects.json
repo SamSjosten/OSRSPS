@@ -75,19 +75,10 @@
    "contains": "[twiggy.hey_there]"
   },
   {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[twiggy.goodbye]",
-   "comment": "a 1 in 50 chocolate bar comes first now and then: rerun if it does"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[twiggy.goodbye]"
-  },
-  {
-   "step": "continueDialogue"
+   "step": "walk",
+   "x": 3099,
+   "y": 3231,
+   "comment": "walking away ends the talk, whichever way it goes next: 1 time in 50 her chocolate bar comes before the menu (the headless test covers both)"
   },
   {
    "step": "assertNoDialogue"
