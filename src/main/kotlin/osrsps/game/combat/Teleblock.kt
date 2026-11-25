@@ -34,10 +34,16 @@ object Teleblock {
     /**
      * The lines refusing any teleport of [player], standing at Wilderness level [level], or empty when they may: every
      * teleport stops above level 20 Wilderness ([Wilderness.TELEPORT_LIMIT]), and all of them while Tele Blocked.
-     * Guessed: the level is told first when both hold.
+     * Guessed: the level is told first when both hold. A teleport that works deeper (dragonstone jewellery's, to level
+     * 30) passes its own [limit] and the [tooDeep] lines that go with it.
      */
-    fun refusal(player: Player, level: Int): List<Line> = when {
-        level > Wilderness.TELEPORT_LIMIT -> listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2)
+    fun refusal(
+        player: Player,
+        level: Int,
+        limit: Int = Wilderness.TELEPORT_LIMIT,
+        tooDeep: List<Line> = listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2),
+    ): List<Line> = when {
+        level > limit -> tooDeep
         player.teleblockTicks > 0 -> listOf(PvpLines.TELEPORT_BLOCKED)
         else -> emptyList()
     }
