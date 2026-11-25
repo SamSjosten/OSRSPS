@@ -13,6 +13,7 @@ import osrsps.game.InvObj
 import osrsps.game.ObjTypes
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.HomeTeleportLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -51,7 +52,8 @@ class JewelleryDestination(val name: String, val landing: Landing, val wildernes
  * the [empty] form the last charge leaves (-1 when the piece crumbles), what it is ([kind], for the rub message), the
  * deepest Wilderness level it works at ([wilderness]) and its [destinations], in the order of its worn options; the
  * last charge's message says it crumbles away ([crumblesAway]) rather than to dust, and the messages give its name
- * in title case ([titleCase]: "Digsite Pendant").
+ * in title case ([titleCase]: "Digsite Pendant"). A piece that goes to the player's respawn point ([toRespawn]: the ring
+ * of returning) lands at their chosen one, its destination's tile being Lumbridge's.
  */
 class TeleportJewellery(
     val key: String,
@@ -63,6 +65,7 @@ class TeleportJewellery(
     val destinations: List<JewelleryDestination>,
     val crumblesAway: Boolean = false,
     val titleCase: Boolean = false,
+    val toRespawn: Boolean = false,
 ) {
     /** The form one charge after [obj], or null when [obj] goes ([empty] being -1); [obj] itself when [unlimited]. */
     fun after(obj: Int): Int? {
@@ -133,7 +136,8 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
                     require(crumble in setOf("dust", "away")) { "crumble $crumble" }
                     require(crumble == "dust" || empty < 0) { "only jewellery that goes crumbles" }
                     val titleCase = entry["titleCase"]?.jsonPrimitive?.boolean ?: false
-                    list += TeleportJewellery(key, kind, wilderness, forms, empty, unlimited, destinations, crumble == "away", titleCase)
+                    val toRespawn = entry["toRespawn"]?.jsonPrimitive?.boolean ?: false
+                    list += TeleportJewellery(key, kind, wilderness, forms, empty, unlimited, destinations, crumble == "away", titleCase, toRespawn)
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: jewellery entry ${i + 1}: ${e.message}", e)
                 }
@@ -182,7 +186,8 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
  * a post-quest world: the Wiki's Tears of Guthix, Miscellania, Dondakan, Fossil Island, Lithkren and Wyrmscraig quests
  * and unlocks, Zeah for Wintertodt and the Colosseum's Hero title for Fortis Colosseum all count as done, and the
  * Farming Guild teleport lands at the Wiki's tile whatever the Farming level (the Wiki puts a player under 45 outside,
- * at a tile it doesn't give). The ring of returning lands at Lumbridge, the respawn point everyone has here.
+ * at a tile it doesn't give). The ring of returning lands at the player's respawn point: Krystilia's Edgeville one
+ * when they have it switched on, else Lumbridge.
  *
  * Not built here: the ring of wealth's Features, Boss Log and Coin Collection, and its coin collecting and drop effects
  * (step U6), the amulet of glory's mounted form, the other respawn points, and recharging (the Fountain of Rune's is
@@ -295,8 +300,19 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
         player.anim(Teleports.CAST_ANIM)
         player.spotanim(Teleports.CAST_SPOTANIM, Teleports.CAST_HEIGHT)
         delay(Teleports.CAST_TICKS)
-        teleports.land(this, destination.landing)
+        teleports.land(this, landingFor(jewellery, destination))
         player.anim(-1)
+    }
+
+    /**
+     * Where [destination] lands [player]: the ring of returning takes them to the respawn point they chose, Krystilia's
+     * Edgeville one ([EdgevilleRespawn]) when they have it switched on, else Lumbridge's (the data file's tile).
+     */
+    private fun ScriptContext.landingFor(jewellery: TeleportJewellery, destination: JewelleryDestination): Landing {
+        if (jewellery.toRespawn && EdgevilleRespawn.active(world, player)) {
+            return Landing(0, listOf(intArrayOf(EdgevilleRespawn.X, EdgevilleRespawn.Z, EdgevilleRespawn.X, EdgevilleRespawn.Z)))
+        }
+        return destination.landing
     }
 
     /** The piece's name without its charges, as the messages have it: ring of dueling, amulet of glory. */

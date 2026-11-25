@@ -11,9 +11,12 @@ import osrsps.game.EquipmentTab
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Spells
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.skill.magic.JewelleryTeleportData
 import osrsps.game.skill.magic.JewelleryTeleports
 import osrsps.game.skill.magic.TeleportObjs
@@ -58,7 +61,10 @@ class HeadlessJewelleryTeleportTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(3100 shr 6, 3714 shr 6)
                 markLoaded(3100 shr 6, 3762 shr 6)
+                markLoaded(EdgevilleRespawn.X shr 6, EdgevilleRespawn.Z shr 6)
             }, random = osrsps.game.GameRandom(7), objTypes = objTypes,
+            // edgeville_spawn and edgeville_spawn_unlocked, on cws_var and cws_var_2, as the 242 cache has them.
+            varTypes = VarTypes(6_000, mapOf(EdgevilleRespawn.VARBIT_SPAWN to VarbitType(1045, 31, 31), EdgevilleRespawn.VARBIT_UNLOCKED to VarbitType(1046, 0, 0))),
             spells = Spells.load(objTypes, osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE), cycleMillis = millis,
         )
     }
@@ -249,6 +255,21 @@ class HeadlessJewelleryTeleportTest {
                 client.chooseOption(1)
                 client.saw("the pendant's name in title case", "[jewellery_teleport.one_use_left item=Digsite Pendant]")
                 client.landsWithin(3341, 3445, 0)
+            }
+        }
+    }
+
+    @Test
+    fun `the ring of returning goes to Edgeville for a player who chose Krystilia's respawn`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.commandReply("varbit ${EdgevilleRespawn.VARBIT_UNLOCKED} 1") { it.startsWith("Varbit") }
+                client.commandReply("varbit ${EdgevilleRespawn.VARBIT_SPAWN} 1") { it.startsWith("Varbit") }
+                client.give(RETURNING_2)
+                client.itemOp(RETURNING_2, RUB)
+                client.landsWithin(EdgevilleRespawn.X, EdgevilleRespawn.Z, 0)
+                assertEquals(1, client.count(RETURNING_1))
             }
         }
     }

@@ -1,5 +1,5 @@
 {
-  "source": "OSRS Wiki, each item's page (read 2026-11-19): the places' tiles (x, z, and r where the Wiki gives a radius; the level where it gives one), the charges, the forms, the crumbling words and the Burning amulet's warning. The ring of returning goes to the respawn point, which is Lumbridge for everyone here (no other respawn point is built), at the Wiki's Lumbridge respawn tile; its one worn option is Rub. The names are the cache's worn options, in order (checked when loading). Guessed: the planes of the Corporeal Beast's cave (2, the only plane whose map is walkable there) and Tears of Guthix (2).",
+  "source": "OSRS Wiki, each item's page (read 2026-11-19): the places' tiles (x, z, and r where the Wiki gives a radius; the level where it gives one), the charges, the forms, the crumbling words and the Burning amulet's warning. The ring of returning goes to the respawn point (\"toRespawn\"): Krystilia's Edgeville one when the player has it on (EdgevilleRespawn), else Lumbridge, at the Wiki's Lumbridge respawn tile given here; its one worn option is Rub. The names are the cache's worn options, in order (checked when loading). Guessed: the planes of the Corporeal Beast's cave (2, the only plane whose map is walkable there) and Tears of Guthix (2).",
   "jewellery": [
     {
       "key": "glory",
@@ -146,6 +146,7 @@
       "wilderness": 20,
       "forms": ["ring_of_returning_5", "ring_of_returning_4", "ring_of_returning_3", "ring_of_returning_2", "ring_of_returning_1"],
       "crumble": "away",
+      "toRespawn": true,
       "destinations": [
         {"name": "Rub", "x": 3221, "z": 3219, "r": 2}
       ]
