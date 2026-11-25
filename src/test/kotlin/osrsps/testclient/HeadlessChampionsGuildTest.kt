@@ -60,7 +60,7 @@ class HeadlessChampionsGuildTest {
     private val trapdoor = ZoneLoc(VarrockChampionsGuild.TRAPDOOR, LocShape.GROUND_DECOR, 0, 3190, 3355, 0)
     private val ladder = ZoneLoc(VarrockChampionsGuild.LADDER, LocShape.CENTREPIECE_STRAIGHT, 1, 3190, 9758, 0)
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, cycleMillis: Long = 100) = TestServer(dir, cycleMillis = cycleMillis) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3191 shr 6, 3363 shr 6); markLoaded(3190 shr 6, 9758 shr 6) },
             objTypes = ObjTypes.of(coif), locTypes = types,
@@ -136,6 +136,31 @@ class HeadlessChampionsGuildTest {
                 client.chat("guildmaster.welcome")
                 client.awaitAt(3191, 3362)
                 assertEquals(1, client.messages().count { it.text.startsWith("[diary.task_done") }, "the task is said once")
+            }
+        }
+    }
+
+    @Test
+    fun `walking in through the door another player opened is the diary task too, and waiting outside isn't`(@TempDir dir: Path) {
+        // Live's tick length, so the door's three ticks open leave time to walk through.
+        server(dir, cycleMillis = 600).use { server ->
+            server.login("bob").use { bob ->
+                server.login("carol").use { carol ->
+                    fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+                    bob.await("bob's login rebuild") { bob.position }
+                    carol.await("carol's login rebuild") { carol.position }
+                    carol.tele(3191, 3364)
+                    bob.tele(3190, 3364)
+                    carol.awaitTicks(2)
+                    assertEquals(0, carol.diaryTasksDone(), "outside the door")
+                    bob.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
+                    bob.chat("guildmaster.welcome")
+                    val world = server.world
+                    carol.await("the door open") { Unit.takeIf { world.locs[3191, 3363, 0, 0]?.id != VarrockChampionsGuild.DOOR } }
+                    carol.walk(3191, 3361)
+                    carol.await("carol inside", timeoutMillis = 10_000) { carol.position?.takeIf { it.z < 3363 } }
+                    carol.await("carol's diary task") { Unit.takeIf { carol.diaryTasksDone() == 1 } }
+                }
             }
         }
     }

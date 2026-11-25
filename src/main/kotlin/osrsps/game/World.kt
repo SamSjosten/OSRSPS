@@ -1751,6 +1751,7 @@ class World(
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
             perPlayer(player, "wall beasts") { wallBeasts.process(player) }
+            perPlayer(player, "diaries") { diaries.moved(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()

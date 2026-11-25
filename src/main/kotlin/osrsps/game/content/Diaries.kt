@@ -312,6 +312,11 @@ class Diaries(private val world: World, private val font: ChatFont) {
         if (done == (1 shl SOS_EMOTES.count()) - 1) complete(player, DiaryTask.VARROCK_MEDIUM_5)
     }
 
+    /** After [player]'s step each tick: places a task counts on being in. */
+    fun moved(player: Player) {
+        if (VarrockChampionsGuild.inDoorway(player)) complete(player, DiaryTask.VARROCK_MEDIUM_2)
+    }
+
     /** A shop opened, by its key in shops.json. */
     fun shopOpened(player: Player, key: String) {
         if (key == DiaryHooks.THESSALIA_SHOP) complete(player, DiaryTask.VARROCK_EASY_1)
@@ -332,6 +337,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
      */
     fun undo(player: Player, task: DiaryTask) {
         player.vars[task.varp] = player.vars[task.varp] and (1 shl task.bit).inv()
+        // The emotes done so far go too, so the reset starts the task afresh (Codex on #932).
+        if (task == DiaryTask.VARROCK_MEDIUM_5) player.charges[SOS_EMOTES_CHARGE] = 0
         refresh(player, task.area)
         val reward = task.area.rewardVarbits[task.tier.ordinal]
         if (player.vars.types.varbit(reward) != null) player.vars.setVarbit(reward, 0)
