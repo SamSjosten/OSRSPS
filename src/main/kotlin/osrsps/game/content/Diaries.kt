@@ -471,8 +471,13 @@ class Diaries(private val world: World, private val font: ChatFont) {
         if (player.inventory.add(type, 1) < 1) logger.warn { "No room for item $obj for ${player.username}" }
     }
 
-    /** At login, in case a save's bits and counts disagree (a save from a server that changed the task list). */
+    /**
+     * At login, in case a save's bits and counts disagree (a save from a server that changed the task list). A two-stage
+     * task's first stage doesn't outlast the session: the Wiki's Achievement Diary page sets the God Wars kills apart as
+     * the staged progress that doesn't reset on logging out or hopping.
+     */
     fun login(player: Player) {
+        for ((_, charge) in STAGES) player.charges[charge] = 0
         for (area in DiaryArea.entries) refresh(player, area)
     }
 
