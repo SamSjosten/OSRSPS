@@ -129,6 +129,7 @@ object LumberYard {
             Ned.take(player, plank.log, made)
             AlKharidTraders.pay(player, made * plank.fee)
             player.inventory.add(type, made)
+            world.diaries.made(player, plank.plank, made)
         }
         if (made < wanted) chatNpc(ChatAnim.NEUTRAL, SawmillLines.COST, "cost" to plank.fee)
     }

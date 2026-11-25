@@ -126,6 +126,11 @@ class Clans(
     private val pickMotif: (Player, Int, (Int) -> Unit) -> Unit = { _, _, _ -> },
     /** Gives every clan cloak and vexillum [Player] has the colour given (0 to 7, enum_3819's order). */
     private val recolour: (Player, Int) -> Unit = { _, _ -> },
+    /**
+     * Who may be in the clan with the given id's hall may have changed (a ban, an expel, a leave, a rank, the Enter clan
+     * hall permission, or the clan gone): the hall checks everyone in it again (exploit review R55C-4).
+     */
+    private val hallAccessChanged: (Long) -> Unit = {},
     /** The obj id of what [Player] wields in the weapon slot, or -1. */
     private val weapon: (Player) -> Int = { -1 },
     /** Whether [Player] has Accept Aid on. */
@@ -419,6 +424,7 @@ class Clans(
     /** An admin's clan, deleted (`::clandisband`, for tests that found one again): its members have no clan. */
     fun disband(clan: ClanStore.Clan, online: (String) -> Player?) {
         store.delete(clan)
+        hallAccessChanged(clan.id)
         channels.remove(clan.id)
         kicked.remove(clan.id)
         // Its guests lose it too, as a Discard would, whether or not they were in its channel.
@@ -483,6 +489,9 @@ class Clans(
 
     /** The clan called [name], any spelling, or null. */
     fun clanNamed(name: String): ClanStore.Clan? = store.byName(name)
+
+    /** The clan with [id], or null if there is none (any more). */
+    fun clanById(id: Long): ClanStore.Clan? = store.byId(id)
 
     /** The "Your Clan" page's Settings button: the clan's settings page as a member. */
     fun openYourInfo(player: Player) {
@@ -608,6 +617,7 @@ class Clans(
         if (clan.member(player.saveKey)?.rank == RANK_OWNER) return
         leaveChannel(player, clan, tell = false)
         store.removeMember(clan, player.saveKey)
+        hallAccessChanged(clan.id)
         removed(player)
         sendSettings(clan)
         tell(player, ClanLines.LEFT_CLAN, clan.name)
@@ -940,6 +950,7 @@ class Clans(
             return
         }
         store.addBanned(clan, target.saveKey, target.username)
+        hallAccessChanged(clan.id)
         leaveChannel(target, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
         sendSettings(clan)
         tell(target, ClanLines.BANNED, clan.name)
@@ -1454,6 +1465,7 @@ class Clans(
         val expelled = playerByKey(key)
         expelled?.let { leaveChannel(it, clan, tell = false) }
         store.removeMember(clan, key)
+        hallAccessChanged(clan.id)
         expelled?.let {
             removed(it)
             tell(it, ClanLines.EXPELLED, clan.name)
@@ -1494,6 +1506,7 @@ class Clans(
         val target = clan.member(key) ?: return
         if (target.rank >= own || rank >= own || rank !in MEMBER_RANKS || rank == target.rank) return
         store.setRank(clan, target, rank)
+        hallAccessChanged(clan.id)
         sendSettings(clan)
         broadcastChannel(clan)
         refreshMembersPages(clan)
@@ -1641,6 +1654,7 @@ class Clans(
         val own = clan.member(editor.saveKey)!!.rank
         if (!validFor(id, rank) || rank > own || rank < lowest(clan, id)) return
         store.setSetting(clan, id, rank)
+        if (id == VAR_ENTER_HALL) hallAccessChanged(clan.id)
         sendSettings(clan)
         if (id in CHANNEL_PERMISSIONS) broadcastChannel(clan)
         refreshMembersPages(clan)

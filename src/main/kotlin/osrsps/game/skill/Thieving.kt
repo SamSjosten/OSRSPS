@@ -125,6 +125,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         player.anim(ANIM_STEAL)
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.THIEVING, stall.xpTenths)
+        world.diaries.stole(player, stall.loc)
         player.message(text[ThievingLines.STOLEN, "item" to type.name])
         for (keeper in stall.owners) refusedUntil[player.username to keeper] = tick + stall.refuseTicks
     }

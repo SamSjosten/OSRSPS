@@ -1,0 +1,80 @@
+{
+ "name": "Achievement diaries: casting Varrock Teleport does the Varrock medium task, and the panel's count shows it (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario magic",
+   "expectMessage": "Started scenario magic.",
+   "comment": "99 Magic and runes; ::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6320,
+   "value": 0,
+   "comment": "varrock_medium_count"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 218,
+   "component": 26,
+   "op": 1,
+   "comment": "magic_spellbook:varrock_teleport"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 714,
+   "timeoutMs": 5000,
+   "comment": "human_castteleport"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6320,
+   "value": 1,
+   "timeoutMs": 10000,
+   "comment": "Varrock Teleport is the medium task: the count goes to 1 on landing"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4455,
+   "value": 1,
+   "comment": "started_varrock_diary: the row goes yellow"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}
