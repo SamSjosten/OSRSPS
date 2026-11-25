@@ -98,6 +98,16 @@ class DiariesTest {
     }
 
     @Test
+    fun `logging in ends every two-stage task's first stage, and leaves other progress`() {
+        val player = player()
+        player.charges[Diaries.SOS_EMOTES_CHARGE] = 15
+        for ((_, charge) in Diaries.STAGES) player.charges[charge] = 1
+        diaries.login(player)
+        for ((task, charge) in Diaries.STAGES) assertEquals(0, player.charges[charge], "$task")
+        assertEquals(15, player.charges[Diaries.SOS_EMOTES_CHARGE])
+    }
+
+    @Test
     fun `resetting a task that remembers progress clears that progress too, and other resets leave it`() {
         val player = player()
         player.charges[Diaries.SOS_EMOTES_CHARGE] = 15

@@ -9,8 +9,10 @@ import osrsps.game.skill.LightSources
  * rest are guessed, as noted.
  */
 class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: Int, private val maxZ: Int, private val level: Int? = null) {
-    fun has(player: Player): Boolean =
-        player.x in minX..maxX && player.z in minZ..maxZ && (level == null || player.level == level)
+    fun has(player: Player): Boolean = hasTile(player.x, player.z) && (level == null || player.level == level)
+
+    /** Whether tile [x], [z] is in the box, on any level. */
+    fun hasTile(x: Int, z: Int): Boolean = x in minX..maxX && z in minZ..maxZ
 
     companion object {
         /**
