@@ -91,6 +91,7 @@ class AgilityDataTest {
                 "shortcut_lumbridge_cellar_hole" to (13 to 0),
                 "shortcut_goblin_maze_hole" to (1 to 0),
                 "shortcut_brimhaven_ropeswing" to (10 to 30),
+                "shortcut_sourhog_cave_blockage" to (1 to 0),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->

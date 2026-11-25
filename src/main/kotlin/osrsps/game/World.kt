@@ -138,6 +138,7 @@ import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
+import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -1008,6 +1009,9 @@ class World(
     /** The balloon transport system; see [osrsps.game.content.Balloons]. */
     val balloons = osrsps.game.content.Balloons(this)
 
+    /** The balloon log storage; see [osrsps.game.content.LogStorage]. */
+    val logStorage = osrsps.game.content.LogStorage(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1094,6 +1098,9 @@ class World(
 
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
+    /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
+    val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1241,6 +1248,7 @@ class World(
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerDigsiteCamp(this)
+        registerSourhogCave(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1301,6 +1309,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1325,6 +1334,7 @@ class World(
         fairyRings.register()
         spiritTrees.register()
         balloons.register()
+        logStorage.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1349,6 +1359,7 @@ class World(
         alchemy.register()
         superheat.register()
         jewelleryEnchant.register()
+        jewelleryTeleports.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()

@@ -1,0 +1,13 @@
+{
+  "about": "The Sourhog Cave east of Draynor Manor after A Porcine of Interest (post-quest step 8, SourhogCave.kt): its eight sourhogs, at the tiles of the OSRS Wiki's Sourhog location map (read 2026-11-19). The wander range is guessed.",
+  "spawns": [
+    {"npc": "sourhog", "x": 3157, "z": 9698, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3157,9698)"},
+    {"npc": "sourhog", "x": 3163, "z": 9699, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3163,9699)"},
+    {"npc": "sourhog", "x": 3165, "z": 9678, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3165,9678)"},
+    {"npc": "sourhog", "x": 3167, "z": 9673, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3167,9673)"},
+    {"npc": "sourhog", "x": 3168, "z": 9692, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3168,9692)"},
+    {"npc": "sourhog", "x": 3171, "z": 9679, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3171,9679)"},
+    {"npc": "sourhog", "x": 3173, "z": 9688, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3173,9688)"},
+    {"npc": "sourhog", "x": 3177, "z": 9683, "wander": 4, "source": "OSRS Wiki, Sourhog, locations (3177,9683)"}
+  ]
+}

@@ -20,6 +20,9 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
     val NOT_WANTED = line("not_wanted", "an item used on Brutus (OSRS Wiki, Brutus, Trivia)")
     val NOT_THE_BUCKET = line("not_the_bucket", "an empty bucket used on Brutus (OSRS Wiki, Brutus, Trivia)")
     val DYING = line("dying", "Brutus's overhead as he dies (Transcript:Brutus, Upon death)")
+    val GROWLS = line("growls", "Brutus's overhead as he readies his charge (Transcript:Brutus, When charging)")
+    val SNORTS = line("snorts", "Brutus's overhead as he readies his stomps (Transcript:Brutus, When stomping)")
+    val HUFF = line("huff", "Brutus's overhead as he comes for a player out of his reach (Transcript:Brutus, Switching into smart-pathing)")
 }
 
 /**
