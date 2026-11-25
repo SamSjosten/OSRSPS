@@ -20,8 +20,8 @@ import osrsps.game.zone.ZoneLoc
  *   (`cryptstairsup` 2617 at 3077,9768). Where each lands is guessed: the open tile at the north end of the other
  *   staircase, from the map's collision.
  *
- * Left out: poll booths, the loot chests, the Wilderness statistics and streak boards and the Keldagrim trapdoor
- * (systems not built; the Clan Cup portal is [ClanCup]); the Edgeville Dungeon pipes (the Agility thread's shortcuts); Obor's rocks
+ * Left out: the loot chests, the Wilderness statistics and streak boards and the Keldagrim trapdoor
+ * (systems not built; the Clan Cup portal is [ClanCup], the poll booths [PollBooths]); the Edgeville Dungeon pipes (the Agility thread's shortcuts); Obor's rocks
  * and chest; the Wise Old Man's tree, trapdoor and bed; Lucien's door; the Lost Tribe chest; the crypt's coffin; the
  * Lumbridge winch and the church organ (the Wiki doesn't say what they do).
  */
