@@ -224,6 +224,10 @@ class HeadlessChampionsChallengeTest {
                     challenge.start(alice, Champion.EARTH_WARRIOR)!!
                 }
                 assertEquals(0 to 0, server.onTick { world.prayers.active(alice) to alice.prayersInEffect })
+                // Nor does the quick-prayer orb turn them back on.
+                server.onTick { world.prayers.toggleQuick(alice) }
+                client.await("the orb refused") { client.messages().firstOrNull { it.text == DialogueText.NONE[LarxusLines.NO_PRAYER] } }
+                assertEquals(0, server.onTick { world.prayers.active(alice) })
                 server.onTick { world.removeNpc(earth) }
 
                 // A spell is judged as magic whatever the style set: the giant's duel is melee only (Codex review on #948).

@@ -241,6 +241,8 @@ class Prayers(
         val chosen = all.filter { quickSelected(player) and it.mask != 0 && levelRefusal(player, it) == null }
         val reason = when {
             player.dead -> ""
+            // A fight's rules that bar prayer bar the orb too (Codex review on #948), the client's orb put back.
+            barred(player) != null -> words(player)[barred(player)!!]
             quickSelected(player) == 0 -> words(player)[PrayerLines.NO_QUICK_PRAYERS]
             player.skills.currentLevel(Skill.PRAYER) <= 0 -> words(player)[PrayerLines.QUICK_OUT_OF_POINTS]
             chosen.isEmpty() -> ""
