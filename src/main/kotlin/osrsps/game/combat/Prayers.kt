@@ -14,6 +14,7 @@ import osrsps.game.Player
 import osrsps.game.PlayerVars
 import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Line
 
 private val logger = KotlinLogging.logger {}
 
@@ -200,8 +201,14 @@ class Prayers(
     private fun refusal(player: Player, prayer: Prayer): String? = when {
         player.dead -> ""
         player.skills.currentLevel(Skill.PRAYER) <= 0 -> ""
-        else -> levelRefusal(player, prayer)
+        else -> barred(player)?.let { words(player)[it] } ?: levelRefusal(player, prayer)
     }
+
+    /**
+     * Set by content: the line refusing every prayer to [Player] where a fight's rules forbid prayer, null where they
+     * may pray: the Earth Warrior Champion's duel ([osrsps.game.content.ChampionsChallenge]).
+     */
+    var barred: (Player) -> Line? = { null }
 
     /** Why [player]'s levels don't let them use [prayer], null when they do. */
     private fun levelRefusal(player: Player, prayer: Prayer): String? = when {
@@ -234,6 +241,8 @@ class Prayers(
         val chosen = all.filter { quickSelected(player) and it.mask != 0 && levelRefusal(player, it) == null }
         val reason = when {
             player.dead -> ""
+            // A fight's rules that bar prayer bar the orb too (Codex review on #948), the client's orb put back.
+            barred(player) != null -> words(player)[barred(player)!!]
             quickSelected(player) == 0 -> words(player)[PrayerLines.NO_QUICK_PRAYERS]
             player.skills.currentLevel(Skill.PRAYER) <= 0 -> words(player)[PrayerLines.QUICK_OUT_OF_POINTS]
             chosen.isEmpty() -> ""

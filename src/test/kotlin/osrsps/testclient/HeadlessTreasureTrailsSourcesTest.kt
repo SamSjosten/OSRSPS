@@ -6,10 +6,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InvObj
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.Deaths
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Pocket
@@ -35,7 +38,7 @@ class HeadlessTreasureTrailsSourcesTest {
         objs[Pickpocketing.PALADIN_POUCH] = ObjType(Pickpocketing.PALADIN_POUCH, "Coin pouch", stackable = true)
         objs[FILLER] = ObjType(FILLER, "Filler")
         objs[Pickpocketing.CLUE_EASY] = ObjType(Pickpocketing.CLUE_EASY, "Clue scroll (easy)", iops = listOf("Read", null, null, null, "Drop"), params = mapOf(TrailTier.EASY.param to 1))
-        World(crcs, collision, objTypes = ObjTypes(objs), trailData = TrailData(emptyList()), cycleMillis = millis)
+        World(crcs, collision, objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))), trailData = TrailData(emptyList()), cycleMillis = millis)
     }
 
     private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filterNotNull().filter { it.id == id }.sumOf { it.count }
@@ -143,6 +146,47 @@ class HeadlessTreasureTrailsSourcesTest {
                 client.await("the box") { if (client.count(TrailTier.EASY.scrollBox) == 1) Unit else null }
                 assertTrue(client.animationTicks().size > anims, "the table pickup animates")
                 assertEquals(at.x to at.z, player.x to player.z, "taken from beside the table")
+            }
+        }
+    }
+
+    @Test
+    fun `boxes in a grave or unclaimed raid loot count toward the cap, and a dropped clue isn't taken back past it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rex").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { true }
+                val player = server.world.playerNamed("rex")!!
+                val clue = server.world.objTypes[Pickpocketing.CLUE_EASY]!!
+                // R55B-2: the three fillers are kept, the two boxes go to the grave, where they still count.
+                for (slot in 0 until 3) player.inventory[slot] = InvObj(FILLER, 1)
+                player.inventory[5] = InvObj(TrailTier.EASY.scrollBox, 2)
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.await("the respawn", timeoutMillis = 10_000) { if (!player.dead && server.world.deaths.graveOf(player) != null) Unit else null }
+                assertEquals(2L, server.world.deaths.graveOf(player)!!.items.count(TrailTier.EASY.scrollBox))
+                var from = client.messages().size
+                server.world.trails.give(player, clue, 1)
+                client.await("the suspicion") { client.messages().drop(from).firstOrNull { it.text == "[trail.suspicion_easy]" } }
+                assertEquals(0, client.count(TrailTier.EASY.scrollBox), "no third box while two wait in the grave")
+                server.world.deaths.graveOf(player)!!.items.clear()
+
+                // R55B-3: two boxes left unclaimed in the raid chest count too.
+                player.archiveChest[0] = InvObj(TrailTier.EASY.scrollBox, 2)
+                from = client.messages().size
+                server.world.trails.give(player, clue, 1)
+                client.await("the suspicion again") { client.messages().drop(from).firstOrNull { it.text == "[trail.suspicion_easy]" } }
+                assertEquals(0, client.count(TrailTier.EASY.scrollBox))
+                player.archiveChest.clear()
+
+                // R55B-4: a dropped clue stays on the ground once two boxes make the cap.
+                player.inventory[6] = InvObj(TrailTier.EASY.scrollBox, 2)
+                server.world.groundObjs.addPublic(clue, 1, player.x, player.z, player.level)
+                client.await("the clue on the ground") { client.groundObjs().firstOrNull { it.id == Pickpocketing.CLUE_EASY } }
+                from = client.messages().size
+                client.objOp(Pickpocketing.CLUE_EASY, player.x, player.z, TAKE)
+                client.await("the refusal") { client.messages().drop(from).firstOrNull { it.text == "[trail.suspicion_easy]" } }
+                assertEquals(0, client.count(Pickpocketing.CLUE_EASY))
+                assertTrue(client.groundObjs().any { it.id == Pickpocketing.CLUE_EASY }, "the clue stays where it lies")
             }
         }
     }

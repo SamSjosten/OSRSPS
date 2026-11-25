@@ -53,6 +53,15 @@ class CookingTest {
     }
 
     @Test
+    fun `Brutus's t-bone steak cooks from 13 for 90 XP and stops burning at 50`() {
+        val tbone = Cooking.TBONE
+        assertEquals(listOf(33106, 33109, 33112), listOf(tbone.raw, tbone.cooked, tbone.burnt))
+        assertEquals(13 to 900, tbone.level to tbone.xpTenths)
+        assertEquals(50, (1..99).first { SuccessRoll.chance(tbone.low, tbone.high, it) >= 256 })
+        assertEquals(49, (1..99).last { SuccessRoll.chance(tbone.low, tbone.high, it) < 256 })
+    }
+
+    @Test
     fun `lobster, tuna, swordfish and shark have the Wiki's levels, XP and burn pairs, fire and range`() {
         // The Wiki's Lobster, Tuna, Swordfish and Shark pages (read 2026-11-10): their charts' pairs, fire then range.
         val foods = listOf(Cooking.LOBSTER, Cooking.TUNA, Cooking.SWORDFISH, Cooking.SHARK)

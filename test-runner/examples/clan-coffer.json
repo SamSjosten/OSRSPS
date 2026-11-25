@@ -1,0 +1,31 @@
+{
+ "name": "The clan coffer (::keys on): in a clan made by ::clanmake, joined at the top rank, Use on the coffer in the clan's hall, deposit 1,000 coins from the side panel's All, then withdraw them with the coffer's All, which tells the clan",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any"},
+  {"step": "command", "text": "::clandisband Coffer Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Coffer Gate", "expectMessage": "Clan Coffer Gate made"},
+  {"step": "command", "text": "::clanjoin Coffer Gate recruiter", "expectMessage": "Joined clan Coffer Gate as a recruiter", "comment": "the top rank: may withdraw"},
+  {"step": "command", "text": "::item 995 1000"},
+  {"step": "command", "text": "::tele 3185 3471 0", "expectMessage": "Teleported to 3185, 3471, 0", "comment": "west of the clan hall portal (3186, 3471)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 41724, "option": "Enter", "timeoutMs": 20000},
+  {"step": "waitTicks", "ticks": 4, "comment": "into the hall's instance, a new region"},
+  {"step": "locOption", "locId": 41626, "option": "Use", "timeoutMs": 30000, "comment": "the coffer, south of the bank; the walk there goes west and south from the exit portal"},
+  {"step": "assertInterface", "interfaceId": 696, "timeoutMs": 30000, "comment": "the Coffer"},
+  {"step": "assertInterface", "interfaceId": 697, "comment": "and its side panel"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 697, "component": 10, "op": 1, "comment": "Deposit All"},
+  {"step": "assertInventory", "item": "Coins", "count": 0, "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 696, "component": 12, "op": 1, "comment": "Withdraw All"},
+  {"step": "assertInventory", "item": "Coins", "count": 1000, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[clan.coffer_withdrawn name=", "timeoutMs": 10000, "comment": "every online member hears of it"},
+  {"step": "command", "text": "::clandisband Coffer Gate", "expectMessage": "Clan Coffer Gate deleted"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
