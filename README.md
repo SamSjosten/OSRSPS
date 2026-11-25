@@ -32,7 +32,7 @@ in the code. Current RuneLite connects unchanged.
 
 | | |
 |---|---|
-| **Places** | Lumbridge and its swamp and caves, Draynor Village and Manor, the Sourhog Cave, Varrock (palace, museum, sewers, Champions' Guild), Edgeville and its dungeon, Barbarian Village, the Wizards' Tower, the Digsite, Silvarea, Paterdomus, the Stronghold of Security |
+| **Places** | Lumbridge and its swamp and caves, Draynor Village and Manor, the Sourhog Cave, Varrock (palace, museum, sewers, Champions' Guild), Edgeville and its dungeon, Barbarian Village, the Wizards' Tower, the Digsite, Silvarea, Paterdomus, the Tunnel of Chaos, the Stronghold of Security |
 | **Bosses** | Obor, Bryophyta, Scurrius |
 | **Raids** | The Fractured Archive, under the Lumbridge Swamp caves past the Chasm of Tears: the Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai, Ocellus |
 
