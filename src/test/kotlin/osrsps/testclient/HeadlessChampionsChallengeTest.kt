@@ -252,19 +252,16 @@ class HeadlessChampionsChallengeTest {
                 // A death in the arena leaves the grave beside the guild's trapdoor upstairs (Codex review on #948).
                 server.onTick { repeat(4) { alice.inventory.add(shield, 1) } }
                 client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
-                val until = System.currentTimeMillis() + 15_000
-                var grave = world.deaths.graveOf(alice)
-                while (grave == null && System.currentTimeMillis() < until) {
-                    Thread.sleep(20)
-                    grave = world.deaths.graveOf(alice)
-                }
-                assertNotNull(grave, "the grave")
+                // Counted in game ticks, not wall-clock time (Codex review on #948): the death and grave take a few.
+                val grave = (1..GRAVE_TICKS).firstNotNullOfOrNull { server.onTick { world.deaths.graveOf(alice) } }
+                assertNotNull(grave, "the grave within $GRAVE_TICKS ticks")
                 assertEquals(Triple(ChampionsChallenge.GRAVE.x, ChampionsChallenge.GRAVE.z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level))
             }
         }
     }
 
     private companion object {
+        const val GRAVE_TICKS = 20
         const val HELM = 1153
         const val SHIELD = 1171
         const val BACKPACK = 93
