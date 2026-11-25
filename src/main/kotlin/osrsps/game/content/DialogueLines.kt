@@ -468,6 +468,7 @@ object DialogueLines {
         ReldoLines,
         ReportLines,
         RestlessGhostLines,
+        BarbarianAnvilLines,
         RichardLines,
         RickLines,
         RomeoLines,
