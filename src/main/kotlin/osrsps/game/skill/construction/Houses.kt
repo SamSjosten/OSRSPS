@@ -44,6 +44,8 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val ROOM_NO_DOOR = line("room_no_door", "Adding a room that can't be turned to have a door facing this one (no source yet)")
     val REMOVE_PORTAL = line("remove_portal", "Removing the room the exit portal is in (ours: no source yet)")
     val FURNITURE_LEVEL = line("furniture_level", "Building furniture above the player's Construction level, {level} (no source yet)", "level")
+    val FURNITURE_SKILL_LEVEL = line("furniture_skill_level", "Building furniture above another skill's level it needs, {skill} {level} (the barrels' Cooking; no source yet)", "skill", "level")
+    val TAKE_SUPPLIES = line("take_supplies", "The Make-X box's title on searching a larder or kitchen shelves (no source yet)")
     val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
     val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
     val REMOVE_FURNITURE_TITLE = line("remove_furniture_title", "Remove on built furniture: the prompt asking whether to remove it (no source yet)")
@@ -270,6 +272,7 @@ class Houses(private val world: World) {
             inside -= player
             world.poison.curePoison(player)
             setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
+            dropHouseOnly(player)
         }
     }
 
@@ -279,6 +282,12 @@ class Houses(private val world: World) {
         // Off before the save, whichever way they leave (exploit review R43B-2).
         setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
         if (houseAt(player.x, player.z) != null) world.poison.curePoison(player)
+        dropHouseOnly(player)
+    }
+
+    /** What the kitchen gives that can't leave the house ([Kitchen.HOUSE_ONLY]) goes as its taker does (Codex review on #906). */
+    private fun dropHouseOnly(player: Player) {
+        for ((slot, obj) in player.inventory.contents()) if (obj.id in Kitchen.HOUSE_ONLY) player.inventory.remove(slot)
     }
 
     /**
