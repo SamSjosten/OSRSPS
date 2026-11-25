@@ -47,6 +47,7 @@ import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.magic.JewelleryEnchantLines
+import osrsps.game.skill.magic.JewelleryTeleportLines
 import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
@@ -134,6 +135,7 @@ object DialogueLines {
         AlchemyLines,
         SuperheatLines,
         JewelleryEnchantLines,
+        JewelleryTeleportLines,
         BorkLines,
         BrutusLines,
         DagonhaiLines,
@@ -248,6 +250,7 @@ object DialogueLines {
         FarmerBeaLines,
         SpiritTreeLines,
         BalloonLines,
+        LogStorageLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
@@ -394,6 +397,7 @@ object DialogueLines {
         DavonLines,
         DeadMansBartenderLines,
         AlfonseLines,
+        SanibochLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
@@ -468,6 +472,7 @@ object DialogueLines {
         ReldoLines,
         ReportLines,
         RestlessGhostLines,
+        BarbarianAnvilLines,
         RichardLines,
         RickLines,
         RomeoLines,

@@ -67,10 +67,11 @@ enum class BalloonStation(
  * ([osrsps.game.Quests.AFTER_QUESTS]) and no route needs the flying minigame.
  *
  * - A basket's Use, an assistant's Fly (or Talk-to, then Yes) opens the map; a destination's Travel flies there.
- * - A trip needs the destination's Firemaking level (boosts count), one of its logs in the backpack, and no more than
- *   40 kg carried without that log; a trip to Entrana also needs nothing Entrana bars ([EntranaSearch]), which the
- *   assistant searches for.
- * - The log is burnt, the balloon journey jingle plays, and the player lands beside the destination's basket.
+ * - A trip needs the destination's Firemaking level (boosts count), one of its logs in the backpack or the player's
+ *   [LogStorage], and no more than 40 kg carried without that log; a trip to Entrana also needs nothing Entrana bars
+ *   ([EntranaSearch]), which the assistant searches for.
+ * - The log is burnt (from the backpack or storage, as the player's storage preference says), the balloon journey
+ *   jingle plays, and the player lands beside the destination's basket.
  *
  * Sources: the Wiki's Balloon transport system page (read 23 Nov 2026) for the routes, logs, levels, weight limit and
  * the Use change of 9 August 2018; its assistant transcripts for the talk, the log message and the Entrana search; the
@@ -83,7 +84,7 @@ enum class BalloonStation(
  * screen or fade); the Firemaking and weight messages' words (keys with no words until a recording); a click on the
  * station the player is at doing nothing; the player having to stay within [REACH] of the
  * basket while the map is open.
- * Not built yet: log storage and paying from it (step T6); Auguste's other options (origami balloons, replacing the
+ * Not built yet: Auguste's other options (origami balloons, replacing the
  * bomber jacket and cap); the bail-out crash.
  */
 class Balloons(private val world: World) {
@@ -160,31 +161,59 @@ class Balloons(private val world: World) {
             player.message(text[BalloonLines.LEVEL, "level" to to.level])
             return
         }
-        val slot = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == to.log }?.first
-        if (slot == null) {
+        val log = StoredLog.of(to.log)
+        val inBag = player.inventory.count(to.log) > 0
+        val inStore = log != null && world.logStorage.stored(player, log) > 0
+        if (!inBag && !inStore) {
             player.message(text[BalloonLines.NEED_LOGS, "logs" to text[to.logName]])
             return
         }
-        if (tooHeavy(to)) {
+        if (tooHeavy(to, inBag)) {
             player.message(text[BalloonLines.TOO_HEAVY, "limit" to WEIGHT_LIMIT_GRAMS / 1000])
             return
         }
         world.interfaces.closeModals(player)
+        val fromStore = when {
+            !inBag -> true
+            !inStore -> false
+            else -> when (world.logStorage.preference(player)) {
+                LogPreference.INVENTORY_FIRST -> false
+                LogPreference.STORAGE_FIRST -> true
+                LogPreference.ASK -> {
+                    var store = false
+                    world.dialogues.start(this) {
+                        store = choice(LogStorageLines.USE_INVENTORY, LogStorageLines.USE_STORAGE) == 2
+                    }
+                    store
+                }
+            }
+        }
         if (to == BalloonStation.ENTRANA && !searched(from)) return
-        // The search's boxes waited: the log must still be there, and the player still at the basket.
-        if (player.inventory[slot]?.id != to.log || !near(from) || tooHeavy(to)) return
-        player.inventory.remove(slot, 1)
+        // The boxes waited: the log must still be there, and the player still at the basket and within the limit.
+        if (!near(from)) return
+        // Only a backpack log that pays for the trip comes off the weight: one paid from storage stays carried (Codex review on #924).
+        if (tooHeavy(to, !fromStore && player.inventory.count(to.log) > 0)) {
+            player.message(text[BalloonLines.TOO_HEAVY, "limit" to WEIGHT_LIMIT_GRAMS / 1000])
+            return
+        }
+        if (fromStore) {
+            val left = log?.let { world.logStorage.takeOne(player, it) } ?: return
+            player.message(text[LogStorageLines.LEFT, "logs" to text[to.logName], "amount" to left])
+        } else {
+            val slot = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == to.log }?.first ?: return
+            player.inventory.remove(slot, 1)
+        }
         player.jingle(JOURNEY_JINGLE)
         delay(FLIGHT_TICKS)
         world.teleport(player, to.landing.x, to.landing.z, to.landing.level)
     }
 
     /**
-     * Whether [player] carries more than the limit, not counting one of [to]'s logs: weighed now, not at the last tick's
+     * Whether [player] carries more than the limit, not counting one of [to]'s logs if [logInBag]: weighed now, not at the last tick's
      * update, as a worn item can come off in the same tick as Travel (Codex review on #905).
      */
-    private fun ScriptContext.tooHeavy(to: BalloonStation): Boolean =
-        world.weightNow(player) - (world.objTypes[to.log]?.weight ?: 0) > WEIGHT_LIMIT_GRAMS
+    private fun ScriptContext.tooHeavy(to: BalloonStation, logInBag: Boolean): Boolean =
+        world.weightNow(player) - (if (logInBag) world.objTypes[to.log]?.weight ?: 0 else 0) > WEIGHT_LIMIT_GRAMS
 
     /** The assistant's search before a trip to Entrana: true when the player may go. */
     private suspend fun ScriptContext.searched(from: BalloonStation): Boolean {

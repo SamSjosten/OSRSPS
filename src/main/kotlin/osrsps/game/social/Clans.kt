@@ -126,6 +126,11 @@ class Clans(
     private val pickMotif: (Player, Int, (Int) -> Unit) -> Unit = { _, _, _ -> },
     /** Gives every clan cloak and vexillum [Player] has the colour given (0 to 7, enum_3819's order). */
     private val recolour: (Player, Int) -> Unit = { _, _ -> },
+    /**
+     * Who may be in the clan with the given id's hall may have changed (a ban, an expel, a leave, a rank, the Enter clan
+     * hall permission, or the clan gone): the hall checks everyone in it again (exploit review R55C-4).
+     */
+    private val hallAccessChanged: (Long) -> Unit = {},
     /** The obj id of what [Player] wields in the weapon slot, or -1. */
     private val weapon: (Player) -> Int = { -1 },
     /** Whether [Player] has Accept Aid on. */
@@ -162,6 +167,9 @@ class Clans(
     private class RecruitInvite(val clanId: Long, val recruiterKey: String, val sent: Instant)
 
     private val recruitInvites = HashMap<String, RecruitInvite>()
+
+    /** When each target last said No to each recruiter, by (recruiter, target) save keys; see [RECRUIT_DECLINE_COOLDOWN]. */
+    private val declined = HashMap<Pair<String, String>, Instant>()
 
     /** Players who were in the Clan Hub at their last [process]. */
     private val inHub = HashSet<String>()
@@ -334,13 +342,14 @@ class Clans(
      * appears on nearby players"), where it invites them into the clan ([recruit]). Sent only when it changes.
      */
     private fun showRecruit(player: Player) {
-        val shown = (inHub(player) && clanOf(player) == null) || canRecruitWithVexillum(player)
+        val shown = canRecruitWithVexillum(player) || (inHub(player) && clanOf(player) == null)
         if (recruitShown[player.saveKey] == shown) return
         recruitShown[player.saveKey] = shown
         send(player, SetPlayerOp(PLAYER_OP_RECRUIT, false, RECRUIT.takeIf { shown }))
     }
 
-    private fun canRecruitWithVexillum(player: Player): Boolean = clanOf(player) != null && weapon(player) in VEXILLA
+    // The cheap weapon check first: this runs for every player every tick, and clanOf scans every clan (exploit review R53A-3).
+    private fun canRecruitWithVexillum(player: Player): Boolean = weapon(player) in VEXILLA && clanOf(player) != null
 
     /**
      * Recruit on [target] with a clan vexillum wielded: for a member the Recruitment permission allows (Wiki, Clan
@@ -358,9 +367,17 @@ class Clans(
             clanOf(target) != null -> tell(recruiter, ClanLines.ALREADY_IN_CLAN, target.username)
             clan.members.size >= MAX_MEMBERS -> tell(recruiter, ClanLines.CLAN_FULL)
             !acceptsAid(target) -> tell(recruiter, ClanLines.RECRUIT_NO_AID, target.username)
+            // Banned from the clan's channel: not recruited either (exploit review R53A-2; the line guessed).
+            clan.banned(target.saveKey) != null -> tell(recruiter, ClanLines.RECRUIT_BANNED, target.username)
             // Someone ignoring the recruiter reads as busy, so the recruiter can't tell they are ignored (guessed).
             // In combat is busy too (Codex on PR 836): an open question would stop their auto-retaliate.
-            target.modalOpen || target.scripts.delayed || inCombat(target) || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
+            // Exploit review R53A-1: the open question turns off auto-retaliate and stops what they are doing, so it isn't
+            // sent in the Wilderness (a clan-mate's attack the same tick would get free hits), to someone busy with an
+            // action (walking to use something, or a queued script), or again within RECRUIT_DECLINE_COOLDOWN of a No
+            // to the same recruiter (guessed; live's rules aren't known).
+            busy(target) || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) ||
+                declined[recruiter.saveKey to target.saveKey]?.let { Duration.between(it, clock) < RECRUIT_DECLINE_COOLDOWN } == true ->
+                tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
             else -> {
                 recruitInvites[target.saveKey] = RecruitInvite(clan.id, recruiter.saveKey, clock)
                 tell(recruiter, ClanLines.RECRUIT_SENT, target.username)
@@ -370,6 +387,11 @@ class Clans(
         }
     }
 
+    /** Whether [target] can't be asked now: an interface, a delay, combat, an action under way or the Wilderness. */
+    private fun busy(target: Player): Boolean =
+        target.modalOpen || target.scripts.delayed || inCombat(target) || target.interaction != null ||
+            target.scripts.queued.isNotEmpty() || osrsps.game.Wilderness.level(target.x, target.z) > 0
+
     /** [target]'s answer to a Recruit invitation; a yes is checked again, as the clan or the recruiter may have changed. */
     private fun answerRecruit(target: Player, clanId: Long, recruiterKey: String, yes: Boolean) {
         val invite = recruitInvites[target.saveKey]?.takeIf { it.clanId == clanId && it.recruiterKey == recruiterKey } ?: return
@@ -377,12 +399,16 @@ class Clans(
         val recruiter = playerByKey(invite.recruiterKey)
         val clan = store.byId(clanId) ?: return
         if (!yes) {
+            // Kept over logouts, so relogging doesn't clear it; the lapsed ones go as new ones come.
+            val clock = now()
+            declined.values.removeIf { Duration.between(it, clock) >= RECRUIT_DECLINE_COOLDOWN }
+            declined[invite.recruiterKey to target.saveKey] = clock
             recruiter?.let { tell(it, ClanLines.RECRUIT_DECLINED, target.username) }
             return
         }
         // The recruiter must still be a member who may recruit, online or not (inferred).
         val member = clan.member(invite.recruiterKey)
-        if (member == null || member.rank < permission(clan, VAR_RECRUITMENT) || clanOf(target) != null) return
+        if (member == null || member.rank < permission(clan, VAR_RECRUITMENT) || clanOf(target) != null || clan.banned(target.saveKey) != null) return
         if (clan.members.size >= MAX_MEMBERS) {
             tell(target, ClanLines.CLAN_FULL)
             return
@@ -398,6 +424,7 @@ class Clans(
     /** An admin's clan, deleted (`::clandisband`, for tests that found one again): its members have no clan. */
     fun disband(clan: ClanStore.Clan, online: (String) -> Player?) {
         store.delete(clan)
+        hallAccessChanged(clan.id)
         channels.remove(clan.id)
         kicked.remove(clan.id)
         // Its guests lose it too, as a Discard would, whether or not they were in its channel.
@@ -462,6 +489,9 @@ class Clans(
 
     /** The clan called [name], any spelling, or null. */
     fun clanNamed(name: String): ClanStore.Clan? = store.byName(name)
+
+    /** The clan with [id], or null if there is none (any more). */
+    fun clanById(id: Long): ClanStore.Clan? = store.byId(id)
 
     /** The "Your Clan" page's Settings button: the clan's settings page as a member. */
     fun openYourInfo(player: Player) {
@@ -587,6 +617,7 @@ class Clans(
         if (clan.member(player.saveKey)?.rank == RANK_OWNER) return
         leaveChannel(player, clan, tell = false)
         store.removeMember(clan, player.saveKey)
+        hallAccessChanged(clan.id)
         removed(player)
         sendSettings(clan)
         tell(player, ClanLines.LEFT_CLAN, clan.name)
@@ -772,6 +803,11 @@ class Clans(
             tell(recruiter, ClanLines.CLAN_FULL)
             return
         }
+        // Banned from the channel: Unban first (exploit review R53A-2; the line guessed).
+        if (clan.banned(applicant.key) != null) {
+            tell(recruiter, ClanLines.APPLICANT_BANNED, applicant.name)
+            return
+        }
         store.removeApplications(applicant.key)
         store.addMember(clan, ClanStore.Member(applicant.key, applicant.name, RANK_FOUNDER, runeDay()))
         tell(recruiter, ClanLines.APPLICANT_ACCEPTED, applicant.name)
@@ -914,6 +950,7 @@ class Clans(
             return
         }
         store.addBanned(clan, target.saveKey, target.username)
+        hallAccessChanged(clan.id)
         leaveChannel(target, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
         sendSettings(clan)
         tell(target, ClanLines.BANNED, clan.name)
@@ -1428,6 +1465,7 @@ class Clans(
         val expelled = playerByKey(key)
         expelled?.let { leaveChannel(it, clan, tell = false) }
         store.removeMember(clan, key)
+        hallAccessChanged(clan.id)
         expelled?.let {
             removed(it)
             tell(it, ClanLines.EXPELLED, clan.name)
@@ -1468,6 +1506,7 @@ class Clans(
         val target = clan.member(key) ?: return
         if (target.rank >= own || rank >= own || rank !in MEMBER_RANKS || rank == target.rank) return
         store.setRank(clan, target, rank)
+        hallAccessChanged(clan.id)
         sendSettings(clan)
         broadcastChannel(clan)
         refreshMembersPages(clan)
@@ -1615,6 +1654,7 @@ class Clans(
         val own = clan.member(editor.saveKey)!!.rank
         if (!validFor(id, rank) || rank > own || rank < lowest(clan, id)) return
         store.setSetting(clan, id, rank)
+        if (id == VAR_ENTER_HALL) hallAccessChanged(clan.id)
         sendSettings(clan)
         if (id in CHANNEL_PERMISSIONS) broadcastChannel(clan)
         refreshMembersPages(clan)
@@ -1949,6 +1989,9 @@ class Clans(
         /** How long an unanswered Recruit invitation holds back another to the same player (guessed). */
         val RECRUIT_LAPSE: Duration = Duration.ofMinutes(1)
 
+        /** How long after a No the same recruiter can't ask the same player again (guessed; exploit review R53A-1). */
+        val RECRUIT_DECLINE_COOLDOWN: Duration = Duration.ofMinutes(5)
+
         /** [addTestApplicant]'s applicant: `~` is in no account's name. */
         const val TEST_APPLICANT_KEY = "~test applicant"
         const val TEST_APPLICANT_NAME = "Applicant"
@@ -2051,6 +2094,8 @@ object ClanLines : Lines("clan", "Clans") {
     val RECRUIT_NOT_ALLOWED = line("recruit_not_allowed", "Recruit with a vexillum by a member whose rank can't recruit (guessed)")
     val RECRUIT_NO_AID = line("recruit_no_aid", "Recruit on someone with Accept Aid off (guessed)", "name")
     val RECRUIT_BUSY = line("recruit_busy", "Recruit on someone busy or already asked (guessed)", "name")
+    val RECRUIT_BANNED = line("recruit_banned", "Recruit on someone banned from the clan's channel (guessed)", "name")
+    val APPLICANT_BANNED = line("applicant_banned", "Accept on an applicant banned from the clan's channel (guessed)", "name")
     val RECRUIT_SENT = line("recruit_sent", "the recruiter, once the invitation is sent (guessed)", "name")
     val RECRUIT_QUESTION = line("recruit_question", "the invitee's question: join the clan? (guessed)", "name", "clan")
     val RECRUIT_DECLINED = line("recruit_declined", "the recruiter, when the invitee says no (guessed)", "name")

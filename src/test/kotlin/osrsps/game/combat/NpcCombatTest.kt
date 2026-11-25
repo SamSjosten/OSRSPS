@@ -51,6 +51,9 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
+            "monkey_attack" to 220, "monkey_block" to 221, "monkey_death" to 223,
+            "dog_update_small_dog_attack" to 6562, "dog_update_medium_dog_defend" to 6563, "dog_update_medium_dog_death" to 6564,
+            "human_spear_spike" to 428, "human_spear_block" to 430,
             "thzaar_unarmed_attack" to 2609, "thzaar_armed_attack" to 2610, "thzaar_magic_attack" to 2613,
             "thzaar_parry" to 2605, "thzaar_staff_parry" to 2606, "thzaar_death" to 2607, "thzaar_staff_death" to 2608,
             "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
@@ -90,6 +93,7 @@ class NpcCombatTest {
             "dragon_attack" to 80, "dwarf_attack" to 99, "dwarf_block" to 100, "dwarf_death" to 102, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
+            "sourhog_attack_melee" to 8769, "sourhog_attack_ranged" to 8770, "sourhog_death" to 8771,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
@@ -127,6 +131,8 @@ class NpcCombatTest {
             "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
             "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
             "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
+            "bdrag_attack" to 25, "bdrag_block" to 26, "bdrag_death" to 28,
+            "giant_update_fire_attack" to 4666, "giant_update_fire_defend" to 4664, "giant_update_fire_death" to 4668,
         ),
     )
 
@@ -455,6 +461,22 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(5571, 5574, 5575), def("sos_fam_zombie_armed3").anims)
         assertEquals(22, def("sos_fam_zombie2_c").defence.against(AttackType.CRUSH))
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("sos_fam_fleshcrawler3").weakness)
+    }
+
+    @Test
+    fun `the Sourhog Cave's sourhogs crush and spit, burning the eyes of a player without goggles or a Slayer helmet`() {
+        val sourhogTypes = NpcTypes.of(NpcType(10435, "Sourhog", size = 3, internalName = "sourhog", stats = NpcStats(attack = 35, defence = 25, strength = 30, hitpoints = 40, ranged = 35, magic = 25)))
+        val combat = NpcCombat.load(sourhogTypes, seqs)
+        val def = combat[10435]!!
+        assertEquals(CombatMath.npcMaxHit(30, 0), def.maxHit)
+        assertEquals(listOf(5, 4, 15, 1), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.slayerLevel))
+        assertEquals(AttackType.CRUSH, def.attackType)
+        assertEquals(NpcCombatAnims(8769, -1, 8771), def.anims)
+        assertTrue(def.aggression!!.ignoresLevels)
+        val spit = def.spell!!
+        assertEquals(AttackType.RANGED, spit.type)
+        assertEquals(NpcRangedAttack(anim = 8770, projectile = 1817, impact = 1818, maxHit = 6), spit.attack)
+        assertEquals(NpcBlinding(setOf(24942, 11864, 11865, 25177, 26674), 20, 30, 90, listOf(Skill.ATTACK, Skill.DEFENCE)), def.blinds)
     }
 
     @Test
@@ -1109,6 +1131,76 @@ class NpcCombatTest {
         val man = combat[types.find("man")!!]!!
         assertEquals(man, combat[types.find("man4_for_musa_point")!!])
         assertEquals(man, combat[types.find("karamja_man")!!])
+    }
+
+    @Test
+    fun `Brimhaven's fighters have the Wiki's speeds, hits and respawns, the spiders, scorpions, tribesmen and dogs come for the player, and the scorpions and tribesmen poison`() {
+        val fighters = listOf(
+            NpcType(522, "Pirate", internalName = "pirate2", stats = NpcStats(strength = 21)),
+            NpcType(4926, "Pirate Guard", internalName = "pirate_guard", stats = NpcStats(strength = 16)),
+            NpcType(114, "Guard dog", internalName = "guarddog", stats = NpcStats(strength = 36)),
+            NpcType(2848, "Monkey", internalName = "monkey", stats = NpcStats(strength = 3)),
+            NpcType(3020, "Jungle spider", internalName = "jungle_spider", stats = NpcStats(strength = 37)),
+            NpcType(3025, "Poison Scorpion", internalName = "poison_scorpion", stats = NpcStats(strength = 17)),
+            NpcType(530, "Tribesman", internalName = "tribesman", stats = NpcStats(strength = 27)),
+        )
+        val types = NpcTypes.of(*fighters.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // The Wiki's speed, max hit and respawn for each.
+        assertEquals(
+            mapOf(
+                "pirate2" to listOf(5, 3, 25), "pirate_guard" to listOf(4, 3, 50), "guarddog" to listOf(4, 5, 25), "monkey" to listOf(4, 1, 37),
+                "jungle_spider" to listOf(4, 6, 30), "poison_scorpion" to listOf(4, 3, 25), "tribesman" to listOf(4, 4, 50),
+            ),
+            fighters.associate { it.internalName!! to def(it.internalName!!).let { d -> listOf(d.attackSpeed, d.maxHit, d.respawnTicks) } },
+        )
+        assertEquals(setOf("guarddog", "jungle_spider", "poison_scorpion", "tribesman"), fighters.filter { def(it.internalName!!).aggression != null }.map { it.internalName }.toSet())
+        assertEquals(15, def("poison_scorpion").poison)
+        assertEquals(55, def("tribesman").poison)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), def("jungle_spider").weakness)
+        assertEquals(ElementalWeakness(Element.FIRE, 25), def("poison_scorpion").weakness)
+    }
+
+    @Test
+    fun `Brimhaven Dungeon's monsters have the Wiki's speeds, hits and respawns, all but the wild dogs come for the player, and the grown dragons breathe fire`() {
+        val monsters = listOf(
+            NpcType(112, "Wild dog", internalName = "dog_wild", stats = NpcStats(strength = 54)),
+            NpcType(244, "Baby red dragon", internalName = "babyreddragon", stats = NpcStats(strength = 40)),
+            NpcType(5194, "Baby green dragon", internalName = "babygreendragon1", stats = NpcStats(strength = 40)),
+            NpcType(247, "Red dragon", internalName = "red_dragon", stats = NpcStats(strength = 130)),
+            NpcType(270, "Bronze dragon", internalName = "bronze_dragon", stats = NpcStats(strength = 112)),
+            NpcType(272, "Iron dragon", internalName = "iron_dragon", stats = NpcStats(strength = 165)),
+            NpcType(274, "Steel dragon", internalName = "steel_dragon", stats = NpcStats(strength = 215)),
+            NpcType(2078, "Fire giant", internalName = "firegiant", stats = NpcStats(strength = 65)),
+            NpcType(2025, "Greater demon", internalName = "greater_demon", stats = NpcStats(strength = 78)),
+            NpcType(2048, "Black demon", internalName = "black_demon", stats = NpcStats(strength = 148)),
+        )
+        val types = NpcTypes.of(*monsters.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        assertEquals(
+            mapOf(
+                "dog_wild" to listOf(4, 6, 50), "babyreddragon" to listOf(4, 5, 30), "babygreendragon1" to listOf(4, 5, 30),
+                "red_dragon" to listOf(4, 14, 30), "bronze_dragon" to listOf(4, 12, 30), "iron_dragon" to listOf(4, 17, 30),
+                "steel_dragon" to listOf(4, 22, 30), "firegiant" to listOf(5, 11, 30), "greater_demon" to listOf(4, 9, 15),
+                "black_demon" to listOf(4, 16, 30),
+            ),
+            monsters.associate { it.internalName!! to def(it.internalName!!).let { d -> listOf(d.attackSpeed, d.maxHit, d.respawnTicks) } },
+        )
+        assertEquals(setOf("dog_wild"), monsters.filter { def(it.internalName!!).aggression == null }.map { it.internalName }.toSet())
+        assertEquals(
+            setOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon"),
+            monsters.filter { def(it.internalName!!).dragonfire != null }.map { it.internalName }.toSet(),
+        )
+        assertEquals(ElementalWeakness(Element.EARTH, 50), def("steel_dragon").weakness)
+        assertEquals(ElementalWeakness(Element.WATER, 100), def("firegiant").weakness)
+        // The Wiki's level 86 fire giant: attack +29, strength +31; the grown dragons give 2.5% more XP.
+        assertEquals(listOf(29, 31), def("firegiant").let { listOf(it.attackBonus, it.strengthBonus) })
+        assertEquals(
+            mapOf("red_dragon" to 25, "bronze_dragon" to 25, "iron_dragon" to 25, "steel_dragon" to 25, "firegiant" to 0),
+            listOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant").associateWith { def(it).xpBonusTenths },
+        )
     }
 
     @Test

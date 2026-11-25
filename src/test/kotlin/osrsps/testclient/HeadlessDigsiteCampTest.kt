@@ -183,6 +183,23 @@ class HeadlessDigsiteCampTest {
     }
 
     @Test
+    fun `a stone tablet dropped on the floor still counts as owned`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3373, 9745)
+                client.locOp(tablet.id, tablet.x, tablet.z, DigsiteCamp.TAKE)
+                client.await("the tablet") { if (client.count(DigsiteCamp.STONE_TABLET) == 1) Unit else null }
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, client.slot(DigsiteCamp.STONE_TABLET), DigsiteCamp.STONE_TABLET)
+                client.await("the tablet on the floor") { client.groundObjs().firstOrNull { it.id == DigsiteCamp.STONE_TABLET } }
+                client.locOp(tablet.id, tablet.x, tablet.z, DigsiteCamp.TAKE)
+                client.message(DigsiteCampLines.TABLET_HAVE)
+                assertEquals(0, client.count(DigsiteCamp.STONE_TABLET))
+            }
+        }
+    }
+
+    @Test
     fun `the barrel opens with a trowel and fills a vial, and the tablet is taken once`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
@@ -224,6 +241,9 @@ class HeadlessDigsiteCampTest {
     private companion object {
         const val BACKPACK = 93
         const val BARREL_VARP = 1500
+        const val INVENTORY = 149
+        const val INVENTORY_ITEMS = 0
+        const val DROP = 7
         const val TABLET_VARBIT = 2548
         const val BARREL_SEALED = 17296
         const val BARREL_OPEN = 17297

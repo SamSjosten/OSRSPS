@@ -129,7 +129,11 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
+import osrsps.game.content.registerClanCup
+import osrsps.game.content.PollBooths
+import osrsps.game.content.registerPollBooths
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
@@ -137,6 +141,7 @@ import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
+import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -192,6 +197,7 @@ import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
+import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -673,6 +679,7 @@ class World(
     val shopScreen = ShopScreen(
         shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
         logged = { player, type -> collectionLog.add(player, type.id, 1) },
+        opened = { player, type -> diaries.shopOpened(player, type.key) },
     )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
@@ -694,7 +701,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = {
+        forInstances = { it, x, z ->
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
@@ -708,7 +715,9 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
-                it in osrsps.game.content.ClanHall.INSTANCE_LOCS
+                // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
+                // (exploit review R55C-3).
+                ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
         },
     )
 
@@ -948,6 +957,7 @@ class World(
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         recolour = osrsps.game.content.ClanHub::recolour,
+        hallAccessChanged = { clanId -> clanHall.recheck(clanId) },
         weapon = { player -> player.equipment[WearPos.WEAPON]?.id ?: -1 },
         acceptsAid = { player -> player.vars.getVarbitIfKnown(SettingsSide.VARBIT_ACCEPT_AID) == 1 },
         inCombat = { player -> inCombat(player) },
@@ -1006,6 +1016,9 @@ class World(
 
     /** The balloon transport system; see [osrsps.game.content.Balloons]. */
     val balloons = osrsps.game.content.Balloons(this)
+
+    /** The balloon log storage; see [osrsps.game.content.LogStorage]. */
+    val logStorage = osrsps.game.content.LogStorage(this)
 
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
@@ -1094,6 +1107,9 @@ class World(
 
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
+    /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
+    val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1233,6 +1249,8 @@ class World(
         registerLumberYard(this)
         registerGertrudesCat(this)
         registerClanHub(this)
+        registerClanCup(this)
+        registerPollBooths(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
@@ -1241,6 +1259,7 @@ class World(
         osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerDigsiteCamp(this)
+        registerSourhogCave(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1287,6 +1306,7 @@ class World(
         registerInfernalEels(this)
         registerBarnabyShip(this)
         registerBrimhavenTown(this)
+        registerBrimhavenDungeon(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1301,6 +1321,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1310,6 +1331,7 @@ class World(
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         registerMisthalinOptionPack(this)
+        registerBarbarianAnvil(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -1324,6 +1346,7 @@ class World(
         fairyRings.register()
         spiritTrees.register()
         balloons.register()
+        logStorage.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -1348,6 +1371,7 @@ class World(
         alchemy.register()
         superheat.register()
         jewelleryEnchant.register()
+        jewelleryTeleports.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1752,6 +1776,7 @@ class World(
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
             perPlayer(player, "wall beasts") { wallBeasts.process(player) }
+            perPlayer(player, "diaries") { diaries.moved(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -2979,6 +3004,10 @@ class World(
             worldMap.close(player)
             return@act
         }
+        if (interfaceId == PollBooths.BALLOT && componentId == PollBooths.CLOSE) {
+            if (player.floater == PollBooths.BALLOT) interfaces.closeFloater(player)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -3437,6 +3466,16 @@ class World(
     fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
 
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
+
+    /**
+     * A poll booth's ballot ([PollBooths]): opened in the floater, which holds one window, so All Settings closes by its
+     * own path first (as for the world map orb); then the empty poll history.
+     */
+    fun openBallot(player: Player) {
+        allSettings.close(player)
+        interfaces.openFloater(player, PollBooths.BALLOT)
+        interfaces.runClientScript(player, PollBooths.SCRIPT_LIST_BUILD, PollBooths.emptyHistory(PollBooths.thisYear()))
+    }
 
     private fun move(player: Player) {
         val result = movement.process(player)

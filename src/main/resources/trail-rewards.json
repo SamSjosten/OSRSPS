@@ -1,5 +1,5 @@
 {
- "about": "What a reward casket gives, tier by tier, as the OSRS Wiki's Reward casket pages list it (Standard tables, read 2026-11-19; rates confirmed by Mod Tide, 24 May 2019). Opening one rolls the tier's table rolls.min to rolls.max times: each line is weight out of slots, the Wiki's per-roll rarity exactly (its nested tables multiplied out, so every unique, mega-rare and shared line is one line here). A line's with items come beside it (the hard mega-rare's three super potions). extra lines are rolled once a casket besides the rolls; milestones come with the casket that makes the tier's count. The Mimic's own table (elite and master) waits for the Mimic; the Bloodhound pet waits for pets, and the emote milestones (Explore, Uri transform) for emotes. Items are ids with their cache names beside them; the loader warns when a name doesn't match. Generated from the Wiki's tables by the Treasure Trails thread's script, not typed.",
+ "about": "What a reward casket gives, tier by tier, as the OSRS Wiki's Reward casket pages list it (Standard tables, read 2026-11-19; rates confirmed by Mod Tide, 24 May 2019). Opening one rolls the tier's table rolls.min to rolls.max times: each line is weight out of slots, the Wiki's per-roll rarity exactly (its nested tables multiplied out, so every unique, mega-rare and shared line is one line here). A line's with items come beside it (the hard mega-rare's three super potions). extra lines are rolled once a casket besides the rolls (the master scroll box isn't one: TreasureTrails.masterBox rolls it under the master cap, exploit review R55B-1); milestones come with the casket that makes the tier's count. The Mimic's own table (elite and master) waits for the Mimic; the Bloodhound pet waits for pets, and the emote milestones (Explore, Uri transform) for emotes. Items are ids with their cache names beside them; the loader warns when a name doesn't match. Generated from the Wiki's tables by the Treasure Trails thread's script, not typed.",
  "tiers": {
   "beginner": {
    "rolls": {"min": 1, "max": 3}, "slots": 44280,
@@ -297,7 +297,7 @@
     {"item": 12623, "name": "Ancient page 3", "weight": 715},
     {"item": 12624, "name": "Ancient page 4", "weight": 715}
    ],
-   "extra": [{"item": 24366, "name": "Scroll box (master)", "chance": "1/50"}],
+   "extra": [],
    "milestones": [{"count": 100, "item": 30906, "name": "Minor easy scroll case"}, {"count": 200, "item": 30908, "name": "Major easy scroll case"}, {"count": 500, "item": 20164, "name": "Large spade"}]
   },
   "medium": {
@@ -496,7 +496,7 @@
     {"item": 12623, "name": "Ancient page 3", "weight": 28325},
     {"item": 12624, "name": "Ancient page 4", "weight": 28325}
    ],
-   "extra": [{"item": 24366, "name": "Scroll box (master)", "chance": "1/30"}],
+   "extra": [],
    "milestones": [{"count": 100, "item": 30910, "name": "Minor medium scroll case"}, {"count": 250, "item": 30912, "name": "Major medium scroll case"}, {"count": 400, "item": 20249, "name": "Clueless scroll"}]
   },
   "hard": {
@@ -736,7 +736,7 @@
     {"item": 12623, "name": "Ancient page 3", "weight": 10725},
     {"item": 12624, "name": "Ancient page 4", "weight": 10725}
    ],
-   "extra": [{"item": 24366, "name": "Scroll box (master)", "chance": "1/15"}],
+   "extra": [],
    "milestones": [{"count": 50, "item": 30914, "name": "Minor hard scroll case"}, {"count": 150, "item": 30916, "name": "Major hard scroll case"}]
   },
   "elite": {
@@ -925,7 +925,7 @@
     {"item": 12623, "name": "Ancient page 3", "weight": 2193510},
     {"item": 12624, "name": "Ancient page 4", "weight": 2193510}
    ],
-   "extra": [{"item": 24366, "name": "Scroll box (master)", "chance": "1/5"}],
+   "extra": [],
    "milestones": [{"count": 50, "item": 30918, "name": "Minor elite scroll case"}, {"count": 150, "item": 30920, "name": "Major elite scroll case"}, {"count": 200, "item": 19941, "name": "Heavy casket"}]
   },
   "master": {
