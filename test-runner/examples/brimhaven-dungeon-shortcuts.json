@@ -1,5 +1,5 @@
 {
-  "name": "Karamja step K3.3: Brimhaven Dungeon's shortcuts there and back at 87 Agility: the western stepping stones (which can fail; a fall lands back at the start), the log, the black demons' pipe, both pairs of eastern stepping stones and the vine to the upper level; tiles and timings guessed, so a failure says where live puts the player",
+  "name": "Karamja step K3.3: Brimhaven Dungeon's shortcuts there and back at 99 Agility: the western stepping stones (sure at 99), the log, the black demons' pipe, both pairs of eastern stepping stones and the vine to the upper level; tiles and timings guessed, so a failure says where live puts the player",
   "account": "test",
   "steps": [
     {
@@ -13,7 +13,7 @@
     },
     {
       "step": "command",
-      "text": "::setlevel agility 87"
+      "text": "::setlevel agility 99", "comment": "at 99 the western stones (225-255 out of 256) cannot fail, so every crossing lands"
     },
     {
       "step": "command",
