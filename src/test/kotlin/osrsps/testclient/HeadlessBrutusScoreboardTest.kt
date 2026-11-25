@@ -100,6 +100,76 @@ class HeadlessBrutusScoreboardTest {
         }
     }
 
+    private fun HeadlessClient.enterField(server: TestServer, name: String): osrsps.game.content.BrutusPens.Run {
+        await("the login rebuild") { position }
+        command("tele ${Brutus.OUTSIDE.x} ${Brutus.OUTSIDE.z} 0")
+        await("outside the gate") { position?.takeIf { it == Coord(Brutus.OUTSIDE.x, Brutus.OUTSIDE.z, 0) } }
+        locOp(Brutus.GATE_LEFT, 3262, 3294, Brutus.RELEASE)
+        awaitDialogue("Release's menu") { it is DialogueView.Menu }
+        chooseOption(1)
+        val player = server.world.playerNamed(name)!!
+        return await("in a field") { server.world.brutusPens.runOf(player) }
+    }
+
+    @Test
+    fun `a death in a field counts once, a death outside one doesn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                val run = client.enterField(server, "bob")
+                val bob = server.world.playerNamed("bob")!!
+                server.world.npcs.freeze(run.boss!!, 200)
+                val deaths = server.world.customVars.brutusDeathsVarp
+                client.commandReply("hit 200 me") { it.startsWith("Hit yourself") }
+                client.await("the death on the board", timeoutMillis = 20_000) { Unit.takeIf { server.world.brutusRecords.deaths == 1L } }
+                assertEquals(1, bob.vars[deaths])
+                client.await("back on his feet", timeoutMillis = 20_000) { Unit.takeIf { !bob.dead && server.world.brutusPens.runOf(bob) == null } }
+
+                // A death outside any field.
+                client.command("tele 3258 3290 0")
+                client.await("outside") { client.position?.takeIf { it == Coord(3258, 3290, 0) } }
+                client.commandReply("hit 200 me") { it.startsWith("Hit yourself") }
+                client.await("dead outside") { Unit.takeIf { bob.dead } }
+                client.await("back again", timeoutMillis = 20_000) { Unit.takeIf { !bob.dead } }
+                assertEquals(1L, server.world.brutusRecords.deaths)
+                assertEquals(1, bob.vars[deaths])
+            }
+        }
+    }
+
+    @Test
+    fun `a kill on the first attack is timed from that attack, and the board reads inside the field`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cara").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val run = client.enterField(server, "cara")
+                val cara = server.world.playerNamed("cara")!!
+                val boss = run.boss!!
+                client.await("Brutus seen") { client.npcs().firstOrNull { it.index == boss.index } }
+                client.npcOp(boss.index, 2)
+                val launched = client.await("her first attack made") { Brutus.firstAttack(cara, boss) }
+                client.awaitTicks(2)
+                // As if he died to that first attack before his fight's next tick: the death has only her attack to go by.
+                run.fightStart = -1
+                client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                client.await("on the board") { if (server.world.brutusRecords.kills == 1L) Unit else null }
+                val best = cara.vars[server.world.customVars.brutusBestVarp].toLong()
+                assertTrue(best > 0, "timed from her attack, not 0")
+                assertTrue(server.world.tick - launched >= best, "from her attack's tick ($launched), not later: $best ticks")
+
+                // Read from inside her field: the scoreboard is part of the copied field.
+                val board = run.inside(3258, 3298)
+                val by = run.inside(3258, 3297)
+                client.command("tele ${by.x} ${by.z} 0")
+                client.await("by the board in the field") { client.position?.takeIf { it == Coord(by.x, by.z, 0) } }
+                assertTrue(server.world.brutusPens.runOf(cara) != null, "still in her field")
+                client.locOp(BrutusScoreboard.SCOREBOARD_MULTI, board.x, board.z, BrutusScoreboard.READ)
+                val texts = client.await("the scoreboard") { client.texts(BrutusScoreboard.INTERFACE).takeIf { it.size >= 6 } }
+                assertEquals("1", texts[BrutusScoreboard.PERSONAL_KILLS])
+            }
+        }
+    }
+
     @Test
     fun `times show as minutes, seconds and hundredths, and the server's records keep in their file`(@TempDir dir: Path) {
         assertEquals("0:01.20", BrutusScoreboard.time(2))

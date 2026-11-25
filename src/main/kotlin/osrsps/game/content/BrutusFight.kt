@@ -124,7 +124,10 @@ object BrutusFight {
         // Guessed: the scoreboard's time starts with the player's first attack (the Wiki's best of 0:01.20, two ticks,
         // rules out his spawn).
         world.brutusPens.runAt(boss.x, boss.z)?.let { run ->
-            if (run.fightStart < 0 && boss.lastAttacker != null && boss.attackedTick >= boss.spawnTick) run.fightStart = boss.attackedTick
+            if (run.fightStart < 0) {
+                val owner = world.onlinePlayers.firstOrNull { it.saveKey == run.owner && !it.loggedOut }
+                owner?.let { Brutus.firstAttack(it, boss) }?.let { run.fightStart = it }
+            }
         }
         if (fight.basicsLeft < 0) fight.basicsLeft = roll(BASICS_MIN, BASICS_MAX)
         if (world.tick < fight.busyUntil) {
