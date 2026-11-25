@@ -148,6 +148,36 @@ class HeadlessClanHallTest {
         }
     }
 
+    @Test
+    fun `a guest in the hall is put outside once the Enter clan hall permission keeps guests out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("carol").use { carol ->
+                    alice.ready()
+                    carol.ready()
+                    alice.commandReply("clanmake Odins Gate") { it.startsWith("Clan") }
+                    alice.commandReply("clanjoin Odins Gate recruiter") { it.startsWith("Joined") }
+                    val clan = server.world.clans.clanNamed("Odins Gate")!!
+                    alice.goIn(ClanHall.ENTER)
+                    // carol, in no clan, goes in as a guest (Guest is the default).
+                    carol.tele(PORTAL_X - 1, PORTAL_Z)
+                    carol.locOp(ClanHall.PORTAL, PORTAL_X, PORTAL_Z, ClanHall.ENTER_GUEST)
+                    carol.awaitTicks(2)
+                    carol.resumeString("Odins Gate")
+                    carol.await("the hall") { carol.position?.takeIf { it.x >= 6400 } }
+
+                    // Exploit review R55C-4: members only now, so she is put outside; alice stays.
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    server.world.clans.setPermission(server.world.playerNamed("alice")!!, clan.id, Clans.VAR_ENTER_HALL, Clans.RANK_FOUNDER)
+                    alice.stepTicks(2)
+                    carol.await("outside") { carol.position?.takeIf { it == Coord(ClanHall.OUTSIDE_X, ClanHall.OUTSIDE_Z, 0) } }
+                    carol.saw("[clan_hall.removed]")
+                    assertNotNull(alice.position?.takeIf { it.x >= 6400 })
+                }
+            }
+        }
+    }
+
     private companion object {
         const val PORTAL_X = 3186
         const val PORTAL_Z = 3471

@@ -129,6 +129,7 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
+import osrsps.game.content.registerClanCup
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
@@ -697,7 +698,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = {
+        forInstances = { it, x, z ->
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
@@ -711,7 +712,9 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
-                it in osrsps.game.content.ClanHall.INSTANCE_LOCS
+                // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
+                // (exploit review R55C-3).
+                (it in osrsps.game.content.ClanHall.INSTANCE_LOCS && clanHall.clanAt(x, z) != null)
         },
     )
 
@@ -951,6 +954,7 @@ class World(
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         recolour = osrsps.game.content.ClanHub::recolour,
+        hallAccessChanged = { clanId -> clanHall.recheck(clanId) },
         weapon = { player -> player.equipment[WearPos.WEAPON]?.id ?: -1 },
         acceptsAid = { player -> player.vars.getVarbitIfKnown(SettingsSide.VARBIT_ACCEPT_AID) == 1 },
         inCombat = { player -> inCombat(player) },
@@ -1241,6 +1245,7 @@ class World(
         registerLumberYard(this)
         registerGertrudesCat(this)
         registerClanHub(this)
+        registerClanCup(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
