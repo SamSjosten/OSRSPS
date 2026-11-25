@@ -290,6 +290,16 @@
    "comment": "the water mill cellar"
   },
   {
+   "step": "command",
+   "text": "::tele 3239 9695 0",
+   "expectMessage": "Teleported to 3239, 9695, 0",
+   "comment": "beside the cellar's ladder: the walk from the tunnel is too long for the step's timeout at live tick speed (nightly Nov 25)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
    "step": "locOption",
    "locId": 15746,
    "option": "Climb-up",
@@ -451,6 +461,11 @@
    "text": "::tele 3210 3217 1",
    "expectMessage": "Teleported to 3210, 3217, 1",
    "comment": "Lumbridge Castle's first floor, east of Sigmund's chest"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the castle's first floor loads before the chest is looked for"
   },
   {
    "step": "locOption",
