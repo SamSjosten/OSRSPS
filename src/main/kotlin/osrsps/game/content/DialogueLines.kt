@@ -248,6 +248,7 @@ object DialogueLines {
         FarmerBeaLines,
         SpiritTreeLines,
         BalloonLines,
+        LogStorageLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,

@@ -1008,6 +1008,9 @@ class World(
     /** The balloon transport system; see [osrsps.game.content.Balloons]. */
     val balloons = osrsps.game.content.Balloons(this)
 
+    /** The balloon log storage; see [osrsps.game.content.LogStorage]. */
+    val logStorage = osrsps.game.content.LogStorage(this)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1325,6 +1328,7 @@ class World(
         fairyRings.register()
         spiritTrees.register()
         balloons.register()
+        logStorage.register()
         birdNests.register()
         firemaking.register()
         hunter.register()

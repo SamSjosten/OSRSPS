@@ -3297,6 +3297,13 @@
     {"loc": 15765, "name": "Trapdoor", "wiki": "Trapdoor (Water mill cellar) page, infobox, open (the multiloc shows 15753 after Death to the Dorgeshuun)"},
     {"loc": 2359, "name": "Barrel", "wiki": "Barrel (Digsite) page, infobox, closed (the map's multiloc, showing 17296 sealed and 17297 open)"},
     {"loc": 2360, "name": "Chest", "wiki": "Chest (Chemical powder) page, infobox, opened"},
-    {"loc": 17369, "name": "Stone Tablet", "wiki": "the map's multiloc, showing the tablet (17367) after The Dig Site; Stone tablet (The Dig Site) has the item's examine only"}
+    {"loc": 17369, "name": "Stone Tablet", "wiki": "the map's multiloc, showing the tablet (17367) after The Dig Site; Stone tablet (The Dig Site) has the item's examine only"},
+    {"loc": 31572, "name": "Log storage", "wiki": "Log storage page, infobox"},
+    {"loc": 31573, "name": "Log storage", "wiki": "Log storage page, infobox: Entrana's"},
+    {"loc": 31574, "name": "Log storage", "wiki": "Log storage page, infobox: Taverley's"},
+    {"loc": 31575, "name": "Log storage", "wiki": "Log storage page, infobox: Castle Wars's"},
+    {"loc": 31576, "name": "Log storage", "wiki": "Log storage page, infobox: the Grand Tree's"},
+    {"loc": 31577, "name": "Log storage", "wiki": "Log storage page, infobox: the Crafting Guild's"},
+    {"loc": 31578, "name": "Log storage", "wiki": "Log storage page, infobox: Varrock's"}
   ]
 }
