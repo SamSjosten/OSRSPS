@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -90,6 +91,8 @@ class HeadlessVarrockStoresTest {
         }
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     @Test
     fun `each keeper's talk opens their shop, every way it can`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -103,7 +106,10 @@ class HeadlessVarrockStoresTest {
                     aubury.id, "aubury", true, line("greeting"), pick(1, "cape", "yes", "decline", "teleport"), line("cape_1"), line("cape_2"),
                     pick(1, "view", "no_thanks"),
                 )
+                // Other shops opened do no diary task; Thessalia's is the Varrock easy one, once.
+                assertEquals(0, client.diaryTasksDone(), "the other shops")
                 client.walkThrough(thessalia.id, "thessalia", true, line("greeting"), pick(2, "what_got", "buy", "no_thanks"))
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 client.walkThrough(
                     thessalia.id, "thessalia", true, line("greeting"), pick(1, "what_got", "buy", "no_thanks"), line("what_got"),
                     line("offer"), pick(2, "more", "buy", "no_thanks"),
@@ -152,6 +158,7 @@ class HeadlessVarrockStoresTest {
                 )
                 client.walkThrough(teaSeller.id, "tea_seller", false, line("greeting"), pick(2, "yes", "what", "no"), line("what"), line("wares"))
                 client.walkThrough(teaSeller.id, "tea_seller", false, line("greeting"), pick(3, "yes", "what", "no"), line("no"), line("come_back"))
+                assertEquals(0, client.diaryTasksDone(), "Thessalia's shop never opened")
             }
         }
     }

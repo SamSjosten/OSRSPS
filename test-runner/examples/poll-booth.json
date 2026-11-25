@@ -1,0 +1,14 @@
+{
+ "name": "A poll booth: Use on the one in Varrock's west bank opens the ballot with an empty poll history (this server holds no polls), and its X closes it",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3179 3438 0", "expectMessage": "Teleported to 3179, 3438, 0", "comment": "in Varrock's west bank, west of the poll booth (3180, 3438)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 26797, "option": "Use", "timeoutMs": 20000, "comment": "pollbooth_brown 26813 on the map, showing 26797 while poll_playershouldvote is 0"},
+  {"step": "assertInterface", "interfaceId": 928, "timeoutMs": 20000, "comment": "the ballot"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 928, "component": 4, "comment": "the X"},
+  {"step": "assertInterface", "interfaceId": 928, "absent": true, "timeoutMs": 10000, "comment": "closed"}
+ ]
+}

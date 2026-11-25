@@ -130,6 +130,8 @@ import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanCup
+import osrsps.game.content.PollBooths
+import osrsps.game.content.registerPollBooths
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
@@ -680,6 +682,7 @@ class World(
     val shopScreen = ShopScreen(
         shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
         logged = { player, type -> collectionLog.add(player, type.id, 1) },
+        opened = { player, type -> diaries.shopOpened(player, type.key) },
     )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
@@ -717,7 +720,7 @@ class World(
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
-                (it in osrsps.game.content.ClanHall.INSTANCE_LOCS && clanHall.clanAt(x, z) != null)
+                ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
         },
     )
 
@@ -1252,6 +1255,7 @@ class World(
         registerGertrudesCat(this)
         registerClanHub(this)
         registerClanCup(this)
+        registerPollBooths(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
@@ -1778,6 +1782,7 @@ class World(
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
             perPlayer(player, "wall beasts") { wallBeasts.process(player) }
+            perPlayer(player, "diaries") { diaries.moved(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -3004,6 +3009,10 @@ class World(
             worldMap.close(player)
             return@act
         }
+        if (interfaceId == PollBooths.BALLOT && componentId == PollBooths.CLOSE) {
+            if (player.floater == PollBooths.BALLOT) interfaces.closeFloater(player)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -3462,6 +3471,16 @@ class World(
     fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
 
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
+
+    /**
+     * A poll booth's ballot ([PollBooths]): opened in the floater, which holds one window, so All Settings closes by its
+     * own path first (as for the world map orb); then the empty poll history.
+     */
+    fun openBallot(player: Player) {
+        allSettings.close(player)
+        interfaces.openFloater(player, PollBooths.BALLOT)
+        interfaces.runClientScript(player, PollBooths.SCRIPT_LIST_BUILD, PollBooths.emptyHistory(PollBooths.thisYear()))
+    }
 
     private fun move(player: Player) {
         val result = movement.process(player)

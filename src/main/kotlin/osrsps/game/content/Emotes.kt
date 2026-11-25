@@ -170,5 +170,6 @@ fun registerEmotes(world: World) {
         if (emote.spotanim >= 0) player.spotanim(emote.spotanim)
         world.trails.emoted(player, emote.index)
         if (emote === Emotes.QUEST_CAPE) world.diaries.questCapeEmote(player)
+        world.diaries.emoted(player, emote.index)
     }
 }

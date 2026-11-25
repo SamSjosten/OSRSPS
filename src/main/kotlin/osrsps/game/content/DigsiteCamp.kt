@@ -85,15 +85,17 @@ object DigsiteCamp {
     const val BARREL_SEARCH = 2
     const val TAKE = 1
 
-    fun owns(player: Player, obj: Int): Boolean =
-        player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
+    /** Carried, worn, banked, dropped by the player and still on the floor, or in their grave (exploit review R55C-2). */
+    fun owns(world: World, player: Player, obj: Int): Boolean =
+        player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0 ||
+            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0
 
     fun barrelOpen(player: Player): Boolean =
         player.vars.types.varbit(BARREL_VARBIT) != null && player.vars.getVarbit(BARREL_VARBIT) == 1
 
     internal suspend fun ScriptContext.searchTeddyBush(world: World) {
         arriveDelay()
-        if (owns(player, TEDDY)) return world.message(player, DigsiteCampLines.BUSH_NOTHING)
+        if (owns(world, player, TEDDY)) return world.message(player, DigsiteCampLines.BUSH_NOTHING)
         val teddy = world.objTypes[TEDDY] ?: return
         world.dialogues.start(this) {
             chatPlayer(ChatAnim.QUIZ, DigsiteCampLines.TEDDY_FOUND)
@@ -142,7 +144,7 @@ object DigsiteCamp {
 
     internal suspend fun ScriptContext.takeTablet(world: World) {
         arriveDelay()
-        if (owns(player, STONE_TABLET)) return world.message(player, DigsiteCampLines.TABLET_HAVE)
+        if (owns(world, player, STONE_TABLET)) return world.message(player, DigsiteCampLines.TABLET_HAVE)
         val tablet = world.objTypes[STONE_TABLET] ?: return
         if (player.inventory.add(tablet, 1) == 0) world.message(player, GameLines.NO_SPACE)
     }

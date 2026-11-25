@@ -63,7 +63,8 @@
     "The Sourhog Cave (post-quest step 8, SourhogCave.kt): the sourhog, the strange hole's multiloc (showing the roped hole, 40309, after the quest), the cave's exit rope and its blockage (the 242 cache, 2026-11-19).",
     "The Clan Cup portal (2026-11-19): Edgeville's (27094, a multiloc showing 27095) and the Challenge area's (27095), from the Clan Cup portal page.",
     "NPCs: Karamja (step K3.3b): Brimhaven Dungeon's wild dogs, fire giants, greater and black demons, and its baby red, red, bronze, iron, steel and baby green dragons (the 242 cache, 2026-11-18).",
-    "Locs and NPCs: Karamja (step K3.4): the Brimhaven Agility Arena's Cap'n Izzy No-Beard and Pirate Jackie the Fruit, its ladders and ticket dispensers (the 242 cache, 2026-11-19)."
+    "Locs and NPCs: Karamja (step K3.4): the Brimhaven Agility Arena's Cap'n Izzy No-Beard and Pirate Jackie the Fruit, its ladders and ticket dispensers (the 242 cache, 2026-11-19).",
+    "The poll booths (2026-11-19): every colour's shown types and multilocs under 26492, from the Poll booth page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -2915,6 +2916,7 @@
     {"loc": 26180, "name": "Cooking pot"},
     {"loc": 26181, "name": "Range"},
     {"loc": 26185, "name": "Fire"},
+    {"loc": 26492, "name": "Poll booth", "also": [8720, 26796, 26797, 26798, 26799, 26800, 26801, 26802, 26803, 26804, 26805, 26806, 26807, 26808, 26809, 26810, 26811, 26812, 26813, 26814, 26815, 26816, 26817, 26818, 26819, 26820, 32138, 32546, 32547, 32649, 33481, 33482, 38101]},
     {"loc": 26577, "name": "Fire"},
     {"loc": 26635, "name": "Plank", "wiki": "Plank (Ardougne Rooftop Course) page, infobox"},
     {"loc": 26707, "name": "Bank chest"},

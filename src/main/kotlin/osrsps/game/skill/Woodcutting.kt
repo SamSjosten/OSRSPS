@@ -174,6 +174,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
                 world.trails.skilling.rolled(player, Skill.WOODCUTTING, SkillingClues.WOODCUTTING[tree.key])
                 world.diaries.made(player, logs.id, 1)
+                world.diaries.chopped(player, loc.id)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
                 if (tree.birdNests) nests.roll(player)
                 if (timer == null || timer.left <= 0) {

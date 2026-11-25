@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcType
@@ -23,6 +24,8 @@ import osrsps.map.LocCollisionType
  */
 class HeadlessAuburyTeleportTest {
     private val aubury = NpcType(AUBURY, "Aubury", ops = listOf("Talk-to", null, "Trade", "Teleport", null), internalName = "aubury_3op")
+    /** As npc-spawns/varrock.json spawns him: `aubury` (2886), the multi-NPC that shows [aubury] (no var: its last). */
+    private val auburySpawned = NpcType(AUBURY_SPAWNED, "null", multiNpcs = intArrayOf(AUBURY))
     private val sedridor = NpcType(EssenceMine.SEDRIDOR, "Archmage Sedridor", ops = listOf("Talk-to", null, "Teleport", null, null))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -36,8 +39,8 @@ class HeadlessAuburyTeleportTest {
             locTypes = LocTypes(
                 listOf(LocType(EssenceMine.PORTAL, "Portal", listOf("Use", null, null, null, null), LocCollisionType())).associateBy { it.id },
             ),
-            npcTypes = NpcTypes.of(aubury, sedridor),
-            npcSpawns = listOf(NpcSpawn(aubury, 3253, 3403, wander = 0, source = "test"), NpcSpawn(sedridor, 3103, 9571, wander = 0, source = "test")),
+            npcTypes = NpcTypes.of(aubury, auburySpawned, sedridor),
+            npcSpawns = listOf(NpcSpawn(auburySpawned, 3253, 3403, wander = 0, source = "test"), NpcSpawn(sedridor, 3103, 9571, wander = 0, source = "test")),
             cycleMillis = millis,
         )
     }
@@ -65,7 +68,7 @@ class HeadlessAuburyTeleportTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3253, 3401, 0)
-                client.npcOp(client.npcIndex(server, AUBURY), VarrockStores.TALK_TO)
+                client.npcOp(client.npcIndex(server, AUBURY_SPAWNED), VarrockStores.TALK_TO)
                 client.awaitDialogue("his greeting") { it is DialogueView.Chat && it.text == "[aubury.greeting]" }
                 client.continueDialogue()
                 client.awaitDialogue("the menu") { it is DialogueView.Menu && it.options.size == 4 }
@@ -86,19 +89,23 @@ class HeadlessAuburyTeleportTest {
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3253, 3401, 0)
-                client.npcOp(client.npcIndex(server, AUBURY), VarrockStores.TELEPORT_OP)
+                client.npcOp(client.npcIndex(server, AUBURY_SPAWNED), VarrockStores.TELEPORT_OP)
                 client.inMine()
                 client.portalBackTo(VarrockStores.AUBURY_RETURN.x, VarrockStores.AUBURY_RETURN.z, 2)
-                // Sent by Sedridor this time: back beside him, not Aubury.
+                // Aubury's teleport is the Varrock easy diary task, through the multi-NPC the map spawns.
+                assertEquals(1, client.messages().count { it.text.startsWith("[diary.task_done") })
+                // Sent by Sedridor this time: back beside him, not Aubury; his is the Lumbridge task, not Varrock's again.
                 client.tele(3104, 9571, 0)
                 client.npcOp(client.npcIndex(server, EssenceMine.SEDRIDOR), EssenceMine.TELEPORT_OP)
                 client.inMine()
                 client.portalBackTo(EssenceMine.TO_SEDRIDOR.x, EssenceMine.TO_SEDRIDOR.z, 2)
+                assertEquals(2, client.messages().count { it.text.startsWith("[diary.task_done") })
             }
         }
     }
 
     private companion object {
         const val AUBURY = 11435
+        const val AUBURY_SPAWNED = 2886
     }
 }
