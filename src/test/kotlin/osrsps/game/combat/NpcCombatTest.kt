@@ -93,6 +93,7 @@ class NpcCombatTest {
             "dragon_attack" to 80, "dwarf_attack" to 99, "dwarf_block" to 100, "dwarf_death" to 102, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
+            "sourhog_attack_melee" to 8769, "sourhog_attack_ranged" to 8770, "sourhog_death" to 8771,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
@@ -458,6 +459,22 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(5571, 5574, 5575), def("sos_fam_zombie_armed3").anims)
         assertEquals(22, def("sos_fam_zombie2_c").defence.against(AttackType.CRUSH))
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("sos_fam_fleshcrawler3").weakness)
+    }
+
+    @Test
+    fun `the Sourhog Cave's sourhogs crush and spit, burning the eyes of a player without goggles or a Slayer helmet`() {
+        val sourhogTypes = NpcTypes.of(NpcType(10435, "Sourhog", size = 3, internalName = "sourhog", stats = NpcStats(attack = 35, defence = 25, strength = 30, hitpoints = 40, ranged = 35, magic = 25)))
+        val combat = NpcCombat.load(sourhogTypes, seqs)
+        val def = combat[10435]!!
+        assertEquals(CombatMath.npcMaxHit(30, 0), def.maxHit)
+        assertEquals(listOf(5, 4, 15, 1), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.slayerLevel))
+        assertEquals(AttackType.CRUSH, def.attackType)
+        assertEquals(NpcCombatAnims(8769, -1, 8771), def.anims)
+        assertTrue(def.aggression!!.ignoresLevels)
+        val spit = def.spell!!
+        assertEquals(AttackType.RANGED, spit.type)
+        assertEquals(NpcRangedAttack(anim = 8770, projectile = 1817, impact = 1818, maxHit = 6), spit.attack)
+        assertEquals(NpcBlinding(setOf(24942, 11864, 11865, 25177, 26674), 20, 30, 90, listOf(Skill.ATTACK, Skill.DEFENCE)), def.blinds)
     }
 
     @Test
