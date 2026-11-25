@@ -461,7 +461,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
     fun ownsReward(player: Player, area: DiaryArea): Boolean {
         val obj = area.rewards[(highestClaimed(player, area) ?: return false).ordinal]
         return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0 ||
-            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0
+            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0 ||
+            player.trails.stashes.values.any { obj in it }
     }
 
     /** Into the pack, whose space the callers checked. */
