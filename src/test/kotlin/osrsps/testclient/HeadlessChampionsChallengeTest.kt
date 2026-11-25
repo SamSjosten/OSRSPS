@@ -1,9 +1,12 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -18,8 +21,12 @@ import osrsps.game.SeqNames
 import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.AttackType
+import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.Prayers
 import osrsps.game.content.ChampionsChallenge
 import osrsps.game.content.ChampionsChallenge.Champion
 import osrsps.game.content.ChampionsChestLines
@@ -38,8 +45,8 @@ import osrsps.map.LocShape
 
 /**
  * Post-quest content step 9 through the headless client: the giant champion's scroll used on Larxus arranges the duel,
- * the statue opens and goes down to the arena, the champion comes in for its player only, beating it sets its bit,
- * takes the scroll and gives the XP, the ladder goes back up, and the Chest of Champions gives the lamp that is rubbed
+ * the statue opens and goes down to the arena, the champion comes in for its player only, beating it sets its bit
+ * and gives the XP (Larxus kept the scroll as it was arranged), the ladder goes back up, and the Chest of Champions gives the lamp that is rubbed
  * for ten times the XP. The rl-client script test-runner/examples/champions-challenge.json does the same on the real
  * map.
  */
@@ -50,6 +57,17 @@ class HeadlessChampionsChallengeTest {
         internalName = "champions_giant", stats = NpcStats(attack = 40, defence = 40, strength = 40, hitpoints = 70),
     )
 
+    private fun champion(champion: Champion, name: String) = NpcType(
+        champion.npc, name, ops = listOf(null, "Attack", null, null, null), combatLevel = 50,
+        internalName = "champions_${champion.key}", stats = NpcStats(attack = 1, defence = 1, strength = 1, hitpoints = 99),
+    )
+
+    private val earthWarrior = champion(Champion.EARTH_WARRIOR, "Earth Warrior Champion")
+    private val ghoul = champion(Champion.GHOUL, "Ghoul Champion")
+    private val lesserDemon = champion(Champion.LESSER_DEMON, "Lesser Demon Champion")
+    private val helm = ObjType(HELM, "Iron full helm", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.HEAD)
+    private val shield = ObjType(SHIELD, "Wooden shield", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.SHIELD)
+
     private fun type(id: Int, name: String, vararg ops: String?) =
         LocType(id, name, ops = ops.toList() + List(5 - ops.size) { null }, collision = LocCollisionType(width = 1, length = 1))
 
@@ -58,14 +76,18 @@ class HeadlessChampionsChallengeTest {
     private val chest = ZoneLoc(ChampionsChallenge.CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3186, 9762, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val npcTypes = NpcTypes.of(larxus, giant)
+        val npcTypes = NpcTypes.of(larxus, giant, earthWarrior, ghoul, lesserDemon, NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)))
         World(
-            crcs, CollisionMap().apply { markLoaded(3150 shr 6, 9740 shr 6) },
+            crcs, CollisionMap().apply {
+                markLoaded(3150 shr 6, 9740 shr 6)
+                markLoaded(ChampionsChallenge.GRAVE.x shr 6, ChampionsChallenge.GRAVE.z shr 6)
+            },
             random = GameRandom(5),
             varTypes = VarTypes(6_000, mapOf(CHEST_VARBIT to VarbitType(ChampionsChallenge.VARP_DEFEATED, 0, 15)), 21_000),
             objTypes = ObjTypes.of(
                 ObjType(Champion.GIANT.scroll, "Giant champion scroll"),
                 ObjType(ChampionsChallenge.LAMP, "Champion's lamp", iops = listOf("Rub", null, null, null, "Drop")),
+                helm, shield,
             ),
             npcTypes = npcTypes,
             npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE),
@@ -128,7 +150,7 @@ class HeadlessChampionsChallengeTest {
                 client.chooseOption(1)
                 client.chat(LarxusLines.READY)
                 assertEquals(Champion.GIANT, challenge.arranged(alice))
-                assertEquals(1, client.count(Champion.GIANT.scroll), "the scroll is kept until the win")
+                assertEquals(0, client.count(Champion.GIANT.scroll), "Larxus keeps the scroll as the duel is arranged")
 
                 client.locOp(statue.id, statue.x, statue.z, ChampionsChallenge.OPEN)
                 client.await("the statue open") { server.world.locs.find(ChampionsChallenge.STATUE_OPEN, statue.x, statue.z, 0) }
@@ -141,7 +163,6 @@ class HeadlessChampionsChallengeTest {
                 client.commandReply("kill ${champion.index}") { it.startsWith("Killed") }
                 client.await("the win") { if (challenge.defeated(alice, Champion.GIANT)) Unit else null }
                 assertEquals(slayer + Champion.GIANT.xp, alice.skills.xp(Skill.SLAYER))
-                client.await("the scroll taken") { if (client.count(Champion.GIANT.scroll) == 0) Unit else null }
                 assertNull(challenge.arranged(alice))
                 assertNull(challenge.fightOf(alice))
                 assertEquals(listOf(Champion.GIANT), challenge.lampsWaiting(alice))
@@ -177,7 +198,71 @@ class HeadlessChampionsChallengeTest {
         }
     }
 
+    /** [block] run on the game's tick, its result back here. */
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, TimeUnit.SECONDS)
+    }
+
+    @Test
+    fun `a duel's rules hold in the arena - prayers go off, spells count as magic, gear put on is refused, and a death's grave is upstairs`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                val world = server.world
+                val alice = world.playerNamed("alice")!!
+                val challenge = world.championsChallenge
+                client.command("tele ${ChampionsChallenge.ARENA.x} ${ChampionsChallenge.ARENA.z} 0")
+                client.awaitAt(ChampionsChallenge.ARENA.x, ChampionsChallenge.ARENA.z)
+
+                // Prayers on as the earth warrior's duel starts go off, this tick's effect too (Codex review on #948).
+                val prayer = 1 shl 18
+                val earth = server.onTick {
+                    alice.vars[Prayers.VARP_PRAYERS] = prayer
+                    alice.prayersInEffect = prayer
+                    challenge.start(alice, Champion.EARTH_WARRIOR)!!
+                }
+                assertEquals(0 to 0, server.onTick { world.prayers.active(alice) to alice.prayersInEffect })
+                server.onTick { world.removeNpc(earth) }
+
+                // A spell is judged as magic whatever the style set: the giant's duel is melee only (Codex review on #948).
+                val giantChampion = server.onTick { challenge.start(alice, Champion.GIANT)!! }
+                assertNull(server.onTick { world.combat.barred(alice, giantChampion) }, "a melee style is allowed")
+                assertEquals(LarxusLines.ONLY_MELEE, server.onTick { world.combat.barred(alice, giantChampion, type = AttackType.MAGIC) })
+
+                // Gear put on in the arena is held to the duel's rule at every attack, not only at the statue.
+                val demon = server.onTick { challenge.start(alice, Champion.LESSER_DEMON)!! }
+                assertNull(server.onTick { world.combat.barred(alice, demon) }, "nothing worn")
+                server.onTick {
+                    alice.inventory.add(helm, 1)
+                    world.equipment.wear(alice, alice.inventory.contents().first { (_, obj) -> obj.id == HELM }.first)
+                }
+                assertEquals(LarxusLines.NO_WEAPONS_ARMOUR, server.onTick { world.combat.barred(alice, demon) })
+                server.onTick { alice.equipment.clear() }
+                val ghoulChampion = server.onTick { challenge.start(alice, Champion.GHOUL)!! }
+                assertNull(server.onTick { world.combat.barred(alice, ghoulChampion) }, "nothing carried")
+                server.onTick { alice.inventory.add(shield, 1) }
+                assertEquals(LarxusLines.WEAPONS_ONLY, server.onTick { world.combat.barred(alice, ghoulChampion) })
+
+                // A death in the arena leaves the grave beside the guild's trapdoor upstairs (Codex review on #948).
+                server.onTick { repeat(4) { alice.inventory.add(shield, 1) } }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                val until = System.currentTimeMillis() + 15_000
+                var grave = world.deaths.graveOf(alice)
+                while (grave == null && System.currentTimeMillis() < until) {
+                    Thread.sleep(20)
+                    grave = world.deaths.graveOf(alice)
+                }
+                assertNotNull(grave, "the grave")
+                assertEquals(Triple(ChampionsChallenge.GRAVE.x, ChampionsChallenge.GRAVE.z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level))
+            }
+        }
+    }
+
     private companion object {
+        const val HELM = 1153
+        const val SHIELD = 1171
         const val BACKPACK = 93
         const val CHEST_VARBIT = 6278
         const val CHEST_CLOSED = 22456

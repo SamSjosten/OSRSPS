@@ -93,19 +93,21 @@ object ChampionsChestLines : Lines("champions_chest", "Transcript:Chest of Champ
  * - **Larxus** ([LARXUS], npc-spawns/champions-challenge.json) talks as the Wiki's transcript has him: what the place
  *   is, rewards (the chest), Leon d'Cour's challenge once ten champions are beaten, and the champion's cape, as many as
  *   the player wants, once Leon is. A champion's scroll used on him reads out its duel's rules and, on yes, arranges the
- *   duel ([CustomVars.championsVarp] holds the champion arranged); a scroll of a champion already beaten is void and he
+ *   duel, keeping the scroll ([CustomVars.championsVarp] holds the champion arranged); a scroll of a champion already beaten is void and he
  *   takes it; any other item gets his line sending the player off to find a champion.
  * - **The Champion Statue** ([STATUE], by Larxus) opens only with a duel arranged and its Climb-down checks the duel's
  *   items (the ghoul's: a weapon worn and nothing else; the lesser demon's: nothing worn; Leon's: nothing carried) and
- *   puts the player in the arena with their champion, who fights them alone ([fights]).
+ *   puts the player in the arena with their champion, who fights them alone ([fights]); the duel's items are held to at
+ *   every attack too ([ruled]).
  * - **The duel's rules** ([Rule]), refused as they are broken: one kind of attack only or one kind barred
- *   ([osrsps.game.combat.Combat.ruled], by the player's attack style), no prayer ([osrsps.game.combat.Prayers.barred])
+ *   ([osrsps.game.combat.Combat.ruled], by the attack's own type, or the style set), no prayer (any on go off as the
+ *   duel starts, and [osrsps.game.combat.Prayers.barred])
  *   and no special attacks ([osrsps.game.combat.SpecialAttacks.barred]). No teleport leaves the basement
  *   ([osrsps.game.combat.Teleblock.refusal]; Larxus points to the ladder).
  * - **The portcullis** ([PORTCULLIS]) lets the player out of the arena without ending the duel; **the ladder** behind it
  *   ([ARENA_LADDER]) takes them up beside Larxus and ends it, the champion gone (the Wiki). Logging out or dying ends it
- *   too; the scroll and the arrangement stay.
- * - **A champion beaten** gives the Wiki's Hitpoints and Slayer XP, takes the scroll (one held), sets its bit of varp 617
+ *   too; the arrangement stays. A death there leaves the grave beside the guild's trapdoor upstairs ([deathPlace]).
+ * - **A champion beaten** gives the Wiki's Hitpoints and Slayer XP, sets its bit of varp 617
  *   (`champions_defeated`: its banner on the north wall shows, varbits 1452 to 1462, and the Chest of Champions opens,
  *   varbit 6278), and the tenth brings Leon d'Cour's challenge. Leon beaten, his line and the cape from Larxus.
  * - **The Chest of Champions** ([CHEST], the map's multiloc on varbit 6278) gives a champion's lamp ([LAMP]) for each
@@ -309,6 +311,7 @@ class ChampionsChallenge(private val world: World) {
                 else -> {
                     chatNpc(ChatAnim.NEUTRAL, LarxusLines.RULES.getValue(champion))
                     if (choice(LarxusLines.YES, LarxusLines.NO) == 1) {
+                        if (!larxus.takeScroll(player, champion, slot)) return@start
                         larxus.arrange(player, champion)
                         chatNpc(ChatAnim.HAPPY, LarxusLines.READY)
                     } else {
@@ -317,6 +320,18 @@ class ChampionsChallenge(private val world: World) {
                 }
             }
         }
+    }
+
+    /**
+     * Larxus keeps [champion]'s scroll as the duel is arranged, from [slot] or wherever in the inventory it went during
+     * the talk; false when it is gone, and nothing is arranged. Kept at arranging, not at the win, so a scroll banked
+     * or dropped after can't be arranged again, and the ghoul's duel (nothing carried but a weapon) still uses it up
+     * (Codex review on #948; when live takes it is guessed).
+     */
+    fun takeScroll(player: Player, champion: Champion, slot: Int): Boolean {
+        if (player.inventory[slot]?.id == champion.scroll) return player.inventory.remove(slot, 1) > 0
+        val (other, _) = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == champion.scroll } ?: return false
+        return player.inventory.remove(other, 1) > 0
     }
 
     // ---- The statue, the arena and the way out ---------------------------------------------------------------------
@@ -356,6 +371,9 @@ class ChampionsChallenge(private val world: World) {
         val type = world.npcTypes[champion.npc] ?: return null
         val npc = world.spawnNpc(NpcSpawn(type, CHAMPION_SPAWN.x, CHAMPION_SPAWN.z, 0, source = "champions' challenge", respawns = false)) ?: return null
         fights[player.saveKey] = npc
+        // The earth warrior's duel bars prayer: any already on go off as it starts, this tick's effect too (Codex
+        // review on #948), or they'd last the whole duel past Prayers.barred.
+        if (champion.rule == Rule.NO_PRAYER) world.prayers.deactivateAll(player)
         world.meleeCombat.provoke(npc, player, world.tick)
         watch(player.saveKey, npc)
         return npc
@@ -392,17 +410,29 @@ class ChampionsChallenge(private val world: World) {
         world.teleport(player, GALLERY.x, GALLERY.z, 0)
     }
 
+    /**
+     * Where a player dying in the basement comes back (the spawn) and their grave goes: on the guild's ground floor
+     * beside the trapdoor ([GRAVE]), as the Wiki's rules have it, not in the arena; null elsewhere.
+     */
+    fun deathPlace(player: Player): osrsps.game.combat.DeathPlace? {
+        if (!inBasement(player.x, player.z, player.level)) return null
+        return osrsps.game.combat.DeathPlace(keepItems = false, GRAVE.x, GRAVE.z, 0, World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL)
+    }
+
     // ---- Rules -----------------------------------------------------------------------------------------------------
 
     /** The duel's rule [player] is under now: their champion fighting them, in the basement. */
     private fun ruleOf(player: Player): Rule? = fightOf(player)?.let { Champion.ofNpc(it.type.id)?.rule }
 
     /** [osrsps.game.combat.Combat.ruled]: another player's champion, or an attack the duel's rule bars. */
-    fun ruled(player: Player, npc: Npc): Line? {
+    fun ruled(player: Player, npc: Npc, type: AttackType?): Line? {
         val owner = ownerOf(npc) ?: return null
         if (owner != player.saveKey) return LarxusLines.NOT_YOURS
-        val rule = Champion.ofNpc(npc.type.id)?.rule ?: return null
-        return rule.refusal.takeIf { !rule.allows(world.combat.style(player).type) }
+        val champion = Champion.ofNpc(npc.type.id) ?: return null
+        // The duel's items are held to at every attack, not only at the statue: gear put on in the arena doesn't fight.
+        itemRefusal(player, champion)?.let { return it }
+        val rule = champion.rule
+        return rule.refusal.takeIf { !rule.allows(type ?: world.combat.style(player).type) }
     }
 
     fun prayerBarred(player: Player): Line? = LarxusLines.NO_PRAYER.takeIf { ruleOf(player) == Rule.NO_PRAYER }
@@ -420,15 +450,10 @@ class ChampionsChallenge(private val world: World) {
         win(killer, champion)
     }
 
-    /** [player] beat [champion]: the XP, the scroll taken, the banner and the chest, and Leon's challenge or his cape. */
+    /** [player] beat [champion]: the XP, the banner and the chest, and Leon's challenge or his cape. */
     fun win(player: Player, champion: Champion) {
         player.skills.addExactTenths(Skill.HITPOINTS, champion.xp * 10)
         player.skills.addExactTenths(Skill.SLAYER, champion.xp * 10)
-        for ((slot, obj) in player.inventory.contents()) {
-            if (obj.id != champion.scroll) continue
-            player.inventory.remove(slot, 1)
-            break
-        }
         setBit(player, champion.bit)
         if (arranged(player) == champion) arrange(player, null)
         val leon = world.npcTypes[Champion.LEON.npc] ?: return
@@ -527,6 +552,9 @@ class ChampionsChallenge(private val world: World) {
         val GATE = DorgeshuunTunnels.Spot(3182, 9758)
         /** Where the arena's ladder puts the player, beside the statue in Larxus's gallery (guessed). */
         val GALLERY = DorgeshuunTunnels.Spot(3185, 9758)
+
+        /** Where a grave from the basement goes: the rug beside the guild's trapdoor (3190,3355), ground floor (guessed tile). */
+        val GRAVE = DorgeshuunTunnels.Spot(3190, 3356)
 
         /** Whether a tile is in the Champions' Guild's basement, where no teleport works. */
         fun inBasement(x: Int, z: Int, level: Int): Boolean = level == 0 && x in 3150..3191 && z in 9740..9780

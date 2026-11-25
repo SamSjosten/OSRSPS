@@ -866,6 +866,7 @@ class World(
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
         inferno.deathPlace(player)?.let { return it }
+        championsChallenge.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return EdgevilleRespawn.deathPlace(this, player)
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)

@@ -1,5 +1,5 @@
 {
- "name": "Post-quest step 9: the Champions' Challenge. Larxus with a giant champion scroll held, the duel arranged, the Champion Statue opened and climbed down, the giant champion killed (its bit of varp 617 set, the scroll taken), the portcullis and ladder back up, and the Chest of Champions' lamp rubbed (::keys on). The runner has no use-item-on-NPC step, so ::varp arranges the duel as the scroll would (HeadlessChampionsChallengeTest uses the scroll on him)",
+ "name": "Post-quest step 9: the Champions' Challenge. Larxus with a giant champion scroll held, the duel arranged, the Champion Statue opened and climbed down, the giant champion killed (its bit of varp 617 set), the portcullis and ladder back up, and the Chest of Champions' lamp rubbed (::keys on). The runner has no use-item-on-NPC step, so ::varp arranges the duel as the scroll would (HeadlessChampionsChallengeTest uses the scroll on him)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -30,7 +30,6 @@
   {"step": "waitTicks", "ticks": 2},
   {"step": "command", "text": "::kill Giant Champion", "expectMessage": "Killed Giant Champion"},
   {"step": "assertVarp", "id": 617, "value": 4, "timeoutMs": 10000, "comment": "the giant's bit (2): its banner shows and the chest opens"},
-  {"step": "assertInventory", "item": "Giant champion scroll", "count": 0, "timeoutMs": 5000, "comment": "the scroll taken"},
   {"step": "locOption", "locId": 10553, "option": "Open", "x": 3181, "y": 9758, "comment": "the portcullis out of the arena"},
   {"step": "assertLocation", "x": 3182, "y": 9758, "plane": 0, "timeoutMs": 15000},
   {"step": "locOption", "locId": 10554, "option": "Climb-up", "x": 3183, "y": 9758},
