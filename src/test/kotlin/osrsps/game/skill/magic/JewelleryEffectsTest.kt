@@ -93,7 +93,7 @@ class JewelleryEffectsTest {
     fun `an amulet of chemistry makes about one 3-dose potion in 20 a 4-dose one`(@TempDir dir: Path) = withPlayer(dir) { effects, player ->
         assertEquals(ATTACK[2], effects.potion(player, ATTACK[2]))
         player.equipment[WearPos.NECK] = InvObj(CHEMISTRY, 1)
-        assertEquals(ATTACK[1], effects.potion(player, ATTACK[1]), "only a 3-dose")
+        repeat(100) { assertEquals(ATTACK[3], effects.potion(player, ATTACK[3]), "nothing past 4 doses") }
         var made = 0
         var tries = 0
         while (made < 5 && tries < 1000) {
@@ -106,12 +106,11 @@ class JewelleryEffectsTest {
     }
 
     @Test
-    fun `an amulet of chemistry takes the secondary-on-unfinished potions, not those mixed by the dose`() {
+    fun `an amulet of chemistry rolls on stamina and extended antifire by the dose, not on sanfew serum's steps`() {
         val data = osrsps.game.skill.HerbloreData.load()
-        val mixed = data.mixing.values.flatten().map { it.key }
-        assertTrue("stamina_3" in mixed && "extended_antifire_3" in mixed)
-        assertTrue(mixed.none { it in data.chemistryPotions }, "no mixing recipe")
-        assertEquals(data.potions.size, data.chemistryPotions.size)
+        assertTrue("stamina_3" in data.chemistryPotions && "extended_antifire_1" in data.chemistryPotions)
+        assertTrue(data.oneAtATime.isNotEmpty() && data.oneAtATime.none { it in data.chemistryPotions }, "sanfew")
+        assertTrue(data.potions.values.all { it.key in data.chemistryPotions })
     }
 
     @Test

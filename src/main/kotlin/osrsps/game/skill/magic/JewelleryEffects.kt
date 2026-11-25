@@ -45,14 +45,16 @@ class ChargedJewel(val key: String, val obj: Int, val wearpos: Int, val uses: In
  * bracelet, Bracelet of slaughter, read 2026-11-19): the uses are the player's, shared by every piece of the kind, and
  * the last crumbles the worn piece, the next starting full; Break destroys a piece and fills the next. The **ring of
  * forging** (140 uses) makes every iron ore smelted at a furnace a bar, a use each; the **bracelet of clay** (28) mines
- * soft clay from clay rocks; the **amulet of chemistry** (5) makes a 3-dose potion a 4-dose one 5% of the time, no
- * extra XP; the **amulet of bounty** (10) plants an allotment with one seed instead of three 25% of the time, three
+ * soft clay from clay rocks; the **amulet of chemistry** (5) adds a dose to a potion made of fewer than 4 doses 5% of
+ * the time, no extra XP (a 3-dose potion comes out 4-dose; stamina and extended antifire by the dose too, the Wiki's
+ * Mechanics: "the amulet will only trigger if the input potion is less than 4 doses", read 2026-11-25); a potion
+ * always made 4-dose (super combat) takes no roll and spends no use; the **amulet of bounty** (10) plants an allotment with one seed instead of three 25% of the time, three
  * still being needed; the **expeditious bracelet** (30) counts a Slayer task kill as two 25% of the time, no extra XP;
  * the **bracelet of slaughter** (30) counts one as none 25% of the time, the XP still given. The cache gives each its
  * Check (worn, and for some in the inventory) and Break. The expeditious bracelet's message is the Wiki's.
  *
- * U6b, guessed: every other message and the Break question; the chemistry roll only on the potions of a secondary on an
- * unfinished potion whose 3-dose form is made (not the mixed ones, such as stamina by the dose), its use spent even when a full backpack then stops the potion; the
+ * U6b, guessed: every other message and the Break question; the chemistry roll left off sanfew serum's steps (the Wiki
+ * doesn't list it), its use spent even when a full backpack then stops the potion; the
  * soft clay's mining message naming it; a superior's kill counted by the bracelets as any other. Not built: the amulet
  * of chemistry's Options (keep making or stop when it crumbles), the alchemist's amulet, Varrock armour's second bar,
  * the Trahaearn mine's double soft clay, the Combat Achievements' regenerating bracelets, and the inoculation bracelet
@@ -154,12 +156,12 @@ class JewelleryEffects(private val world: World) {
         else -> 1
     }
 
-    /** The potion a Herblore make gives: a 3-dose [product]'s 4-dose with an amulet of chemistry's 5%, else [product]. */
+    /** The potion a Herblore make gives: [product] with a dose more with an amulet of chemistry's 5%, if under 4 doses. */
     fun potion(player: Player, product: Int): Int {
         val (family, index) = world.decanting.families[product] ?: return product
-        if (index != 2 || family.doses[2] != product || !roll(player, chemistry, 1, 20)) return product
+        if (index >= 3 || family.doses[index] != product || !roll(player, chemistry, 1, 20)) return product
         player.message(world.textFor(player)[JewelleryEffectLines.CHEMISTRY])
-        return family.doses[3]
+        return family.doses[index + 1]
     }
 
     /** The seeds an allotment takes of [seeds]: 1 of 3 with an amulet of bounty's quarter. */

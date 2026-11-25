@@ -200,7 +200,7 @@ class Making(private val world: World) {
         val units = if (recipe.batch) minOf(recipe.amount.toLong(), recipe.units(player.inventory)).toInt() else 1
         val chance = recipe.chance
         val failed = chance != null && !SuccessRoll.roll(world.random, chance.low, chance.high, player.skills.currentLevel(recipe.skill))
-        // An amulet of chemistry may make a 3-dose potion a 4-dose one (secondary-on-unfinished potions only).
+        // An amulet of chemistry may make a 3-dose potion a 4-dose one (not sanfew serum's steps).
         val product = when {
             failed -> chance!!.failed
             recipe.skill == Skill.HERBLORE && recipe.key in world.herblore.data.chemistryPotions ->
