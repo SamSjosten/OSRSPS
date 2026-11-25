@@ -1,0 +1,14 @@
+{
+ "name": "The Clan Cup portal: Use upstairs north of Edgeville's bank goes into the Challenge area, and Use on its portal there comes back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3097 3508 1", "expectMessage": "Teleported to 3097, 3508, 1", "comment": "upstairs in the building north of Edgeville's bank, north of the portal"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 27095, "option": "Use", "timeoutMs": 20000, "comment": "27094 on the map, showing 27095 off Deadman worlds"},
+  {"step": "assertLocation", "x": 3157, "y": 9818, "plane": 0, "timeoutMs": 20000, "comment": "in the Challenge area, north of its portal (the tile is a guess)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 27095, "option": "Use", "timeoutMs": 20000},
+  {"step": "assertLocation", "x": 3097, "y": 3508, "plane": 1, "timeoutMs": 20000, "comment": "back upstairs in Edgeville (the tile is a guess)"}
+ ]
+}
