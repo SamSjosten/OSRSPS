@@ -16,6 +16,7 @@ object ClanHallLines : Lines("clan_hall", "Clan hall portal") {
     val NO_SUCH_CLAN = line("no_such_clan", "Enter-guest: no clan has that name (guessed)", "name")
     val NO_GUESTS = line("no_guests", "Enter-guest: the clan doesn't let guests in, or bans the player (guessed)", "name")
     val NO_ROOM = line("no_room", "no room for another hall instance (guessed)")
+    val REMOVED = line("removed", "put out of a clan's hall on losing the right to be in it: banned, expelled, a rank or the permission changed (guessed)")
 }
 
 /**
@@ -111,6 +112,24 @@ class ClanHall(private val world: World) {
         val instance = world.instances.create(TEMPLATE_X, TEMPLATE_Z, ZONES, ZONES, OUTSIDE_X, OUTSIDE_Z, 0) ?: return null
         halls[clan.id] = instance
         return instance
+    }
+
+    /**
+     * Puts everyone in [clanId]'s hall who may no longer be there outside the hub portal: the clan is gone, or the Enter
+     * clan hall permission no longer lets them in (a ban, an expel, a leave, a rank or the permission changed). Live's
+     * behaviour isn't known; without it someone banned or expelled kept the hall's bank and altar until they left
+     * (exploit review R55C-4).
+     */
+    fun recheck(clanId: Long) {
+        val hall = halls[clanId] ?: return
+        val clan = world.clans.clanById(clanId)
+        for (player in world.onlinePlayers) {
+            if (world.instances.at(player.x, player.z) !== hall) continue
+            if (clan != null && world.clans.mayEnterHall(player, clan)) continue
+            world.scripts.interrupt(player)
+            world.teleport(player, OUTSIDE_X, OUTSIDE_Z, 0)
+            world.message(player, ClanHallLines.REMOVED)
+        }
     }
 
     private fun leave(player: Player) {
