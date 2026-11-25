@@ -56,7 +56,8 @@ object CooksGuildLines : Lines("cooks_guild", "Cooks' Guild") {
  * Skillcape of Cooking for 99,000 coins at 99 (trimmed when another skill is 99, as every skillcape seller here); the
  * spiral stairs over three floors; the ranges (`fai_varrock_range`, Cooking's [osrsps.game.skill.Cooking.RANGES]); the
  * top floor's hopper and controls and the ground floor's flour bin, as Mill Lane Mill's (the flour is shared); the
- * north room's door to the bank and range, for 99 Cooking or the hard Varrock Diary; and the tables' item spawns (2004Scape's map m49_53). Ids and tiles are the 241 cache's.
+ * north room's door to the bank and range, for 99 Cooking or the hard Varrock Diary; and the tables' item spawns
+ * (2004Scape's map m49_53). Ids and tiles are the 241 cache's.
  *
  * Inferred: the north door's message (a key until the Words thread finds it), the flour bin's Empty being op 1 of its
  * multiloc (`fai_varrock_windmill_base`) as of Mill Lane Mill's, and the max capes that count (every `skillcape_max`
@@ -220,8 +221,7 @@ private suspend fun ScriptContext.frontDoor(world: World, door: ZoneLoc) = with(
 
 /**
  * The north room's door, on the west edge of its tile: through for 99 Cooking or the hard Varrock Diary, either way; a
- * message for the rest. The
- * room behind it, to the east, holds the bank and a range.
+ * message for the rest. The room behind it, to the east, holds the bank and a range.
  */
 private suspend fun ScriptContext.northDoor(world: World, door: ZoneLoc) {
     arriveDelay()

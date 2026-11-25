@@ -10,9 +10,11 @@ import osrsps.game.WearPos
  * furnace, each up to a level by tier. Ore up to gold, Lovakite, adamantite or any (by the rock's Mining level: 40, 65, 70);
  * bars up to steel, mithril, adamantite or any (by the bar's Smithing level: 30, 50, 70).
  *
- * Left out: armour 3 and 4 standing for a chef's hat at the Cooks' Guild (step 9), armour 4 as a prospector jacket (no
- * prospector kit is built), a second tephra, amethyst, sunstone or guardian fragment (none are built here) and the second
- * gem roll (the Wiki's note for gem rocks, which have no double here). Guessed: the second ore, bar or quarry piece is
+ * Armour 3 and 4 also stand for a chef's hat at the Cooks' Guild's door ([CooksGuild.ENTRY_WORN]).
+ *
+ * Left out: armour 4 as a prospector jacket (no prospector kit is built), a second tephra, amethyst, sunstone or guardian
+ * fragment (none are built here) and the second gem roll (the Wiki's note for gem rocks, which have no double here).
+ * Guessed: the second ore, bar or quarry piece is
  * one more of the same, with its XP, after the first; the second bar takes the ores for it and isn't made without them;
  * a second iron bar is smelted as the first, spending a ring of forging use or else impure half the time.
  */
