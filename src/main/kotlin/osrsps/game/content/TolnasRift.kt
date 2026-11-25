@@ -25,8 +25,8 @@ import osrsps.map.Tile
  *   training after the quest, and the anger weapons and the three forms only for the quest).
  *
  * Guessed: the tiles the climbs land on, their animations (a ladder's) and one-tick waits, and which of the two rat ids is
- * the one nearest the entrance (soulbane_rat2, at 3094, 5286). Left out: the Varrock diary's re-entry task (no diaries
- * yet), the quest's rooms and Tolna's room.
+ * the one nearest the entrance (soulbane_rat2, at 3094, 5286). Entering is the Varrock medium diary's sixth task. Left
+ * out: the quest's rooms and Tolna's room.
  */
 object TolnasRift {
     /** `soulbane_falloff2_rope_multi`, on the map, and `soulbane_falloff2_rope`, what it shows with the rope tied. */
@@ -64,7 +64,10 @@ private suspend fun ScriptContext.climbRope(world: World, to: Tile, anim: Int) {
 fun registerTolnasRift(world: World) {
     with(TolnasRift) {
         for (rope in listOf(ROPE_RIFT, ROPE_RIFT_SHOWN)) {
-            world.handlers.onLoc(rope, ENTER) { climbRope(world, LOBBY, Climbing.ANIM_PICKUP_FLOOR) }
+            world.handlers.onLoc(rope, ENTER) {
+                climbRope(world, LOBBY, Climbing.ANIM_PICKUP_FLOOR)
+                world.diaries.complete(player, DiaryTask.VARROCK_MEDIUM_6)
+            }
         }
         for (hole in HOLES) world.handlers.onLoc(hole, ENTER) { world.message(player, TolnaRiftLines.ROPE_ONLY) }
         world.handlers.onLoc(ROPE_UP, CLIMB_UP) { climbRope(world, TOP, Climbing.ANIM_REACH_FOR_LADDER) }

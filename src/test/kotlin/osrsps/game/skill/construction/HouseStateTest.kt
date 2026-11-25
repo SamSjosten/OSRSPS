@@ -41,7 +41,7 @@ class HouseStateTest {
     }
 
     @Test
-    fun `a hand-edited save is refused unless it has rooms on the ground floor, one exit portal and only what is built here`() {
+    fun `a hand-edited save is refused without rooms on the ground floor and one exit portal, and loses what isn't built here`() {
         val garden = """{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}"""
         read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":6758}}]}""")
         // No rooms, no exit portal, two exit portals.
@@ -50,17 +50,19 @@ class HouseStateTest {
         assertFailsWith<IllegalArgumentException> {
             read("""{"location":"rimmington","rooms":[$garden,{"type":"garden","x":2,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL}}}]}""")
         }
-        // A room on another floor; a chair built in the garden; a loc this server never builds.
+        // A room on another floor is refused; an exit portal anywhere but the garden's centrepiece is dropped, leaving none.
         assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"floor":2}]}""") }
-        assertFailsWith<IllegalArgumentException> {
-            read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"4515":6758}}]}""")
-        }
-        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":995}}]}""") }
+        assertFailsWith<IllegalArgumentException> { read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"4515":${House.EXIT_PORTAL}}}]}""") }
+        // A chair built in the garden and a loc this server never builds are dropped, the house kept (R52B-1).
+        assertEquals(mapOf(House.CENTREPIECE_SPACE to House.EXIT_PORTAL),
+            read("""{"location":"rimmington","rooms":[{"type":"garden","x":1,"z":1,"built":{"${House.CENTREPIECE_SPACE}":${House.EXIT_PORTAL},"4515":6758}}]}""").rooms.single().built)
+        assertEquals(emptyMap(), read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4515":995}}]}""").rooms[1].built)
         // A rug's parts each on their own tile, a bookcase with its scroll rack, curtains: all fine.
         read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{"4518":6761,"4519":6760,"4520":6759,"4521":6768,"4522":6771,"4524":6774}}]}""")
-        // A chair on the rug's middle, a rug's corner on its middle, curtains on the fireplace's place: each refused.
-        for (built in listOf(""""4518":6752""", """"4518":6759""", """"4523":6774""", """"4515":6761""")) {
-            assertFailsWith<IllegalArgumentException>(built) { read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{$built}}]}""") }
+        // A chair on the rug's middle, a rug's corner on its middle, curtains on the fireplace's place, the Raging Echoes
+        // curtains (not built here): each dropped.
+        for (built in listOf(""""4518":6752""", """"4518":6759""", """"4523":6774""", """"4515":6761""", """"4524":56079""")) {
+            assertEquals(emptyMap(), read("""{"location":"rimmington","rooms":[$garden,{"type":"parlour","x":1,"z":2,"built":{$built}}]}""").rooms[1].built, built)
         }
     }
 

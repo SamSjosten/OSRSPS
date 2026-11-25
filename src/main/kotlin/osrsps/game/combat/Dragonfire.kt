@@ -15,8 +15,10 @@ object DragonfireLines : Lines("dragonfire", "Dragonfire") {
 /**
  * A chromatic dragon's dragonfire (Wilderness step W2.4), breathed in melee reach one turn in [chance] instead of a
  * swing (Mod Ash via the Wiki's Dragonfire page: 1 in 6). [anim] and [cast] are its animation and the spotanim on it.
+ * A [metallic] dragon's (bronze, iron, steel...) is typeless: Protect from Magic does nothing against it (the Wiki's
+ * Dragonfire page, read 2026-11-25: "Metallic dragons, Drakes, and Galvek are unaffected by Protect from Magic").
  */
-data class NpcDragonfire(val chance: Int, val anim: Int = -1, val cast: Int = -1)
+data class NpcDragonfire(val chance: Int, val anim: Int = -1, val cast: Int = -1, val metallic: Boolean = false)
 
 /**
  * The chromatic dragons' dragonfire table (the Wiki's Dragonfire page, Damage reduction, read 2026-11-15): unprotected

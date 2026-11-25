@@ -291,7 +291,10 @@ fun registerVarrockTraders(world: World) {
             world.dialogues.start(this, op.npc) { baraek(give) }
         }
         world.handlers.onNpc(BENNY, TALK_TO) { op ->
-            val give = { obj: Int, count: Int -> world.objTypes[obj]?.let { world.groundObjs.give(player, it, count) } ?: Unit }
+            val give = { obj: Int, count: Int ->
+                world.objTypes[obj]?.let { world.groundObjs.give(player, it, count) }
+                if (obj == NEWSPAPER) world.diaries.complete(player, DiaryTask.VARROCK_EASY_8)
+            }
             world.dialogues.start(this, op.npc) { benny(give) }
         }
     }

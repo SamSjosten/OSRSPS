@@ -10,6 +10,7 @@ import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.SkillGuide
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
@@ -134,6 +135,21 @@ class HeadlessBelladonnaTest {
                 client.locOp(PATCH, X, Z, 1)
                 client.awaitPatch(3)
                 assertTrue(client.count(NIGHTSHADE) >= 7, "1 held and 6 or more picked, not ${client.count(NIGHTSHADE)}")
+            }
+        }
+    }
+
+    @Test
+    fun `Guide opens the Farming skill guide on its Special tab`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele ${X - 1} $Z")
+                client.await("by the patch") { client.position?.takeIf { it.x == X - 1 && it.z == Z } }
+                client.locOp(PATCH, X, Z, 4)
+                client.await("the skill guide") { if (SkillGuide.INTERFACE in client.openInterfaces()) Unit else null }
+                val init = client.await("its init script") { client.clientScripts().lastOrNull { it.id == SkillGuide.INIT_SCRIPT } }
+                assertEquals(listOf<Any>(SkillGuide.FARMING, 8, 0, 0), init.args)
             }
         }
     }

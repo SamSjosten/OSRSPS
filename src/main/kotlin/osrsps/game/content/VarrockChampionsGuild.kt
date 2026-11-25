@@ -84,6 +84,18 @@ object VarrockChampionsGuild {
     /** Whether a player at [z] stands inside the guild, south of its door. */
     fun inside(z: Int): Boolean = z < DOOR_Z
 
+    /**
+     * Whether [player] stands on the doorway's inside tile, the one way in, or ran through it this tick (the second
+     * running step starts from it): the diary's "Enter the Champions' Guild", checked after each tick's movement, so
+     * walking or running through a door another player opened counts too (Codex on #932).
+     */
+    fun inDoorway(player: osrsps.game.Player): Boolean {
+        if (player.level != 0) return false
+        if (player.x == DOOR_X && player.z == DOOR_Z - 1) return true
+        val from = player.lastStepFrom ?: return false
+        return from.x == DOOR_X && from.z == DOOR_Z - 1 && inside(player.z)
+    }
+
     internal suspend fun Dialogue.guildmaster() = with(GuildmasterLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         choice(WHAT_PLACE)

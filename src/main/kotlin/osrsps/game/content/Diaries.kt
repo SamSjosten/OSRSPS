@@ -9,6 +9,7 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.skill.AgilityLines
+import osrsps.game.skill.SlayerMaster
 
 private val logger = KotlinLogging.logger {}
 
@@ -270,7 +271,55 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
     /** A teleport spell cast (not a tablet broken), by its spell obj. */
     fun teleported(player: Player, spellObj: Int) {
-        if (spellObj == LUMBRIDGE_TELEPORT_SPELL) complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+        when (spellObj) {
+            LUMBRIDGE_TELEPORT_SPELL -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+            VARROCK_TELEPORT_SPELL -> complete(player, DiaryTask.VARROCK_MEDIUM_8)
+        }
+    }
+
+    /** A task given by [master] at their own talk (not `::slayer`). */
+    fun slayerTask(player: Player, master: SlayerMaster) {
+        when (master) {
+            SlayerMaster.VANNAKA -> complete(player, DiaryTask.VARROCK_MEDIUM_9)
+            SlayerMaster.CHAELDAR -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_10)
+            else -> {}
+        }
+    }
+
+    /** A theft from the stall loc [stall]. */
+    fun stole(player: Player, stall: Int) {
+        if (stall == DiaryHooks.TEA_STALL) complete(player, DiaryTask.VARROCK_EASY_14)
+    }
+
+    /** Logs got from the tree loc [tree]. */
+    fun chopped(player: Player, tree: Int) {
+        if (tree == DiaryHooks.DYING_TREE) complete(player, DiaryTask.VARROCK_EASY_7)
+    }
+
+    /** An agility obstacle or shortcut crossed, by its key in agility.json. */
+    fun obstacle(player: Player, key: String) {
+        if (key == DiaryHooks.VARROCK_FENCE) complete(player, DiaryTask.VARROCK_EASY_6)
+    }
+
+    /**
+     * Emote [index] played. The Stronghold of Security's four (Idea, Stamp, Flap, Slap Head, 28 to 31) are remembered as
+     * each is done, and the fourth does the Varrock task (inferred: "perform the 4 emotes" counts each once, any order).
+     */
+    fun emoted(player: Player, index: Int) {
+        if (index !in SOS_EMOTES) return
+        val done = player.charges[SOS_EMOTES_CHARGE] or (1 shl (index - SOS_EMOTES.first))
+        player.charges[SOS_EMOTES_CHARGE] = done
+        if (done == (1 shl SOS_EMOTES.count()) - 1) complete(player, DiaryTask.VARROCK_MEDIUM_5)
+    }
+
+    /** After [player]'s step each tick: places a task counts on being in. */
+    fun moved(player: Player) {
+        if (VarrockChampionsGuild.inDoorway(player)) complete(player, DiaryTask.VARROCK_MEDIUM_2)
+    }
+
+    /** A shop opened, by its key in shops.json. */
+    fun shopOpened(player: Player, key: String) {
+        if (key == DiaryHooks.THESSALIA_SHOP) complete(player, DiaryTask.VARROCK_EASY_1)
     }
 
     /** A lap of the course whose lap message is [lapLine]. */
@@ -278,6 +327,7 @@ class Diaries(private val world: World, private val font: ChatFont) {
         when (lapLine) {
             AgilityLines.DRAYNOR_LAPS -> complete(player, DiaryTask.LUMBRIDGE_EASY_1)
             AgilityLines.ALKHARID_LAPS -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_1)
+            AgilityLines.VARROCK_LAPS -> complete(player, DiaryTask.VARROCK_MEDIUM_13)
         }
     }
 
@@ -287,6 +337,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
      */
     fun undo(player: Player, task: DiaryTask) {
         player.vars[task.varp] = player.vars[task.varp] and (1 shl task.bit).inv()
+        // The emotes done so far go too, so the reset starts the task afresh (Codex on #932).
+        if (task == DiaryTask.VARROCK_MEDIUM_5) player.charges[SOS_EMOTES_CHARGE] = 0
         refresh(player, task.area)
         val reward = task.area.rewardVarbits[task.tier.ordinal]
         if (player.vars.types.varbit(reward) != null) player.vars.setVarbit(reward, 0)
@@ -325,30 +377,42 @@ class Diaries(private val world: World, private val font: ChatFont) {
      * to the floor under the player (guessed for Mikasi, who asks for no space; Toby checks first). Earlier tiers' items
      * stay with the player, as on live (the Wiki's item pages list each tier as its own item).
      */
-    fun claim(player: Player, area: DiaryArea, tier: DiaryTier) {
+    fun claim(player: Player, area: DiaryArea, tier: DiaryTier): Boolean {
+        // Into the pack only, never onto the floor: a reward on the floor is lost to a despawn (exploit review R55A-2).
+        if (player.inventory.freeSlots < CLAIM_SPACE) return false
         player.vars.setVarbit(area.rewardVarbits[tier.ordinal], 1)
         give(player, area.rewards[tier.ordinal])
         give(player, AntiqueLamps.Lamp.entries[tier.ordinal].obj)
-    }
-
-    /** The highest claimed tier's item again, for "Can I have another ring?" and its Varrock twin. */
-    fun replace(player: Player, area: DiaryArea) {
-        highestClaimed(player, area)?.let { give(player, area.rewards[it.ordinal]) }
+        return true
     }
 
     /**
-     * Whether the player has the highest claimed tier's item carried, worn or banked; earlier tiers' items don't count,
-     * so a banked Explorer's ring 1 doesn't stop a lost ring 4 being given back (guessed: the Wiki says only that the
-     * taskmaster replaces a lost reward).
+     * The highest claimed tier's item again, for "Can I have another ring?" and its Varrock twin; false, giving nothing,
+     * without a free space (a replacement on the floor would leave [ownsReward] false for another: exploit review R55A-1).
+     */
+    fun replace(player: Player, area: DiaryArea): Boolean {
+        val tier = highestClaimed(player, area) ?: return false
+        if (player.inventory.freeSlots < 1) return false
+        give(player, area.rewards[tier.ordinal])
+        return true
+    }
+
+    /**
+     * Whether the player has the highest claimed tier's item carried, worn or banked, or still on the ground where they
+     * dropped it, or in their grave (exploit review R55A-1: one dropped or died with isn't lost until it is gone); earlier
+     * tiers' items don't count, so a banked Explorer's ring 1 doesn't stop a lost ring 4 being given back (guessed: the
+     * Wiki says only that the taskmaster replaces a lost reward).
      */
     fun ownsReward(player: Player, area: DiaryArea): Boolean {
         val obj = area.rewards[(highestClaimed(player, area) ?: return false).ordinal]
-        return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
+        return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0 ||
+            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0
     }
 
+    /** Into the pack, whose space the callers checked. */
     private fun give(player: Player, obj: Int) {
         val type = world.objTypes[obj] ?: return logger.warn { "No item $obj in the cache" }
-        world.groundObjs.give(player, type, 1)
+        if (player.inventory.add(type, 1) < 1) logger.warn { "No room for item $obj for ${player.username}" }
     }
 
     /** At login, in case a save's bits and counts disagree (a save from a server that changed the task list). */
@@ -412,6 +476,16 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
         /** `31_lumbridge_teleport`, the standard book's Lumbridge Teleport. */
         const val LUMBRIDGE_TELEPORT_SPELL = 3289
+
+        /** `25_varrock_teleport`. */
+        const val VARROCK_TELEPORT_SPELL = 3286
+
+        /** The Stronghold of Security's emotes in the emote tab, and the charge that remembers which are done. */
+        val SOS_EMOTES = 28..31
+        const val SOS_EMOTES_CHARGE = "diary_sos_emotes"
+
+        /** The free spaces a claim needs: the reward and its lamp (Toby's transcript). */
+        const val CLAIM_SPACE = 2
 
         /** The text layer's width: each line is as wide (the cache's qj components). */
         const val LINE_WIDTH = 404

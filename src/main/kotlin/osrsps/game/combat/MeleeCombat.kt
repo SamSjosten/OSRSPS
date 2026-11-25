@@ -909,7 +909,7 @@ class MeleeCombat(
 
     /**
      * [npc] breathes dragonfire at [player] ([Dragonfire]): its Magic accuracy against their Magic defence, capped by an
-     * anti-dragon shield or Protect from Magic, with the message for which held.
+     * anti-dragon shield or Protect from Magic (not a metallic dragon's), with the message for which held.
      */
     private fun breathe(npc: Npc, player: Player, fire: NpcDragonfire, tick: Long) {
         if (fire.anim >= 0) npc.effects.anim(fire.anim)
@@ -918,7 +918,7 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
         val resisted = !CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val shield = Dragonfire.shielded(player)
-        val prayer = protects(player, AttackType.MAGIC)
+        val prayer = !fire.metallic && protects(player, AttackType.MAGIC)
         val damage = CombatMath.rollDamage(random, Dragonfire.maxHit(shield, prayer, resisted))
         message(player, words(player)[Dragonfire.line(shield, prayer, resisted)])
         hitPlayer(player, npc, damage, tick)

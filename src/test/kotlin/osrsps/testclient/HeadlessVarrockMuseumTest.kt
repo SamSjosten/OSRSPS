@@ -12,6 +12,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.content.Kudos
 import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.VarrockMuseum
 import osrsps.game.loc.LocType
@@ -194,6 +195,14 @@ class HeadlessVarrockMuseumTest {
                 client.walk(curator.id, "curator", "greeting", "2:$menu", "news", "news_1", "news_2")
                 client.walk(curator.id, "curator", "greeting", "3:$menu", "treasure", "treasure_1", "treasure_2", "treasure_3")
                 client.walk(curator.id, "curator", "greeting", "4:$menu", "no_pendant")
+                // Under 50 Kudos, talking to him does no diary task; with the Dig Site's five displays (50), it does.
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "no Kudos")
+                for (source in Kudos.DIG_SITE.dropLast(1)) client.setVarbit(source.varbit, 1)
+                client.walk(curator.id, "curator", "greeting", "4:$menu", "no_pendant")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "40 Kudos")
+                client.setVarbit(Kudos.DIG_SITE.last().varbit, 1)
+                client.walk(curator.id, "curator", "greeting", "4:$menu", "no_pendant")
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
             }
         }
     }

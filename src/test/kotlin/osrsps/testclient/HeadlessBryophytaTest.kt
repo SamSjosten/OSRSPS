@@ -23,6 +23,7 @@ import osrsps.game.combat.AttackType
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.SureHit
 import osrsps.game.content.Bryophyta
 import osrsps.game.content.BryophytaLines
 import osrsps.game.content.GiantLairs
@@ -219,6 +220,9 @@ class HeadlessBryophytaTest {
                 assertTrue(Bryophyta.wieldsCutter(server.world, bob))
                 assertEquals(3, server.world.combat.rolledOn(bob, first, AttackType.RANGED, 3), "a ranged roll is left as it is")
                 assertEquals(first.hitpoints, server.world.combat.rolledOn(bob, first, AttackType.SLASH, 3), "a slash takes all it has")
+                // The sure hit is melee's too (exploit review round 53): a ranged shot rolls to hit as any other does.
+                assertEquals(SureHit.ROLLED, server.world.combat.sureHit(bob, first, AttackType.RANGED), "a ranged shot rolls to hit")
+                assertEquals(SureHit.MAX, server.world.combat.sureHit(bob, first, AttackType.SLASH), "a slash always hits")
                 bob.equipment[WearPos.WEAPON] = wielded
                 // The cooldown runs from the tick the last one died, not the tick she notices.
                 val lastDied = Bryophyta.state(boss).lastGone

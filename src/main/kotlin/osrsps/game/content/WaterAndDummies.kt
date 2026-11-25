@@ -28,13 +28,14 @@ object DummyLines : Lines("dummy", "Dummy") {
  * Filling buckets, jugs and bowls at water sources: one used on a sink, fountain or water pump (or a bucket on a well)
  * fills it, and the next of the same kind a tick later, until there are none left or the player does anything else (a
  * weak queue, as milking a cow). The sources are found by the cache's names, as Herblore finds those that fill vials
- * (which Herblore does). From the Wiki's Water source page (read 2026-11-02). Guessed: one a tick and the animation, as
+ * (which Herblore does). From the Wiki's Water source page (read 2026-11-02); a house kitchen's pumps and sinks too (the
+ * Kitchen page: a bucket "or other such item"). Guessed: one a tick and the animation, as
  * Herblore's vials; that a well takes only buckets (the page's table is unclear). Left out: cups, fishbowls, gold bowls,
  * gourd vials and watering cans.
  */
 object WaterSources {
     /** The cache's names for locs that fill every vessel here (Herblore's list for vials). */
-    val SOURCES = setOf("sink", "fountain", "water pump", "waterpump")
+    val SOURCES = setOf("sink", "fountain", "water pump", "waterpump", "pump and drain", "pump and tub", "gold sink")
 
     /** The cache's name for locs that fill only buckets. */
     const val WELL = "well"

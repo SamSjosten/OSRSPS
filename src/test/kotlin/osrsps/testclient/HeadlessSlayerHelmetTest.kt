@@ -48,6 +48,9 @@ class HeadlessSlayerHelmetTest {
 
     private fun HeadlessClient.count(id: Int) = inventory(Inventory.INV).count { it?.id == id }
 
+    /** Waits for [n] of [id] in the pack: the message can arrive a packet before the inventory's update. */
+    private fun HeadlessClient.awaitCount(id: Int, n: Int) = await("$n of item $id") { if (count(id) == n) Unit else null }
+
     private fun HeadlessClient.slot(id: Int) = await("item $id in the backpack") { inventory(Inventory.INV).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
 
     private fun HeadlessClient.give(id: Int, count: Int = 1) {
@@ -100,7 +103,7 @@ class HeadlessSlayerHelmetTest {
                 client.use(SlayerHelmets.NOSE_PEG, SlayerHelmets.SPINY_HELMET)
                 client.seen("[slayer_helmet.assembled]", before)
                 assertEquals(maskSlot, client.slot(SlayerHelmets.SLAYER_HELMET), "the helmet in the mask's slot")
-                for (id in parts + CHARGED_MASK) assertEquals(0, client.count(id), "item $id used up")
+                for (id in parts + CHARGED_MASK) client.awaitCount(id, 0)
 
                 // Its Check is the gem's, held and worn.
                 before = client.messages().size
@@ -119,7 +122,7 @@ class HeadlessSlayerHelmetTest {
                 before = client.messages().size
                 client.op(SlayerHelmets.SLAYER_HELMET, SlayerHelmets.DISASSEMBLE)
                 client.seen("[slayer_helmet.no_room]", before)
-                assertEquals(1, client.count(SlayerHelmets.SLAYER_HELMET))
+                client.awaitCount(SlayerHelmets.SLAYER_HELMET, 1)
 
                 client.op(FILLER, 5)
                 client.await("a pot dropped") { if (client.count(FILLER) == 21) Unit else null }
@@ -128,8 +131,8 @@ class HeadlessSlayerHelmetTest {
                 client.op(SlayerHelmets.SLAYER_HELMET, SlayerHelmets.DISASSEMBLE)
                 client.seen("[slayer_helmet.disassembled]", before)
                 assertEquals(helmetSlot, client.slot(BLACK_MASK), "the uncharged mask in the helmet's slot")
-                for (id in parts) assertEquals(1, client.count(id), "item $id back")
-                assertEquals(0, client.count(SlayerHelmets.SLAYER_HELMET))
+                for (id in parts) client.awaitCount(id, 1)
+                client.awaitCount(SlayerHelmets.SLAYER_HELMET, 0)
             }
         }
     }
@@ -147,14 +150,14 @@ class HeadlessSlayerHelmetTest {
                 var before = client.messages().size
                 client.use(BLACK_MASK_I, Slayer.ENCHANTED_GEM)
                 client.seen("[slayer_helmet.assembled]", before)
-                assertEquals(1, client.count(HELMET_I))
-                assertEquals(0, client.count(BLACK_MASK_I))
+                client.awaitCount(HELMET_I, 1)
+                client.awaitCount(BLACK_MASK_I, 0)
 
                 before = client.messages().size
                 client.op(HELMET_I, SlayerHelmets.DISASSEMBLE)
                 client.seen("[slayer_helmet.disassembled]", before)
-                assertEquals(1, client.count(BLACK_MASK_I))
-                assertEquals(0, client.count(HELMET_I))
+                client.awaitCount(BLACK_MASK_I, 1)
+                client.awaitCount(HELMET_I, 0)
             }
         }
     }

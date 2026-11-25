@@ -1,5 +1,6 @@
 package osrsps.testclient
 
+import osrsps.game.AllSettings
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,6 +9,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
+import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
@@ -17,15 +19,19 @@ import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.EstateAgent
 import osrsps.game.skill.construction.Furniture
 import osrsps.game.skill.construction.FurnitureData
 import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
+import osrsps.game.skill.construction.Kitchen
+import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -60,6 +66,7 @@ class HeadlessHouseTest {
         hotspot(House.DOOR_HOTSPOT_RIGHT, "Door hotspot"),
         hotspot(CHAIR_SPACE, "Chair space"),
         hotspot(RUG_MIDDLE_SPACE, "Rug space"), hotspot(RUG_SIDE_SPACE, "Rug space"), hotspot(RUG_CORNER_SPACE, "Rug space"),
+        LocType(WOODEN_LARDER, "Larder", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
         LocType(BROWN_RUG_CORNER, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_SIDE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(BROWN_RUG_MIDDLE, "Rug", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
@@ -67,6 +74,10 @@ class HeadlessHouseTest {
         hotspot(FIREPLACE_SPACE, "Fireplace space"), hotspot(CURTAIN_SPACE, "Curtain space"),
         built(WOODEN_BOOKCASE, "Wooden bookcase"), built(WOODEN_SCROLLS, "Wooden bookcase"),
         built(CLAY_FIREPLACE, "Clay fireplace"), built(TORN_CURTAINS, "Torn curtains"),
+        hotspot(STOVE_SPACE, "Stove space"), hotspot(SHELF_SPACE, "Shelf space"), hotspot(CROCKERY_SPACE, "Shelf space"), hotspot(SINK_SPACE, "Sink space"),
+        built(FIREPIT, "Firepit"), built(PUMP, "Pump and drain"),
+        LocType(WOODEN_SHELVES, "Shelves", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(WOODEN_CROCKERY, "Shelves", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
         LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
@@ -89,12 +100,21 @@ class HeadlessHouseTest {
         objs[PLANK] = ObjType(PLANK, "Plank")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
+        objs[TEA_LEAVES] = ObjType(TEA_LEAVES, "Tea leaves")
+        objs[MILK] = ObjType(MILK, "Bucket of milk")
         objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
         objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
         objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
         objs[HAMMER] = ObjType(HAMMER, "Hammer")
         objs[SAW] = ObjType(SAW, "Saw")
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
+        objs[STEEL_BAR] = ObjType(STEEL_BAR, "Steel bar")
+        objs[KETTLE] = ObjType(KETTLE, "Kettle")
+        objs[CLAY_TEAPOT] = ObjType(CLAY_TEAPOT, "Teapot")
+        objs[CLAY_CUP] = ObjType(CLAY_CUP, "Empty cup")
+        objs[BUCKET] = ObjType(BUCKET, "Bucket")
+        objs[BUCKET_OF_WATER] = ObjType(BUCKET_OF_WATER, "Bucket of water")
+        for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
         val kitchen = RoomType.KITCHEN
@@ -128,11 +148,21 @@ class HeadlessHouseTest {
                 // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
                 add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
+                // A stove space, shelves with their crockery above them, and a sink space, one tile each.
+                add(ZoneLoc(STOVE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 4, kitchen.templateZ + 4, 0))
+                add(ZoneLoc(SHELF_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 6, 0))
+                add(ZoneLoc(CROCKERY_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 5, 0))
+                add(ZoneLoc(SINK_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 2, 0))
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
-            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains))),
+            furnitureData = FurnitureData(
+                mapOf(
+                    RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains),
+                    RoomType.KITCHEN.id to listOf(stoves, shelves, emptyList(), emptyList(), larders, sinks),
+                ),
+            ),
         )
     }
 
@@ -141,6 +171,14 @@ class HeadlessHouseTest {
         FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
         FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
     )
+
+    /** The larder space's first choice (row 5562). */
+    private val larders = listOf(FurnitureOption(WOODEN_LARDER_ROW, "Wooden larder", 8233, listOf(PLANK to 8, Furniture.ANY_NAILS to 8), level = 9))
+
+    /** The kitchen's stove, shelf and sink places' first choices (rows 5539, 5546 and 5565), as the cache has them. */
+    private val stoves = listOf(FurnitureOption(FIREPIT_ROW, "Firepit", 8216, listOf(STEEL_BAR to 1, SOFT_CLAY to 2), level = 5))
+    private val shelves = listOf(FurnitureOption(WOODEN_SHELVES_ROW, "Wooden shelves 1", 8223, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 6))
+    private val sinks = listOf(FurnitureOption(PUMP_ROW, "Pump and drain", 8230, listOf(STEEL_BAR to 5), level = 7))
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -172,6 +210,8 @@ class HeadlessHouseTest {
     private fun HeadlessClient.awaitClosed() = await("the dialogue to close") { if (dialogueView == null) Unit else null }
 
     private fun HeadlessClient.count(id: Int) = inventory(Inventory.INV).filterNotNull().filter { it.id == id }.sumOf { it.count }
+
+    private fun HeadlessClient.slotOf(id: Int) = inventory(Inventory.INV).indexOfFirst { it?.id == id }
 
     private fun HeadlessClient.buyHouse() {
         tele(AGENT_X + 1, AGENT_Z)
@@ -418,6 +458,10 @@ class HeadlessHouseTest {
                 menuOpen()
                 client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
                 client.await("the tools refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_tools]" } }
+                // The menu's layout script took the chat's keys (script1406's chatdefault_stopinput); its closing gives them back.
+                client.await("chatdefault_restoreinput") {
+                    client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT }.takeIf { it == 1 }
+                }
 
                 // With the tools and materials: each slot is drawn by the client's own script, the wooden chair crossed out
                 // (level 8), and the list laid out for two.
@@ -580,6 +624,123 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a wooden larder is built in the kitchen, and Search gives its tea leaves and milk without end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("finn")!!
+                // A kitchen east of the parlour, as building mode would add it (the rooms test builds one that way).
+                player.house!!.rooms += HouseRoom(RoomType.KITCHEN, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 9")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 8")
+                client.command("item $STEEL_NAILS 8")
+                client.await("the materials") { if (client.count(STEEL_NAILS) == 8 && client.count(PLANK) == 8) Unit else null }
+                val xp = client.await("level 9") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 9 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val lx = instance.baseX + ((House.STARTER_X + 1) shl 3) + 1
+                val lz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 6
+
+                client.locOp(LARDER_SPACE, lx, lz, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the larder") { if (client.shown(WOODEN_LARDER, lx, lz)) Unit else null }
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 228 } }
+
+                // Search: the Make-X box of its supplies; two tea leaves, then a bucket of milk.
+                client.locOp(WOODEN_LARDER, lx, lz, Kitchen.SEARCH)
+                client.await("the supplies box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                client.await("the tea leaves") { if (client.count(TEA_LEAVES) == 2) Unit else null }
+                client.locOp(WOODEN_LARDER, lx, lz, Kitchen.SEARCH)
+                client.await("the supplies box again") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
+                client.await("the milk") { if (client.count(MILK) == 1) Unit else null }
+                assertEquals(2, client.count(TEA_LEAVES))
+            }
+        }
+    }
+
+    @Test
+    fun `a firepit cooks, a pump fills a bucket, shelves give a kettle, and the house's own supplies stay in the house`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gwen").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("gwen")!!
+                player.house!!.rooms += HouseRoom(RoomType.KITCHEN, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 9")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $STEEL_BAR 6")
+                client.command("item $SOFT_CLAY 2")
+                client.command("item $PLANK 3")
+                client.command("item $STEEL_NAILS 3")
+                client.await("the materials") { if (client.count(STEEL_NAILS) == 3 && client.count(STEEL_BAR) == 6) Unit else null }
+                val xp = client.await("level 9") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 9 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val kx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val kz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+
+                fun build(space: Int, x: Int, z: Int, built: Int) {
+                    client.locOp(space, x, z, House.BUILD)
+                    client.await("the creation menu on $space") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                    client.await("$built on $space") { if (client.shown(built, x, z)) Unit else null }
+                }
+                build(STOVE_SPACE, kx + 4, kz + 4, FIREPIT)
+                build(SHELF_SPACE, kx + 6, kz + 6, WOODEN_SHELVES)
+                assertTrue(client.shown(WOODEN_CROCKERY, kx + 6, kz + 5), "the crockery goes up with the shelves")
+                build(SINK_SPACE, kx + 6, kz + 2, PUMP)
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 40 + 87 + 100 } }
+
+                // The firepit cooks as a fire: one raw shrimp, cooked or burnt.
+                val raw = Cooking.SHRIMPS.raw
+                client.command("item $raw 1")
+                client.await("the raw shrimp") { if (client.count(raw) == 1) Unit else null }
+                client.locTarget(FIREPIT, kx + 4, kz + 4, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(raw), raw)
+                val box = client.await("the Make-X box or the shrimp cooked") {
+                    when {
+                        Chatbox.SKILLMULTI in client.openInterfaces() -> true
+                        client.count(raw) == 0 -> false
+                        else -> null
+                    }
+                }
+                if (box) client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("the shrimp off the firepit") {
+                    if (client.count(raw) == 0 && client.count(Cooking.SHRIMPS.cooked) + client.count(Cooking.SHRIMPS.burnt) == 1) Unit else null
+                }
+
+                // The pump fills a bucket.
+                client.command("item $BUCKET 1")
+                client.await("the bucket") { if (client.count(BUCKET) == 1) Unit else null }
+                client.locTarget(PUMP, kx + 6, kz + 2, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(BUCKET), BUCKET)
+                client.await("the bucket of water") { if (client.count(BUCKET_OF_WATER) == 1) Unit else null }
+
+                // The shelves' Search: their crockery in the Make-X box, the kettle first.
+                client.locOp(WOODEN_SHELVES, kx + 6, kz + 6, Kitchen.SEARCH)
+                client.await("the supplies box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("the kettle") { if (client.count(KETTLE) == 1) Unit else null }
+
+                // Leaving takes the kettle and tea leaves; milk and the bucket of water go along.
+                client.command("item $TEA_LEAVES 2")
+                client.command("item $MILK 1")
+                client.await("the tea leaves and milk") { if (client.count(TEA_LEAVES) == 2 && client.count(MILK) == 1) Unit else null }
+                // A save from inside (a shutdown, an autosave) leaves them behind too, and takes nothing from the player.
+                val saved = server.world.snapshot(player).inventory.values.map { it.id }
+                assertTrue(KETTLE !in saved && TEA_LEAVES !in saved && MILK in saved, "saved: $saved")
+                assertEquals(listOf(1, 2), listOf(client.count(KETTLE), client.count(TEA_LEAVES)))
+                client.tele(OUTSIDE.x, OUTSIDE.z)
+                client.await("the house's supplies gone") { if (client.count(KETTLE) == 0 && client.count(TEA_LEAVES) == 0) Unit else null }
+                assertEquals(listOf(1, 1), listOf(client.count(MILK), client.count(BUCKET_OF_WATER)))
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
@@ -587,6 +748,10 @@ class HeadlessHouseTest {
         const val WOODEN_CHAIR_ROW = 5518
         const val PLANK = 960
         const val BOLT_OF_CLOTH = 8790
+        const val WOODEN_LARDER_ROW = 5562
+        const val WOODEN_LARDER = 13565
+        const val TEA_LEAVES = 7738
+        const val MILK = 1927
         const val RUG_MIDDLE_SPACE = 4518
         const val RUG_SIDE_SPACE = 4519
         const val RUG_CORNER_SPACE = 4520
@@ -610,6 +775,24 @@ class HeadlessHouseTest {
         const val BRONZE_NAILS = 4819
         const val HAMMER = 2347
         const val SAW = 8794
+
+        const val STOVE_SPACE = 15398
+        const val SHELF_SPACE = 15399
+        const val CROCKERY_SPACE = 15400
+        const val SINK_SPACE = 15404
+        const val FIREPIT_ROW = 5539
+        const val WOODEN_SHELVES_ROW = 5546
+        const val PUMP_ROW = 5565
+        const val FIREPIT = 13528
+        const val WOODEN_SHELVES = 13545
+        const val WOODEN_CROCKERY = 13552
+        const val PUMP = 13559
+        const val STEEL_BAR = 2353
+        const val KETTLE = 7688
+        const val CLAY_TEAPOT = 7702
+        const val CLAY_CUP = 7728
+        const val BUCKET = 1925
+        const val BUCKET_OF_WATER = 1929
 
         /** The kitchen's `poh_larder` space; its size here is the test's own. */
         const val LARDER_SPACE = 15403

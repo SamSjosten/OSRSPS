@@ -1,0 +1,33 @@
+{
+ "name": "Misthalin fixes 14 (::keys on): the Tunnel of Chaos: the open Saradomin statue east of Varrock goes down, its stairs come back up, its portal turns back a player without a chaos talisman and takes one with it to the Chaos Altar's maze, and the maze's portal comes back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "waitTicks", "ticks": 3, "comment": "let the client settle: a command typed straight away can be lost"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::empty", "comment": "no chaos talisman or tiara, so the portal turns the player back first"},
+  {"step": "command", "text": "::tele 3283 3466 0", "expectMessage": "Teleported to 3283, 3466, 0", "comment": "south of the Saradomin statue east of Varrock"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertVarbit", "id": 3524, "value": 1, "comment": "surok_tunnelcheck: the statue stands open after What Lies Below"},
+  {"step": "locOption", "locId": 23096, "option": "Enter", "x": 3283, "y": 3468, "timeoutMs": 20000, "comment": "surok_statuebase, the open statue"},
+  {"step": "assertLocation", "x": 3179, "y": 5191, "plane": 0, "timeoutMs": 10000, "comment": "in the Tunnel of Chaos, at the stairs' foot (guessed tile)"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 23074, "option": "Climb", "x": 3179, "y": 5189, "timeoutMs": 20000, "comment": "the stairs up"},
+  {"step": "assertLocation", "x": 3283, "y": 3467, "plane": 0, "timeoutMs": 10000, "comment": "south of the statue (guessed tile)"},
+  {"step": "command", "text": "::tele 3153 5233 0", "expectMessage": "Teleported to 3153, 5233, 0", "comment": "beside the portal at the tunnel's north-west end"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 23095, "option": "Use", "x": 3152, "y": 5233, "timeoutMs": 20000, "comment": "without a chaos talisman"},
+  {"step": "assertMessage", "contains": "[game.nothing_interesting]"},
+  {"step": "command", "text": "::item 1452 1", "comment": "a chaos talisman"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 23095, "option": "Use", "x": 3152, "y": 5233, "timeoutMs": 20000},
+  {"step": "assertLocation", "x": 2271, "y": 4836, "plane": 1, "timeoutMs": 10000, "comment": "in the Chaos Altar's maze, its second level, east of its portal back (guessed tile)"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertVarbit", "id": 3529, "value": 1, "comment": "surok_portal: the maze's portal shows"},
+  {"step": "locOption", "locId": 23098, "option": "Use", "x": 2270, "y": 4836, "timeoutMs": 20000, "comment": "the maze's portal back"},
+  {"step": "assertLocation", "x": 3153, "y": 5233, "plane": 0, "timeoutMs": 10000},
+  {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"}
+ ]
+}
