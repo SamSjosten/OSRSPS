@@ -17,7 +17,9 @@
   },
   {
    "step": "command",
-   "text": "::empty"
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
   },
   {
    "step": "command",
@@ -50,9 +52,9 @@
   {
    "step": "clickWidget",
    "interfaceId": 240,
-   "component": 17,
+   "component": 15,
    "op": 1,
-   "comment": "the Mining icon"
+   "comment": "xpreward:mining. The icons run in enum_681's order from component 3 (Agility is 10, as random-events-genie.json clicks), so Mining is 15; 17 was Fishing, greyed out at level 1"
   },
   {
    "step": "waitTicks",
@@ -77,6 +79,11 @@
   {
    "step": "command",
    "text": "::keys off"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
   }
  ]
 }
