@@ -121,6 +121,15 @@ class ClanParty(private val world: World) {
         val live = world.instances.all.toHashSet()
         parties.entries.removeIf { it.value.instance !in live }
         val party = parties[id]?.takeIf { it.instance === instance } ?: Party(instance).also { parties[id] = it }
+        // The Wiki: "if all non-guests leave the Clan Hall, all dropped and deposited items will be deleted". Checked
+        // whenever the party is used, so a guest left behind finds it empty (Codex on PR 959).
+        val membersIn = world.onlinePlayers.any { clan.member(it.saveKey) != null && world.instances.at(it.x, it.z) === instance }
+        if (!membersIn && (!party.chest.isEmpty() || party.balloons.isNotEmpty())) {
+            party.chest.clear()
+            for (balloon in party.balloons) world.locs.remove(balloon)
+            party.balloons.clear()
+            for (viewer in viewers(party)) sendChest(viewer, party)
+        }
         return clan to party
     }
 
@@ -222,11 +231,29 @@ class ClanParty(private val world: World) {
         val (clan, party) = partyHere(player) ?: return
         if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
         var full = false
+        val moved = ArrayList<Pair<osrsps.game.ObjType, Int>>()
         for ((slot, obj) in player.priceChecker.contents()) {
             val type = world.objTypes[obj.id] ?: continue
             val added = party.chest.add(type, obj.count)
-            if (added > 0) player.priceChecker.remove(slot, added)
+            if (added > 0) {
+                player.priceChecker.remove(slot, added)
+                moved += type to added
+            }
             if (added < obj.count) full = true
+        }
+        // The donor's save is written before anyone can get the items from a balloon, so a crash can't give them back
+        // to the donor as well (Codex on PR 959). If it can't be written, the offer goes back as it was.
+        if (moved.isNotEmpty() && !world.save(player)) {
+            for ((type, count) in moved) {
+                var left = count
+                for ((slot, obj) in party.chest.contents()) {
+                    if (left == 0) break
+                    if (obj.id == type.id) left -= party.chest.remove(slot, left)
+                }
+                player.priceChecker.add(type, count - left)
+            }
+            sendOffer(player)
+            return
         }
         if (full) world.message(player, ClanPartyLines.CHEST_FULL)
         sendOffer(player)
@@ -282,7 +309,9 @@ class ClanParty(private val world: World) {
         val found = partyHere(player)
         val party = found?.second?.takeIf { it.balloons.contains(loc) }
         val pop = POPS[BALLOONS.indexOf(loc.id).coerceAtLeast(0)]
-        world.locs.replace(loc, pop, revertAfter = POP_TICKS)
+        // The pop shows for a moment, then the tile is empty: not the balloon again (Codex on PR 959).
+        world.locs.remove(loc)
+        world.locs.add(loc.copy(id = pop), revertAfter = POP_TICKS)
         if (party == null) return
         party.balloons.removeIf { it == loc || !world.locs.exists(it) }
         if (!world.clans.mayParty(player, found.first, Clans.VAR_PARTY_BALLOONS)) return

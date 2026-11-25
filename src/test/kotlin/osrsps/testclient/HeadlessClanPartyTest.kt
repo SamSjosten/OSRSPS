@@ -135,6 +135,13 @@ class HeadlessClanPartyTest {
                 }
                 alice.await("the dagger dropped") { alice.groundObjs().firstOrNull { it.id == DAGGER } }
                 assertEquals(0, server.world.clanParty.chestCount(hall))
+                // A burst balloon's pop goes, leaving the tile empty: not the balloon back.
+                val first = balloons.first()
+                alice.await("the first tile empty") {
+                    server.world.locs.at(first.coord.x, first.coord.z, 0).none { it.id in ClanParty.BALLOONS || it.id in ClanParty.POPS }.takeIf { it }
+                }
+                alice.awaitTicks(ClanParty.POP_TICKS + 2)
+                assertTrue(server.world.locs.at(first.coord.x, first.coord.z, 0).none { it.id in ClanParty.BALLOONS || it.id in ClanParty.POPS })
             }
         }
     }
