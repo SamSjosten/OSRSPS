@@ -100,7 +100,7 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser") {
  * - **The ticket dispensers** (3608, and 3581 with darts): one of the 24 has the arrow, and it moves every minute (100
  *   ticks) to another at random. A tag of the arrowed one gives 30 Agility XP for every 10 Agility levels (boosts and
  *   drains count, at most 300), an Agility arena ticket and a Brimhaven voucher, once until the arrow moves.
- * - **Pirate Jackie the Fruit** (5516) talks.
+ * - **Pirate Jackie the Fruit** (5516, shown as 7650 or 7651) talks.
  *
  * Inferred: the arrow is the client's tile hint arrow; the ladders' landing tiles are the sides the other ladder faces, and their climbs the usual ladder anims and wait;
  * his Pay option takes the fee with the Wiki's message and no talk, and refuses with his talk's line; "initial" in the
@@ -114,6 +114,12 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser") {
 object BrimhavenAgilityArena {
     const val IZZY = 5789
     const val JACKIE = 5516
+
+    /**
+     * The types Jackie (a multi-NPC by varbit 4567) shows, the cache's agilityarena_tickettrader_2ops and _3ops: her
+     * talk is on what the player sees, so it is registered on both.
+     */
+    val JACKIE_SHOWN = listOf(7650, 7651)
     const val PARROT = 4768
     const val TALK_TO = 1
     const val PAY = 3
@@ -394,8 +400,10 @@ fun registerBrimhavenAgilityArena(world: World) {
                 world.dialogues.start(this, op.npc) { chatNpc(ChatAnim.ANGRY, IzzyLines.NO_COINS) }
             }
         }
-        world.handlers.onNpc(JACKIE, TALK_TO) { op ->
-            world.dialogues.start(this, op.npc) { with(AgilityArenaTalk) { jackie() } }
+        for (jackie in JACKIE_SHOWN) {
+            world.handlers.onNpc(jackie, TALK_TO) { op ->
+                world.dialogues.start(this, op.npc) { with(AgilityArenaTalk) { jackie() } }
+            }
         }
         world.handlers.onLoc(LADDER_DOWN, CLIMB) {
             arriveDelay()

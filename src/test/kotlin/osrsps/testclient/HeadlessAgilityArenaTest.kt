@@ -34,7 +34,14 @@ import osrsps.map.LocCollisionType
 class HeadlessAgilityArenaTest {
     private val izzy = NpcType(BrimhavenAgilityArena.IZZY, "Cap'n Izzy No-Beard", ops = listOf("Talk-to", null, "Pay", null, null), internalName = "agilityarena_clerk")
     private val parrot = NpcType(BrimhavenAgilityArena.PARROT, "Parrot", internalName = "eadgar_parrotts")
-    private val jackie = NpcType(BrimhavenAgilityArena.JACKIE, "Pirate Jackie the Fruit", ops = listOf("Talk-to", null, null, null, null), internalName = "agilityarena_shopkeeper")
+    // Shaped like the 242 cache's: 5516 is a multi-NPC by varbit 4567 showing 7650 (the default) or 7651.
+    private val jackie = NpcType(
+        BrimhavenAgilityArena.JACKIE, "null", ops = listOf(null, null, null, null, null), multiVarbit = 4567,
+        multiNpcs = intArrayOf(7650, 7651, 7650), internalName = "agilityarena_tickettrader",
+    )
+    private val jackieShown = BrimhavenAgilityArena.JACKIE_SHOWN.map {
+        NpcType(it, "Pirate Jackie the Fruit", ops = listOf("Talk-to", null, "Trade", null, null), internalName = "agilityarena_tickettrader_${it}")
+    }
     private val objs = listOf(
         ObjType(ShopScreen.COINS, "Coins", stackable = true),
         ObjType(BrimhavenAgilityArena.TICKET, "Agility arena ticket", stackable = true),
@@ -57,7 +64,7 @@ class HeadlessAgilityArenaTest {
                 markLoaded(2809 shr 6, 3194 shr 6)
                 for (x in listOf(2761, 2805)) for (z in listOf(9546, 9590)) markLoaded(x shr 6, z shr 6)
             },
-            objTypes = ObjTypes.of(*objs.toTypedArray()), npcTypes = NpcTypes.of(izzy, parrot, jackie),
+            objTypes = ObjTypes.of(*objs.toTypedArray()), npcTypes = NpcTypes.of(izzy, parrot, jackie, *jackieShown.toTypedArray()),
             npcSpawns = listOf(NpcSpawn(izzy, 2807, 3190, wander = 0, source = "test"), NpcSpawn(jackie, 2811, 3190, wander = 0, source = "test")),
             locTypes = LocTypes(locs.map { it.id }.distinct().associateWith { LocType(it, "Loc", listOf("Op", null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0)) }),
             staticLocs = StaticLocs().apply { locs.forEach(::add) },
