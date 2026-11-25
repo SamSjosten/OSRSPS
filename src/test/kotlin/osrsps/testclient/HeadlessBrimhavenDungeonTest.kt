@@ -24,9 +24,10 @@ import osrsps.map.LocCollisionType
 
 /**
  * Karamja step K3.3 through the headless client: Saniboch refusing the shut entrance without 875 coins and taking them
- * through his talk or his Pay option, the entrance using up a one-visit fee and the exit leading back out, a vine chopped
- * through with an axe and the level and parted by hand on the way back, and the entrance pipe needing 22 Agility only
- * going deeper. test-runner/examples/brimhaven-dungeon.json does the same on the real map.
+ * through his talk or his Pay option, a million paid on top for good lasting through visits and a new login, the
+ * entrance using up a one-visit fee and the exit leading back out, a vine chopped through with an axe and the level and
+ * parted by hand on the way back, and the entrance pipe needing 22 Agility only going deeper. test-
+ * runner/examples/brimhaven-dungeon.json does the same on the real map.
  */
 class HeadlessBrimhavenDungeonTest {
     private val saniboch = NpcType(BrimhavenDungeon.SANIBOCH, "Saniboch", ops = listOf("Talk-to", null, "Pay", null, null), internalName = "tribesman_doorman")
@@ -138,6 +139,55 @@ class HeadlessBrimhavenDungeonTest {
                 client.chat("lovely_coins")
                 client.menu(1)
                 client.chat("okay_thanks")
+                client.closed()
+                client.locOp(BrimhavenDungeon.ENTRANCE, 2743, 3153, BrimhavenDungeon.ENTER)
+                client.arrives(BrimhavenDungeon.INSIDE.x, BrimhavenDungeon.INSIDE.z)
+            }
+        }
+    }
+
+    @Test
+    fun `a one-visit fee is raised to a million for good, which lasts through visits and a new login`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dee").use { client ->
+                client.ready()
+                client.command("item ${ShopScreen.COINS} 1000875")
+                client.await("the coins") { if (client.coins() == 1_000_875L) Unit else null }
+                client.tele(2744, 3152)
+                client.npcOp(client.sanibochIndex(), BrimhavenDungeon.PAY)
+                assertEquals(listOf("[saniboch.pay_once]", "[saniboch.pay_forever]", "[saniboch.cancel]"), client.menu(1).options)
+                client.box("give_875")
+                client.chat("many_thanks")
+                client.closed()
+                client.await("the one visit") { if (client.varp(DOOR_VARP) == BrimhavenDungeon.PAID_ONCE) Unit else null }
+                client.npcOp(client.sanibochIndex(), BrimhavenDungeon.PAY)
+                client.chat("lovely_coins")
+                client.menu(2)
+                client.chat("permanent")
+                client.chat("suppose_so")
+                client.menu(1)
+                client.chat("heres_million")
+                client.box("give_million")
+                client.chat("thanks_forever")
+                client.closed()
+                assertEquals(0L, client.coins(), "875 and then a million")
+                val forever = BrimhavenDungeon.PAID_ONCE or BrimhavenDungeon.PAID_FOREVER
+                client.await("paid for good") { if (client.varp(DOOR_VARP) == forever) Unit else null }
+                repeat(2) {
+                    client.locOp(BrimhavenDungeon.ENTRANCE, 2743, 3153, BrimhavenDungeon.ENTER)
+                    client.arrives(BrimhavenDungeon.INSIDE.x, BrimhavenDungeon.INSIDE.z)
+                    client.locOp(BrimhavenDungeon.EXIT, 2714, 9564, BrimhavenDungeon.LEAVE)
+                    client.arrives(BrimhavenDungeon.OUTSIDE.x, BrimhavenDungeon.OUTSIDE.z)
+                }
+                assertEquals(forever, client.varp(DOOR_VARP), "visits don't use up a fee paid for good")
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.login("dee").use { client ->
+                client.ready()
+                client.await("still paid for good") { if (client.varp(DOOR_VARP) and BrimhavenDungeon.PAID_FOREVER != 0) Unit else null }
+                client.npcOp(client.sanibochIndex(), BrimhavenDungeon.PAY)
+                client.chat("nice_coins")
                 client.closed()
                 client.locOp(BrimhavenDungeon.ENTRANCE, 2743, 3153, BrimhavenDungeon.ENTER)
                 client.arrives(BrimhavenDungeon.INSIDE.x, BrimhavenDungeon.INSIDE.z)
