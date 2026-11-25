@@ -30,4 +30,30 @@ class FurnitureBuildsTest {
         assertTrue(FurnitureBuilds.NEEDS_CREST.none { it in FurnitureBuilds.BUILDS })
         assertTrue(Kitchen.SUPPLIES.keys.all { it in FurnitureBuilds.BUILT_LOCS })
     }
+
+    @Test
+    fun `a tool store racks its first spaces and leaves the rest bare, and the built row reads back from them`() {
+        val spaces = listOf(15443, 15444, 15445, 15446, 15447)
+        assertEquals(spaces.toSet(), FurnitureBuilds.siblings(15445))
+        val second = FurnitureBuilds.BUILDS.getValue(5759)
+        assertEquals(listOf(6786, 6787, -1, -1, -1), listOf("a", "b", "c", "d", "e").map(second::locFor))
+        assertTrue(FurnitureBuilds.buildsOn(15444, 6787))
+        assertTrue(!FurnitureBuilds.buildsOn(15443, 6787))
+        assertTrue(!FurnitureBuilds.buildsOn(15445, FurnitureBuilds.NONE))
+        val built = mapOf(15443 to 6786, 15444 to 6787)
+        assertEquals(5759, FurnitureBuilds.builtRow(built, 15447))
+        assertEquals(5758, FurnitureBuilds.builtRow(mapOf(15443 to 6786), 15443))
+        assertEquals(null, FurnitureBuilds.builtRow(emptyMap(), 15443))
+        // Parts of two stores together are no store.
+        assertEquals(null, FurnitureBuilds.builtRow(mapOf(15444 to 6787), 15443))
+        assertTrue(FurnitureBuilds.NONE !in FurnitureBuilds.BUILT_LOCS)
+    }
+
+    @Test
+    fun `a bench and its stool are built together, and every Upgrade op and tool store is on a built loc`() {
+        assertEquals(setOf(15439, 15440), FurnitureBuilds.siblings(15439))
+        assertEquals(5751, FurnitureBuilds.builtRow(mapOf(15439 to 6793, 15440 to 6806), 15440))
+        assertTrue(FurnitureBuilds.UPGRADABLE.all { it in FurnitureBuilds.BUILT_LOCS })
+        assertTrue(Workshop.TOOLS.keys.all { it in FurnitureBuilds.BUILT_LOCS })
+    }
 }

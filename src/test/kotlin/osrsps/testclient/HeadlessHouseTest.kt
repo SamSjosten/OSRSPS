@@ -83,6 +83,11 @@ class HeadlessHouseTest {
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
         LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        hotspot(WORKBENCH_SPACE, "Workbench space"), hotspot(WORKBENCH_STOOL_SPACE, "Nothing"),
+        hotspot(TOOL_SPACE_A, "Tool space"), hotspot(TOOL_SPACE_B, "Tool space"), hotspot(TOOL_SPACE_C, "Tool space"),
+        built(WOODEN_WORKBENCH, "Workbench"), built(STOOL, "Stool"),
+        LocType(TOOLS_1, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(TOOLS_2, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
 
@@ -118,11 +123,14 @@ class HeadlessHouseTest {
         objs[CLAY_CUP] = ObjType(CLAY_CUP, "Empty cup")
         objs[BUCKET] = ObjType(BUCKET, "Bucket")
         objs[BUCKET_OF_WATER] = ObjType(BUCKET_OF_WATER, "Bucket of water")
+        objs[CHISEL] = ObjType(CHISEL, "Chisel")
+        objs[KNIFE] = ObjType(KNIFE, "Knife")
         for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
         val kitchen = RoomType.KITCHEN
         val dining = RoomType.DINING_ROOM
+        val workshop = RoomType.WORKSHOP
         World(
             crcs,
             CollisionMap().apply {
@@ -161,6 +169,12 @@ class HeadlessHouseTest {
                 add(ZoneLoc(SHELF_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 6, 0))
                 add(ZoneLoc(CROCKERY_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 5, 0))
                 add(ZoneLoc(SINK_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 6, kitchen.templateZ + 2, 0))
+                // A workshop's workbench space with its stool beside it, and three tool spaces along its west wall.
+                add(ZoneLoc(WORKBENCH_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, workshop.templateX + 3, workshop.templateZ + 3, 0))
+                add(ZoneLoc(WORKBENCH_STOOL_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, workshop.templateX + 3, workshop.templateZ + 2, 0))
+                for ((i, space) in listOf(TOOL_SPACE_A, TOOL_SPACE_B, TOOL_SPACE_C).withIndex()) {
+                    add(ZoneLoc(space, LocShape.CENTREPIECE_STRAIGHT, 0, workshop.templateX + 1, workshop.templateZ + 2 + i, 0))
+                }
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
@@ -170,6 +184,7 @@ class HeadlessHouseTest {
                     RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains),
                     RoomType.KITCHEN.id to listOf(stoves, shelves, emptyList(), emptyList(), larders, sinks),
                     RoomType.DINING_ROOM.id to listOf(tables, emptyList(), emptyList(), emptyList(), emptyList(), decorations),
+                    RoomType.WORKSHOP.id to listOf(workbenches, emptyList(), toolStores),
                 ),
             ),
         )
@@ -195,6 +210,12 @@ class HeadlessHouseTest {
         FurnitureOption(OAK_DECORATION_ROW, "Oak decoration", 8102, listOf(OAK_PLANK to 2), level = 16),
         FurnitureOption(GREENMAN_ROW, "Greenman carving", 31030, listOf(GREENMAN_ITEM to 1), level = 1),
     )
+
+    /** The workbench space's first choice and the tool stores (rows 5749 and 5758 to 5762), as the cache has them: each store upgrades the one before. */
+    private val workbenches = listOf(FurnitureOption(WOODEN_WORKBENCH_ROW, "Wooden workbench", 8375, listOf(PLANK to 5, Furniture.ANY_NAILS to 5), level = 17))
+    private val toolStores = (1..5).map { tier ->
+        FurnitureOption(TOOL_STORE_1_ROW + tier - 1, "Tool store $tier", 8383 + tier, listOf(OAK_PLANK to 2), level = listOf(15, 25, 35, 44, 55)[tier - 1], upgradeFrom = 1)
+    }
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -807,7 +828,86 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a tool store is built, Searched and upgraded over the one before it, and a workbench builds with its stool`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivan").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("ivan")!!
+                player.house!!.rooms += HouseRoom(RoomType.WORKSHOP, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 25")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 4")
+                client.command("item $PLANK 5")
+                client.command("item $STEEL_NAILS 5")
+                client.await("the materials") { if (client.count(OAK_PLANK) == 4 && client.count(STEEL_NAILS) == 5) Unit else null }
+                val xp = client.await("level 25") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 25 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val wx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val wz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                fun menu(id: Int, x: Int, z: Int, op: Int, slot: Int, offered: List<Int>) {
+                    val before = client.clientScripts().size
+                    client.locOp(id, x, z, op)
+                    client.await("the creation menu on $id") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    val shown = client.await("its slots") { client.clientScripts().drop(before).filter { it.id == Furniture.ENTRY_SCRIPT }.map { it.args[1] }.takeIf { it.size >= offered.size } }
+                    assertEquals(offered, shown)
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, slot)
+                }
+
+                // An empty tool space offers only the first store: the others upgrade it.
+                menu(TOOL_SPACE_A, wx + 1, wz + 2, House.BUILD, 1, listOf(TOOL_STORE_1_ROW))
+                client.await("the first rack") { if (client.shown(TOOLS_1, wx + 1, wz + 2)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 120 } }
+                assertTrue(!client.shown(TOOLS_2, wx + 1, wz + 3))
+
+                // Search: the Make-X box of its tools; a chisel.
+                client.locOp(TOOLS_1, wx + 1, wz + 2, Kitchen.SEARCH)
+                client.await("the tools box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 2, 1)
+                client.await("the chisel") { if (client.count(CHISEL) == 1) Unit else null }
+
+                // Upgrade on the rack offers the second store, which racks the second space too.
+                menu(TOOLS_1, wx + 1, wz + 2, Furniture.UPGRADE, 1, listOf(TOOL_STORE_1_ROW + 1))
+                client.await("the second rack") { if (client.shown(TOOLS_2, wx + 1, wz + 3)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 240 } }
+                assertEquals(0, client.count(OAK_PLANK))
+                client.locOp(TOOLS_2, wx + 1, wz + 3, Kitchen.SEARCH)
+                client.await("the second box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
+                client.await("the knife") { if (client.count(KNIFE) == 1) Unit else null }
+
+                // The bare third space offers the third store, over the second.
+                menu(TOOL_SPACE_C, wx + 1, wz + 4, House.BUILD, 1, listOf(TOOL_STORE_1_ROW + 2))
+                client.await("the refusal for the level") { client.messages().firstOrNull { it.text == "[construction.furniture_level level=35]" } }
+
+                // The workbench and its stool go up together.
+                menu(WORKBENCH_SPACE, wx + 3, wz + 3, House.BUILD, 1, listOf(WOODEN_WORKBENCH_ROW))
+                client.await("the workbench") { if (client.shown(WOODEN_WORKBENCH, wx + 3, wz + 3)) Unit else null }
+                client.await("the stool") { if (client.shown(STOOL, wx + 3, wz + 2)) Unit else null }
+
+                val read = assertNotNull(PlayerSave.fromJson(server.world.snapshot(player).toJson("ivan")).house)
+                val room = read.rooms.single { it.type == RoomType.WORKSHOP }
+                assertEquals(mapOf(TOOL_SPACE_A to TOOLS_1, TOOL_SPACE_B to TOOLS_2, WORKBENCH_SPACE to WOODEN_WORKBENCH, WORKBENCH_STOOL_SPACE to STOOL), room.built)
+            }
+        }
+    }
+
     private companion object {
+        const val WORKBENCH_SPACE = 15439
+        const val WORKBENCH_STOOL_SPACE = 15440
+        const val TOOL_SPACE_A = 15443
+        const val TOOL_SPACE_B = 15444
+        const val TOOL_SPACE_C = 15445
+        const val WOODEN_WORKBENCH_ROW = 5749
+        const val TOOL_STORE_1_ROW = 5758
+        const val WOODEN_WORKBENCH = 6791
+        const val STOOL = 6806
+        const val TOOLS_1 = 6786
+        const val TOOLS_2 = 6787
+        const val CHISEL = 1755
+        const val KNIFE = 946
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
         const val CRUDE_CHAIR_ROW = 5517

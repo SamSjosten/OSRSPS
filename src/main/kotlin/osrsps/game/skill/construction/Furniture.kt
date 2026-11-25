@@ -20,7 +20,9 @@ private val logger = KotlinLogging.logger {}
  * A piece of furniture a hotspot can hold, from the cache's `furniture` table ([osrsps.cache.FurnitureLoader]): its
  * row, its name and icon (`model_obj`) in the creation menu, its materials (obj and count; `any_nails` is any nails)
  * and its Construction level, and any other skill's level it needs (by stat id: the barrels' Cooking). [hidden] rows are
- * left out of the menu, as the table says.
+ * left out of the menu, as the table says. [upgradeFrom] (`upgrade_source_relative`) makes it an upgrade: it is built
+ * over the piece that many places before it in its hotspot's list, or on an empty hotspot when that is before the first
+ * (the client's own check, script5921).
  */
 data class FurnitureOption(
     val row: Int,
@@ -30,6 +32,7 @@ data class FurnitureOption(
     val level: Int,
     val hidden: Boolean = false,
     val otherLevels: List<Pair<Int, Int>> = emptyList(),
+    val upgradeFrom: Int? = null,
 )
 
 /** The cache's furniture by room type id ([RoomType.id]): each hotspot's choices, in the order the room lists them. */
@@ -70,6 +73,13 @@ object FurnitureBuilds {
     private const val CORNER = "corner"
     private const val SCROLLS = "scrolls"
     private const val CROCKERY = "crockery"
+    private const val STOOL = "stool"
+
+    /** The workshop's five tool spaces (`poh_workshop_3a` to `_3e`), in order. */
+    private val TOOL_SPACES = listOf("a", "b", "c", "d", "e")
+
+    /** A [Build.variants] value for a hotspot the piece leaves as it is: still a hotspot, nothing built on it. */
+    const val NONE = -1
 
     val HOTSPOTS: Map<Int, Hotspot> = mapOf(
         CHAIR_SPACE_1 to Hotspot(RoomType.PARLOUR, 0),
@@ -102,6 +112,20 @@ object FurnitureBuilds {
         15302 to Hotspot(RoomType.DINING_ROOM, 4),
         15303 to Hotspot(RoomType.DINING_ROOM, 5),
         15304 to Hotspot(RoomType.DINING_ROOM, 6),
+        // poh_workshop_1 (workbench) and its stool, _2 (clockmaking) and its stool, _3a to _3e (tools), _4 (repair) and
+        // its stool, _5 (heraldry).
+        15439 to Hotspot(RoomType.WORKSHOP, 0),
+        15440 to Hotspot(RoomType.WORKSHOP, 0, STOOL),
+        15441 to Hotspot(RoomType.WORKSHOP, 1),
+        15442 to Hotspot(RoomType.WORKSHOP, 1, STOOL),
+        15443 to Hotspot(RoomType.WORKSHOP, 2, "a"),
+        15444 to Hotspot(RoomType.WORKSHOP, 2, "b"),
+        15445 to Hotspot(RoomType.WORKSHOP, 2, "c"),
+        15446 to Hotspot(RoomType.WORKSHOP, 2, "d"),
+        15447 to Hotspot(RoomType.WORKSHOP, 2, "e"),
+        15448 to Hotspot(RoomType.WORKSHOP, 3),
+        15449 to Hotspot(RoomType.WORKSHOP, 3, STOOL),
+        15450 to Hotspot(RoomType.WORKSHOP, 4),
     )
 
     private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
@@ -109,6 +133,18 @@ object FurnitureBuilds {
     private fun shelves(loc: Int, crockery: Int, xp: Int) = Build(loc, xp, mapOf(CROCKERY to crockery))
 
     private fun bookcase(loc: Int, scrolls: Int, xp: Int) = Build(loc, xp, mapOf(SCROLLS to scrolls))
+
+    private fun withStool(loc: Int, stool: Int, xp: Int) = Build(loc, xp, mapOf(STOOL to stool))
+
+    /** Tool store [tier]: a rack of tools on each of the first [tier] tool spaces (`poh_tools1` to its own), the rest bare. */
+    private fun toolStore(tier: Int) = Build(TOOLS_1 + tier - 1, 120, TOOL_SPACES.withIndex().associate { (i, space) -> space to if (i < tier) TOOLS_1 + i else NONE })
+
+    /** `poh_tools1`; `poh_tools2` to `5` follow it. */
+    const val TOOLS_1 = 6786
+
+    /** `poh_stool_1` and `_2`. */
+    private const val STOOL_1 = 6806
+    private const val STOOL_2 = 6807
 
     /** By `furniture` row. */
     val BUILDS: Map<Int, Build> = mapOf(
@@ -204,6 +240,31 @@ object FurnitureBuilds {
         5592 to Build(13309, 420),
         // The Greenman carving (poh_greenman_wall_decoration); 0 XP, as the page has it.
         6027 to Build(57012, 0),
+        // The workshop (the Workshop page's XP). Wooden, oak and steel framed workbenches and the benches with a vice and a
+        // lathe (poh_workbench_1 to 5); crafting tables 1 to 4 (poh_clockmaking_1 to 4, the clockmaker's bench); tool
+        // stores 1 to 5; the repair bench, whetstone and armour stand (poh_repair_1 to 3); the pluming stand, shield easel
+        // and banner easel (poh_repair_4 to 6). GUESSED: which stool goes with which bench (the first for the workbench
+        // and the repair bench, the second for the clockmaker's).
+        5749 to withStool(6791, STOOL_1, 143),
+        5750 to withStool(6792, STOOL_1, 300),
+        5751 to withStool(6793, STOOL_1, 440),
+        5752 to withStool(6794, STOOL_1, 140),
+        5753 to withStool(6795, STOOL_1, 140),
+        5754 to withStool(6796, STOOL_2, 240),
+        5755 to withStool(6797, STOOL_2, 1),
+        5756 to withStool(6798, STOOL_2, 2),
+        5757 to withStool(6799, STOOL_2, 120),
+        5758 to toolStore(1),
+        5759 to toolStore(2),
+        5760 to toolStore(3),
+        5761 to toolStore(4),
+        5762 to toolStore(5),
+        5763 to withStool(6800, STOOL_1, 120),
+        5764 to withStool(6801, STOOL_1, 260),
+        5765 to withStool(6802, STOOL_1, 500),
+        5766 to Build(6803, 120),
+        5767 to Build(6804, 240),
+        5768 to Build(6805, 510),
     )
 
     /**
@@ -233,14 +294,40 @@ object FurnitureBuilds {
         (RoomType.DINING_ROOM to 4) to 5535..5538,
         (RoomType.DINING_ROOM to 5) to listOf(5587, 5588, 5589, 6027),
         (RoomType.DINING_ROOM to 6) to 5590..5592,
+        (RoomType.WORKSHOP to 0) to 5749..5753,
+        (RoomType.WORKSHOP to 1) to 5754..5757,
+        (RoomType.WORKSHOP to 2) to 5758..5762,
+        (RoomType.WORKSHOP to 3) to 5763..5765,
+        (RoomType.WORKSHOP to 4) to 5766..5768,
     )
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
     fun buildsOn(hotspot: Int, loc: Int): Boolean {
+        if (loc == NONE) return false
         val spot = HOTSPOTS[hotspot] ?: return false
         val rows = PLACES[spot.room to spot.index] ?: return false
         return rows.any { row -> BUILDS[row]?.locFor(spot.variant) == loc }
     }
+
+    /**
+     * The furniture row built at [hotspot]'s place, from what [built] (a room's, by hotspot) holds on it and its siblings:
+     * the one row whose every part matches, or null when nothing is built there (or what is doesn't match one row).
+     */
+    fun builtRow(built: Map<Int, Int>, hotspot: Int): Int? {
+        val spot = HOTSPOTS[hotspot] ?: return null
+        val ids = siblings(hotspot)
+        if (ids.none { it in built }) return null
+        return PLACES[spot.room to spot.index]?.firstOrNull { row ->
+            val build = BUILDS[row] ?: return@firstOrNull false
+            ids.all { id -> (built[id] ?: NONE) == build.locFor(HOTSPOTS.getValue(id).variant) }
+        }
+    }
+
+    /**
+     * Built locs with Upgrade as their op 4: `poh_tools1` to `4`, the steel framed bench and the bench with a vice, and
+     * crafting tables 1 to 3. Each opens the creation menu with what builds over it.
+     */
+    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798)
 
     /**
      * The oak, teak and gilded wall decorations: each shows the player's family crest (poh_decor_oak_arrav and the
@@ -255,7 +342,7 @@ object FurnitureBuilds {
     }
 
     /** Every built loc type, each with Remove as its op 5. */
-    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc }
+    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc } - NONE
 
     /** Hotspots and what is built on them: the house's locs that need handlers in its instance. */
     val INSTANCE_LOCS: Set<Int> get() = HOTSPOTS.keys + BUILT_LOCS
@@ -297,25 +384,59 @@ class Furniture(private val world: World, private val houses: Houses, private va
                 remove(this, op.loc ?: return@onLoc)
             }
         }
+        for (loc in FurnitureBuilds.UPGRADABLE) {
+            world.handlers.onLoc(loc, UPGRADE) { op ->
+                arriveDelay()
+                upgrade(this, op.loc ?: return@onLoc)
+            }
+        }
         // The menu's init (script1406) takes the chat's keys away (chatdefault_stopinput) and nothing in the client gives
         // them back, so the server does when it closes, as for the canoe map. Without it the chat ignores every key after
         // a build (nightly 2026-11-23: construction-furniture stuck at its next command).
         world.interfaces.onClose(MENU) { player -> world.interfaces.runClientScript(player, AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT, emptyList()) }
     }
 
-    /** The choices on [hotspot] the menu shows, by slot from 1. */
-    fun menu(hotspot: Int): List<FurnitureOption> {
+    /**
+     * The choices on [hotspot] the menu shows, by slot from 1, with [built] (a furniture row) at its place: with nothing
+     * there, every piece that isn't an upgrade (or upgrades an empty space); over a piece, the pieces that upgrade it.
+     */
+    fun menu(hotspot: Int, built: Int? = null): List<FurnitureOption> {
         val (room, index) = FurnitureBuilds.HOTSPOTS[hotspot] ?: return emptyList()
-        return data.options(room.id, index).filter { !it.hidden }
+        val all = data.options(room.id, index)
+        val at = if (built == null) -1 else all.indexOfFirst { it.row == built }.takeIf { it >= 0 } ?: return emptyList()
+        return all.filterIndexed { i, piece ->
+            !piece.hidden && if (piece.upgradeFrom == null) built == null else i - piece.upgradeFrom == at
+        }
     }
 
     /** Build on hotspot [hotspot]: the creation menu, then the picked piece built if the player can. */
-    private suspend fun build(context: ScriptContext, hotspot: ZoneLoc) {
+    private suspend fun build(context: ScriptContext, hotspot: ZoneLoc) = place(context, hotspot, hotspot)
+
+    /**
+     * Upgrade on built furniture [loc]: the creation menu with what builds over it, then the picked piece built in its
+     * place, as a build on its hotspot (the Wiki's Workshop page: each higher piece needs the one before it, which it
+     * replaces).
+     */
+    private suspend fun upgrade(context: ScriptContext, loc: ZoneLoc) {
+        val house = houses.houseAt(loc.x, loc.z) ?: return world.message(context.player, GameLines.NOTHING_INTERESTING)
+        val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.layer)] ?: return
+        place(context, hotspot, loc)
+    }
+
+    /**
+     * Builds on [hotspot]'s place, shown on its tile as [shown] (the hotspot itself, or what is built there): the menu of
+     * what can go there now, then the picked piece built over whatever is. A tool space left bare beside a tool store
+     * offers the store's upgrades, as its rack's Upgrade does (GUESSED).
+     */
+    private suspend fun place(context: ScriptContext, hotspot: ZoneLoc, shown: ZoneLoc) {
         val player = context.player
         val (house, room) = houses.buildingRoom(player, hotspot.x, hotspot.z) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         // Only a hotspot of the room it stands in: what is built is saved, and a save checks the two match (R50B note).
         if (FurnitureBuilds.HOTSPOTS[hotspot.id]?.room != room.type) return world.message(player, GameLines.NOTHING_INTERESTING)
-        val options = menu(hotspot.id)
+        if ((room.built[hotspot.id] ?: hotspot.id) != shown.id) return
+        val current = FurnitureBuilds.builtRow(room.built, hotspot.id)
+        if (current == null && hotspot.id in room.built) return
+        val options = menu(hotspot.id, current)
         if (options.isEmpty()) return world.message(player, GameLines.NOTHING_INTERESTING)
         openMenu(player, options)
         val slot = context.pauseButton(MENU, MENU_CONTENTS, 1..options.size)
@@ -325,7 +446,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         // Only a piece the save check knows for this place (R52B-1): what is built must always load again.
         if (!FurnitureBuilds.buildsOn(hotspot.id, build.locFor(FurnitureBuilds.HOTSPOTS[hotspot.id]?.variant))) return world.message(player, GameLines.NOTHING_INTERESTING)
-        if (!houses.stillHere(house, player) || world.locs[hotspot.x, hotspot.z, hotspot.level, hotspot.layer] != hotspot) return
+        if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
         if (!hasTools(player)) return world.message(player, ConstructionLines.FURNITURE_TOOLS)
@@ -333,17 +454,25 @@ class Furniture(private val world: World, private val houses: Houses, private va
         player.anim(BUILD_ANIM)
         context.delay(BUILD_TICKS)
         // Checked again after the wait: the materials may have gone, or the room or hotspot with them.
-        if (!houses.stillHere(house, player) || world.locs[hotspot.x, hotspot.z, hotspot.level, hotspot.layer] != hotspot) return
+        if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (nailsFor(player, piece) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
         for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
         for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
         player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
         // Every hotspot of the same place in the room takes the piece: each rug tile its corner, side or middle, every
         // window its curtains.
-        for (id in FurnitureBuilds.siblings(hotspot.id)) room.built[id] = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+        for (id in FurnitureBuilds.siblings(hotspot.id)) {
+            val loc = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+            if (loc == FurnitureBuilds.NONE) room.built.remove(id) else room.built[id] = loc
+        }
         redraw(house, room, hotspot.id)
         logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
     }
+
+    /** Whether [player] is still in [house] and [hotspot]'s place in [room] still holds [current], [shown] on its tile. */
+    private fun placeStands(house: Houses.Open, room: HouseRoom, hotspot: ZoneLoc, shown: ZoneLoc, current: Int?, player: Player): Boolean =
+        houses.stillHere(house, player) && world.locs[shown.x, shown.z, shown.level, shown.layer] == shown &&
+            (room.built[hotspot.id] ?: hotspot.id) == shown.id && FurnitureBuilds.builtRow(room.built, hotspot.id) == current
 
     /** Remove on built furniture [loc]: a prompt, then its hotspot back. */
     private suspend fun remove(context: ScriptContext, loc: ZoneLoc) {
@@ -449,8 +578,9 @@ class Furniture(private val world: World, private val houses: Houses, private va
         const val ENTRY_SCRIPT = 1404
         const val LAYOUT_SCRIPT = 1406
 
-        /** Built furniture's op 5. */
+        /** Built furniture's op 5, and an upgradable piece's op 4. */
         const val REMOVE = 5
+        const val UPGRADE = 4
 
         const val BUILD_ANIM = 3676
         const val BUILD_TICKS = 2
