@@ -2761,80 +2761,14 @@
     {
       "key": "shortcut_brimhaven_ropeswing",
       "loc": 23568,
-      "alsoLocs": [
-        23569
-      ],
+      "alsoLocs": [23569],
       "option": "Swing-on",
       "level": 10,
       "levelLine": "agility.brimhaven_ropeswing_level",
       "xpTenths": 30,
       "routes": [
-        {
-          "from": [
-            2709,
-            3209,
-            0
-          ],
-          "at": [
-            [
-              2705,
-              3209,
-              0
-            ]
-          ],
-          "moves": [
-            {
-              "type": "anim",
-              "anim": 751,
-              "ticks": 1
-            },
-            {
-              "type": "slide",
-              "to": [
-                2704,
-                3209,
-                0
-              ],
-              "anim": 751,
-              "startCycles": 0,
-              "endCycles": 60,
-              "ticks": 2
-            }
-          ]
-        },
-        {
-          "from": [
-            2704,
-            3205,
-            0
-          ],
-          "at": [
-            [
-              2703,
-              3205,
-              0
-            ]
-          ],
-          "moves": [
-            {
-              "type": "anim",
-              "anim": 751,
-              "ticks": 1
-            },
-            {
-              "type": "slide",
-              "to": [
-                2709,
-                3205,
-                0
-              ],
-              "anim": 751,
-              "startCycles": 0,
-              "endCycles": 60,
-              "ticks": 2
-            }
-          ]
-        }
+        {"from": [2709, 3209, 0], "at": [[2705, 3209, 0]], "moves": [{"type": "anim", "anim": 751, "ticks": 1}, {"type": "slide", "to": [2704, 3209, 0], "anim": 751, "startCycles": 0, "endCycles": 60, "ticks": 2}]},
+        {"from": [2704, 3205, 0], "at": [[2703, 3205, 0]], "moves": [{"type": "anim", "anim": 751, "ticks": 1}, {"type": "slide", "to": [2709, 3205, 0], "anim": 751, "startCycles": 0, "endCycles": 60, "ticks": 2}]}
       ]
     },
     {
