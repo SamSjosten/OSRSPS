@@ -130,10 +130,13 @@ class ClanStore(private val file: Path? = null) {
         return true
     }
 
-    /** Adds [member] to [clan] and saves (`::clanjoin`, for test scripts). */
+    /**
+     * Adds [member] to [clan], written at the next [flush] (the autosave), not now: joins and leaves can be repeated as
+     * fast as Recruit and Leave are answered, and each write is the whole file (exploit review R53A-4).
+     */
     fun addMember(clan: Clan, member: Member) {
         clan.members += member
-        save()
+        unwritten = true
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
@@ -172,10 +175,10 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
     }
 
-    /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
+    /** Takes [key] out of [clan]'s members, written at the next [flush] as [addMember]'s; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false
-        save()
+        unwritten = true
         logger.info { "$key left clan '${clan.name}'" }
         return true
     }
