@@ -126,11 +126,18 @@ class MeleeCombat(
     private val npcDamaged: (Npc, Player, Int) -> Unit = { _, _, _ -> },
     /**
      * Told of a player left alive by a hit, before Redemption: the jewellery that saves them
-     * ([osrsps.game.skill.magic.JewelleryEffects.hurt]). True when the shots on their way to them are to land nowhere
-     * (a phoenix necklace's heal).
+     * ([osrsps.game.skill.magic.JewelleryEffects.hurt]), saying what it did ([Rescue]).
      */
-    private val hurtAlive: (Player) -> Boolean = { false },
+    private val hurtAlive: (Player) -> Rescue = { Rescue.NONE },
+    /** A phoenix necklace's heal: the other players' attacks on their way to [Player] land nowhere ([PvpCombat.dropIncoming]). */
+    private val dropPvpHits: (Player) -> Unit = {},
 ) {
+    /**
+     * What the jewellery that saves a player did on a hit they lived through: nothing that matters to combat, a phoenix
+     * necklace's heal (the attacks on their way land nowhere), or a ring of life's teleport (no hitting back).
+     */
+    enum class Rescue { NONE, HEALED, ESCAPED }
+
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
     /**
@@ -429,7 +436,10 @@ class MeleeCombat(
         val type: AttackType = AttackType.MAGIC, val prayedOnLanding: Boolean = false,
         /** The [NpcBlinding] it lands with on a player without its protection, null for none. */
         val blinding: NpcBlinding? = null,
-    )
+    ) {
+        /** A phoenix necklace's heal while it flew: it lands nowhere. Marked, not removed, as [landShots] may be walking the list. */
+        var cancelled = false
+    }
 
     private val shots = ArrayList<Shot>()
 
@@ -947,6 +957,7 @@ class MeleeCombat(
             val shot = iterator.next()
             if (tick < shot.landTick) continue
             iterator.remove()
+            if (shot.cancelled) continue
             val player = shot.player
             if (player.loggedOut || player.dead || player.hitpoints <= 0) continue
             if (!shotLands(shot.npc, player)) continue
@@ -1074,9 +1085,10 @@ class MeleeCombat(
             died(player)
             return dealt
         }
-        saved(player)
+        val rescue = saved(player)
         redemption(player)
-        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
+        // A ring of life's teleport takes them out of the fight: no hitting back (Codex review on #956).
+        if (rescue != Rescue.ESCAPED && source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
         return dealt
@@ -1102,9 +1114,18 @@ class MeleeCombat(
         return dealt
     }
 
-    /** [hurtAlive]'s say on a hit [player] lived through; a phoenix necklace's heal drops the shots coming for them. */
-    private fun saved(player: Player) {
-        if (hurtAlive(player)) shots.removeAll { it.player === player }
+    /**
+     * [hurtAlive]'s say on a hit [player] lived through. A phoenix necklace's heal drops the NPCs' shots and the players'
+     * attacks coming for them and shows the healed health bar, as Redemption does.
+     */
+    private fun saved(player: Player): Rescue {
+        val rescue = hurtAlive(player)
+        if (rescue == Rescue.HEALED) {
+            for (shot in shots) if (shot.player === player) shot.cancelled = true
+            dropPvpHits(player)
+            player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
+        }
+        return rescue
     }
 
     /**

@@ -771,6 +771,7 @@ class World(
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
+        dropPvpHits = { pvpCombat.dropIncoming(it) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */

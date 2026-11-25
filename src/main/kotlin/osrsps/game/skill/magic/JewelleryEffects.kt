@@ -6,6 +6,7 @@ import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.content.EdgevilleRespawn
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.Teleblock
 import osrsps.game.dialogue.Lines
 
@@ -46,18 +47,18 @@ class JewelleryEffects(private val world: World) {
 
     /**
      * [player] lived through a hit: a phoenix necklace or necklace of faith works if they are low enough, then a ring of
-     * life if they still are. True when a phoenix necklace healed them.
+     * life if they still are. Says what happened that combat cares about: a phoenix necklace's heal, or the ring's escape.
      */
-    fun hurt(player: Player): Boolean {
+    fun hurt(player: Player): MeleeCombat.Rescue {
         val max = player.skills.baseLevel(Skill.HITPOINTS)
         val neck = player.equipment[WearPos.NECK]?.id
         val text = world.textFor(player)
-        var healed = false
+        var rescue = MeleeCombat.Rescue.NONE
         if (neck != null && neck == phoenix && player.hitpoints * 5 <= max) {
             player.equipment[WearPos.NECK] = null
             player.hitpoints = minOf(max, player.hitpoints + max * 3 / 10)
             player.message(text[JewelleryEffectLines.PHOENIX])
-            healed = true
+            rescue = MeleeCombat.Rescue.HEALED
         } else if (neck != null && neck == faith && player.hitpoints * 5 < max) {
             player.equipment[WearPos.NECK] = null
             val prayer = player.skills.baseLevel(Skill.PRAYER)
@@ -78,8 +79,9 @@ class JewelleryEffects(private val world: World) {
                 val (x, z) = RESPAWN.pick({ x, z -> world.canStand(x, z, RESPAWN.level) }) { world.random.nextInt(it) }
                 world.teleport(player, x, z, RESPAWN.level)
             }
+            rescue = MeleeCombat.Rescue.ESCAPED
         }
-        return healed
+        return rescue
     }
 
     /** Whether the ring of life may take [player] away: not deeper than level 30 Wilderness, Tele Blocked or in an instance. */
