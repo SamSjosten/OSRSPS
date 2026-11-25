@@ -47,6 +47,7 @@ import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.magic.JewelleryEnchantLines
+import osrsps.game.skill.magic.JewelleryEffectLines
 import osrsps.game.skill.magic.JewelleryTeleportLines
 import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
@@ -135,6 +136,7 @@ object DialogueLines {
         AlchemyLines,
         SuperheatLines,
         JewelleryEnchantLines,
+        JewelleryEffectLines,
         JewelleryTeleportLines,
         BorkLines,
         BrutusLines,

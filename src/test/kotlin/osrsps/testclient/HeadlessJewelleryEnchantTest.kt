@@ -7,9 +7,12 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Spells
+import osrsps.game.content.Kudos
 import osrsps.game.skill.magic.JewelleryEnchant
 import osrsps.game.skill.magic.JewelleryEnchantData
 import osrsps.game.skill.magic.TeleportObjs
@@ -32,6 +35,12 @@ class HeadlessJewelleryEnchantTest {
         params[Spells.PARAM_RUNES[0].second] = 1
         params[Spells.PARAM_RUNES[1].first] = TeleportObjs.WATER
         params[Spells.PARAM_RUNES[1].second] = 1
+        val lvl3 = HashMap<Int, Any>()
+        lvl3[Spells.PARAM_NAME] = "Lvl-3 Enchant"
+        lvl3[Spells.PARAM_LEVEL] = 49
+        lvl3[Spells.PARAM_COMPONENT] = (Spells.SPELLBOOK shl 16) or LVL3_COMPONENT
+        lvl3[Spells.PARAM_RUNES[0].first] = COSMIC
+        lvl3[Spells.PARAM_RUNES[0].second] = 1
         val objTypes = TeleportObjs.objTypes(
             ObjType(COSMIC, "Cosmic rune", stackable = true, internalName = "cosmicrune"),
             ObjType(SPELL, "null", params = params, internalName = "07_enchant_amulet_lvl1"),
@@ -40,10 +49,15 @@ class HeadlessJewelleryEnchantTest {
             ObjType(SAPPHIRE_AMULET, "Sapphire amulet", wearpos1 = WearPos.NECK, internalName = "strung_sapphire_amulet"),
             ObjType(AMULET_OF_MAGIC, "Amulet of magic", wearpos1 = WearPos.NECK, internalName = "amulet_of_magic"),
             ObjType(RUBY_RING, "Ruby ring", wearpos1 = WearPos.RING, internalName = "ruby_ring"),
+            ObjType(LVL3_SPELL, "null", params = lvl3, internalName = "49_enchant_amulet_lvl3"),
+            ObjType(RUBY_NECKLACE, "Ruby necklace", wearpos1 = WearPos.NECK, internalName = "ruby_necklace"),
+            ObjType(DIGSITE_5, "Digsite pendant (5)", wearpos1 = WearPos.NECK, internalName = "necklace_of_digsite_5"),
         )
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = osrsps.game.GameRandom(7), objTypes = objTypes,
             spells = Spells.load(objTypes, osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE), cycleMillis = millis,
+            // vm_necklace as the museum's test has it.
+            varTypes = VarTypes(6_000, mapOf(Kudos.VARBIT_NECKLACE to VarbitType(1010, 12, 12))),
         )
     }
 
@@ -65,6 +79,26 @@ class HeadlessJewelleryEnchantTest {
         commandReply("keys on") { it == "Dialogue shows keys" }
         commandReply("setlevel magic $level") { it.contains("set to level $level") }
         await("Magic $level") { stat(MAGIC)?.takeIf { it.level == level } }
+    }
+
+    @Test
+    fun `a ruby necklace takes Lvl-3 Enchant only once an archaeologist has taught the Digsite pendant`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dora").use { client ->
+                client.ready(49)
+                client.give(RUBY_NECKLACE)
+                client.give(COSMIC, 2)
+                val cast = { client.ifButtonT(Spells.SPELLBOOK, LVL3_COMPONENT, -1, -1, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(RUBY_NECKLACE), RUBY_NECKLACE) }
+                cast()
+                client.await("the refusal") { if (client.messages().any { it.text == "[jewellery_enchant.need_lesson]" }) Unit else null }
+                assertEquals(1, client.count(RUBY_NECKLACE))
+                assertEquals(2, client.count(COSMIC), "no runes spent")
+                client.commandReply("varbit ${Kudos.VARBIT_NECKLACE} 1") { it.startsWith("Varbit") }
+                client.awaitTicks(6)
+                cast()
+                client.await("a Digsite pendant") { if (client.count(DIGSITE_5) == 1) Unit else null }
+            }
+        }
     }
 
     @Test
@@ -145,5 +179,9 @@ class HeadlessJewelleryEnchantTest {
         const val SAPPHIRE_AMULET = 1694
         const val AMULET_OF_MAGIC = 1727
         const val RUBY_RING = 1641
+        const val LVL3_SPELL = 3277
+        const val LVL3_COMPONENT = 40
+        const val RUBY_NECKLACE = 1660
+        const val DIGSITE_5 = 11190
     }
 }
