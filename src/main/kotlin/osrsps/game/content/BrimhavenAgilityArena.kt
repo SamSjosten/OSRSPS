@@ -188,7 +188,8 @@ class AgilityArena(private val world: World) {
     private var movedAt = 0L
     private val tagged = HashSet<String>()
     private val paid = HashSet<String>()
-    private val shown = HashMap<String, Int>()
+    /** The dispenser each player's client has the arrow over, and the session it went to: a reconnect gets it again. */
+    private val shown = HashMap<String, Pair<Int, Any>>()
 
     /** Tests: moves the arrow once on the next tick a player is in the arena, whatever [rotateTicks] is. */
     internal fun moveArrow() { due = true }
@@ -214,10 +215,10 @@ class AgilityArena(private val world: World) {
         for (player in players) {
             val was = shown[player.saveKey]
             if (player in inside) {
-                if (was == active) continue
+                if (was != null && was.first == active && was.second === player.session) continue
                 val tile = BrimhavenAgilityArena.DISPENSERS[active]
                 player.session.queue(HintArrow(HintArrow.TileHintArrow(tile.x, tile.z, BrimhavenAgilityArena.ARROW_HEIGHT, HintArrow.TileHintArrow.HintArrowTilePosition.CENTER)))
-                shown[player.saveKey] = active
+                shown[player.saveKey] = active to player.session
             } else if (was != null) {
                 player.session.queue(HintArrow(HintArrow.ResetHintArrow))
                 shown.remove(player.saveKey)

@@ -128,8 +128,11 @@ class HeadlessAgilityArenaTest {
                 client.await("in the arena") { client.position?.takeIf { it == Coord(2805, 9589, 3) } }
                 client.locOp(BrimhavenAgilityArena.LADDER_UP, 2805, 9590, BrimhavenAgilityArena.CLIMB)
                 client.await("back in the hut") { client.position?.takeIf { it == Coord(2810, 3194, 0) } }
+                // A new refusal, not the first one still in the history.
+                val before = client.messages().size
                 client.locOp(BrimhavenAgilityArena.LADDER_DOWN, 2809, 3194, BrimhavenAgilityArena.CLIMB)
-                client.message("[izzy.not_paid]")
+                client.await("a second refusal") { client.messages().drop(before).firstOrNull { it.text == "[izzy.not_paid]" } }
+                client.awaitTicks(2)
                 assertEquals(Coord(2810, 3194, 0), client.position, "the fee lasts one way in")
             }
         }
@@ -266,6 +269,26 @@ class HeadlessAgilityArenaTest {
                 for (key in listOf("trade_in", "right_tack")) client.chat("pirate_jackie.$key")
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
             }
+        }
+    }
+
+    @Test
+    fun `a player who reconnects in the arena gets the arrow again, over the dispenser it moved to while they were gone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            val client = server.login("fay")
+            client.ready()
+            client.tele(2805, 9589, 3)
+            client.await("the hint arrow") { client.arrows().firstOrNull() }
+            val arena = server.world.agilityArena
+            // The arrow moves; the old connection has it, as a dropped one would, then the reconnect comes in.
+            val arrows = client.arrows().size
+            arena.moveArrow()
+            client.await("the arrow to move") { if (client.arrows().size > arrows) Unit else null }
+            server.reconnect("fay", client).use { back ->
+                back.await("the arrow on the new connection") { back.arrows().firstOrNull() }
+            }
+            client.close()
         }
     }
 
