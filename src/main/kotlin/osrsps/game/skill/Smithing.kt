@@ -132,8 +132,10 @@ class Smithing(private val world: World) {
     private fun ScriptContext.smeltOne(bar: Bar) {
         for ((ore, count) in bar.ores) removeObj(player, ore, count)
         val text = world.textFor(player)
-        // The Wiki's Iron bar: half of all iron ore is too impure at a furnace, whatever the level.
-        if (bar === IRON && !world.random.chance(1, 2)) {
+        // The Wiki's Iron bar: half of all iron ore is too impure at a furnace, whatever the level, but none with a ring of
+        // forging worn, which spends a use on each (Ring of forging).
+        val forged = bar === IRON && world.jewelleryEffects.use(player, world.jewelleryEffects.forging)
+        if (bar === IRON && !forged && !world.random.chance(1, 2)) {
             player.message(text[SmithingLines.IMPURE])
             return
         }

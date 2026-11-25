@@ -1406,6 +1406,7 @@ class World(
         superheat.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
+        jewelleryEffects.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
