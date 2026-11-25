@@ -55,6 +55,11 @@
    "contains": "antique_lamp.title"
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "let the screen settle: its if1/if2 varps arrive after it opens, and their onvartransmit redraw (xpreward_update with no skill) undoes a choice made in the same moment, as three 217 runs showed"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 240,
    "component": 17,
