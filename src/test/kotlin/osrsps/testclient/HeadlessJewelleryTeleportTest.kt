@@ -218,6 +218,31 @@ class HeadlessJewelleryTeleportTest {
     }
 
     @Test
+    fun `the Farming Guild lands a player under 45 Farming outside its doors and one with 45 inside`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gwen").use { client ->
+                client.ready()
+                client.give(SKILLS_NECKLACES[4])
+                client.command("setlevel farming 44")
+                client.itemOp(SKILLS_NECKLACES[4], RUB)
+                client.menu("the first page", listOf("Fishing Guild", "Mining Guild", "Crafting Guild", "Cooking Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(5)
+                client.menu("the second page", listOf("Woodcutting Guild", "Farming Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(2)
+                client.landsWithin(1248, 3719, 0)
+                client.command("setlevel farming 45")
+                client.itemOp(SKILLS_1, RUB)
+                client.menu("the first page again", listOf("Fishing Guild", "Mining Guild", "Crafting Guild", "Cooking Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(5)
+                client.menu("the second page again", listOf("Woodcutting Guild", "Farming Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(2)
+                client.landsWithin(1248, 3725, 0)
+                assertEquals(1, client.count(SKILLS))
+            }
+        }
+    }
+
+    @Test
     fun `the burning amulet warns before the Wilderness, the necklace of passage crumbles away, the ring of returning goes straight to Lumbridge`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->

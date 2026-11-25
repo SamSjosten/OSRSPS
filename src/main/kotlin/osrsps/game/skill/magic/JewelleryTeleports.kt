@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.EquipmentTab
 import osrsps.game.InvObj
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.content.EdgevilleRespawn
@@ -45,7 +46,13 @@ object JewelleryTeleportLines : Lines("jewellery_teleport", "Ring of dueling") {
  * Where a piece of jewellery takes the player: its worn option's [name] (the cache's), the [landing], and whether the
  * player is warned first because it is in the Wilderness ([wilderness]).
  */
-class JewelleryDestination(val name: String, val landing: Landing, val wilderness: Boolean = false)
+class JewelleryDestination(val name: String, val landing: Landing, val wilderness: Boolean = false, val inside: GuildLanding? = null)
+
+/**
+ * The landing inside a guild for a player whose [skill] is at least [level] (its current level, boosts counting:
+ * guessed, as the guilds' doors take boosts); anyone else gets the destination's own landing, outside.
+ */
+class GuildLanding(val skill: Skill, val level: Int, val landing: Landing)
 
 /**
  * One kind of teleport jewellery: its [forms] from most charges to one (one form that never runs out when [unlimited]),
@@ -154,7 +161,13 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
             val level = entry["level"]?.jsonPrimitive?.int ?: 0
             require(level in 0..3 && r >= 0) { "level $level, r $r" }
             val wilderness = entry["wilderness"]?.jsonPrimitive?.boolean ?: false
-            return JewelleryDestination(entry.required("name").jsonPrimitive.content, Landing(level, listOf(intArrayOf(x - r, z - r, x + r, z + r))), wilderness)
+            val inside = entry["inside"]?.jsonObject?.let { guild ->
+                val skill = guild.required("skill").jsonPrimitive.content.let { name -> Skill.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: throw IllegalArgumentException("skill $name") }
+                val gx = guild.required("x").jsonPrimitive.int
+                val gz = guild.required("z").jsonPrimitive.int
+                GuildLanding(skill, guild.required("level").jsonPrimitive.int, Landing(level, listOf(intArrayOf(gx, gz, gx, gz))))
+            }
+            return JewelleryDestination(entry.required("name").jsonPrimitive.content, Landing(level, listOf(intArrayOf(x - r, z - r, x + r, z + r))), wilderness, inside)
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
@@ -184,9 +197,12 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
  * the rub message (from a worn option too); the messages coming as the teleport starts; and the Corporeal Beast's cave
  * (plane 2, the only one whose map is walkable there) and Tears of Guthix (plane 2) planes. Every place is open as in
  * a post-quest world: the Wiki's Tears of Guthix, Miscellania, Dondakan, Fossil Island, Lithkren and Wyrmscraig quests
- * and unlocks, Zeah for Wintertodt and the Colosseum's Hero title for Fortis Colosseum all count as done, and the
- * Farming Guild teleport lands at the Wiki's tile whatever the Farming level (the Wiki puts a player under 45 outside,
- * at a tile it doesn't give). The ring of returning lands at the player's respawn point: Krystilia's Edgeville one
+ * and unlocks, Zeah for Wintertodt and the Colosseum's Hero title for Fortis Colosseum all count as done. The Farming
+ * Guild teleport puts a player with 45 Farming inside the guild and anyone else outside (Wiki); the outside tile
+ * (1248,3719) is south of the guild's front doors (1248-1249,3723, the 242 map), and the inside one (1248,3725), just
+ * through them, is inferred from the map. The Mining Guild and Woodcutting Guild teleports land outside, as the Wiki
+ * has them (the Dwarven Mine side of the underground entrance, north of the members' area [osrsps.game.skill.Mining];
+ * east of the Woodcutting Guild's gate at x 1657), so they need no level. The ring of returning lands at the player's respawn point: Krystilia's Edgeville one
  * when they have it switched on, else Lumbridge.
  *
  * Not built here: the ring of wealth's Features, Boss Log and Coin Collection, and its coin collecting and drop effects
@@ -306,12 +322,14 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
 
     /**
      * Where [destination] lands [player]: the ring of returning takes them to the respawn point they chose, Krystilia's
-     * Edgeville one ([EdgevilleRespawn]) when they have it switched on, else Lumbridge's (the data file's tile).
+     * Edgeville one ([EdgevilleRespawn]) when they have it switched on, else Lumbridge's (the data file's tile); the
+     * skills necklace's Farming Guild puts a player with the guild's level inside ([GuildLanding]), anyone else outside.
      */
     private fun ScriptContext.landingFor(jewellery: TeleportJewellery, destination: JewelleryDestination): Landing {
         if (jewellery.toRespawn && EdgevilleRespawn.active(world, player)) {
             return Landing(0, listOf(intArrayOf(EdgevilleRespawn.X, EdgevilleRespawn.Z, EdgevilleRespawn.X, EdgevilleRespawn.Z)))
         }
+        destination.inside?.let { if (player.skills.currentLevel(it.skill) >= it.level) return it.landing }
         return destination.landing
     }
 
