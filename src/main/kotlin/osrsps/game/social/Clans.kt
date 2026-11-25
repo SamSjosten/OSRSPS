@@ -4,6 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.clan.ClanChannelFull
 import net.rsprot.protocol.game.outgoing.clan.ClanSettingsFull
 import net.rsprot.protocol.game.outgoing.clan.MessageClanChannel
+import net.rsprot.protocol.game.outgoing.clan.VarClan
+import net.rsprot.protocol.game.outgoing.clan.VarClanDisable
+import net.rsprot.protocol.game.outgoing.clan.VarClanEnable
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.message.OutgoingGameMessage
@@ -260,6 +263,7 @@ class Clans(
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
         recolour(player, colour(clan))
         send(player, settingsFull(clan))
+        sendProfile(player, clan)
         joinChannel(player, clan)
     }
 
@@ -274,9 +278,11 @@ class Clans(
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
             send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
             send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+            send(player, VarClanDisable)
         } else {
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
             send(player, settingsFull(clan))
+            sendProfile(player, clan)
             val members = channels[clan.id]
             send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         }
@@ -441,6 +447,7 @@ class Clans(
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
             send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
             send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+            send(player, VarClanDisable)
             showRecruit(player)
             if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
         }
@@ -722,6 +729,35 @@ class Clans(
         if (id < player.vars.types.varpCount) player.vars[id] = value
     }
 
+    /**
+     * The clan's profile vars, which the client reads with clanprofile_find and %varclan: VARCLAN_ENABLE, then the coffer's
+     * coins (varclan_3, which clan_storage_main_drawcoins draws). Inferred: sent with the clan settings, to members only.
+     */
+    private fun sendProfile(player: Player, clan: ClanStore.Clan) {
+        send(player, VarClanEnable)
+        send(player, VarClan(VARCLAN_COFFER, VarClan.VarClanIntData(clan.coffer)))
+    }
+
+    /** Whether [player] may deposit into [clan]'s coffer (its Deposit into coffer permission, varclansetting 19). */
+    fun mayDeposit(player: Player, clan: ClanStore.Clan): Boolean = clan.member(player.saveKey) != null && has(player, clan, VAR_COFFER_DEPOSIT)
+
+    /** Whether [player] may withdraw from [clan]'s coffer (its Withdraw from coffer permission, varclansetting 20). */
+    fun mayWithdraw(player: Player, clan: ClanStore.Clan): Boolean = clan.member(player.saveKey) != null && has(player, clan, VAR_COFFER_WITHDRAW)
+
+    /**
+     * Puts [amount] coins into [clan]'s coffer, or takes them out when negative, saved at once, and the new sum to every
+     * online member. A withdrawal tells every online member who took how much (the Wiki: withdrawing "will always notify
+     * all members of the clan"; the line is guessed).
+     */
+    fun changeCoffer(clan: ClanStore.Clan, amount: Int, by: Player) {
+        store.setCoffer(clan, clan.coffer + amount)
+        for (member in clan.members) {
+            val online = playerByKey(member.key) ?: continue
+            send(online, VarClan(VARCLAN_COFFER, VarClan.VarClanIntData(clan.coffer)))
+            if (amount < 0) tell(online, ClanLines.COFFER_WITHDRAWN, by.username, (-amount).toString())
+        }
+    }
+
     /** Apply, confirmed: [player] becomes an applicant of the clan with [clanId], if still its guest and in no clan. */
     fun apply(player: Player, clanId: Long) {
         val clan = guestClanOf(player)?.takeIf { it.id == clanId } ?: return
@@ -764,6 +800,7 @@ class Clans(
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
         send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+        send(player, VarClanDisable)
         infoAsGuest.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
         pickingPermission.remove(player.saveKey)
@@ -796,6 +833,7 @@ class Clans(
         // Cloaks and vexilla kept from another clan take this one's colour at once, not at the next login.
         recolour(player, colour(clan))
         sendSettings(clan)
+        sendProfile(player, clan)
         joinChannel(player, clan)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
@@ -1355,6 +1393,8 @@ class Clans(
             setVarbit(founder, VARBIT_FOUNDER_MEMBER, 0)
             setVarbit(founder, VARBIT_AFFINITY, AFFINITY_CONNECTED)
             send(founder, settingsFull(clan))
+            // The coffer's profile vars too, as at login and on joining (Codex on PR 954).
+            sendProfile(founder, clan)
             joinChannel(founder, clan)
             tell(founder, ClanLines.FORMED, name)
             showRecruit(founder)
@@ -1980,6 +2020,16 @@ class Clans(
         const val VAR_BAN_FROM_CHAT = 18
         const val VAR_ICONS = 25
 
+        /**
+         * Deposit into coffer (struct_2963) and Withdraw from coffer (struct_2964, resting on it): any member by default
+         * for depositing (the Wiki: "Any member of the clan is able to deposit"), the owner for withdrawing (guessed).
+         */
+        const val VAR_COFFER_DEPOSIT = 19
+        const val VAR_COFFER_WITHDRAW = 20
+
+        /** varclan_3: the coins in the clan's coffer. */
+        const val VARCLAN_COFFER = 3
+
         /** Enter clan hall (struct_2969): Guest is both its floor and its default (param_1253, -1). */
         const val VAR_ENTER_HALL = 23
 
@@ -2042,7 +2092,7 @@ class Clans(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
             VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_FOUNDER, PERM_KICK to RANK_OWNER,
-            VAR_ENTER_HALL to RANK_GUEST,
+            VAR_ENTER_HALL to RANK_GUEST, VAR_COFFER_DEPOSIT to RANK_FOUNDER, VAR_COFFER_WITHDRAW to RANK_OWNER,
         )
 
         /**
@@ -2056,7 +2106,7 @@ class Clans(
         )
 
         /** The permission each rests on (param_1254): it never needs less than that one. */
-        val PERMISSION_BASES = mapOf(VAR_EXPEL to VAR_ASSIGN_RANKS, PERM_KICK to PERM_TALK, VAR_BAN_FROM_CHAT to PERM_KICK)
+        val PERMISSION_BASES = mapOf(VAR_EXPEL to VAR_ASSIGN_RANKS, PERM_KICK to PERM_TALK, VAR_BAN_FROM_CHAT to PERM_KICK, VAR_COFFER_WITHDRAW to VAR_COFFER_DEPOSIT)
 
         /** clans_permissions: the permissions page, its Back button, its buttons' list and the popup's place. */
         const val INFO_PERMISSIONS = 23
@@ -2076,6 +2126,7 @@ class Clans(
             5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 7 to PERM_TALK, 8 to PERM_KICK, 9 to VAR_BAN_FROM_CHAT,
             // Enter clan hall (struct_2969): enum_3831's first, after the guest toggles (10 to 14), events (15 to 17) and
             // coffer (18, 19) in enum_3825's order, as clan_permission_init numbers the buttons (Codex on PR 911).
+            18 to VAR_COFFER_DEPOSIT, 19 to VAR_COFFER_WITHDRAW,
             20 to VAR_ENTER_HALL,
         )
 
@@ -2270,6 +2321,7 @@ object ClanLines : Lines("clan", "Clans") {
     val BOARD_NO_CLAN = line("board_no_clan", "the recruitment board's List your clan in no clan (guessed)")
     val BOARD_NOT_ALLOWED = line("board_not_allowed", "List your clan or De-list below the clan's Recruitment permission (guessed)")
     val BOARD_LISTED = line("board_listed", "List your clan: the clan is on the recruitment board now (guessed)", "clan")
+    val COFFER_WITHDRAWN = line("coffer_withdrawn", "every online member, when someone withdraws from the clan's coffer (guessed)", "name", "amount")
     val BOARD_DELISTED = line("board_delisted", "De-list: the clan is off the recruitment board (guessed)", "clan")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
     val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")

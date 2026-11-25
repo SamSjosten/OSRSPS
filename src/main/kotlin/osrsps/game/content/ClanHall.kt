@@ -37,10 +37,10 @@ object ClanHallLines : Lines("clan_hall", "Clan hall portal") {
  *   gives it Guest as its default.
  * - The exit portal's Leave, and logging out inside, put the player outside the hub portal.
  * - The hall's altar's Pray-at recharges prayer as the churches' do. Its bank booths, deposit box and oven work as
- *   every other's (Banking, Cooking).
+ *   every other's (Banking, Cooking). Its coffer is [ClanCoffer].
  *
  * Guessed: every line, the tiles each way (beside each portal), and that the portals act at once. Not built yet: the
- * hall settings (home world, lock, most players), the coffer, party chest, piano, combat ring, dummy and the hall's
+ * hall settings (home world, lock, most players), the party chest, piano, combat ring, dummy and the hall's
  * people.
  */
 class ClanHall(private val world: World) {
@@ -161,9 +161,10 @@ class ClanHall(private val world: World) {
 
         /**
          * The hall's locs whose options work inside its instances (locs elsewhere in instances do nothing unless listed):
-         * the exit, the altar, the bank booths (fai_varrock_bankbooth), the deposit box and the oven (fai_varrock_posh_stove).
+         * the exit, the altar, the bank booths (fai_varrock_bankbooth), the deposit box, the oven (fai_varrock_posh_stove)
+     * and the coffer ([ClanCoffer]).
          */
-        val INSTANCE_LOCS = setOf(EXIT, ALTAR, 10583, 41723, 7421)
+        val INSTANCE_LOCS = setOf(EXIT, ALTAR, 10583, 41723, 7421, ClanCoffer.COFFER)
 
         /** The hall's map: the south-west tile of map square 27,85, copied whole (8 by 8 zones, every level). */
         const val TEMPLATE_X = 1728
