@@ -55,7 +55,10 @@ class HeadlessAgilityArenaTest {
     private val locs = listOf(
         ZoneLoc(BrimhavenAgilityArena.LADDER_DOWN, 10, 1, 2809, 3194, 0),
         ZoneLoc(BrimhavenAgilityArena.LADDER_UP, 10, 0, 2805, 9590, 3),
-    ) + BrimhavenAgilityArena.DISPENSERS.map { ZoneLoc(BrimhavenAgilityArena.DISPENSER, 10, 0, it.x, it.z, it.level) }
+    ) + BrimhavenAgilityArena.DISPENSERS.map { ZoneLoc(BrimhavenAgilityArena.DISPENSER, 10, 0, it.x, it.z, it.level) } +
+        // The western planks, ends and middle pieces, and a climbing rope in the pit below their east end.
+        PLANKS.flatMap { (z, ids) -> ids.mapIndexed { i, (id, angle) -> ZoneLoc(id, 22, angle, 2764 + i, z, 3) } } +
+        ZoneLoc(BrimhavenAgilityArena.CLIMBING_ROPE, 10, 0, 2771, 9557, 0)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -308,7 +311,73 @@ class HeadlessAgilityArenaTest {
         }
     }
 
+    @Test
+    fun `a broken plank drops the player into the pit, the climbing rope takes them back, and the smooth one holds`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("dee").use { client ->
+                client.ready()
+                client.commandReply("setlevel hitpoints 60") { true }
+                client.await("60 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 60 } }
+                client.tele(2770, 9557, 3)
+                client.awaitTicks(2)
+                val arena = server.world.agilityArena
+                val rows = BrimhavenAgilityArena.PLANK_ROWS[0]
+                val smooth = rows[arena.smoothRow(0)]
+                val broken = rows.first { it != smooth }
+                // The smooth plank's middle is the map's whole one, the others' broken.
+                for (z in rows) {
+                    val middles = (2765..2768).map { x -> server.world.locs.at(x, z, 3).single().id }
+                    assertEquals(z != smooth, BrimhavenAgilityArena.PLANK_BROKEN in middles, "row $z: $middles")
+                }
+
+                client.tele(2770, broken, 3)
+                client.locOp(endAt(broken), 2769, broken, 1)
+                client.await("in the pit") { client.position?.takeIf { it == Coord(2770, broken, 0) } }
+                // 60 * 5 / 100 + 2.
+                client.await("a 5 hit") { client.stat(HITPOINTS)?.takeIf { it.level == 55 } }
+                client.locOp(BrimhavenAgilityArena.CLIMBING_ROPE, 2771, 9557, BrimhavenAgilityArena.CLIMB)
+                client.await("back up") { client.position?.takeIf { it == Coord(2771, 9557, 3) } }
+
+                val before = client.stat(AGILITY)!!.xp
+                client.tele(2770, smooth, 3)
+                client.locOp(endAt(smooth), 2769, smooth, 1)
+                client.await("across") { client.position?.takeIf { it == Coord(2763, smooth, 3) } }
+                assertEquals(before + 6, client.await("6 XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 6 } }.xp)
+
+                // At 99 a broken plank holds too.
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2770, broken, 3)
+                client.locOp(endAt(broken), 2769, broken, 1)
+                client.await("across a broken plank") { client.position?.takeIf { it == Coord(2763, broken, 3) } }
+                assertEquals(55, client.stat(HITPOINTS)!!.level)
+
+                // The smooth plank moves with the arrow, and the middle pieces are laid again to match.
+                val arrows = client.arrows().size
+                arena.moveArrow()
+                client.await("the arrow to move") { if (client.arrows().size > arrows) Unit else null }
+                client.awaitTicks(1)
+                val moved = rows[arena.smoothRow(0)]
+                for (z in rows) {
+                    val middles = (2765..2768).map { x -> server.world.locs.at(x, z, 3).single().id }
+                    assertEquals(z != moved, BrimhavenAgilityArena.PLANK_BROKEN in middles, "after the move, row $z: $middles")
+                }
+            }
+        }
+    }
+
+    private fun endAt(z: Int) = PLANKS.getValue(z).last().first
+
     private companion object {
         const val AGILITY = 16
+        const val HITPOINTS = 3
+
+        /** The western planks by row, west to east: loc id and angle, as the 242 map has them. */
+        val PLANKS = mapOf(
+            9556 to listOf(3572 to 3, 3576 to 1, 3576 to 1, 3576 to 3, 3576 to 1, 3571 to 1),
+            9557 to listOf(3572 to 3, 3573 to 3, 3574 to 1, 3573 to 3, 3574 to 3, 3570 to 3),
+            9558 to listOf(3572 to 3, 3576 to 3, 3574 to 1, 3576 to 1, 3576 to 1, 3572 to 3),
+        )
     }
 }
