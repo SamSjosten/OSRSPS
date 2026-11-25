@@ -5,15 +5,18 @@
   {"step": "waitForLogin"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::diary reset varrock", "expectMessage": "Reset varrock", "comment": "the pipe east is a Varrock hard task"},
   {"step": "command", "text": "::setlevel agility 50", "expectMessage": "50"},
   {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "99", "comment": "a pipe can hurt, and the moss giants and hobgoblins are near"},
   {"step": "command", "text": "::tele 3149 9906 0", "expectMessage": "Teleported to 3149, 9906, 0", "comment": "the west end of the pipe to the Varrock Sewers"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "locOption", "loc": "Obstacle pipe", "option": "Squeeze-through", "x": 3150, "y": 9906},
   {"step": "assertMessage", "contains": "[agility.edgeville_dungeon_pipe_level level=51]", "timeoutMs": 15000},
+  {"step": "assertVarbit", "id": 6321, "value": 0, "comment": "varrock_hard_count: turned away for level, no task"},
   {"step": "command", "text": "::setlevel agility 60", "expectMessage": "60"},
   {"step": "locOption", "loc": "Obstacle pipe", "option": "Squeeze-through", "x": 3150, "y": 9906},
   {"step": "assertLocation", "x": 3155, "y": 9906, "plane": 0, "timeoutMs": 20000, "comment": "through to the moss giants; the end tile is inferred from the map"},
+  {"step": "assertVarbit", "id": 6321, "value": 1, "timeoutMs": 5000, "comment": "the Varrock hard count goes to 1"},
   {"step": "waitTicks", "ticks": 2},
   {"step": "locOption", "loc": "Obstacle pipe", "option": "Squeeze-through", "x": 3153, "y": 9906},
   {"step": "assertLocation", "x": 3149, "y": 9906, "plane": 0, "timeoutMs": 20000, "comment": "back to Vannaka's side"},
@@ -26,6 +29,8 @@
   {"step": "locOption", "loc": "Obstacle pipe", "option": "Squeeze-through", "x": 3122, "y": 9881},
   {"step": "assertLocation", "x": 3122, "y": 9883, "plane": 0, "timeoutMs": 20000, "comment": "and back"},
   {"step": "waitTicks", "ticks": 2},
+  {"step": "assertVarbit", "id": 6321, "value": 1, "comment": "the south pipe isn't the task"},
+  {"step": "command", "text": "::diary reset varrock", "expectMessage": "Reset varrock"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

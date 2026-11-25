@@ -54,6 +54,8 @@ class HeadlessEdgevilleDungeonPipesTest {
         assertEquals(to, position!!.let { it.x to it.z }, "where $id was crossed to")
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     private fun HeadlessClient.level(skill: Int, level: Int) {
         command("setlevel ${if (skill == AGILITY) "agility" else "hitpoints"} $level")
         await("level $level") { stat(skill)?.takeIf { it.level == level } }
@@ -73,16 +75,20 @@ class HeadlessEdgevilleDungeonPipesTest {
                 client.locOp(SOUTH, 3122, 9881, 1)
                 client.await("the south level message") { client.messages().firstOrNull { it.text == "[agility.edgeville_dungeon_south_pipe_level level=60]" } }
                 assertEquals(9880, client.position!!.z)
+                assertEquals(0, client.diaryTasksDone(), "refused for level")
 
                 client.level(AGILITY, 60)
                 val before = client.stat(AGILITY)!!.xp
-                client.teleTo(3149, 9906)
-                client.crossTo(NORTH, 3150, 9906, 3155 to 9906)
-                client.crossTo(NORTH, 3153, 9906, 3149 to 9906)
+                // The south pipe isn't the Varrock hard task's; the pipe east to the sewers is, once (Codex on #952).
                 client.teleTo(3122, 9880)
                 client.crossTo(SOUTH, 3122, 9881, 3122 to 9883)
                 client.crossTo(SOUTH, 3122, 9881, 3122 to 9880)
+                assertEquals(0, client.diaryTasksDone(), "the south pipe")
+                client.teleTo(3149, 9906)
+                client.crossTo(NORTH, 3150, 9906, 3155 to 9906)
+                client.crossTo(NORTH, 3153, 9906, 3149 to 9906)
                 assertEquals(before + 40, client.await("the pipes' XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 40 } }.xp)
+                assertEquals(1, client.diaryTasksDone(), "the pipe east, once")
             }
         }
     }
@@ -108,6 +114,21 @@ class HeadlessEdgevilleDungeonPipesTest {
                 client.crossTo(NORTH, 3150, 9906, 3155 to 9906)
                 assertEquals(6, client.stat(HITPOINTS)!!.level)
                 assertEquals(stuck, client.messages().count { it.text == "[agility.pipe_stuck]" })
+            }
+        }
+    }
+
+    @Test
+    fun `stuck in the pipe east, the player still comes out and does the diary task`(@TempDir dir: Path) {
+        server(dir, data("[-1, -1]")).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.level(AGILITY, 60)
+                client.level(HITPOINTS, 20)
+                client.teleTo(3149, 9906)
+                client.crossTo(NORTH, 3150, 9906, 3155 to 9906)
+                client.await("the message") { client.messages().firstOrNull { it.text == "[agility.pipe_stuck]" } }
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
             }
         }
     }

@@ -20,6 +20,7 @@ object DiaryLines : Lines("diary", "Achievement Diary") {
     val HARD = line("hard", "the journal's Hard heading, and the tier's name in the task message")
     val ELITE = line("elite", "the journal's Elite heading, and the tier's name in the task message")
     val TASK_DONE = line("task_done", "the chat message when a task is done: well done, a {tier} task in the {area} area, the diary updated", "tier", "area")
+    val STAGE = line("stage", "the chat message when a two-stage task's first stage is done: Achievement Diary Stage Task, the current {stage} (Quest Helper waits for it)", "stage")
     val TIER_DONE = line("tier_done", "the chat message when a tier's last task is done: every {tier} task in {area}, see {taskmaster} for the reward", "tier", "area", "taskmaster")
 }
 
@@ -244,14 +245,38 @@ class Diaries(private val world: World, private val font: ChatFont) {
         if (tierDone(player, task.area, task.tier)) {
             player.message(text[DiaryLines.TIER_DONE, "tier" to tier, "area" to area, "taskmaster" to text[task.area.taskmaster]])
         }
+        // Any diary update ends a staged task's progress (the Wiki's note on staged tasks, per Codex on #952).
+        for ((_, charge) in STAGES) player.charges[charge] = 0
         return true
     }
 
-    /** [count] of [obj] made or gathered at once: any task it does ([DiaryHooks.MADE]). */
-    fun made(player: Player, obj: Int, count: Int) = DiaryHooks.made(DiaryHooks.MADE, player, obj, count).forEach { complete(player, it) }
+    /**
+     * [count] of [obj] made or gathered at once: any task it does ([DiaryHooks.MADE]). Yew logs chopped and rune dart tips
+     * smithed in Varrock are remembered first, as the first stage of their two-stage tasks.
+     */
+    fun made(player: Player, obj: Int, count: Int) {
+        if (DiaryZone.VARROCK.has(player)) {
+            when (obj) {
+                DiaryHooks.YEW_LOGS -> stage(player, DiaryTask.VARROCK_HARD_6, 1, 1)
+                DiaryHooks.RUNE_DART_TIP -> stage(player, DiaryTask.VARROCK_ELITE_4, player.charges[DART_TIPS_CHARGE] + count, DART_TIPS_NEEDED)
+            }
+        }
+        DiaryHooks.made(DiaryHooks.MADE, player, obj, count).filter { staged(player, it) }.forEach { complete(player, it) }
+    }
 
     /** [log] lit by the player ([DiaryHooks.BURNED]). */
-    fun burned(player: Player, log: Int) = DiaryHooks.made(DiaryHooks.BURNED, player, log, 1).forEach { complete(player, it) }
+    fun burned(player: Player, log: Int) = DiaryHooks.made(DiaryHooks.BURNED, player, log, 1).filter { staged(player, it) }.forEach { complete(player, it) }
+
+    /**
+     * Whether a two-stage [task]'s first stage is done: "Chop some yew logs in Varrock and burn them at the top of the
+     * Varrock church" needs a yew chopped in Varrock, "Smith and fletch ten rune darts within Varrock" ten tips smithed
+     * there. Any other task is single-stage.
+     */
+    private fun staged(player: Player, task: DiaryTask): Boolean = when (task) {
+        DiaryTask.VARROCK_HARD_6 -> player.charges[YEW_CHOPPED_CHARGE] > 0
+        DiaryTask.VARROCK_ELITE_4 -> player.charges[DART_TIPS_CHARGE] >= DART_TIPS_NEEDED
+        else -> true
+    }
 
     /** An NPC the player killed ([DiaryHooks.KILLED]). */
     fun killed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.KILLED, player, npc.type.name).forEach { complete(player, it) }
@@ -297,8 +322,12 @@ class Diaries(private val world: World, private val font: ChatFont) {
     }
 
     /** An agility obstacle or shortcut crossed, by its key in agility.json. */
-    fun obstacle(player: Player, key: String) {
-        if (key == DiaryHooks.VARROCK_FENCE) complete(player, DiaryTask.VARROCK_EASY_6)
+    fun obstacle(player: Player, key: String, success: Boolean) {
+        when (key) {
+            DiaryHooks.VARROCK_FENCE -> if (success) complete(player, DiaryTask.VARROCK_EASY_6)
+            // Inferred: a failed squeeze still comes out the far end (with damage), so it counts too.
+            DiaryHooks.EDGEVILLE_PIPE -> complete(player, DiaryTask.VARROCK_HARD_10)
+        }
     }
 
     /**
@@ -322,6 +351,30 @@ class Diaries(private val world: World, private val font: ChatFont) {
         if (key == DiaryHooks.THESSALIA_SHOP) complete(player, DiaryTask.VARROCK_EASY_1)
     }
 
+    /**
+     * A spottier cape bought from Asyff for furs: marked, so wearing one afterwards does "trade furs for a spottier cape
+     * and wear it". Inferred: the buying marks it once, and any spottier cape worn after counts.
+     */
+    fun boughtSpottierCape(player: Player) = stage(player, DiaryTask.VARROCK_HARD_1, 1, 1)
+
+    /**
+     * Sets a staged [task]'s charge to [value] (at most [needed]), and says "stage 1" as it first reaches [needed], as the
+     * live stage message does (Codex on #952). A task already done keeps no stage and says nothing. Inferred: said once per
+     * stage reached, not again for more of the same.
+     */
+    private fun stage(player: Player, task: DiaryTask, value: Int, needed: Int) {
+        if (done(player, task)) return
+        val charge = STAGES.getValue(task)
+        val before = player.charges[charge]
+        player.charges[charge] = value.coerceAtMost(needed)
+        if (before < needed && player.charges[charge] >= needed) player.message(world.textFor(player)[DiaryLines.STAGE, "stage" to 1])
+    }
+
+    /** An item worn from the inventory. */
+    fun worn(player: Player, obj: Int) {
+        if (obj == DiaryHooks.SPOTTIER_CAPE && player.charges[SPOTTIER_BOUGHT_CHARGE] > 0) complete(player, DiaryTask.VARROCK_HARD_1)
+    }
+
     /** A lap of the course whose lap message is [lapLine]. */
     fun lap(player: Player, lapLine: Line) {
         when (lapLine) {
@@ -339,6 +392,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
         player.vars[task.varp] = player.vars[task.varp] and (1 shl task.bit).inv()
         // The emotes done so far go too, so the reset starts the task afresh (Codex on #932).
         if (task == DiaryTask.VARROCK_MEDIUM_5) player.charges[SOS_EMOTES_CHARGE] = 0
+        if (task == DiaryTask.VARROCK_HARD_1) player.charges[SPOTTIER_BOUGHT_CHARGE] = 0
+        STAGES[task]?.let { player.charges[it] = 0 }
         refresh(player, task.area)
         val reward = task.area.rewardVarbits[task.tier.ordinal]
         if (player.vars.types.varbit(reward) != null) player.vars.setVarbit(reward, 0)
@@ -406,7 +461,8 @@ class Diaries(private val world: World, private val font: ChatFont) {
     fun ownsReward(player: Player, area: DiaryArea): Boolean {
         val obj = area.rewards[(highestClaimed(player, area) ?: return false).ordinal]
         return player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0 ||
-            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0
+            world.groundObjs.hasDropped(player, obj) || (world.deaths.graveOf(player)?.items?.count(obj) ?: 0) > 0 ||
+            player.trails.stashes.values.any { obj in it }
     }
 
     /** Into the pack, whose space the callers checked. */
@@ -483,6 +539,17 @@ class Diaries(private val world: World, private val font: ChatFont) {
         /** The Stronghold of Security's emotes in the emote tab, and the charge that remembers which are done. */
         val SOS_EMOTES = 28..31
         const val SOS_EMOTES_CHARGE = "diary_sos_emotes"
+        const val SPOTTIER_BOUGHT_CHARGE = "diary_spottier_bought"
+        const val YEW_CHOPPED_CHARGE = "diary_varrock_yew_chopped"
+        const val DART_TIPS_CHARGE = "diary_varrock_dart_tips"
+        const val DART_TIPS_NEEDED = 10
+
+        /** The two-stage tasks and the charge that remembers their first stage. */
+        val STAGES = mapOf(
+            DiaryTask.VARROCK_HARD_1 to SPOTTIER_BOUGHT_CHARGE,
+            DiaryTask.VARROCK_HARD_6 to YEW_CHOPPED_CHARGE,
+            DiaryTask.VARROCK_ELITE_4 to DART_TIPS_CHARGE,
+        )
 
         /** The free spaces a claim needs: the reward and its lamp (Toby's transcript). */
         const val CLAIM_SPACE = 2
