@@ -1049,6 +1049,7 @@ class World(
 
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+    val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
 
@@ -1386,6 +1387,7 @@ class World(
         ourania.register()
         houses.register()
         furniture.register()
+        kitchen.register()
         clanHall.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
@@ -2191,9 +2193,12 @@ class World(
         BrimhavenAgilityArena.savedAt(player)?.let { return PlayerSave.of(player, inventory, bank, x = it.x, z = it.z, level = it.level, held = held) }
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
+        // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
+        val leaving = if (houses.houseAt(player.x, player.z) == null) inventory
+        else inventory.filterValues { it.id !in osrsps.game.skill.construction.Kitchen.HOUSE_ONLY }
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
-            player, randomEvents.areas.withoutPlaceItems(player, inventory), bank,
+            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
             held = held,
         )
