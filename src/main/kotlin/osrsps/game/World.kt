@@ -1741,6 +1741,7 @@ class World(
         groundObjs.process()
         agilityArena.process(tick)
         archiveRaids.settleDepartures()
+        houses.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
