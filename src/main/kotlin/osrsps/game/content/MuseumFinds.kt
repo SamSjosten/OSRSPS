@@ -93,7 +93,7 @@ object MuseumCaseLines : Lines("museum_case", "Kudos") {
  * charges as [TOLD]; a case takes its find only after that. Guessed: every expression, the cases' messages
  * ([MuseumCaseLines]), the necklace's last two lines coming after its item boxes, a second necklace shown after the
  * first going the same way, and "Take a look at this..." standing in for the jewellery's own first line when the
- * jewellery is used on him. Left out: Study on the cases (their interface, `vm_digsite` 528), and the Digsite pendant's
+ * jewellery is used on him. Study on the cases is [MuseumDisplays]. Left out: the Digsite pendant's
  * enchantment itself (no Lvl-3 Enchant on jewellery yet).
  */
 object MuseumFinds {
