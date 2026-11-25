@@ -1393,6 +1393,8 @@ class Clans(
             setVarbit(founder, VARBIT_FOUNDER_MEMBER, 0)
             setVarbit(founder, VARBIT_AFFINITY, AFFINITY_CONNECTED)
             send(founder, settingsFull(clan))
+            // The coffer's profile vars too, as at login and on joining (Codex on PR 954).
+            sendProfile(founder, clan)
             joinChannel(founder, clan)
             tell(founder, ClanLines.FORMED, name)
             showRecruit(founder)

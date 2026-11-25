@@ -93,6 +93,20 @@ class HeadlessClanCofferTest {
                     alice.await("all out") { alice.varClan(Clans.VARCLAN_COFFER)?.takeIf { it == 0 } }
                     alice.await("the coins back") { alice.coins().takeIf { it == 5000 } }
                     bob.await("told") { bob.messages().firstOrNull { it.text == "[clan.coffer_withdrawn name=alice amount=1250]" } }
+
+                    // Withdraw-X with the permission taken away while the amount is asked: refused, the coffer untouched.
+                    alice.awaitTicks(ClanCoffer.COOLDOWN_TICKS.toInt())
+                    alice.ifButton(ClanCoffer.SIDE, 6, 1)
+                    alice.await("1k in again") { alice.varClan(Clans.VARCLAN_COFFER)?.takeIf { it == 1000 } }
+                    alice.awaitTicks(ClanCoffer.COOLDOWN_TICKS.toInt())
+                    val refusals = alice.messages().count { it.text == "[clan_coffer.no_withdraw]" }
+                    alice.ifButton(ClanCoffer.MAIN, 11, 1)
+                    alice.awaitTicks(2)
+                    server.world.clans.clanNamed("Odins Gate")!!.settings[Clans.VAR_COFFER_WITHDRAW] = Clans.RANK_OWNER
+                    alice.resumeCount(500)
+                    alice.await("refused after the amount") { alice.messages().count { it.text == "[clan_coffer.no_withdraw]" }.takeIf { it > refusals } }
+                    assertEquals(1000, server.world.clans.clanNamed("Odins Gate")!!.coffer)
+                    assertEquals(4000, alice.coins())
                 }
             }
         }

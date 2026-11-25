@@ -64,40 +64,66 @@ class ClanCoffer(private val world: World) {
         return typed.takeIf { it > 0 }
     }
 
+    /** The tick of each player's last coffer transfer, by save key: one per [COOLDOWN_TICKS] (Codex on PR 954). */
+    private val lastTransfer = HashMap<String, Long>()
+
+    /** Whether [player] may move coins now; marks the tick when so. */
+    private fun ready(player: Player): Boolean {
+        val last = lastTransfer[player.saveKey]
+        if (last != null && world.tick - last < COOLDOWN_TICKS) return false
+        lastTransfer[player.saveKey] = world.tick
+        return true
+    }
+
     private suspend fun withdraw(context: ScriptContext, button: Int) {
         val player = context.player
         if (player.modals[FrameSlot.MAINMODAL] != MAIN) return
-        val clan = clanHere(player)?.takeIf { it.member(player.saveKey) != null } ?: return
-        if (!world.clans.mayWithdraw(player, clan)) return world.message(player, ClanCofferLines.NO_WITHDRAW)
+        val first = clanHere(player)?.takeIf { it.member(player.saveKey) != null } ?: return
+        if (!world.clans.mayWithdraw(player, first)) return world.message(player, ClanCofferLines.NO_WITHDRAW)
         val wanted = amount(context, button) ?: return
+        // X waited on the amount: still in the hall's clan, still allowed (Codex on PR 954).
         if (player.modals[FrameSlot.MAINMODAL] != MAIN) return
+        val clan = clanHere(player)?.takeIf { it === first && it.member(player.saveKey) != null } ?: return
+        if (!world.clans.mayWithdraw(player, clan)) return world.message(player, ClanCofferLines.NO_WITHDRAW)
         if (clan.coffer <= 0) return world.message(player, ClanCofferLines.EMPTY)
         val room = (Int.MAX_VALUE.toLong() - player.inventory.count(COINS)).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val hasSlot = player.inventory.count(COINS) > 0 || player.inventory.freeSlots > 0
         val count = minOf(if (button == ALL) clan.coffer else wanted, clan.coffer, room)
         if (count <= 0 || !hasSlot) return world.message(player, ClanCofferLines.NO_ROOM)
         val type = world.objTypes[COINS] ?: return
+        if (!ready(player)) return
+        // The coffer's side is written first, then the player's: a stop between the two loses the coins rather than
+        // making them twice (Codex on PR 954).
+        world.clans.changeCoffer(clan, -count, player)
         val added = player.inventory.add(type, count)
-        if (added > 0) world.clans.changeCoffer(clan, -added, player)
+        if (added < count) world.clans.changeCoffer(clan, count - added, player)
+        world.save(player)
     }
 
     private suspend fun deposit(context: ScriptContext, button: Int) {
         val player = context.player
         if (player.modals[FrameSlot.SIDEMODAL] != SIDE) return
-        val clan = clanHere(player)?.takeIf { it.member(player.saveKey) != null } ?: return
-        if (!world.clans.mayDeposit(player, clan)) return world.message(player, ClanCofferLines.NO_DEPOSIT)
+        val first = clanHere(player)?.takeIf { it.member(player.saveKey) != null } ?: return
+        if (!world.clans.mayDeposit(player, first)) return world.message(player, ClanCofferLines.NO_DEPOSIT)
         val wanted = amount(context, button) ?: return
+        // X waited on the amount: still in the hall's clan, still allowed (Codex on PR 954).
         if (player.modals[FrameSlot.SIDEMODAL] != SIDE) return
+        val clan = clanHere(player)?.takeIf { it === first && it.member(player.saveKey) != null } ?: return
+        if (!world.clans.mayDeposit(player, clan)) return world.message(player, ClanCofferLines.NO_DEPOSIT)
         val held = player.inventory.count(COINS).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         if (held <= 0) return world.message(player, ClanCofferLines.NO_COINS)
         val space = LIMIT - clan.coffer
         if (space <= 0) return world.message(player, ClanCofferLines.FULL, "limit" to LIMIT)
+        if (!ready(player)) return
         var left = minOf(if (button == ALL) held else wanted, held, space)
         val count = left
         for ((slot, obj) in player.inventory.contents()) {
             if (left == 0) break
             if (obj.id == COINS) left -= player.inventory.remove(slot, left)
         }
+        // The player's side is written first, then the coffer's: a stop between the two loses the coins rather than
+        // making them twice (Codex on PR 954).
+        world.save(player)
         world.clans.changeCoffer(clan, count - left, player)
     }
 
@@ -118,6 +144,12 @@ class ClanCoffer(private val world: World) {
         /** clans_storage_main's a, b, c, d, x and all, and clans_storage_side's. */
         val MAIN_BUTTONS = mapOf(7 to 1, 8 to 1_000, 9 to 1_000_000, 10 to 10_000_000, 11 to X, 12 to ALL)
         val SIDE_BUTTONS = mapOf(5 to 1, 6 to 1_000, 7 to 1_000_000, 8 to 10_000_000, 9 to X, 10 to ALL)
+
+        /**
+         * Ticks between one player's coffer transfers, since each writes the clan file and the player's save at once
+         * (guessed: live's pace isn't known; Codex on PR 954).
+         */
+        const val COOLDOWN_TICKS = 2L
 
         /** The most coins a coffer holds (the Wiki's Clan Coffer page). */
         const val LIMIT = 50_000_000
