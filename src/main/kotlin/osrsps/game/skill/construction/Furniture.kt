@@ -94,6 +94,14 @@ object FurnitureBuilds {
         15404 to Hotspot(RoomType.KITCHEN, 5),
         15405 to Hotspot(RoomType.KITCHEN, 6),
         37620 to Hotspot(RoomType.KITCHEN, 7),
+        // poh_dining_room_1 (table), _2 and _3 (seating), _4 (fireplace), _5 (curtains), _6 (decoration), _7 (bell-pull).
+        15298 to Hotspot(RoomType.DINING_ROOM, 0),
+        15299 to Hotspot(RoomType.DINING_ROOM, 1),
+        15300 to Hotspot(RoomType.DINING_ROOM, 2),
+        15301 to Hotspot(RoomType.DINING_ROOM, 3),
+        15302 to Hotspot(RoomType.DINING_ROOM, 4),
+        15303 to Hotspot(RoomType.DINING_ROOM, 5),
+        15304 to Hotspot(RoomType.DINING_ROOM, 6),
     )
 
     private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
@@ -173,13 +181,36 @@ object FurnitureBuilds {
         5571 to Build(13579, 270),
         // The spice rack (poh_kitchen_rack_1).
         5572 to Build(37621, 374),
+        // The dining room (the Dining room page's XP; its fireplace and curtains are the parlour's rows). Wood, oak, carved
+        // oak, teak, carved teak, mahogany and opulent tables (poh_diningtable_1 to 7).
+        5573 to Build(13293, 115),
+        5574 to Build(13294, 240),
+        5575 to Build(13295, 360),
+        5576 to Build(13296, 360),
+        5577 to Build(13297, 600),
+        5578 to Build(13298, 840),
+        5579 to Build(13299, 3100),
+        // Wooden, oak, carved oak, teak, carved teak, mahogany and gilded benches (poh_diningchairs_1 to 7).
+        5580 to Build(13300, 115),
+        5581 to Build(13301, 240),
+        5582 to Build(13302, 240),
+        5583 to Build(13303, 360),
+        5584 to Build(13304, 360),
+        5585 to Build(13305, 560),
+        5586 to Build(13306, 1760),
+        // Rope bell-pull, bell-pull, posh bell-pull (poh_bellpull_1 to 3).
+        5590 to Build(13307, 64),
+        5591 to Build(13308, 120),
+        5592 to Build(13309, 420),
+        // The Greenman carving (poh_greenman_wall_decoration); 0 XP, as the page has it.
+        6027 to Build(57012, 0),
     )
 
     /**
      * The furniture rows each place in a room offers, as the cache's `poh_hotspot` table lists them, so a save can be
      * checked without the cache: a piece is only ever built on its own place.
      */
-    val PLACES: Map<Pair<RoomType, Int>, IntRange> = mapOf(
+    val PLACES: Map<Pair<RoomType, Int>, Iterable<Int>> = mapOf(
         (RoomType.PARLOUR to 0) to 5517..5523,
         (RoomType.PARLOUR to 1) to 5517..5523,
         (RoomType.PARLOUR to 2) to 5517..5523,
@@ -195,6 +226,13 @@ object FurnitureBuilds {
         (RoomType.KITCHEN to 5) to 5565..5568,
         (RoomType.KITCHEN to 6) to 5569..5571,
         (RoomType.KITCHEN to 7) to 5572..5572,
+        (RoomType.DINING_ROOM to 0) to 5573..5579,
+        (RoomType.DINING_ROOM to 1) to 5580..5586,
+        (RoomType.DINING_ROOM to 2) to 5580..5586,
+        (RoomType.DINING_ROOM to 3) to 5532..5534,
+        (RoomType.DINING_ROOM to 4) to 5535..5538,
+        (RoomType.DINING_ROOM to 5) to listOf(5587, 5588, 5589, 6027),
+        (RoomType.DINING_ROOM to 6) to 5590..5592,
     )
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
@@ -203,6 +241,12 @@ object FurnitureBuilds {
         val rows = PLACES[spot.room to spot.index] ?: return false
         return rows.any { row -> BUILDS[row]?.locFor(spot.variant) == loc }
     }
+
+    /**
+     * The oak, teak and gilded wall decorations: each shows the player's family crest (poh_decor_oak_arrav and the
+     * rest), which Sir Renitee gives; until crests exist they can't be built ([ConstructionLines.FURNITURE_CREST]).
+     */
+    val NEEDS_CREST: Set<Int> = setOf(5587, 5588, 5589)
 
     /** The hotspot loc types at the same place in the room as [hotspot] (itself included): built and removed together. */
     fun siblings(hotspot: Int): Set<Int> {
@@ -277,6 +321,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val slot = context.pauseButton(MENU, MENU_CONTENTS, 1..options.size)
         world.interfaces.closeModals(player)
         val piece = options.getOrNull(slot - 1) ?: return
+        if (piece.row in FurnitureBuilds.NEEDS_CREST) return world.message(player, ConstructionLines.FURNITURE_CREST)
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         // Only a piece the save check knows for this place (R52B-1): what is built must always load again.
         if (!FurnitureBuilds.buildsOn(hotspot.id, build.locFor(FurnitureBuilds.HOTSPOTS[hotspot.id]?.variant))) return world.message(player, GameLines.NOTHING_INTERESTING)

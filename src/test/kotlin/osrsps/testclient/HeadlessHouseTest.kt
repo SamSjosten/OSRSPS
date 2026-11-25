@@ -74,6 +74,8 @@ class HeadlessHouseTest {
         hotspot(FIREPLACE_SPACE, "Fireplace space"), hotspot(CURTAIN_SPACE, "Curtain space"),
         built(WOODEN_BOOKCASE, "Wooden bookcase"), built(WOODEN_SCROLLS, "Wooden bookcase"),
         built(CLAY_FIREPLACE, "Clay fireplace"), built(TORN_CURTAINS, "Torn curtains"),
+        hotspot(TABLE_SPACE, "Table space"), hotspot(DECORATION_SPACE, "Decoration space"),
+        built(WOOD_TABLE, "Table"), built(GREENMAN, "Greenman carving"),
         hotspot(STOVE_SPACE, "Stove space"), hotspot(SHELF_SPACE, "Shelf space"), hotspot(CROCKERY_SPACE, "Shelf space"), hotspot(SINK_SPACE, "Sink space"),
         built(FIREPIT, "Firepit"), built(PUMP, "Pump and drain"),
         LocType(WOODEN_SHELVES, "Shelves", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
@@ -109,6 +111,8 @@ class HeadlessHouseTest {
         objs[SAW] = ObjType(SAW, "Saw")
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         objs[STEEL_BAR] = ObjType(STEEL_BAR, "Steel bar")
+        objs[OAK_PLANK] = ObjType(OAK_PLANK, "Oak plank")
+        objs[GREENMAN_ITEM] = ObjType(GREENMAN_ITEM, "Greenman carving")
         objs[KETTLE] = ObjType(KETTLE, "Kettle")
         objs[CLAY_TEAPOT] = ObjType(CLAY_TEAPOT, "Teapot")
         objs[CLAY_CUP] = ObjType(CLAY_CUP, "Empty cup")
@@ -118,6 +122,7 @@ class HeadlessHouseTest {
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
         val kitchen = RoomType.KITCHEN
+        val dining = RoomType.DINING_ROOM
         World(
             crcs,
             CollisionMap().apply {
@@ -147,6 +152,9 @@ class HeadlessHouseTest {
                 doors(parlour.templateX, parlour.templateZ, listOf(0, 2, 3)).forEach(::add)
                 // The kitchen's doors are west and south; a 2 by 1 space in its north-west shows how a turned room moves its locs.
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
+                // A dining room's table space and wall decoration space, one tile each.
+                add(ZoneLoc(TABLE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, dining.templateX + 3, dining.templateZ + 3, 0))
+                add(ZoneLoc(DECORATION_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, dining.templateX + 1, dining.templateZ + 6, 0))
                 add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
                 // A stove space, shelves with their crockery above them, and a sink space, one tile each.
                 add(ZoneLoc(STOVE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 4, kitchen.templateZ + 4, 0))
@@ -161,6 +169,7 @@ class HeadlessHouseTest {
                 mapOf(
                     RoomType.PARLOUR.id to List(3) { chairs } + listOf(rugs, bookcases, fireplaces, curtains),
                     RoomType.KITCHEN.id to listOf(stoves, shelves, emptyList(), emptyList(), larders, sinks),
+                    RoomType.DINING_ROOM.id to listOf(tables, emptyList(), emptyList(), emptyList(), emptyList(), decorations),
                 ),
             ),
         )
@@ -179,6 +188,13 @@ class HeadlessHouseTest {
     private val stoves = listOf(FurnitureOption(FIREPIT_ROW, "Firepit", 8216, listOf(STEEL_BAR to 1, SOFT_CLAY to 2), level = 5))
     private val shelves = listOf(FurnitureOption(WOODEN_SHELVES_ROW, "Wooden shelves 1", 8223, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 6))
     private val sinks = listOf(FurnitureOption(PUMP_ROW, "Pump and drain", 8230, listOf(STEEL_BAR to 5), level = 7))
+
+    /** The dining room's table and wall decoration places' choices (rows 5573, 5587 and 6027), as the cache has them. */
+    private val tables = listOf(FurnitureOption(WOOD_TABLE_ROW, "Wood dining table", 8115, listOf(PLANK to 4, Furniture.ANY_NAILS to 4), level = 10))
+    private val decorations = listOf(
+        FurnitureOption(OAK_DECORATION_ROW, "Oak decoration", 8102, listOf(OAK_PLANK to 2), level = 16),
+        FurnitureOption(GREENMAN_ROW, "Greenman carving", 31030, listOf(GREENMAN_ITEM to 1), level = 1),
+    )
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -741,6 +757,56 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a dining table builds and is saved, a crested decoration is refused for its crest, and the Greenman carving builds`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hana").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("hana")!!
+                player.house!!.rooms += HouseRoom(RoomType.DINING_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 16")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 4")
+                client.command("item $STEEL_NAILS 4")
+                client.command("item $OAK_PLANK 2")
+                client.command("item $GREENMAN_ITEM 1")
+                client.await("the materials") { if (client.count(GREENMAN_ITEM) == 1 && client.count(OAK_PLANK) == 2 && client.count(STEEL_NAILS) == 4) Unit else null }
+                val xp = client.await("level 16") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 16 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val dx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val dz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                fun menu(space: Int, x: Int, z: Int, slot: Int) {
+                    client.locOp(space, x, z, House.BUILD)
+                    client.await("the creation menu on $space") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, slot)
+                }
+
+                menu(TABLE_SPACE, dx + 3, dz + 3, 1)
+                client.await("the table") { if (client.shown(WOOD_TABLE, dx + 3, dz + 3)) Unit else null }
+                client.await("the table's XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 115 } }
+
+                // The oak decoration needs a family crest: refused, its oak planks kept.
+                menu(DECORATION_SPACE, dx + 1, dz + 6, 1)
+                client.await("the crest refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_crest]" } }
+                assertEquals(2, client.count(OAK_PLANK))
+                assertTrue(!client.shown(GREENMAN, dx + 1, dz + 6))
+
+                // The Greenman carving goes up on the same space, for no XP.
+                menu(DECORATION_SPACE, dx + 1, dz + 6, 2)
+                client.await("the carving") { if (client.shown(GREENMAN, dx + 1, dz + 6)) Unit else null }
+                client.await("the carving used") { if (client.count(GREENMAN_ITEM) == 0) Unit else null }
+                assertEquals(xp + 115, client.stat(Skill.CONSTRUCTION.id)!!.xp)
+
+                // Both are saved with the dining room and read back.
+                val read = assertNotNull(PlayerSave.fromJson(server.world.snapshot(player).toJson("hana")).house)
+                val room = read.rooms.single { it.type == RoomType.DINING_ROOM }
+                assertEquals(mapOf(TABLE_SPACE to WOOD_TABLE, DECORATION_SPACE to GREENMAN), room.built)
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
         const val CRUDE_CHAIR = 6752
@@ -776,6 +842,15 @@ class HeadlessHouseTest {
         const val HAMMER = 2347
         const val SAW = 8794
 
+        const val TABLE_SPACE = 15298
+        const val DECORATION_SPACE = 15303
+        const val WOOD_TABLE_ROW = 5573
+        const val OAK_DECORATION_ROW = 5587
+        const val GREENMAN_ROW = 6027
+        const val WOOD_TABLE = 13293
+        const val GREENMAN = 57012
+        const val OAK_PLANK = 8778
+        const val GREENMAN_ITEM = 31024
         const val STOVE_SPACE = 15398
         const val SHELF_SPACE = 15399
         const val CROCKERY_SPACE = 15400
