@@ -101,12 +101,17 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser") {
  *   ticks) to another at random. A tag of the arrowed one gives 30 Agility XP for every 10 Agility levels (boosts and
  *   drains count, at most 300), an Agility arena ticket and a Brimhaven voucher, once until the arrow moves.
  * - **Pirate Jackie the Fruit** (5516, shown as 7650 or 7651) talks.
+ * - **The obstacles** (step K3.4b) are agility.json's `arena_` entries; a fall lands in the pit, whose climbing ropes
+ *   (3610) climb back up to the same tile on the platforms. **The planks** are rigged: of each set of three, the smooth
+ *   one holds and the broken ones break under anyone below 99 Agility (the Wiki's Plank page), and the smooth one moves
+ *   with the arrow, the planks' middle pieces laid to match ([AgilityArena.plankHolds]).
  *
  * Inferred: the arrow is the client's tile hint arrow; the ladders' landing tiles are the sides the other ladder faces, and their climbs the usual ladder anims and wait;
  * his Pay option takes the fee with the Wiki's message and no talk, and refuses with his talk's line; "initial" in the
  * transcript is back to the menu. Guessed: the hint arrow's height; that the arrow only draws its next dispenser once
  * someone is in the arena to see it; that a ticket and voucher with no room drop at the player's feet; the parrot's chathead (the
- * Eadgar parrot, 4768) and the chathead faces. Left out: the obstacles (step K3.4b); the Agility Arena Store behind
+ * Eadgar parrot, 4768) and the chathead faces. Guessed: the smooth plank drawn afresh each time the arrow moves
+ * (the Wiki: every minute), the climbing ropes' anim and wait. Left out: a broken plank's extra tick at 99; the floor traps (step K3.4c); the Agility Arena Store behind
  * Jackie's trade-in and her Trade option (step K3.4c); the diary talk and the elite diary's double tickets (no diaries
  * yet); the "Tagged a Ticket!" jingle (its id isn't known here); the minute's wait to re-enter after logging out; the
  * Brimhaven Agility worlds' first-tag shout; the clue step.
@@ -162,6 +167,23 @@ object BrimhavenAgilityArena {
         2805 to 9546, 2805 to 9557, 2805 to 9568, 2805 to 9579,
     ).map { (x, z) -> Destination(x, z, 3) }
 
+    /** The pit's climbing ropes (level 0), each back up to its own tile on level 3. */
+    const val CLIMBING_ROPE = 3610
+
+    /** The agility.json obstacle the planks are, rigged by [AgilityArena.plankHolds]. */
+    const val PLANK = "arena_plank"
+
+    /**
+     * The two sets of three planks, as the 242 map has them: west of the middle pillar of the south row but one (x 2764
+     * to 2769) and in the north-east (x 2797 to 2802), each a plank per row ([PLANK_ROWS], south to north).
+     */
+    val PLANK_SETS: List<IntRange> = listOf(2764..2769, 2797..2802)
+    val PLANK_ROWS: List<List<Int>> = listOf(listOf(9556, 9557, 9558), listOf(9589, 9590, 9591))
+
+    /** The middle pieces of a plank: smooth (3573, 3574) or broken (3576). */
+    val PLANK_MIDDLES = 3573..3576
+    const val PLANK_BROKEN = 3576
+
     /** Agility XP in tenths for a tag at [level]: 30 for every 10 levels, at most 300. */
     fun tagTenths(level: Int): Int = minOf(level, 100) / 10 * 300
 
@@ -194,6 +216,9 @@ class AgilityArena(private val world: World) {
     /** Tests: moves the arrow once on the next tick a player is in the arena, whatever [rotateTicks] is. */
     internal fun moveArrow() { due = true }
 
+    /** For each of [BrimhavenAgilityArena.PLANK_SETS], the row of its smooth plank; the map's own until the first draw. */
+    private val smooth = IntArray(BrimhavenAgilityArena.PLANK_SETS.size) { 1 }
+
     fun pay(player: Player) { paid += player.saveKey }
     fun usePaid(player: Player): Boolean = paid.remove(player.saveKey)
 
@@ -211,6 +236,10 @@ class AgilityArena(private val world: World) {
             val count = BrimhavenAgilityArena.DISPENSERS.size
             active = (active + 1 + world.random.nextInt(count - 1)) % count
             tagged.clear()
+            for (set in smooth.indices) {
+                smooth[set] = world.random.nextInt(BrimhavenAgilityArena.PLANK_ROWS[set].size)
+                layPlanks(set)
+            }
         }
         for (player in players) {
             val was = shown[player.saveKey]
@@ -225,6 +254,45 @@ class AgilityArena(private val world: World) {
             }
         }
         if (shown.size > players.size) shown.keys.retainAll(players.mapTo(HashSet()) { it.saveKey })
+    }
+
+    /**
+     * Whether the plank at [x], [z] holds [player]: the smooth one always, a broken one at 99 Agility (boosts count, Mod
+     * Ash, on the Wiki's Plank page), and otherwise it breaks.
+     */
+    fun plankHolds(player: Player, x: Int, z: Int): Boolean {
+        if (player.skills.currentLevel(Skill.AGILITY) >= BrimhavenAgilityArena.MAX_LEVEL) return true
+        val set = BrimhavenAgilityArena.PLANK_SETS.indexOfFirst { x in it }
+        if (set < 0) return true
+        return BrimhavenAgilityArena.PLANK_ROWS[set].indexOf(z) == smooth[set]
+    }
+
+    /** The smooth row of [set] now, for tests. */
+    internal fun smoothRow(set: Int): Int = smooth[set]
+
+    /**
+     * Lays [set]'s planks with the smooth one on its drawn row: each row's middle pieces become those of a row of the map
+     * (the smooth one's on the drawn row, the broken ones' on the others, in order), so the broken planks show their
+     * missing chunks. A map without the planks (tests) is left alone.
+     */
+    private fun layPlanks(set: Int) {
+        val rows = BrimhavenAgilityArena.PLANK_ROWS[set]
+        val xs = BrimhavenAgilityArena.PLANK_SETS[set].let { (it.first + 1) until it.last }
+        fun middle(x: Int, z: Int) = world.locs.at(x, z, 3).firstOrNull { it.id in BrimhavenAgilityArena.PLANK_MIDDLES }
+        fun cached(x: Int, z: Int) = (0 until 4).firstNotNullOfOrNull { layer ->
+            world.locs.cached(x, z, 3, layer)?.takeIf { it.id in BrimhavenAgilityArena.PLANK_MIDDLES }
+        }
+        val patterns = rows.map { z -> xs.map { x -> cached(x, z) ?: return } }
+        val smoothPattern = patterns.firstOrNull { row -> row.none { it.id == BrimhavenAgilityArena.PLANK_BROKEN } } ?: return
+        val broken = (patterns - setOf(smoothPattern)).iterator()
+        for ((row, z) in rows.withIndex()) {
+            val pattern = if (row == smooth[set]) smoothPattern else if (broken.hasNext()) broken.next() else return
+            for ((i, x) in xs.withIndex()) {
+                val now = middle(x, z) ?: continue
+                val want = pattern[i]
+                if (now.id != want.id || now.angle != want.angle) world.locs.replace(now, want.id, angle = want.angle)
+            }
+        }
     }
 
     /** A tag of the dispenser at [x], [z]. */
@@ -426,6 +494,14 @@ fun registerBrimhavenAgilityArena(world: World) {
             player.anim(Climbing.ANIM_REACH_FOR_LADDER)
             delay(1)
             world.teleport(player, HUT.x, HUT.z, HUT.level)
+        }
+        world.agility.rigs[PLANK] = { player, loc -> arena.plankHolds(player, loc.x, loc.z) }
+        world.handlers.onLoc(CLIMBING_ROPE, CLIMB) { op ->
+            arriveDelay()
+            val loc = op.loc!!
+            player.anim(Climbing.ANIM_REACH_FOR_LADDER)
+            delay(1)
+            world.teleport(player, loc.x, loc.z, ARENA_ARRIVAL.level)
         }
         for (dispenser in listOf(DISPENSER, DART_DISPENSER)) {
             world.handlers.onLoc(dispenser, TAG) { op ->
