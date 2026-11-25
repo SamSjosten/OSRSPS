@@ -172,6 +172,14 @@
    "timeoutMs": 20000
   },
   {
+   "step": "assertDialogue",
+   "contains": "[toby.hello]",
+   "comment": "the easy reward is claimed already, so he greets before his menu"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[toby.another_platebody]",
    "comment": "offered, as the armour is gone"
@@ -228,6 +236,14 @@
    "npcId": 5525,
    "option": "Talk-to",
    "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.hello]",
+   "comment": "the easy reward is claimed already, so he greets before his menu"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
