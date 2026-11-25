@@ -26,7 +26,7 @@ class HeadlessMurkyMattTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = listOf(
-            ObjType(GAMES_1, "Games necklace(1)"), ObjType(GAMES_2, "Games necklace(2)"),
+            ObjType(GAMES_1, "Games necklace(1)"), ObjType(GAMES_2, "Games necklace(2)"), ObjType(GAMES_1 + 1, "Games necklace(1)", stackable = true),
             ObjType(GLORY_1, "Amulet of glory(1)"), ObjType(GLORY_2, "Amulet of glory(2)"), ObjType(GLORY, "Amulet of glory"),
             ObjType(JewelleryDecant.RUBY_RING, "Ruby ring"), ObjType(JewelleryDecant.RING_OF_FORGING, "Ring of forging"),
             ObjType(JewelleryDecant.COINS, "Coins", stackable = true),
@@ -64,6 +64,20 @@ class HeadlessMurkyMattTest {
                 assertEquals(listOf(0, 1, 0, 1, 1), listOf(GAMES_1, GAMES_2, GLORY_1, GLORY_2, GLORY).map { client.count(it) })
                 client.npcOp(npc.index, GrandExchangeExperts.DECANT)
                 client.says("[murky_matt.nothing_to_combine]")
+            }
+        }
+    }
+
+    @Test
+    fun `a huge noted stack is counted, not listed, and too many pieces back leaves it whole`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                val npc = client.await("Matt in view") { client.npcs().firstOrNull { it.id == matt.id } }
+                // Two billion one-charge necklaces would come back as 250 million: no backpack holds them.
+                client.give(GAMES_1 + 1, 2_000_000_000)
+                client.npcOp(npc.index, GrandExchangeExperts.DECANT)
+                client.says("[murky_matt.no_space]")
+                assertEquals(2_000_000_000, client.count(GAMES_1 + 1))
             }
         }
     }

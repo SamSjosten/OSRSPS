@@ -57,14 +57,21 @@ object JewelleryDecant {
     /** What combining [player]'s jewellery comes to. */
     enum class Result { NOTHING, NO_SPACE, DONE }
 
-    /** The pieces [pieces] of charges come back as: full ones, then the remainder, then the empty forms. */
-    private fun combined(kind: Kind, pieces: List<Int>): List<Int> {
-        val total = pieces.sum()
-        val full = total / kind.capacity
-        val rest = total % kind.capacity
-        val charged = List(full) { kind.capacity } + listOfNotNull(rest.takeIf { it > 0 })
-        val ids = charged.map { kind.byCharge[it - 1] }
-        return if (kind.empty >= 0) ids + List(pieces.size - charged.size) { kind.empty } else ids
+    /**
+     * The pieces [pieces] holding [total] charges come back as: full ones, then the remainder, then the empty forms;
+     * null when nothing would change (fewer than two pieces, or no fewer charged pieces). Counted, not listed piece by
+     * piece, as a noted stack can hold billions; [limit] caps what is listed, null past it.
+     */
+    private fun combined(kind: Kind, pieces: Long, total: Long, limit: Int): List<Int>? {
+        val capacity = kind.capacity.toLong()
+        val full = total / capacity
+        val rest = (total % capacity).toInt()
+        val charged = full + if (rest > 0) 1 else 0
+        if (pieces < 2 || charged >= pieces) return null
+        val empties = if (kind.empty >= 0) pieces - charged else 0
+        if (charged + empties > limit) return emptyList()
+        val ids = List(full.toInt()) { kind.byCharge.last() } + listOfNotNull(kind.byCharge.getOrNull(rest - 1))
+        return ids + List(empties.toInt()) { kind.empty }
     }
 
     /** Combines every kind in [player]'s backpack that can be, all or nothing. */
@@ -72,24 +79,30 @@ object JewelleryDecant {
         val inventory = player.inventory
         val saved = inventory.contents().toMap()
         val outputs = ArrayList<Int>()
+        val freed = ArrayList<Int>()
         var any = false
+        var tooMany = false
         for (kind in KINDS) {
-            val pieces = ArrayList<Int>()
+            var pieces = 0L
+            var total = 0L
             val slots = ArrayList<Int>()
             for ((slot, held) in inventory.contents()) {
                 val charges = kind.charges(held.id)
                 if (charges <= 0) continue
-                repeat(held.count) { pieces += charges }
+                pieces += held.count
+                total += charges.toLong() * held.count
                 slots += slot
             }
-            val back = combined(kind, pieces)
-            // Nothing to gain: as many charged pieces come back as went in.
-            if (pieces.size < 2 || back.count { it != kind.empty } >= pieces.size) continue
+            val back = combined(kind, pieces, total, inventory.capacity) ?: continue
             any = true
-            for (slot in slots) inventory[slot] = null
+            // More pieces back than a backpack holds: it can't fit, whatever else is in it.
+            if (back.isEmpty()) tooMany = true
+            freed += slots
             outputs += back
         }
         if (!any) return Result.NOTHING
+        if (tooMany || outputs.size > inventory.capacity) return Result.NO_SPACE
+        for (slot in freed) inventory[slot] = null
         for (id in outputs) {
             val type = world.objTypes[id] ?: error("No obj type $id")
             if (inventory.add(type, 1) < 1) {
