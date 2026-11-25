@@ -1,5 +1,5 @@
 {
- "name": "Post-quest step 8: the Sourhog Cave's hole, blockage and exit rope",
+ "name": "Post-quest step 8: the Sourhog Cave's hole, blockage and exit rope, and a sourhog's spit",
  "account": "test",
  "steps": [
   {
@@ -52,6 +52,21 @@
    "plane": 0,
    "timeoutMs": 20000,
    "comment": "its south side, by the sourhogs"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "comment": "enough for a few of the spit's 20 to 30 burns"
+  },
+  {
+   "step": "assertSpotanim",
+   "id": 1818,
+   "timeoutMs": 60000,
+   "comment": "sourhog_spit_impact on the player: the sourhogs south of the blockage spit at a player without reinforced goggles (blinding them; HeadlessSourhogCaveTest checks the drain)"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99"
   },
   {
    "step": "waitTicks",
