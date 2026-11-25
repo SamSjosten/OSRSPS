@@ -13,6 +13,7 @@ import osrsps.game.World
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.content.CooksGuild
+import osrsps.game.content.DIARY_VARBITS
 import osrsps.game.content.MillLaneMill
 import osrsps.game.content.MillLines
 import osrsps.game.dialogue.DialogueText
@@ -99,7 +100,7 @@ class HeadlessCooksGuildTest {
             },
             varTypes = VarTypes(
                 6_000,
-                mapOf(MillLaneMill.VARBIT_FLOUR to VarbitType(VARP_FLOUR, 0, 4), MillLaneMill.VARBIT_SHOW_FLOUR to VarbitType(VARP_SHOW_FLOUR, 0, 0)),
+                DIARY_VARBITS + mapOf(MillLaneMill.VARBIT_FLOUR to VarbitType(VARP_FLOUR, 0, 4), MillLaneMill.VARBIT_SHOW_FLOUR to VarbitType(VARP_SHOW_FLOUR, 0, 0)),
             ),
             cycleMillis = millis,
         )
@@ -166,6 +167,23 @@ class HeadlessCooksGuildTest {
                 client.await("in the room") { client.position?.takeIf { it == Coord(3144, 3452, 0) } }
                 client.locOp(CooksGuild.NORTH_DOOR, 3144, 3452, 1)
                 client.await("back out") { client.position?.takeIf { it == Coord(3143, 3452, 0) } }
+            }
+        }
+    }
+
+    @Test
+    fun `the north-east room's door opens for the hard Varrock Diary, not the medium`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3143, 3452, 0)
+                client.commandReply("diary complete varrock medium all") { "task(s) done" in it }
+                client.locOp(CooksGuild.NORTH_DOOR, 3144, 3452, 1)
+                client.seen("[cooks_guild.bank_door]")
+                assertEquals(Coord(3143, 3452, 0), client.position)
+                client.commandReply("diary complete varrock hard all") { "task(s) done" in it }
+                client.locOp(CooksGuild.NORTH_DOOR, 3144, 3452, 1)
+                client.await("in the room") { client.position?.takeIf { it == Coord(3144, 3452, 0) } }
             }
         }
     }
