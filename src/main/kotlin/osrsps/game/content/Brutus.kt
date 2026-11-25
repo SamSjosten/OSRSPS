@@ -197,7 +197,7 @@ fun registerBrutus(world: World, pens: BrutusPens) {
         world.handlers.onObjOnNpc(BOSS, BUCKET) { world.message(player, BrutusLines.NOT_THE_BUCKET) }
         world.npcScripts.onDeath(listOf(BOSS)) { boss ->
             boss.effects.say(world.dialogueText[BrutusLines.DYING])
-            // The kill counts for the player whose field it is.
+            // Guessed: the kill counts for the player whose field it is (the Wiki doesn't say; the field is theirs alone).
             val owner = pens.runAt(boss.x, boss.z)?.owner ?: return@onDeath
             val player = world.onlinePlayers.firstOrNull { it.saveKey == owner && !it.loggedOut } ?: return@onDeath
             if (KILL_COUNT_VARP < player.vars.types.varpCount) {
