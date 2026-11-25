@@ -78,6 +78,7 @@ class HeadlessTeleportsTest {
                     client.awaitTicks(4)
                     assertEquals(START, client.position)
                     assertEquals(1, client.count(LAW))
+                    assertEquals(0, client.diaryTasksDone(), "a refused cast does no diary task")
 
                     client.magicLevel(25)
                     val xpBefore = client.magicXp()
@@ -92,6 +93,8 @@ class HeadlessTeleportsTest {
                     assertTrue(client.animationTicks().size > animsBefore, "the cast animates")
                     assertEquals(listOf(0, 0, 0), listOf(client.count(LAW), client.count(AIR), client.count(FIRE)), "the runes are gone")
                     assertEquals(xpBefore + 35, client.magicXp())
+                    // The Varrock medium diary's Varrock Teleport task.
+                    client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
 
                     // No runes left: nothing happens but the message.
                     client.cast(VARROCK_COMPONENT)

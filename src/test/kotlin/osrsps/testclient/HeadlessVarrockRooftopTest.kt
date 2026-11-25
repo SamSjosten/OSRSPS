@@ -85,6 +85,8 @@ class HeadlessVarrockRooftopTest {
         await("at the course") { position?.takeIf { it.x == 3222 && it.z == 3414 } }
     }
 
+    private fun HeadlessClient.diaryTasksDone() = messages().count { it.text.startsWith("[diary.task_done") }
+
     @Test
     fun `a lap at level 30 gives 269,7 XP and counts`(@TempDir dir: Path) {
         // Nothing fails here, so the lap is the whole course; the fails are the next test's.
@@ -97,6 +99,8 @@ class HeadlessVarrockRooftopTest {
                 val before = client.stat(AGILITY)!!.xp
                 client.lap()
                 client.await("the lap count") { client.messages().firstOrNull { it.text == "[agility.varrock_laps count=1]" } }
+                // A lap is the Varrock medium diary's task.
+                client.await("the diary task") { Unit.takeIf { client.diaryTasksDone() == 1 } }
                 // 269.7 XP: the client sees whole XP, and 13,363 plus 269.7 is 13,632.7.
                 assertEquals(before + 269, client.await("the lap's XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 269 } }.xp)
             }
@@ -125,6 +129,7 @@ class HeadlessVarrockRooftopTest {
                 assertTrue(hp in 12..17, "3 to 8 damage, left at $hp")
                 client.awaitTicks(2)
                 assertEquals(before, client.stat(AGILITY)!!.xp)
+                assertEquals(0, client.diaryTasksDone(), "a fall is no lap")
             }
         }
     }

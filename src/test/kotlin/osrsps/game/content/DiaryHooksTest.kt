@@ -14,7 +14,7 @@ class DiaryHooksTest {
     fun `an item counts only where its task says`() {
         val mine = at(3300, 3290)
         assertEquals(listOf(DiaryTask.LUMBRIDGE_EASY_11), DiaryHooks.made(DiaryHooks.MADE, mine, DiaryHooks.IRON_ORE, 1))
-        assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(3285, 3365), DiaryHooks.IRON_ORE, 1), "Varrock's mine")
+        assertEquals(listOf(DiaryTask.VARROCK_EASY_3), DiaryHooks.made(DiaryHooks.MADE, at(3285, 3365), DiaryHooks.IRON_ORE, 1), "Varrock's mine, not Al Kharid's")
         assertEquals(listOf(DiaryTask.LUMBRIDGE_MEDIUM_6), DiaryHooks.made(DiaryHooks.MADE, at(3241, 3248), DiaryHooks.RAW_SALMON, 1))
         assertEquals(listOf(DiaryTask.LUMBRIDGE_EASY_10), DiaryHooks.made(DiaryHooks.MADE, at(3211, 3215), DiaryHooks.BREAD, 1))
         assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(3211, 3215, 1), DiaryHooks.BREAD, 1), "upstairs")
@@ -34,6 +34,17 @@ class DiaryHooksTest {
             DiaryHooks.made(DiaryHooks.MADE, at(2716, 4836), DiaryHooks.WATER_RUNE, 140),
         )
         assertEquals(listOf(DiaryTask.LUMBRIDGE_EASY_4), DiaryHooks.made(DiaryHooks.MADE, at(2716, 4836), DiaryHooks.WATER_RUNE, 139))
+    }
+
+    @Test
+    fun `the Varrock items`() {
+        assertEquals(listOf(DiaryTask.VARROCK_EASY_3), DiaryHooks.made(DiaryHooks.MADE, at(3285, 3365), DiaryHooks.IRON_ORE, 1))
+        assertEquals(listOf(DiaryTask.VARROCK_EASY_4), DiaryHooks.made(DiaryHooks.MADE, at(3302, 3490), DiaryHooks.PLANK, 3))
+        assertEquals(listOf(DiaryTask.VARROCK_EASY_10), DiaryHooks.made(DiaryHooks.MADE, at(3085, 3409), DiaryHooks.BOWL, 1))
+        assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(3200, 3200), DiaryHooks.BOWL, 1))
+        assertEquals(listOf(DiaryTask.VARROCK_EASY_13), DiaryHooks.made(DiaryHooks.MADE, at(3104, 3430), DiaryHooks.RAW_TROUT, 1))
+        assertEquals(listOf(DiaryTask.VARROCK_MEDIUM_10), DiaryHooks.made(DiaryHooks.MADE, at(3302, 3490), DiaryHooks.MAHOGANY_PLANK, 20))
+        assertEquals(emptyList(), DiaryHooks.made(DiaryHooks.MADE, at(3302, 3490), DiaryHooks.MAHOGANY_PLANK, 19))
     }
 
     @Test

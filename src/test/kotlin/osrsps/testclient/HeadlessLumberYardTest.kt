@@ -70,12 +70,15 @@ class HeadlessLumberYardTest {
             CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(fence.x shr 6, fence.z shr 6)
+                markLoaded(YARD_X shr 6, YARD_Z shr 6)
             },
             objTypes = ObjTypes(objs),
             npcTypes = NpcTypes.of(operator, mewing, tolna, tolnaShown),
             npcSpawns = listOf(
                 NpcSpawn(operator, 3222, 3220, source = "test"), NpcSpawn(mewing, 3224, 3216, source = "test"),
                 NpcSpawn(tolna, 3220, 3214, source = "test"),
+                // A second operator in the Lumber Yard itself, for the diary's plank there.
+                NpcSpawn(operator, YARD_X + 2, YARD_Z, wander = 0, source = "test"),
             ),
             shopTypes = ShopTypes(
                 listOf(
@@ -206,6 +209,52 @@ class HeadlessLumberYardTest {
     }
 
     @Test
+    fun `a plank made in the Lumber Yard and 20 mahogany planks at once are Varrock diary tasks, and fewer or elsewhere aren't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dee").use { client ->
+                client.ready()
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                // Planks from the operator outside the yard (by Lumbridge here): no easy task.
+                client.give(LOGS, 2)
+                client.give(LumberYard.COINS, 1000)
+                client.npc(LumberYard.SAWMILL_OPERATOR, LumberYard.BUY_PLANK)
+                client.choosePlank(1, 0, 2)
+                client.await("two planks") { if (client.count(PLANK) == 2) Unit else null }
+                client.awaitClosed()
+                assertEquals(0, diaryTasksDone(), "outside the yard")
+
+                client.tele(YARD_X, YARD_Z)
+                fun yardOperator() = client.await("the yard's operator") {
+                    client.npcs().firstOrNull { it.id == LumberYard.SAWMILL_OPERATOR && kotlin.math.abs(it.coord.x - YARD_X) <= 3 }
+                }.index
+                client.give(LOGS, 1)
+                client.npcOp(yardOperator(), LumberYard.BUY_PLANK)
+                client.choosePlank(2, 0, 1)
+                client.await("a third plank") { if (client.count(PLANK) == 3) Unit else null }
+                client.awaitClosed()
+                client.await("the easy task") { Unit.takeIf { diaryTasksDone() == 1 } }
+
+                // 19 mahogany planks: not the medium task's 20 in one go; then 20 are.
+                client.command("empty")
+                client.give(MAHOGANY_LOGS, 19)
+                client.give(LumberYard.COINS, 60_000)
+                client.npcOp(yardOperator(), LumberYard.BUY_PLANK)
+                client.choosePlank(3, 3, 19)
+                client.await("19 mahogany planks") { if (client.count(MAHOGANY_PLANK) == 19) Unit else null }
+                client.awaitClosed()
+                assertEquals(1, diaryTasksDone(), "19 planks")
+                client.command("empty")
+                client.give(MAHOGANY_LOGS, 20)
+                client.give(LumberYard.COINS, 60_000)
+                client.npcOp(yardOperator(), LumberYard.BUY_PLANK)
+                client.choosePlank(4, 3, 20)
+                client.await("20 mahogany planks") { if (client.count(MAHOGANY_PLANK) == 20) Unit else null }
+                client.await("the medium task") { Unit.takeIf { diaryTasksDone() == 2 } }
+            }
+        }
+    }
+
+    @Test
     fun `Trade, his op 4, and the talk's second option open Construction supplies`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -289,6 +338,11 @@ class HeadlessLumberYardTest {
         const val PLANK = 960
         const val OAK_LOGS = 1521
         const val OAK_PLANK = 8778
+        const val MAHOGANY_LOGS = 6332
+        const val MAHOGANY_PLANK = 8782
+        /** Inside the diary's Lumber Yard box. */
+        const val YARD_X = 3302
+        const val YARD_Z = 3492
         const val SAW = 8794
         const val FENCE = 2618
         const val TRADE = 4

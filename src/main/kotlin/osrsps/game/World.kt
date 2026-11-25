@@ -675,6 +675,7 @@ class World(
     val shopScreen = ShopScreen(
         shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
         logged = { player, type -> collectionLog.add(player, type.id, 1) },
+        opened = { player, type -> diaries.shopOpened(player, type.key) },
     )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
@@ -1763,6 +1764,7 @@ class World(
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
             perPlayer(player, "wall beasts") { wallBeasts.process(player) }
+            perPlayer(player, "diaries") { diaries.moved(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()

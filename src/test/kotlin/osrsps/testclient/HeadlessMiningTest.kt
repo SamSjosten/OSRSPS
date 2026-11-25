@@ -30,15 +30,16 @@ class HeadlessMiningTest {
         objs[POT] = ObjType(POT, "Pot")
         objs[SILVER_ORE] = ObjType(SILVER_ORE, "Silver ore")
         objs[GOLD_ORE] = ObjType(GOLD_ORE, "Gold ore")
+        objs[IRON_ORE] = ObjType(IRON_ORE, "Iron ore")
         for (gem in Mining.GEMS.map { it.obj }.filter { it >= 0 }) objs[gem] = ObjType(gem, "Gem $gem")
         val mine = listOf("Mine", null, null, null, null)
         fun rock(id: Int, name: String) = LocType(id, name, mine, LocCollisionType(width = 1, length = 1))
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(SE_MINE_X shr 6, SE_MINE_Z shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(3),
             locTypes = LocTypes(
                 listOf(rock(COPPER, "Copper rocks"), rock(MITHRIL, "Mithril rocks"), rock(Mining.ROCKS1, "Rocks"), rock(Mining.ROCKS2, "Rocks"),
-                    rock(SILVER, "Silver rocks"), rock(GOLD, "Gold rocks"))
+                    rock(SILVER, "Silver rocks"), rock(GOLD, "Gold rocks"), rock(IRON, "Iron rocks"))
                     .associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
@@ -47,6 +48,8 @@ class HeadlessMiningTest {
                 add(ZoneLoc(Mining.ROCKS2, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3219, 0))
                 add(ZoneLoc(SILVER, LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3220, 0))
                 add(ZoneLoc(GOLD, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3220, 0))
+                add(ZoneLoc(IRON, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3220, 0))
+                add(ZoneLoc(IRON, LocShape.CENTREPIECE_STRAIGHT, 0, SE_MINE_X, SE_MINE_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -99,6 +102,28 @@ class HeadlessMiningTest {
     }
 
     @Test
+    fun `iron mined south-east of Varrock is the Varrock easy diary task, and iron mined elsewhere isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $RUNE_PICKAXE")
+                client.command("setlevel mining 99")
+                client.await("level 99") { client.stat(MINING)?.takeIf { it.level == 99 } }
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                client.locOp(IRON, 3226, 3220, 1)
+                client.await("iron by Lumbridge") { if (client.count(IRON_ORE) >= 1) Unit else null }
+                assertEquals(0, diaryTasksDone(), "outside the south-east mine")
+                client.command("tele ${SE_MINE_X - 1} $SE_MINE_Z 0")
+                client.await("at the mine") { client.position?.takeIf { it.x == SE_MINE_X - 1 && it.z == SE_MINE_Z } }
+                val before = client.count(IRON_ORE)
+                client.locOp(IRON, SE_MINE_X, SE_MINE_Z, 1)
+                client.await("iron from the mine") { if (client.count(IRON_ORE) > before) Unit else null }
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+            }
+        }
+    }
+
+    @Test
     fun `mithril needs level 55, an empty rock has no ore, and a full backpack stops it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -143,6 +168,11 @@ class HeadlessMiningTest {
         const val GOLD = 11370
         const val SILVER_ORE = 442
         const val GOLD_ORE = 444
+        const val IRON = 11364
+        const val IRON_ORE = 440
+        /** Among the south-east Varrock mine's rocks, inside the diary's box. */
+        const val SE_MINE_X = 3285
+        const val SE_MINE_Z = 3365
         const val COPPER = 10943
         const val MITHRIL = 11372
         const val COPPER_ORE = 436

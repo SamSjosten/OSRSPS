@@ -74,6 +74,8 @@ class ShopScreen(
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     /** One of an item bought from a shop whose sales the collection log counts ([ShopType.collectionLog]). */
     private val logged: (Player, ObjType) -> Unit = { _, _ -> },
+    /** Told of each shop opened, for the diaries. */
+    private val opened: (Player, ShopType) -> Unit = { _, _ -> },
 ) {
     private val shops: Map<String, Shop> = types.all.associate { it.key to Shop(it) }
 
@@ -99,6 +101,7 @@ class ShopScreen(
             ),
         )
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, BankScreen.opMask(1..5) or BankScreen.opMask(10..10)))
+        opened(player, type)
     }
 
     private val closeHooks = HashMap<String, (Player) -> Unit>()
