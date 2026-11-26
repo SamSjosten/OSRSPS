@@ -6,6 +6,7 @@
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and levels back"},
     {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the moss giants by the pipe and the stepping stones attack; without this they kill a low-level account (nightly 26 Nov)"},
     {"step": "command", "text": "::item 995 875"},
     {"step": "command", "text": "::tele 2744 3152 0", "expectMessage": "Teleported to 2744, 3152, 0", "comment": "before the dungeon entrance, by Saniboch"},
     {"step": "waitTicks", "ticks": 3},
@@ -39,7 +40,7 @@
     {"step": "waitTicks", "ticks": 2},
     {"step": "locOption", "locId": 21728, "option": "Squeeze-through", "x": 2655, "y": 9571},
     {"step": "assertLocation", "x": 2655, "y": 9566, "plane": 0, "timeoutMs": 15000},
-    {"step": "command", "text": "::tele 2648 9591 0", "expectMessage": "Teleported to 2648, 9591, 0", "comment": "below the north-west stairs"},
+    {"step": "command", "text": "::tele 2649 9591 0", "expectMessage": "Teleported to 2649, 9591, 0", "comment": "below the north-west stairs (2648,9591 is under a wall: the click there can't reach them)"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "locOption", "locId": 21722, "option": "Walk-up", "x": 2648, "y": 9592},
     {"step": "assertLocation", "x": 2643, "y": 9594, "plane": 2, "timeoutMs": 10000, "comment": "the upper level"},
@@ -58,6 +59,7 @@
     {"step": "locOption", "locId": 20878, "option": "Leave", "x": 2714, "y": 9564},
     {"step": "assertLocation", "x": 2744, "y": 3152, "plane": 0, "timeoutMs": 10000, "comment": "outside again"},
 
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

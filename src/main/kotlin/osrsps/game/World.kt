@@ -207,6 +207,7 @@ import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
 import osrsps.game.content.registerCairnIsle
+import osrsps.game.content.registerTaiBwoWannai
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -745,6 +746,7 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
@@ -1044,7 +1046,6 @@ class World(
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
-    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     /**
      * Called after a player moves in the movement phase, with the tiles they stood on this tick ([Player.stepTrail]:
      * the start, then each tile stepped onto), for what a tile does when walked onto (the Agility Arena's floor traps).
@@ -1055,6 +1056,13 @@ class World(
     /** Tiles a running player stops on after one step; see [Movement.stopChecks]. */
     val stepStops: MutableList<(Player) -> Boolean> get() = movement.stopChecks
 
+    /** Called for each player as they log in, after the quests are marked done: content that sets vars at login (Tai Bwo Wannai's villagers). */
+    val loginHooks = ArrayList<(Player) -> Unit>()
+
+    /** Called at the start of each tick with its number, for content that counts down on its own clock (Tai Bwo Wannai's trading sticks). */
+    val tickHooks = ArrayList<(Long) -> Unit>()
+
+    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
@@ -1386,6 +1394,7 @@ class World(
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
         registerCairnIsle(this)
+        registerTaiBwoWannai(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1800,6 +1809,7 @@ class World(
         endEmptyInstances()
         groundObjs.process()
         agilityArena.process(tick)
+        for (hook in tickHooks) hook(tick)
         archiveRaids.settleDepartures()
         houses.settleDepartures()
         phase = TickPhase.INPUT
@@ -2610,6 +2620,7 @@ class World(
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
+        for (hook in loginHooks) hook(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
