@@ -168,6 +168,7 @@ class TearsOfGuthix(private val world: World) {
 
     suspend fun ScriptContext.talk() {
         arriveDelay()
+        if (isPlaying(player)) return
         var enter = false
         world.dialogues.start(this) {
             juna(ChatAnim.NEUTRAL, JunaLines.TELL_ME)
@@ -188,6 +189,7 @@ class TearsOfGuthix(private val world: World) {
 
     suspend fun ScriptContext.story() {
         arriveDelay()
+        if (isPlaying(player)) return
         var enter = false
         world.dialogues.start(this) { enter = storyTime(viaStory = true) }
         if (enter) start(player)
@@ -255,8 +257,13 @@ class TearsOfGuthix(private val world: World) {
         }
     }
 
-    /** [player] goes into the walls' room with the bowl for a tick per quest point. */
+    /**
+     * [player] goes into the walls' room with the bowl for a tick per quest point. Juna's judgement is taken again
+     * here, since her dialogue can stay open across a game that records a visit: one already playing, or not yet due
+     * back, stays where they are.
+     */
     fun start(player: Player) {
+        if (isPlaying(player) || xpDue(player) > 0 || daysLeft(player) > 0) return
         val ticks = player.vars[Quests.VARP_QUEST_POINTS].coerceAtLeast(1)
         playing[player.saveKey] = Game(ticks)
         player.stanceOverride = BOWL_STANCE
