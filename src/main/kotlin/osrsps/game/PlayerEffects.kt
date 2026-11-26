@@ -49,7 +49,7 @@ class PlayerEffects {
     var say: String? = null
         private set
 
-    /** Shows [text] over the player's head, as when content has them call out ("Shoo cat!"). */
+    /** Shows [text] over the player's head, as when content has them call out (shooing their cat away). */
     fun say(text: String) {
         say = text
     }

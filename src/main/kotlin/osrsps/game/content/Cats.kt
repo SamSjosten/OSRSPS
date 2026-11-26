@@ -630,13 +630,22 @@ class Cats(private val world: World) {
         CatLines.MILESTONES[rats]?.let { line -> world.dialogues.start(context) { chatPlayer(ChatAnim.HAPPY, line) } }
     }
 
-    /** The rat dies to the cat: its death animation, then gone until it respawns, with nothing dropped. */
+    /**
+     * The rat dies to the cat: dead where it stands for its death animation's ticks, so clients see the animation and
+     * nothing can attack it, then out of sight until it respawns, with nothing dropped.
+     */
     private fun catch(rat: Npc) {
         val def = world.combat.npcCombat[rat.type]
         if (def != null && def.anims.death >= 0) rat.effects.anim(def.anims.death)
-        world.hide(rat)
-        val respawn = maxOf(def?.respawnTicks ?: RAT_RESPAWN_TICKS, def?.deathTicks ?: 1)
-        world.npcScripts.later(respawn) { world.show(rat) }
+        rat.dead = true
+        val deathTicks = maxOf(def?.deathTicks ?: 1, 1)
+        val respawn = maxOf(def?.respawnTicks ?: RAT_RESPAWN_TICKS, deathTicks)
+        world.npcScripts.later(deathTicks) {
+            if (world.npcs[rat.index] !== rat) return@later
+            rat.dead = false
+            world.hide(rat)
+        }
+        world.npcScripts.later(respawn) { if (world.npcs[rat.index] === rat) world.show(rat) }
     }
 
     // ---- Items used on the cat ----------------------------------------------------------------------------------
