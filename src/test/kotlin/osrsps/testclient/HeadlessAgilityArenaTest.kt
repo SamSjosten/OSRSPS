@@ -435,11 +435,21 @@ class HeadlessAgilityArenaTest {
                     client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
                     client.tele(2782, 9575, 3)
                     client.walk(2782, 9570)
-                    val end = client.await("over or back") { client.position?.takeIf { it == Coord(2782, 9572, 3) || it == Coord(2782, 9574, 3) } }
-                    if (end == Coord(2782, 9574, 3)) {
+                    // Across, or hit: 2782,9574 is also the walk's first tile, so the hit tells a failure apart.
+                    val hit = client.await("over or hit") {
+                        when {
+                            (client.stat(HITPOINTS)?.level ?: 99) < 99 -> true
+                            client.position == Coord(2782, 9572, 3) -> false
+                            else -> null
+                        }
+                    }
+                    if (hit) {
                         // 99 * 5 / 100 + 2.
                         client.await("a 6 hit") { client.stat(HITPOINTS)?.takeIf { it.level == 93 } }
                         client.message("[agility_arena.spinning_blades]")
+                        client.await("put back") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                        client.awaitTicks(2)
+                        assertEquals(Coord(2782, 9574, 3), client.position, "back on the tile before the blades")
                         failed = true
                         break
                     }
