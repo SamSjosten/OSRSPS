@@ -2,7 +2,6 @@ package osrsps.game.skill.magic
 
 import osrsps.game.FountainOfRune
 import osrsps.game.ObjTypes
-import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.Spellbook
@@ -39,9 +38,6 @@ class OrbSpell(val spell: ItemSpell, val obelisk: Int, val orb: Int)
  * height 92; no XP at the Fountain of Rune, as the other spells; nothing taken on a refusal.
  */
 class ChargeOrbs(private val world: World, private val spells: List<OrbSpell>) {
-    /** The tick of each player's last cast, so clicks get a cast every [CLICK_INTERVAL] ticks at most. */
-    private val lastCast = java.util.WeakHashMap<Player, Long>()
-
     fun register() {
         for (spell in spells) {
             for (obelisk in OBELISKS) {
@@ -67,15 +63,20 @@ class ChargeOrbs(private val world: World, private val spells: List<OrbSpell>) {
         if (index != 0 || quantity <= 0) return
         world.interfaces.closeChatModal(player)
         world.scripts.clearQueue(player, QUEUE)
-        castOne(orbSpell, quantity)
+        castOne(orbSpell, quantity, player.x, player.z, player.level)
     }
 
-    /** One cast, then the next queued while [left] casts remain and the orbs, level and runes last. */
-    private fun ScriptContext.castOne(orbSpell: OrbSpell, left: Int) {
+    /**
+     * One cast, then the next queued while [left] casts remain and the orbs, level and runes last. The player must still
+     * stand where the first cast was, beside the obelisk at [x], [z], [level]: a fight that retaliation starts can move
+     * them without dropping the weak queue (Codex review on #987).
+     */
+    private fun ScriptContext.castOne(orbSpell: OrbSpell, left: Int, x: Int, z: Int, level: Int) {
         val spell = orbSpell.spell
         val casting = world.itemSpells
-        val last = lastCast[player]
-        if (last != null && world.tick - last < CLICK_INTERVAL) return
+        if (player.x != x || player.z != z || player.level != level) return
+        // The clock alchemy, Telekinetic Grab and the others share, so no two land in one tick (Codex review on #987).
+        if (casting.readyAt(player) > world.tick) return
         if (player.inventory.count(UNPOWERED_ORB) <= 0) return
         if (!casting.hasLevel(player, spell)) return
         val costs = casting.runesToPay(player, spell) ?: return
@@ -88,12 +89,12 @@ class ChargeOrbs(private val world: World, private val spells: List<OrbSpell>) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return
         }
-        lastCast[player] = world.tick
+        casting.startClock(player, CLICK_INTERVAL)
         if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
         player.anim(spell.anim)
         player.spotanim(spell.spotanim, ItemSpells.SPOTANIM_HEIGHT)
         if (left <= 1 || player.inventory.count(UNPOWERED_ORB) <= 0) return
-        queue(QUEUE, QueueType.WEAK, INTERVAL) { castOne(orbSpell, left - 1) }
+        queue(QUEUE, QueueType.WEAK, INTERVAL) { castOne(orbSpell, left - 1, x, z, level) }
     }
 
     companion object {
