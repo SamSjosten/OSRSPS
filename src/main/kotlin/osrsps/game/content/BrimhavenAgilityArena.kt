@@ -123,7 +123,7 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser; Spinning bl
  * someone is in the arena to see it; that a ticket and voucher with no room drop at the player's feet; the parrot's chathead (the
  * Eadgar parrot, 4768) and the chathead faces. Guessed: the smooth plank drawn afresh each time the arrow moves
  * (the Wiki: every minute), the climbing ropes' anim and wait. Guessed: the traps' anims and jump, the spikes' and pads' success pairs, a failure putting the player back where
- * they came from, and a trap below its level jumped all the same. Left out: the blades (3567-3569, timed) and the darts
+ * they came from, and a trap below its level always failed. Left out: the blades (3567-3569, timed) and the darts
  * (their Agility drain); a broken plank's extra tick at 99; the Agility Arena Store behind
  * Jackie's trade-in and her Trade option (step K3.4c); the diary talk and the elite diary's double tickets (no diaries
  * yet); the "Tagged a Ticket!" jingle (its id isn't known here); the minute's wait to re-enter after logging out; the
@@ -200,15 +200,17 @@ object BrimhavenAgilityArena {
     /**
      * The floor traps (step K3.4d) by kind, as the 242 map has them on the platforms (level 3): two tiles each for the
      * floor spikes (3582) and pressure pads (3585), one for the spinning blades (3580). Walking onto one jumps it.
+     * [ticks] is a crossing from the step onto it to the landing, the Wiki's obstacle table: 4 for the spikes and pads,
+     * 5 for the blades. Below [level] a jump always fails (guessed: the Wiki gives the level, not what happens under it).
      */
-    enum class Trap(val level: Int, val xpTenths: Int, val success: Pair<Int, Int>?, val anim: Int, val failAnim: Int, val tiles: List<Pair<Int, Int>>) {
+    enum class Trap(val level: Int, val xpTenths: Int, val success: Pair<Int, Int>?, val ticks: Int, val anim: Int, val failAnim: Int, val tiles: List<Pair<Int, Int>>) {
         // Never fails from 50 Agility (the Wiki); the pair below that is guessed.
-        FLOOR_SPIKES(20, 240, 150 to 255, 1603, 1113, listOf(2761 to 9573, 2761 to 9574, 2772 to 9551, 2772 to 9552, 2799 to 9568, 2800 to 9568)),
+        FLOOR_SPIKES(20, 240, 150 to 255, 4, 1603, 1113, listOf(2761 to 9573, 2761 to 9574, 2772 to 9551, 2772 to 9552, 2799 to 9568, 2800 to 9568)),
         // Guessed pair.
-        PRESSURE_PAD(20, 260, 150 to 255, 1115, 1113, listOf(2772 to 9584, 2772 to 9585, 2799 to 9557, 2800 to 9557, 2799 to 9579, 2800 to 9579)),
+        PRESSURE_PAD(20, 260, 150 to 255, 4, 1115, 1113, listOf(2772 to 9584, 2772 to 9585, 2799 to 9557, 2800 to 9557, 2799 to 9579, 2800 to 9579)),
         // The Wiki's success chart, 153/256 at 40 to 255/256 at 99, as SuccessRoll's low/high: (1 + 85) at 1 Agility,
         // (1 + 254) at 99, which gives 1 + round((85 * 59 + 254 * 39) / 98) = 153 at 40.
-        SPINNING_BLADES(40, 280, 85 to 254, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
+        SPINNING_BLADES(40, 280, 85 to 254, 5, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
     }
 
     /** The floor spikes never fail from this level. */
@@ -325,6 +327,7 @@ class AgilityArena(private val world: World) {
         player.forcedSteps.clear()
         val level = player.skills.currentLevel(Skill.AGILITY)
         val success = when {
+            level < trap.level -> false
             trap == BrimhavenAgilityArena.Trap.FLOOR_SPIKES && level >= BrimhavenAgilityArena.SPIKES_SAFE_LEVEL -> true
             else -> trap.success?.let { (low, high) -> SuccessRoll.roll(world.random, low, high, level) } ?: true
         }
@@ -342,7 +345,8 @@ class AgilityArena(private val world: World) {
         val angle = Agility.angle(landing.first - player.x, landing.second - player.z)
         player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, landing.first, landing.second, 0, JUMP_CYCLES, angle))
         player.anim(trap.anim)
-        delay(JUMP_TICKS)
+        // The step onto the trap was the crossing's first tick.
+        delay(trap.ticks - 1)
         world.teleport(player, landing.first, landing.second, player.level)
         if (trap == BrimhavenAgilityArena.Trap.PRESSURE_PAD && !padPays(player)) return@with
         player.skills.addTenths(Skill.AGILITY, trap.xpTenths)
@@ -560,8 +564,7 @@ internal object AgilityArenaTalk {
     }
 }
 
-/** Guessed: a trap's jump, two ticks, the slide over in the first second. */
-private const val JUMP_TICKS = 2
+/** Guessed: the slide over a trap in the jump's first second. */
 private const val JUMP_CYCLES = 50
 
 fun registerBrimhavenAgilityArena(world: World) {

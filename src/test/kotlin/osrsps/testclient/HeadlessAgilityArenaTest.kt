@@ -428,7 +428,15 @@ class HeadlessAgilityArenaTest {
                 client.ready()
                 client.commandReply("setlevel hitpoints 99") { true }
                 client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
-                // Level 1: the blades' pair, read at 1, fails about two times in five.
+                // Below 40 the blades always fail.
+                client.tele(2782, 9575, 3)
+                client.walk(2782, 9570)
+                client.await("hit below 40") { client.stat(HITPOINTS)?.takeIf { it.level < 99 } }
+                client.await("put back below 40") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                client.awaitTicks(2)
+                // Level 40: the Wiki's 153/256, so about two times in five a failure.
+                client.command("setlevel agility 40")
+                client.await("level 40") { client.stat(AGILITY)?.takeIf { it.level == 40 } }
                 var failed = false
                 for (attempt in 1..30) {
                     client.commandReply("setlevel hitpoints 99") { true }
@@ -455,7 +463,7 @@ class HeadlessAgilityArenaTest {
                     }
                     client.awaitTicks(1)
                 }
-                assertTrue(failed, "no failed jump in 30 at level 1")
+                assertTrue(failed, "no failed jump in 30 at level 40")
 
                 client.command("setlevel agility 50")
                 client.await("level 50") { client.stat(AGILITY)?.takeIf { it.level == 50 } }
@@ -468,6 +476,28 @@ class HeadlessAgilityArenaTest {
                     assertEquals(Coord(2772, 9550, 3), over)
                 }
                 assertEquals(99, client.stat(HITPOINTS)!!.level, "the spikes at 50")
+            }
+        }
+    }
+
+    @Test
+    fun `a crossing takes the Wiki's ticks, 4 over the spikes and 5 over the blades`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("tia").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                val player = server.world.playerNamed("tia")!!
+                for ((from, landing, ticks) in listOf(Triple(Coord(2772, 9553, 3), Coord(2772, 9550, 3), 4), Triple(Coord(2782, 9575, 3), Coord(2782, 9572, 3), 5))) {
+                    client.tele(from.x, from.z, 3)
+                    client.awaitTicks(2)
+                    client.walk(landing.x, landing.z)
+                    val landed = client.await("landed") { if (player.x == landing.x && player.z == landing.z) server.world.tick else null }
+                    // From the step onto the trap; the poll can see the landing a tick late.
+                    val took = landed - player.lastMoveTick
+                    assertTrue(took in ticks - 1..ticks, "the crossing to $landing took $took ticks after the step on, not ${ticks - 1}")
+                }
             }
         }
     }
