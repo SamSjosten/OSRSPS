@@ -1093,6 +1093,8 @@ class World(
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
+    /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
+    val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
@@ -1456,6 +1458,7 @@ class World(
         furniture.register()
         kitchen.register()
         workshop.register()
+        stairs.register()
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
