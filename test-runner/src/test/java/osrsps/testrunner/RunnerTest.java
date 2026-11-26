@@ -1111,6 +1111,19 @@ public class RunnerTest
 	}
 
 	@Test
+	public void castOnGroundItemRetriesUntilItCan() throws Exception
+	{
+		game.castError = "no item \"Coins\" on the ground in the scene";
+		runner.start(script("{\"step\":\"castOnGroundItem\",\"interfaceId\":218,\"component\":30,\"item\":\"Coins\",\"x\":3230,\"y\":3218}"), "file");
+		assertNull(cycle());
+		assertEquals("cast 218:30 on ground item Coins at 3230, 3218", game.actions.get(game.actions.size() - 1));
+		game.castError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("cast 218:30 on Coins on the ground at 3230, 3218", r.steps.get(0).description);
+	}
+
+	@Test
 	public void castOnNpcRetriesUntilItCanThenSpotanimsCountOnlyAfterIt() throws Exception
 	{
 		game.castError = "no NPC \"Man\" in view";

@@ -185,6 +185,26 @@ class HeadlessFreakyForesterTest {
     }
 
     @Test
+    fun `a raw pheasant stays in the forest when the player teleports out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.ready()
+                client.intoForest("eve")
+                val pheasant = client.await("a pheasant") { client.npcs().firstOrNull { it.id in FreakyForester.PHEASANTS } }
+                client.npcOp(pheasant.index, FreakyForester.KILL)
+                val carcass = client.await("the carcass") { client.groundObjs().firstOrNull { it.id == FreakyForester.RAW_PHEASANT } }
+                client.objOp(FreakyForester.RAW_PHEASANT, carcass.coord.x, carcass.coord.z, TAKE)
+                client.await("the carcass taken") { if (client.has(FreakyForester.RAW_PHEASANT) == 1) Unit else null }
+                // Out by a teleport, not the portal: the forest's own item stays there (exploit review R51 A-1).
+                client.command("tele 3222 3218 0")
+                client.await("out") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.awaitTicks(1)
+                assertEquals(0, client.has(FreakyForester.RAW_PHEASANT))
+            }
+        }
+    }
+
+    @Test
     fun `he never takes away a player in a fight, even one who says yes, and a stale jail flag doesn't count`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dan").use { client ->

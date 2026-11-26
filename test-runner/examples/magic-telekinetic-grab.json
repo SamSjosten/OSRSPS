@@ -1,0 +1,32 @@
+{
+ "name": "Magic utility step U7b: Telekinetic Grab taking a stack of coins 8 tiles off from where the player stands, then logs 14 tiles off after walking into range (::keys on); needs runner 0.30.0 for castOnGroundItem",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel magic 33", "expectMessage": "Magic set to level 33"},
+  {"step": "command", "text": "::item 563 2", "expectMessage": "Added 2 x Law rune"},
+  {"step": "command", "text": "::item 556 2", "expectMessage": "Added 2 x Air rune"},
+  {"step": "command", "text": "::tele 3230 3218", "expectMessage": "Teleported"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::groundobj 995 250", "expectMessage": "Put Coins (995) x 250 on 3230, 3218"},
+  {"step": "command", "text": "::tele 3236 3218", "expectMessage": "Teleported"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::groundobj 1511 1", "expectMessage": "Put Logs (1511) x 1 on 3236, 3218"},
+  {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "castOnGroundItem", "interfaceId": 218, "component": 30, "item": "Coins", "x": 3230, "y": 3218, "comment": "magic_spellbook:telegrab, 8 tiles east"},
+  {"step": "assertAnimation", "id": 723, "timeoutMs": 5000, "comment": "human_casttelegrab"},
+  {"step": "assertSpotanim", "id": 142, "timeoutMs": 5000, "comment": "telegrab_casting"},
+  {"step": "assertInventory", "item": "Coins", "count": 250, "timeoutMs": 5000},
+  {"step": "assertLocation", "x": 3222, "y": 3218, "comment": "cast from where they stood"},
+  {"step": "assertInventory", "item": "Law rune", "count": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the spell's 3 ticks"},
+  {"step": "castOnGroundItem", "interfaceId": 218, "component": 30, "item": "Logs", "x": 3236, "y": 3218, "comment": "14 tiles east: walks 4 first"},
+  {"step": "assertInventory", "item": "Logs", "count": 1, "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Law rune", "count": 0},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

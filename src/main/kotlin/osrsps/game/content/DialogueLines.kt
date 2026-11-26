@@ -51,6 +51,7 @@ import osrsps.game.skill.magic.JewelleryEnchantLines
 import osrsps.game.skill.magic.JewelleryEffectLines
 import osrsps.game.skill.magic.JewelleryTeleportLines
 import osrsps.game.skill.magic.SuperheatLines
+import osrsps.game.skill.magic.TelekineticGrabLines
 import osrsps.game.skill.magic.TeleportLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
@@ -140,6 +141,7 @@ object DialogueLines {
         JewelleryEnchantLines,
         JewelleryEffectLines,
         BonesToFruitLines,
+        TelekineticGrabLines,
         JewelleryTeleportLines,
         BorkLines,
         BrutusLines,
@@ -307,6 +309,7 @@ object DialogueLines {
         osrsps.game.content.randomevents.PrisonPeteLines,
         osrsps.game.content.randomevents.KissTheFrogLines,
         osrsps.game.content.randomevents.MazeLines,
+        osrsps.game.content.randomevents.PilloryGuardLines,
         osrsps.game.content.randomevents.PostiePeteTwinLines,
         osrsps.game.content.randomevents.MollyLines,
         HariLines,

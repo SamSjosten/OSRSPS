@@ -1,0 +1,214 @@
+{
+ "name": "Construction step CON4e: in building mode, the starter garden takes a dead tree and a plant only with a watering can, with no hammer or saw, each for the Garden page's XP, and its only exit portal can't be removed (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 5",
+   "expectMessage": "5",
+   "comment": "the dead tree's level"
+  },
+  {
+   "step": "command",
+   "text": "::item 8417 1",
+   "expectMessage": "Bagged dead tree"
+  },
+  {
+   "step": "command",
+   "text": "::item 8431 1",
+   "expectMessage": "Bagged plant 1"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15363,
+   "option": "Build",
+   "comment": "the starter garden's tree space (poh_crude_garden_3), without a watering can"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the dead tree"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.furniture_watering_can]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bagged dead tree",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::item 5340 1",
+   "expectMessage": "Watering can(8)"
+  },
+  {
+   "step": "locOption",
+   "locId": 15363,
+   "option": "Build",
+   "comment": "the tree space again, with the can; no hammer or saw carried"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the dead tree"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 419,
+   "timeoutMs": 5000,
+   "comment": "level 5's 388 XP and the tree's 31"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bagged dead tree",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 15366,
+   "option": "Build",
+   "comment": "the first small plant space (poh_crude_garden_6), with the can"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the plant"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 450,
+   "timeoutMs": 5000,
+   "comment": "the plant's 31"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bagged plant 1",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 4525,
+   "option": "Remove",
+   "comment": "the house's only exit portal"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.remove_only_portal]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

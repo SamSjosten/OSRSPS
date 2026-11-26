@@ -1730,6 +1730,34 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String castOnGroundItem(int interfaceId, int component, String name, int id, osrsps.testrunner.Tile at)
+	{
+		if (client.getLocalPlayer() == null)
+		{
+			return "no local player";
+		}
+		int packed = interfaceId << 16 | component;
+		Widget spell = client.getWidget(packed);
+		if (spell == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		GroundItem best = nearestGroundItem(name, id, at);
+		if (best == null)
+		{
+			return groundItemMissing(name, id, at);
+		}
+		String spellName = spell.getName() == null ? "" : spell.getName();
+		String itemName = client.getItemDefinition(best.item.getId()).getName();
+		// The spell first, as for castOnItem; then the item's tile, which the client sends as OPOBJT.
+		client.menuAction(-1, packed, MenuAction.WIDGET_TARGET, 0, -1, "Cast", spellName);
+		Point p = best.tile.getSceneLocation();
+		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GROUND_ITEM, best.item.getId(), -1, "Cast",
+			spellName + " -> " + itemName);
+		return null;
+	}
+
+	@Override
 	public String widgetText(int interfaceId, int component)
 	{
 		List<String> texts = new ArrayList<>();
