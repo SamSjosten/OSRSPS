@@ -143,6 +143,55 @@ class HeadlessEscapeCavesTest {
     }
 
     @Test
+    fun `relogging in the caves keeps the visit (its debuff and linger count)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.command("tele 3283 3773 0")
+                client.await("outside the cave") { client.position?.takeIf { it == Coord(3283, 3773, 0) } }
+                client.command("item ${WildernessLairFee.COINS} 50000")
+                client.await("the coins") { Unit.takeIf { eve.inventory.count(WildernessLairFee.COINS) == 50_000L } }
+                client.locOp(EscapeCaves.SURFACE_CAVE, 3282, 3774, EscapeCaves.ENTER)
+                client.awaitDialogue("the fee's menu") { it is DialogueView.Menu && WildernessLairFeeLines.TITLE.key in it.title }
+                client.chooseOption(1)
+                client.await("in the caves", timeoutMillis = 15_000) { client.position?.takeIf { it == Coord(3359, 10246, 0) } }
+                assertTrue(server.world.escapeCaves.debuffed(eve))
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            val until = System.currentTimeMillis() + 10_000
+            while (server.world.playerNamed("eve") != null) {
+                check(System.currentTimeMillis() < until) { "eve never logged out" }
+                Thread.sleep(20)
+            }
+            // A new Player for the same account (exploit review round 48, R48B-1).
+            // Taken while eve is still in the caves, so it is no later than her visit's last sighting (Codex review on #861).
+            var lastIn = 0L
+            server.login("eve").use { client ->
+                client.await("back in the caves") { client.position?.takeIf { it == Coord(3359, 10246, 0) } }
+                val eve = client.await("eve again") { server.world.playerNamed("eve") }
+                assertTrue(server.world.escapeCaves.debuffed(eve), "the debuff kept through a relog")
+                lastIn = server.world.tick
+            }
+            // Logged out there for good: forgotten after a while, so such accounts don't pile up (Codex review on #861).
+            server.login("fay").use { fay ->
+                fay.await("the login rebuild") { fay.position }
+                fay.await("eve gone") { Unit.takeIf { server.world.playerNamed("eve") == null } }
+                assertEquals(1, server.world.escapeCaves.remembered)
+                // A command every few seconds, so the server's 15-second read timeout doesn't close fay's connection.
+                val until = System.currentTimeMillis() + 40_000
+                while (server.world.escapeCaves.remembered != 0) {
+                    check(System.currentTimeMillis() < until) { "eve's visit never forgotten" }
+                    fay.commandReply("pos") { true }
+                    fay.awaitTicks(40)
+                }
+                assertTrue(server.world.tick - lastIn > EscapeCaves.FORGET_TICKS, "not before ${EscapeCaves.FORGET_TICKS} ticks")
+            }
+        }
+    }
+
+    @Test
     fun `lingering past 50 ticks drains prayer and run energy, and stops once out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bo").use { client ->

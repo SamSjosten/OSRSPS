@@ -17,11 +17,10 @@ class FurnitureBuildsTest {
     }
 
     @Test
-    fun `each room's places are numbered from 0 with no gaps, and built locs never double as hotspots`() {
-        for ((room, spots) in FurnitureBuilds.HOTSPOTS.values.groupBy { it.room }) {
-            val indices = spots.map { it.index }.toSortedSet()
-            assertEquals((0 until indices.size).toSet(), indices, "the ${room.key}'s places")
-        }
+    fun `each hotspot's place lists its pieces and each listed place has a hotspot, and built locs never double as hotspots`() {
+        // Places keep the cache's numbering, which can skip one (the combat room has nothing at places 1 and 2).
+        val places = FurnitureBuilds.HOTSPOTS.values.map { it.room to it.index }.toSet()
+        assertEquals(FurnitureBuilds.PLACES.keys, places)
         assertTrue(FurnitureBuilds.BUILT_LOCS.none { it in FurnitureBuilds.HOTSPOTS.keys })
     }
 
@@ -58,5 +57,49 @@ class FurnitureBuildsTest {
         assertEquals(5751, FurnitureBuilds.builtRow(mapOf(15439 to 6793, 15440 to 6806), 15440))
         assertTrue(FurnitureBuilds.UPGRADABLE.all { it in FurnitureBuilds.BUILT_LOCS })
         assertTrue(Workshop.TOOLS.keys.all { it in FurnitureBuilds.BUILT_LOCS })
+    }
+
+    @Test
+    fun `a garden tree builds as the big tree on the big tree space, and the trees and plants give Farming XP too`() {
+        val magic = FurnitureBuilds.BUILDS.getValue(5886)
+        assertEquals(listOf(5127, 4537), listOf(null, "big").map(magic::locFor))
+        assertTrue(FurnitureBuilds.buildsOn(15362, 4537) && FurnitureBuilds.buildsOn(15363, 5127))
+        assertEquals(223, magic.farmingXp)
+        assertTrue(FurnitureBuilds.PLANTED.all { FurnitureBuilds.BUILDS.getValue(it).farmingXp > 0 })
+        assertTrue(FurnitureBuilds.buildsOn(House.CENTREPIECE_SPACE, House.EXIT_PORTAL))
+    }
+
+    @Test
+    fun `a hall's stair space is a staircase's foot or its top, and a rug leaves it bare`() {
+        assertEquals(setOf(15377, 15378, 15379, 15380), FurnitureBuilds.siblings(15377, RoomType.SKILL_HALL))
+        assertEquals(setOf(15377, 15378, 15379, 15381), FurnitureBuilds.siblings(15377, RoomType.SKILL_HALL_STAIRS))
+        assertEquals(setOf(15387, 15388, 15389, 15391), FurnitureBuilds.siblings(15391))
+        val oak = FurnitureBuilds.BUILDS.getValue(5644)
+        assertEquals(listOf(13497, 13498, FurnitureBuilds.NONE), listOf("stairs", "top", "middle").map(oak::locFor))
+        assertTrue(FurnitureBuilds.buildsAt(15377, 5644, RoomType.SKILL_HALL) && FurnitureBuilds.buildsAt(15391, 5654))
+        assertEquals(5644, FurnitureBuilds.builtRow(mapOf(15380 to 13497), 15380, RoomType.SKILL_HALL))
+        assertEquals(5644, FurnitureBuilds.builtRow(mapOf(15381 to 13498), 15377, RoomType.SKILL_HALL_STAIRS))
+        // The rug: its corners, sides and middle, the stair space bare.
+        assertEquals(5525, FurnitureBuilds.builtRow(mapOf(15377 to 6764, 15378 to 6763, 15379 to 6762), 15380, RoomType.SKILL_HALL))
+        assertTrue(!FurnitureBuilds.buildsOn(15380, 6764))
+        assertTrue(FurnitureBuilds.STAIRCASES.all { it in FurnitureBuilds.PLACES.getValue(RoomType.QUEST_HALL to 0) })
+    }
+
+    @Test
+    fun `each combat ring space piece reads back as itself, and the racks, ropes and barriers are built locs`() {
+        val space = (15277..15295).toSet()
+        assertEquals(space, FurnitureBuilds.siblings(15292))
+        for (row in 5633..5637) {
+            val build = FurnitureBuilds.BUILDS.getValue(row)
+            val built = space.associateWith { build.locFor(FurnitureBuilds.HOTSPOTS.getValue(it).variant) }.filterValues { it != FurnitureBuilds.NONE }
+            assertEquals(row, FurnitureBuilds.builtRow(built, 15277), "row $row")
+            assertTrue(FurnitureBuilds.buildsAt(15292, row), "row $row")
+        }
+        // The pedestals leave the middle bare; the beam leaves the pedestals' walls bare but for the one it shares.
+        assertEquals(FurnitureBuilds.NONE, FurnitureBuilds.BUILDS.getValue(5636).locFor("floor_middle"))
+        assertEquals(FurnitureBuilds.NONE, FurnitureBuilds.BUILDS.getValue(5637).locFor("pedestal_wall"))
+        assertTrue(CombatRoom.RACKS.keys.all { it in FurnitureBuilds.BUILT_LOCS })
+        assertTrue((CombatRoom.ROPES + 13145).all { it in FurnitureBuilds.BUILT_LOCS })
+        assertTrue(29336 in FurnitureBuilds.UPGRADABLE && 29337 in FurnitureBuilds.UPGRADABLE)
     }
 }

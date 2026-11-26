@@ -250,6 +250,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             context.delay(1)
             player.anim(GroundObjs.ANIM_PICKUP_TABLE)
         }
+        takeChecked(player, obj)
+    }
+
+    /**
+     * [take]'s checks and the taking, with no walk or wait: for Telekinetic Grab's arrival too (Codex review on #982:
+     * a grabbed clue keeps the one-a-tier rule and a grabbed box the cap).
+     */
+    fun takeChecked(player: Player, obj: osrsps.game.zone.ZoneObj) {
         val box = TrailTier.entries.firstOrNull { it.scrollBox == obj.id }
         if (box == null) {
             val tier = tierOf(obj.id)

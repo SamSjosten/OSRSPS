@@ -62,6 +62,7 @@ class EventAreas(private val world: World) {
         stays[instance.id] = away
         val to = away.inside(arrive.x, arrive.z)
         world.teleport(player, to.x, to.z, 0)
+        world.randomEvents.taken(player)
         return away
     }
 
@@ -73,6 +74,7 @@ class EventAreas(private val world: World) {
         val away = awayOf(player) ?: return
         if (awayAt(x, z) === away) return
         takePlaceItems(player)
+        away.event.leftPlace(world, player)
         // A cutscene cut short (a death drops its script, end and all) must not follow them out: the camera comes back
         // and its window shuts.
         player.session.queue(CamReset)
@@ -90,8 +92,16 @@ class EventAreas(private val world: World) {
      * own items stay there ([moving]).
      */
     fun bringBack(player: Player, away: Away) {
-        val (x, z, level) = if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
-        else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
+        val (x, z, level) = backOf(away)
         world.teleport(player, x, z, level)
     }
+
+    /**
+     * Where [away]'s player comes back to, by the way back or by a logout inside (the save, [World]'s saveOf): the tile
+     * they came from, or Lumbridge when it is blocked now, as the Wiki gives (see the class notes). Exploit review R51
+     * C-4: one rule for both, so a logout doesn't land them on a tile that was blocked meanwhile.
+     */
+    fun backOf(away: Away): Triple<Int, Int, Int> =
+        if (world.canStand(away.back.x, away.back.z, away.backLevel)) Triple(away.back.x, away.back.z, away.backLevel)
+        else Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL)
 }

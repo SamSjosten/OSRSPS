@@ -145,13 +145,23 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
      * neighbouring zones' cache locs whose flags reach into these zones, or onto those tiles, are added back (Codex
      * review on #798). A loc change (not the cache's) next door that reaches in isn't put back.
      */
-    fun replace(instance: Instance, part: InstancePart) {
+    fun replace(instance: Instance, part: InstancePart) =
+        lay(instance, part.toDx, part.toDz, part.widthZones, part.heightZones, part.toLevel, part)
+
+    /**
+     * Empties the zone [toDx], [toDz] zones in from [instance]'s south-west corner on [level], as [replace] lays a part
+     * there: what it showed goes, the client is left nothing to draw there, and its tiles are blocked (an empty cell
+     * upstairs in a house).
+     */
+    fun clear(instance: Instance, toDx: Int, toDz: Int, level: Int) = lay(instance, toDx, toDz, 1, 1, level, null)
+
+    private fun lay(instance: Instance, toDx: Int, toDz: Int, widthZones: Int, heightZones: Int, level: Int, part: InstancePart?) {
         require(byId[instance.id] === instance) { "$instance has ended" }
-        require(part.toDx >= 0 && part.toDz >= 0 && part.toDx + part.widthZones <= instance.widthSquares * 8 && part.toDz + part.heightZones <= instance.heightSquares * 8) { "$part is outside $instance" }
+        require(toDx >= 0 && toDz >= 0 && toDx + widthZones <= instance.widthSquares * 8 && toDz + heightZones <= instance.heightSquares * 8) { "Zones at $toDx, $toDz are outside $instance" }
         val replaced = ArrayList<ZoneKey>()
-        for (dx in 0 until part.widthZones) {
-            for (dz in 0 until part.heightZones) {
-                replaced += ZoneKey((instance.baseX shr 3) + part.toDx + dx, (instance.baseZ shr 3) + part.toDz + dz, part.toLevel)
+        for (dx in 0 until widthZones) {
+            for (dz in 0 until heightZones) {
+                replaced += ZoneKey((instance.baseX shr 3) + toDx + dx, (instance.baseZ shr 3) + toDz + dz, level)
             }
         }
         val inReplaced = { x: Int, z: Int -> replaced.any { x shr 3 == it.x && z shr 3 == it.z } }
@@ -169,11 +179,13 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
             }
         }
         for (zone in replaced) {
-            if (instance.sources.remove(zone.packed) == null) continue
-            staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
-            for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, 0)
+            if (instance.sources.remove(zone.packed) != null) staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
+            // A zone left empty can't be walked into: the map loads every level of a zone at once, so its tiles would
+            // otherwise read as open floor (Codex review on #990: open air upstairs in a house).
+            val flags = if (part == null) CollisionFlag.FLOOR else 0
+            for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, flags)
         }
-        for ((from, to, rotation) in copyTerrain(instance, part)) copyLocs(instance, from, to, rotation)
+        if (part != null) for ((from, to, rotation) in copyTerrain(instance, part)) copyLocs(instance, from, to, rotation)
         val neighbours = HashSet<ZoneKey>()
         for (zone in replaced) {
             for (nx in -1..1) for (nz in -1..1) {

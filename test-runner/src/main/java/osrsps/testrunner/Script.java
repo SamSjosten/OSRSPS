@@ -535,6 +535,30 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "item", "itemId", "comment");
 				return new Steps.CastOnItem(timeout, interfaceId, component, item, id);
 			}
+			case "castOnGroundItem":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.requiredInt("component");
+				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "item", "itemId", "x", "y", "comment");
+				return new Steps.CastOnGroundItem(timeout, interfaceId, component, item, id, x < 0 ? null : new Tile(x, y, -1));
+			}
 			case "mouseClick":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

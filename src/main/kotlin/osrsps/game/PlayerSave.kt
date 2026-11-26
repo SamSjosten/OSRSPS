@@ -420,6 +420,8 @@ class PlayerSave(
             level: Int = player.level,
             /** What becomes of the inventory once anything on offer is back in it, as saved. */
             held: (Map<Int, InvObj>) -> Map<Int, InvObj> = { it },
+            /** What is worn, as saved. */
+            equipment: Map<Int, InvObj> = player.equipment.contents().toMap(),
         ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             val customVars = LinkedHashMap<String, Int>()
@@ -430,7 +432,6 @@ class PlayerSave(
             // Kept at 0 too, so a save without it is one from before special attacks, whose energy starts full.
             varps[SpecialAttacks.VARP_ENERGY] = player.vars[SpecialAttacks.VARP_ENERGY]
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
-            val equipment = player.equipment.contents().toMap()
             return PlayerSave(
                 x, z, level, player.runEnergy, varps, skills, held(withOffer(player, inventory)), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),

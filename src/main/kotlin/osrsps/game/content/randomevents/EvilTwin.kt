@@ -160,6 +160,20 @@ object EvilTwin : RandomEvent("evil_twin", 6738) {
         Triple(2207, 4934, 1),
     )
 
+    /**
+     * A failed catch's spot: one of [FAIL_SPOTS] at random, else, when that one is blocked, the next one along that
+     * isn't; null when none is free, and the player goes back where they came from instead. Exploit review R51 C-3:
+     * the spots are entered by hand, so a wrong or blocked one mustn't strand them. Guessed: the fallbacks.
+     */
+    fun failSpot(world: World): Triple<Int, Int, Int>? {
+        val start = world.random.nextInt(FAIL_SPOTS.size)
+        for (i in FAIL_SPOTS.indices) {
+            val spot = FAIL_SPOTS[(start + i) % FAIL_SPOTS.size]
+            if (world.canStand(spot.first, spot.second, spot.third)) return spot
+        }
+        return null
+    }
+
     /** The zones copied: Molly's rooms and the pen, of map square 29,80. */
     const val FROM_X = 1856
     const val FROM_Z = 5120
@@ -255,8 +269,9 @@ object EvilTwin : RandomEvent("evil_twin", 6738) {
                     rooms.caught >= ATTEMPTS -> {
                         // Sent off first, as the gems above, so shutting the talk can't keep them in the rooms.
                         // Guessed: the talk comes after the teleport.
-                        val (x, z, level) = FAIL_SPOTS[world.random.nextInt(FAIL_SPOTS.size)]
-                        world.teleport(player, x, z, level)
+                        val spot = failSpot(world)
+                        if (spot == null) world.randomEvents.areas.bringBack(player, away)
+                        else world.teleport(player, spot.first, spot.second, spot.third)
                         chatPlayer(ChatAnim.SAD, SORRY)
                         chatNpc(ChatAnim.ANGRY, INCOMPETENCE)
                         chatNpc(ChatAnim.ANGRY, OUT_OF_MY_SIGHT)

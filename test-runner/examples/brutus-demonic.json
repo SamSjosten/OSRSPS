@@ -1,0 +1,32 @@
+{
+ "name": "Brutus step 6: Demonic Brutus. An abyssal potato eaten gives a Strength point; another, held at the pen's gate, is fed to him on Release, and the field holds Demonic Brutus, whose specials (four bulls each, the real one and three ghosts, clockwise) come after three butts. His kill counts on his own count. HeadlessDemonicBrutusTest checks the bulls' tiles and the Scar's growth",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario brutus", "expectMessage": "Started scenario brutus.", "comment": "south of the pen's gate; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "the menu's words aren't recorded yet"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::item 33118 2", "comment": "abyssal potatoes (Pluck on the Scar's growth, 2049 6443, gives them)"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "itemOption", "itemId": 33118, "option": "Eat"},
+  {"step": "assertMessage", "contains": "demonic_brutus.eat", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 33118, "count": 1},
+  {"step": "locOption", "locId": 60763, "option": "Release", "x": 3262, "y": 3294},
+  {"step": "assertDialogue", "contains": "[demonic_brutus.feed_yes]", "timeoutMs": 10000},
+  {"step": "chooseOption", "text": "[demonic_brutus.feed_yes]"},
+  {"step": "waitTicks", "ticks": 5, "comment": "the field's region drawn"},
+  {"step": "assertInventory", "itemId": 33118, "count": 0, "comment": "fed to him"},
+  {"step": "npcOption", "npc": "Demonic Brutus", "option": "Attack", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 40, "comment": "three butts, then a special of four bulls"},
+  {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus", "comment": "his first 0: his second phase, on 487 (step 7)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus"},
+  {"step": "assertMessage", "contains": "demonic_brutus.kill_count", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "locOption", "locId": 60765, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -9,6 +9,7 @@ import osrsps.game.content.ClanParty
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.social.Clans
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -124,6 +125,18 @@ class HeadlessClanPartyTest {
                 val balloons = alice.await("balloons") { alice.locChanges().filter { it.id in ClanParty.BALLOONS }.takeIf { it.size == ClanParty.balloonCount(1) } }
                 alice.locOp(ClanParty.LEVER, x(LEVER_X), z(LEVER_Z), ClanParty.PULL)
                 alice.await("one drop at a time") { alice.messages().firstOrNull { it.text == "[clan_party.drop_on]" } }
+
+                // Without the balloons permission a balloon isn't burst, so nobody else can end the drop.
+                val clan = server.world.clans.clanNamed("Odins Gate")!!
+                val kept = clan.settings[Clans.VAR_PARTY_BALLOONS]
+                clan.settings[Clans.VAR_PARTY_BALLOONS] = Clans.RANK_NOBODY
+                val guarded = balloons.first()
+                alice.command("tele ${guarded.coord.x} ${guarded.coord.z - 1} 0")
+                alice.await("beside the guarded balloon") { alice.position?.takeIf { it == Coord(guarded.coord.x, guarded.coord.z - 1, 0) } }
+                alice.locOp(guarded.id, guarded.coord.x, guarded.coord.z, ClanParty.BURST)
+                alice.await("not allowed") { alice.messages().firstOrNull { it.text == "[clan_party.may_not_balloons]" } }
+                assertTrue(server.world.locs.at(guarded.coord.x, guarded.coord.z, 0).any { it.id == guarded.id })
+                if (kept == null) clan.settings.remove(Clans.VAR_PARTY_BALLOONS) else clan.settings[Clans.VAR_PARTY_BALLOONS] = kept
 
                 // Burst them all: the last one up at the latest drops the dagger.
                 for (balloon in balloons) {

@@ -1651,6 +1651,44 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.30.0) Picks a spell in an interface (the spellbook) and casts it on an item on the ground. Waits (to the
+	 * timeout) for the interface and the item; does not wait for the result.
+	 */
+	static final class CastOnGroundItem extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final String item;
+		final int itemId;
+		final Tile at;
+
+		CastOnGroundItem(long timeoutMs, int interfaceId, int component, String item, int itemId, Tile at)
+		{
+			super("castOnGroundItem", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.item = item;
+			this.itemId = itemId;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.castOnGroundItem(interfaceId, component, item, itemId, at);
+			return error == null ? Poll.pass("cast") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "cast " + interfaceId + ":" + component + " on " + (item != null ? item : "item " + itemId) + " on the ground"
+				+ (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
 	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
 	static final class ItemOption extends Step
 	{
