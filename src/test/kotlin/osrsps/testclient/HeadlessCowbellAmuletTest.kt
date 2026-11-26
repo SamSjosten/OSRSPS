@@ -135,6 +135,30 @@ class HeadlessCowbellAmuletTest {
     }
 
     @Test
+    fun `charging counts the air runes again once the amount is given, so none are lost to a smaller stack`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val carol = server.world.playerNamed("carol")!!
+                client.commandReply("item ${CowbellAmulet.EMPTY}") { it.contains("Cowbell amulet") }
+                client.commandReply("item ${CowbellAmulet.AIR_RUNE} 7") { it.contains("Air rune") }
+                client.ifButtonT(InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(CowbellAmulet.AIR_RUNE), CowbellAmulet.AIR_RUNE, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(CowbellAmulet.EMPTY), CowbellAmulet.EMPTY)
+                client.awaitTicks(2)
+                // While the prompt is open the stack drops to 2 (as an autocast would use them).
+                client.commandReply("empty") { it == "Inventory emptied." }
+                client.commandReply("item ${CowbellAmulet.EMPTY}") { it.contains("Cowbell amulet") }
+                client.commandReply("item ${CowbellAmulet.AIR_RUNE} 2") { it.contains("Air rune") }
+                client.await("two air runes") { if (client.count(CowbellAmulet.AIR_RUNE) == 2L) Unit else null }
+                client.resumeCount(5)
+                client.objbox()
+                client.await("charged") { client.inventory(93).firstOrNull { it?.id == CowbellAmulet.CHARGED } }
+                assertEquals(2, carol.charges[CowbellAmulet.CHARGES])
+                assertEquals(0L, client.count(CowbellAmulet.AIR_RUNE))
+            }
+        }
+    }
+
+    @Test
     fun `Ring in his field brings Brutus back 13 ticks on, and does nothing while he lives`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

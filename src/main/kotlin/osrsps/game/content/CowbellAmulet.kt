@@ -98,11 +98,16 @@ object CowbellAmulet {
         val runes = player.inventory.count(AIR_RUNE)
         if (runes <= 0L) return
         val wanted = countDialog()
-        val added = minOf(wanted.toLong(), runes, (MAX_CHARGES - have).toLong()).toInt()
-        if (added <= 0) return
+        // Counted again after the prompt: an autocast can have used air runes, or the amulet
+        // been dropped, while it was open.
+        val now = player.charges[CHARGES]
+        if (AMULETS.none { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }) return
         val slot = player.inventory.contents().firstOrNull { it.second.id == AIR_RUNE }?.first ?: return
+        val stack = player.inventory[slot]?.count?.toLong() ?: return
+        val added = minOf(wanted.toLong(), stack, (MAX_CHARGES - now).toLong()).toInt()
+        if (added <= 0) return
         if (player.inventory.remove(slot, added) != added) return
-        player.charges[CHARGES] = have + added
+        player.charges[CHARGES] = now + added
         swap(player, EMPTY, CHARGED)
         val total = player.charges[CHARGES]
         world.dialogues.start(this) { objbox(CHARGED, text(CowbellLines.ADDED, "amount" to added, "s" to s(added), "total" to total, "charges_s" to s(total))) }
