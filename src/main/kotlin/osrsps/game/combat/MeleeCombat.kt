@@ -572,7 +572,7 @@ class MeleeCombat(
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
         // A boss whose fight picks its moves never retreats, whatever its range or hitpoints.
         if (npc.scriptedAttacks) return retaliate(npc, player, tick)
-        val inRange = npc.huntsAnywhere || Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
+        val inRange = npc.huntsAnywhere || Aggression.inAggressionRange(npc, from.x, from.z, attackRange(npc))
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
             if (!inRange) {
@@ -797,6 +797,16 @@ class MeleeCombat(
     }
 
     /**
+     * How far [npc] attacks from, for its aggression range: its own range (melee's 1 when it has none), or its
+     * dragonfire's range when that is further (the metal dragons, exploit review R58A-1), so a player it can breathe at
+     * is in range and a hit from there doesn't make it retreat.
+     */
+    internal fun attackRange(npc: Npc): Int {
+        val def = combat.npcCombat[npc.type] ?: return Aggression.ATTACK_RANGE
+        return maxOf(def.range, def.dragonfire?.range ?: 0)
+    }
+
+    /**
      * Whether [npc] has lost [player]: they stand outside its aggression range ([Aggression.inAggressionRange]), where
      * it can't follow them (it keeps within its max range of its spawn, [Npcs.MAX_RANGE]), it hasn't swung at them or
      * taken them on for [IN_COMBAT_TICKS], and they haven't hit it in that time. The Wiki (Aggressiveness) says the
@@ -804,7 +814,7 @@ class MeleeCombat(
      * waits there first is guessed.
      */
     private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
-        !npc.unleashed && !Aggression.inAggressionRange(npc, player.x, player.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE) &&
+        !npc.unleashed && !Aggression.inAggressionRange(npc, player.x, player.z, attackRange(npc)) &&
             tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
 
     /**

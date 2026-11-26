@@ -153,7 +153,8 @@ class HeadlessAgilityArenaTest {
                 client.tele(2808, 3191)
                 client.npcOp(client.izzyIndex(), BrimhavenAgilityArena.PAY)
                 client.message("[izzy.fee_paid]")
-                assertEquals(0L, client.held(ShopScreen.COINS))
+                // The message can come before the backpack's update.
+                client.await("the fee taken") { if (client.held(ShopScreen.COINS) == 0L) Unit else null }
                 client.command("setlevel agility 47")
                 client.await("level 47") { client.stat(AGILITY)?.takeIf { it.level == 47 } }
                 client.locOp(BrimhavenAgilityArena.LADDER_DOWN, 2809, 3194, BrimhavenAgilityArena.CLIMB)
