@@ -1,0 +1,26 @@
+{
+  "name": "Random events: the Pillory, the guard's arrest, the cage and its lock window, and out by command",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "command", "text": "::randomevent pillory", "expectMessage": "Started random event pillory"},
+    {"step": "npcOption", "npc": "Pillory Guard", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Pillory Guard", "contains": "[pillory_guard.arrest]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[pillory_guard.come_quietly]"},
+    {"step": "assertDialogue", "contains": "[pillory_guard.come_quietly]"},
+    {"step": "continueDialogue"},
+    {"comment": "The pillory: look that the player stands in a cage in Varrock, Yanille or Seers' Village, and that the lock window shows a big lock, three swinging keys and three small locks. Look whether the big lock's shape matches one of the keys (the pairing of models is a guess).", "step": "assertInterface", "interfaceId": 27, "timeoutMs": 20000},
+    {"comment": "The first key, right only by chance: look that a small lock flashes, or a fourth small lock appears.", "step": "clickWidget", "interfaceId": 27, "component": 7, "op": 1},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "assertInterface", "interfaceId": 27},
+    {"comment": "Out with the testing command: back where the player was, with nothing. Solving it, the rewards and logging out in the cage are the headless test's part.", "step": "command", "text": "::randomevent end", "expectMessage": "Ended random event pillory"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 27, "absent": true, "timeoutMs": 10000}
+  ]
+}

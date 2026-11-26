@@ -78,7 +78,8 @@
     "Achievement diaries step 8 (2026-11-19): Twiggy O'Korn and her squirrel, npc-spawns/diaries.json, from each page.",
     "Locs: Karamja (step K3.4b): the Brimhaven Agility Arena's obstacles and the pit's climbing ropes, and (step K3.4d) its floor traps and blades (the 242 cache, 2026-11-19).",
     "The Chasm of Tears (post-quest step 10, TearsOfGuthix.kt): Juna's multiloc, the tunnels in and out, the weeping wall, the magical rocks and the rock slopes (the 242 cache, 2026-11-19).",
-    "Locs and NPCs: Karamja (step K4.1): the jungle's jogres and the rock slide up to Cairn Isle's bridge (the 242 cache, 2026-11-19)."
+    "Locs and NPCs: Karamja (step K4.1): the jungle's jogres and the rock slide up to Cairn Isle's bridge (the 242 cache, 2026-11-19).",
+    "NPCs: random events step 15 (2026-11-19): the Pillory Guard (380), from his infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -174,6 +175,7 @@
     {"npc": 372, "name": "Freaky Forester", "also": [6748]},
     {"npc": 373, "name": "Pheasant", "also": [5500, 374, 5502]},
     {"npc": 375, "name": "Rick Turpentine"},
+    {"npc": 380, "name": "Pillory Guard", "wiki": "Pillory Guard page, infobox (Random event)"},
     {"npc": 390, "name": "Evil Bob", "also": [391, 6754]},
     {"npc": 393, "name": "Servant", "wiki": "Servant (ScapeRune) page, infobox"},
     {"npc": 403, "name": "Vannaka"},

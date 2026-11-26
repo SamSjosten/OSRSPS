@@ -48,6 +48,7 @@ object Teleblock {
     ): List<Line> = when {
         level > limit -> tooDeep
         ChampionsChallenge.inBasement(player.x, player.z, player.level) -> listOf(LarxusLines.LADDER)
+        osrsps.game.content.randomevents.Pillory.held(player) -> listOf(osrsps.game.content.randomevents.PilloryGuardLines.NO_TELEPORT)
         player.teleblockTicks > 0 -> listOf(PvpLines.TELEPORT_BLOCKED)
         else -> emptyList()
     }
