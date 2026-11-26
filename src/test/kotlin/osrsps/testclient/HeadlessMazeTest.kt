@@ -187,4 +187,40 @@ class HeadlessMazeTest {
             }
         }
     }
+
+    @Test
+    fun `another window doesn't hold the timer, and a chest taking the last point ends the run after its reward`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                client.intoMaze("carol")
+                val player = server.world.onlinePlayers.single()
+                val (away, run) = Maze.runOf(server.world, player)!!
+                // A window that can be kept open while walking (the bank here) doesn't hold the potential (exploit
+                // review R52A-1); only a chat dialogue does.
+                client.command("openbank")
+                client.await("the bank open") { if (player.modalOpen) Unit else null }
+                val before = run.potential
+                client.await("a point gone with the bank open") { if (run.potential < before) Unit else null }
+                assertTrue(player.modalOpen, "still open")
+                client.closeModal()
+
+                // A chest at the last point: its reward, and home with the run over (no farming chests at 1).
+                val at = client.position!!
+                val chest = chests.minBy { c -> away.inside(c.x, c.z).let { Math.abs(it.x - at.x) + Math.abs(it.z - at.z) } }
+                val inside = away.inside(chest.x, chest.z)
+                client.walk(inside.x, inside.z - 1)
+                client.await("beside the chest") { client.position?.takeIf { it.x == inside.x && it.z == inside.z - 1 } }
+                // Just after a drain, so the next one can't take the last point before the chest does.
+                client.await("just after a drain") { if (run.ticks % Maze.DRAIN_TICKS == 1) Unit else null }
+                run.potential = Maze.CHEST_COST
+                client.locOp(Maze.CHEST, inside.x, inside.z, Maze.OPEN)
+                client.await("home") { client.position?.takeIf { it == home } }
+                assertTrue(run.done)
+                val fromChest = client.await("the chest's reward") { client.inventory(Inventory.INV).filterNotNull().singleOrNull() }
+                assertTrue(Maze.CHEST_TABLE.any { (id, count) -> id == fromChest.id && count == fromChest.count }, "chest reward $fromChest")
+                client.await("the maze ended") { if (server.world.instances.all.isEmpty()) Unit else null }
+            }
+        }
+    }
 }

@@ -191,6 +191,7 @@ import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerEscapeCaves
+import osrsps.game.content.registerCallisto
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -1355,6 +1356,7 @@ class World(
         registerCalvarion(this)
         registerSpindel(this)
         registerEscapeCaves(this)
+        registerCallisto(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -2275,10 +2277,13 @@ class World(
         val leaving = if (!inHouse) inventory else inventory.filterValues { it.id !in osrsps.game.skill.construction.HouseOnly.OBJS }
         // Its combat room's practice kit stays too when worn (step CON6a).
         val worn = player.equipment.contents().toMap().let { if (!inHouse) it else it.filterValues { obj -> obj.id !in osrsps.game.skill.construction.HouseOnly.OBJS } }
+        // A random event's place sends them back by the way back's own rule (R51 C-4).
+        val (x, z, level) = randomEvents.areas.awayOf(player)?.let { randomEvents.areas.backOf(it) }
+            ?: Triple(instance?.exitX ?: SPAWN_X, instance?.exitZ ?: SPAWN_Z, instance?.exitLevel ?: SPAWN_LEVEL)
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
             player, randomEvents.areas.withoutPlaceItems(player, leaving), bank, equipment = worn,
-            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            x = x, z = z, level = level,
             held = held,
         )
     }

@@ -29,8 +29,10 @@ object MazeLines : Lines("maze", "Transcript:Mysterious Old Man, the Maze versio
  * stand open and empty (14988) for 60 seconds.
  *
  * Inferred: the rounding of the shrine's amounts (down, as the Wiki's examples are), and a roll that comes to 0 giving
- * nothing. Guessed: that the potential doesn't drop while a dialogue is open (the Wiki says so for the chests'
- * dialogue); that a chest never takes the last point of potential; the Old Man's chathead expressions. Left out: the maze turned to face another way (the Wiki says it may
+ * nothing. Guessed: that the potential doesn't drop while a chat dialogue is open in the chatbox (the Wiki says so
+ * for the chests' dialogue), and only then: another window (the collection log, the equipment stats) doesn't hold it,
+ * as one can be kept open while walking (exploit review R52A-1); that a chest taking the last point ends the run as the
+ * timer does, after its reward; the Old Man's chathead expressions. Left out: the maze turned to face another way (the Wiki says it may
  * be), run energy not draining inside, the chests' reward box (its words aren't on the Wiki), the Time Out music and
  * the Maze Centre jingle.
  */
@@ -105,7 +107,7 @@ object Maze : RandomEvent("maze", 6752) {
     }
 
     /**
-     * Every [DRAIN_TICKS] the potential drops by 1, unless a dialogue is open; at 0 the player goes back with nothing.
+     * Every [DRAIN_TICKS] the potential drops by 1, unless a chat dialogue is open; at 0 the player goes back with nothing.
      * Checked each tick, so the timer comes back as soon as another window that shares its floater (All Settings, the
      * world map) is shut. Inferred: a player who leaves the maze another way loses the timer too.
      */
@@ -123,7 +125,7 @@ object Maze : RandomEvent("maze", 6752) {
                 showPotential(player, run.potential)
             }
             run.ticks++
-            if (run.ticks % DRAIN_TICKS == 0 && !world.scripts.busy(player)) {
+            if (run.ticks % DRAIN_TICKS == 0 && player.chatModal < 0) {
                 run.potential--
                 showPotential(player, run.potential)
                 if (run.potential <= 0) return@later out(world, player, away, run)
@@ -162,12 +164,17 @@ object Maze : RandomEvent("maze", 6752) {
         }
     }
 
-    /** Open on a chest: one small reward for a point of potential, and the chest stands empty for a minute. */
+    /**
+     * Open on a chest: one small reward for a point of potential, and the chest stands empty for a minute. The last
+     * point ends the run as the timer does (R52A-1: chests can't be farmed at 1 for ever); the player is sent back
+     * first and rewarded there.
+     */
     fun openChest(world: World, player: Player, loc: ZoneLoc) {
-        val (_, run) = runOf(world, player) ?: return
+        val (away, run) = runOf(world, player) ?: return
         if (run.done || world.locs.replace(loc, CHEST_EMPTY, CHEST_OPEN_TICKS) == null) return
-        run.potential = (run.potential - CHEST_COST).coerceAtLeast(1)
+        run.potential = (run.potential - CHEST_COST).coerceAtLeast(0)
         showPotential(player, run.potential)
+        if (run.potential == 0) out(world, player, away, run)
         val (id, count) = CHEST_TABLE[world.random.nextInt(CHEST_TABLE.size)]
         world.randomEvents.reward(player, id, count)
     }

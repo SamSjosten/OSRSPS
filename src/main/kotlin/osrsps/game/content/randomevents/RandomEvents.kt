@@ -63,6 +63,12 @@ abstract class RandomEvent(
     /** Items that belong to its place and stay there: taken as the player leaves it, by any way out, logging out too. */
     open val placeItems: Set<Int> = emptySet()
 
+    /**
+     * Called as [player] leaves its place ([teleports]) by any way out ([EventAreas.moving]): the way back, a teleport
+     * or a death. For what the place set on them that must not follow them out (R51 A-2: the Drill Demon's signs).
+     */
+    open fun leftPlace(world: World, player: Player) {}
+
     /** Called once its NPC is out, before its first words. */
     open fun started(world: World, out: RandomEvents.Out) {}
 
@@ -375,6 +381,18 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val it = outFor(player) ?: return
         world.npcs.stopFollowing(it.npc)
         it.leaveAt = world.tick + CLAIMED_TICKS
+    }
+
+    /**
+     * [player] has been taken to their event's place: the NPC that took them goes on the next tick, however the talk ends.
+     * A teleport cast during the arrival talk drops the talk before it could remove the NPC, which left it to be taken
+     * again (exploit review round 51, C-1). Guessed: that it goes on the next tick and says nothing as it goes; the
+     * player is out of sight of it by then.
+     */
+    fun taken(player: Player) {
+        val it = outFor(player) ?: return
+        world.npcs.stopFollowing(it.npc)
+        it.leaveAt = world.tick + 1
     }
 
     /** [it] gives up: its leaving line, then it goes. */
