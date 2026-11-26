@@ -360,7 +360,9 @@ class Agility(private val world: World, val data: AgilityData) {
                 SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
             } ?: true
         }
-        for (move in if (success) route.moves else route.fail) play(move)
+        // A teleport partway (::tele, say) ends the obstacle there: the rest isn't played from the new tile, nor
+        // the player pulled back to its end.
+        for (move in if (success) route.moves else route.fail) if (!play(move)) return
         world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
@@ -484,18 +486,31 @@ class Agility(private val world: World, val data: AgilityData) {
         while (player.forcedSteps.isNotEmpty()) delay(1)
     }
 
-    private suspend fun ScriptContext.play(move: AgilityMove) {
+    /** Plays [move]; false when something else teleported the player meanwhile. */
+    private suspend fun ScriptContext.play(move: AgilityMove): Boolean {
+        val start = Triple(player.x, player.z, player.level)
         when (move) {
             is AgilityMove.Anim -> {
                 player.anim(move.anim)
                 if (move.ticks > 0) delay(move.ticks)
+                return here() == start
             }
             is AgilityMove.Teleport -> world.teleport(player, move.to.x, move.to.z, move.to.level)
-            is AgilityMove.Walk -> walk(move)
-            is AgilityMove.Slide -> slide(move)
+            is AgilityMove.Walk -> {
+                val end = steps(Tile(start.first, start.second), move.path).lastOrNull() ?: return true
+                walk(move)
+                return here() == Triple(end.x, end.z, start.third)
+            }
+            is AgilityMove.Slide -> {
+                slide(move, start)
+                return here() == Triple(move.to.x, move.to.z, move.to.level)
+            }
             is AgilityMove.Xp -> player.skills.addTenths(Skill.AGILITY, move.tenths)
         }
+        return true
     }
+
+    private fun ScriptContext.here() = Triple(player.x, player.z, player.level)
 
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
@@ -527,12 +542,13 @@ class Agility(private val world: World, val data: AgilityData) {
      * when the slide's ticks are up, so the client keeps showing them where the slide ends until then; RSProt notes the
      * client goes back to the real tile once the move is over.
      */
-    private suspend fun ScriptContext.slide(move: AgilityMove.Slide) {
+    private suspend fun ScriptContext.slide(move: AgilityMove.Slide, start: Triple<Int, Int, Int>) {
         val angle = angle(move.to.x - player.x, move.to.z - player.z)
         player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, move.to.x, move.to.z, move.startCycles, move.endCycles, angle))
         player.anim(move.anim)
         delay(move.ticks)
-        world.teleport(player, move.to.x, move.to.z, move.to.level)
+        // A teleport during the slide (::tele, say) wins: the player isn't pulled back to the slide's end.
+        if (here() == start) world.teleport(player, move.to.x, move.to.z, move.to.level)
     }
 
     companion object {
