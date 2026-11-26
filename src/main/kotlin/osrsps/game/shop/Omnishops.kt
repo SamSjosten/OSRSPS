@@ -16,8 +16,6 @@ data class OmnishopStock(
     val multiplier: Int = 1,
     /** The currency [cost] is in, when the entry names its own (a shop of two currencies); null for the shop's. */
     val currency: OmnishopCurrency? = null,
-    /** Any further (currency row, amount) pairs of the price, as the Agility Arena Store's graceful recolour has. */
-    val extraCosts: List<Pair<Int, Int>> = emptyList(),
     /**
      * Whether the entry hands over its item noted: column 20, set only on the Agility Arena Store's toadflax and
      * snapdragon, which the Wiki says come noted (inferred from that).

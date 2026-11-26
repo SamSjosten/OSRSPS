@@ -55,11 +55,6 @@ object OmnishopLoader {
                 // (currency, amount) pairs; the first is the price.
                 cost = (it.columns[STOCK_COST]?.getOrNull(1) as? Int) ?: 0,
                 currency = (it.columns[STOCK_COST]?.getOrNull(0) as? Int)?.let(currencyTypes::get),
-                extraCosts = it.columns[STOCK_COST].orEmpty().drop(2).chunked(2).mapNotNull { pair ->
-                    val row = pair.getOrNull(0) as? Int
-                    val amount = pair.getOrNull(1) as? Int
-                    if (row != null && amount != null) row to amount else null
-                },
                 noted = (it.int(STOCK_NOTED) ?: 0) != 0,
                 buyable = (it.int(STOCK_BUYABLE) ?: 1) != 0,
                 viewOnly = (it.int(STOCK_VIEW_ONLY) ?: 0) != 0,

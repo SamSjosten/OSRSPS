@@ -187,7 +187,9 @@ class OmnishopScreen(
                 message(player, ShopLines.NOT_ENOUGH_CURRENCY, "currency" to (currency?.plural ?: ""))
                 break
             }
-            val room = if (type.stackable) player.inventory.count(type.id) > 0 || player.inventory.freeSlots > 0 else player.inventory.freeSlots >= units
+            // The whole purchase must fit before the price is taken: a stack can't go past the cap.
+            val held = player.inventory.count(type.id)
+            val room = if (type.stackable) (if (held > 0) held + units <= Inventory.MAX_STACK else player.inventory.freeSlots > 0) else player.inventory.freeSlots >= units
             if (!room) {
                 message(player, ShopLines.NOT_ENOUGH_SPACE)
                 break

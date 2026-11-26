@@ -37,7 +37,6 @@ import osrsps.map.LocCollisionType
  */
 class HeadlessAgilityArenaTest {
     private val izzy = NpcType(BrimhavenAgilityArena.IZZY, "Cap'n Izzy No-Beard", ops = listOf("Talk-to", null, "Pay", null, null), internalName = "agilityarena_clerk")
-    private val jackie = NpcType(BrimhavenAgilityArena.JACKIE, "Pirate Jackie the Fruit", ops = listOf("Talk-to", null, "Trade", null, null), internalName = "agilityarena_tickettrader")
     private val parrot = NpcType(BrimhavenAgilityArena.PARROT, "Parrot", internalName = "eadgar_parrotts")
     // Shaped like the 242 cache's: 5516 is a multi-NPC by varbit 4567 showing 7650 (the default) or 7651.
     private val jackie = NpcType(
@@ -616,6 +615,14 @@ class HeadlessAgilityArenaTest {
                 client.message("[shop.not_enough_currency currency=Brimhaven Vouchers]")
                 assertEquals(7L, client.held(BrimhavenAgilityArena.VOUCHER))
                 assertEquals(0L, client.held(PIRATES_HOOK))
+
+                // A full stack of noted toadflax: no room, and the vouchers stay.
+                client.command("item ${TOADFLAX + 1} ${Int.MAX_VALUE - 1}")
+                client.await("a full stack") { if (client.held(TOADFLAX + 1) == Int.MAX_VALUE.toLong()) Unit else null }
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, OmnishopScreen.ENTRY_COMPONENTS)
+                client.message("[shop.not_enough_space]")
+                assertEquals(7L, client.held(BrimhavenAgilityArena.VOUCHER))
+                assertEquals(Int.MAX_VALUE.toLong(), client.held(TOADFLAX + 1))
             }
         }
     }
