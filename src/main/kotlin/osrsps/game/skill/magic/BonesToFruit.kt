@@ -27,7 +27,7 @@ class FruitSpell(val spell: ItemSpell, val fruit: Int)
  *
  * Verified on the OSRS Wiki (Bones to Bananas and Bones to Peaches, read 2026-11-19): levels 15 and 60, 25 and 35.5 XP
  * a cast whatever the count, the cache's runes, the list of bones (bones, burnt, bat, bleached, jogre, wolf, monkey,
- * Alan's, the Arena's animals' and big bones, both spells alike), only unnoted bones for peaches, higher-tier bones
+ * Alan's and big bones, both spells alike), only unnoted bones for peaches, higher-tier bones
  * refused, a cast a tick that doesn't stall the player, and the two messages quoted for peaches. The animation and
  * graphic are the cache's `human_castbonestobananas` (722) and `bonestobananas_casting` (141).
  *
@@ -36,7 +36,8 @@ class FruitSpell(val spell: ItemSpell, val fruit: Int)
  * the graphic at the teleports' height 92; the peach messages for Bananas too; "monkey bones" taken as every
  * Ape Atoll bone named monkey bones and "bones" as the ordinary 526 only; any other buryable item counting as
  * unsuitable bones; no XP at the Fountain of Rune (as the other spells); nothing taken on a refusal. The Tombs of
- * Amascut refusal isn't built, as the Tombs aren't.
+ * Amascut refusal isn't built, as the Tombs aren't; nor are the Mage Training Arena's animal bones, which only the
+ * Creature Graveyard gives and which make 1 to 4 fruit each there (Codex review on #964): they go with the Graveyard.
  */
 class BonesToFruit(private val world: World, private val spells: List<FruitSpell>) {
     /** The tick of each player's last cast, so a cast a tick is the most anyone gets. */
@@ -89,9 +90,9 @@ class BonesToFruit(private val world: World, private val spells: List<FruitSpell
 
         /**
          * The bones both spells change (Wiki): bones, burnt bones, bat bones, big bones, wolf bones, jogre bones, the
-         * monkey bones of Ape Atoll, the Mage Training Arena's animals' bones, bleached bones and Alan's bones.
+         * monkey bones of Ape Atoll, bleached bones and Alan's bones.
          */
-        val BONES = setOf(526, 528, 530, 532, 2859, 3125, 3179, 3180, 3183, 3185, 3186, 6904, 6905, 6906, 6907, 25422, 30973)
+        val BONES = setOf(526, 528, 530, 532, 2859, 3125, 3179, 3180, 3183, 3185, 3186, 25422, 30973)
 
         fun load(objTypes: ObjTypes): List<FruitSpell> = listOfNotNull(
             ItemSpell.load(objTypes, "15_bones_bananas", 250, 1, ANIM, SPOTANIM)?.let { FruitSpell(it, BANANA) },
