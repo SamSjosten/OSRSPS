@@ -45,6 +45,12 @@ class Movement(private val collision: CollisionMap) {
         player.invertRun = invertRun
     }
 
+    /**
+     * Tiles a run stops on after its first step, without taking the second: a tile that starts something there (the
+     * Agility Arena's floor traps), so the player isn't carried past it.
+     */
+    val stopChecks = ArrayList<(Player) -> Boolean>()
+
     fun process(player: Player): MoveResult {
         // A dead player goes nowhere, even partway along an obstacle.
         if (player.dead) player.forcedSteps.clear()
@@ -73,7 +79,10 @@ class Movement(private val collision: CollisionMap) {
         // Rooted or frozen, they keep their route but take no step of it (a follow or a click made after the fight's part).
         val steps = if (player.scripts.delayed || player.rootedTicks > 0 || player.freezeTicks > 0) 0 else if (wantsRun && player.runEnergy > 0 && !weary) 2 else 1
         var taken = 0
-        while (taken < steps && step(player)) taken++
+        while (taken < steps && step(player)) {
+            taken++
+            if (stopChecks.any { it(player) }) break
+        }
         val result = when (taken) {
             0 -> MoveResult.NONE
             1 -> MoveResult.WALKED

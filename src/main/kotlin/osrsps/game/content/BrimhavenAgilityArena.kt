@@ -295,7 +295,8 @@ class AgilityArena(private val world: World) {
         if (shown.size > players.size) shown.keys.retainAll(players.mapTo(HashSet()) { it.saveKey })
     }
 
-    private class PadStreak(var count: Int, var lastTick: Long)
+    /** [tenthsAfter]: the player's Agility XP (tenths) after the streak's last pad, so XP from anything else ends it. */
+    private class PadStreak(var count: Int, var lastTick: Long, var tenthsAfter: Int = -1)
 
     private val pads = HashMap<String, PadStreak>()
 
@@ -351,11 +352,16 @@ class AgilityArena(private val world: World) {
         world.teleport(player, landing.first, landing.second, player.level)
         if (trap == BrimhavenAgilityArena.Trap.PRESSURE_PAD && !padPays(player)) return@with
         player.skills.addTenths(Skill.AGILITY, trap.xpTenths)
+        if (trap == BrimhavenAgilityArena.Trap.PRESSURE_PAD) pads[player.saveKey]?.tenthsAfter = player.skills.tenths(Skill.AGILITY)
     }
 
-    /** Whether a pressure pad crossed now gives its XP: not a third in a row within 8 ticks of the second. */
+    /**
+     * Whether a pressure pad crossed now gives its XP: not a third in a row within 8 ticks of the second. Another
+     * obstacle or trap crossed in between (Agility XP gained since the last pad) starts the streak again.
+     */
     private fun padPays(player: Player): Boolean {
         val streak = pads.getOrPut(player.saveKey) { PadStreak(0, Long.MIN_VALUE / 2) }
+        if (player.skills.tenths(Skill.AGILITY) != streak.tenthsAfter) streak.count = 0
         val now = world.tick
         if (streak.count >= BrimhavenAgilityArena.PAD_STREAK && now - streak.lastTick < BrimhavenAgilityArena.PAD_COOLDOWN_TICKS) return false
         if (streak.count >= BrimhavenAgilityArena.PAD_STREAK) streak.count = 0
@@ -607,6 +613,8 @@ fun registerBrimhavenAgilityArena(world: World) {
             world.teleport(player, HUT.x, HUT.z, HUT.level)
         }
         world.stepHooks += arena::stepped
+        // A run stops on a trap, so the jump starts from it and not from the tile past it.
+        world.stepStops += { player -> player.level == 3 && !player.scripts.delayed && BrimhavenAgilityArena.inArena(player.x, player.z) && BrimhavenAgilityArena.trapAt(player.x, player.z) != null }
         world.agility.rigs[PLANK] = { player, loc -> arena.plankHolds(player, loc.x, loc.z) }
         world.handlers.onLoc(CLIMBING_ROPE, CLIMB) { op ->
             // Only the pit's ropes (the 242 map has 25, all there): a copy of the type anywhere else does nothing.

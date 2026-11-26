@@ -482,7 +482,7 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
-    fun `a crossing takes the Wiki's ticks, 4 over the spikes and 5 over the blades`(@TempDir dir: Path) {
+    fun `a crossing takes the Wiki's ticks, 4 over the spikes and 5 over the blades, and a run stops on the trap`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
             server.login("tia").use { client ->
@@ -490,29 +490,73 @@ class HeadlessAgilityArenaTest {
                 client.command("setlevel agility 99")
                 client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
                 val player = server.world.playerNamed("tia")!!
-                for ((from, landing, ticks) in listOf(Triple(Coord(2772, 9553, 3), Coord(2772, 9550, 3), 4), Triple(Coord(2782, 9575, 3), Coord(2782, 9572, 3), 5))) {
+                // The blades from the tile beside them, running: the run's first step is onto the trap.
+                val crossings = listOf(
+                    Crossing(Coord(2772, 9553, 3), Coord(2772, 9552, 3), Coord(2772, 9550, 3), 4, run = false),
+                    Crossing(Coord(2782, 9574, 3), Coord(2782, 9573, 3), Coord(2782, 9572, 3), 5, run = true),
+                )
+                for (crossing in crossings) {
                     // The blades still fail 1 time in 256 at 99: a failure (the hit) is tried again.
-                    var took = -1L
+                    var took = -1
                     for (attempt in 1..5) {
                         client.commandReply("setlevel hitpoints 99") { true }
                         client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
-                        client.tele(from.x, from.z, 3)
+                        client.tele(crossing.from.x, crossing.from.z, 3)
                         client.awaitTicks(2)
-                        client.walk(landing.x, landing.z)
-                        val landed = client.await("landed or hit") {
-                            when {
-                                player.x == landing.x && player.z == landing.z -> server.world.tick
-                                player.skills.currentLevel(Skill.HITPOINTS) < 99 -> -1L
-                                else -> null
+                        player.runEnabled = crossing.run
+                        // Paused and stepped a tick at a time, so the count is game ticks, not test-thread time.
+                        client.commandReply("pause") { it.contains("aused after tick") }
+                        client.walk(crossing.landing.x, crossing.landing.z)
+                        var steppedOn = -1
+                        var landed = -1
+                        for (tick in 1..12) {
+                            client.stepTicks(1)
+                            if (player.skills.currentLevel(Skill.HITPOINTS) < 99) break
+                            val at = Coord(player.x, player.z, player.level)
+                            if (steppedOn < 0 && at != crossing.from) {
+                                assertEquals(crossing.trap, at, "the first step ends on the trap, a run too")
+                                steppedOn = tick
+                            }
+                            if (at == crossing.landing) {
+                                landed = tick
+                                break
                             }
                         }
+                        client.commandReply("resume") { it.startsWith("Resumed") }
                         if (landed < 0) continue
-                        // From the step onto the trap; the poll can see the landing a tick late.
-                        took = landed - player.lastMoveTick
+                        took = landed - steppedOn
                         break
                     }
-                    assertTrue(took in ticks - 1..ticks, "the crossing to $landing took $took ticks after the step on, not ${ticks - 1}")
+                    assertEquals(crossing.ticks - 1, took, "ticks from the step onto the trap to the landing at ${crossing.landing}")
                 }
+            }
+        }
+    }
+
+    private data class Crossing(val from: Coord, val trap: Coord, val landing: Coord, val ticks: Int, val run: Boolean)
+
+    @Test
+    fun `Agility XP from something else between pads starts the pad streak again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("pip").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2772, 9586, 3)
+                val xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9583)
+                client.await("over the pad south") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("26 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 26 } }
+                // Another obstacle's XP in between.
+                client.command("addxp agility 10")
+                client.await("10 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 36 } }
+                client.walk(2772, 9586)
+                client.await("over the pad north") { client.position?.takeIf { it == Coord(2772, 9586, 3) } }
+                client.await("62 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 62 } }
+                client.walk(2772, 9583)
+                client.await("over the pad again") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("88 XP: only the second pad of the new streak") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 88 } }
             }
         }
     }

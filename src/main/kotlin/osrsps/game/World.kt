@@ -1038,6 +1038,9 @@ class World(
      */
     val stepHooks = ArrayList<(Player, List<Tile>) -> Unit>()
 
+    /** Tiles a running player stops on after one step; see [Movement.stopChecks]. */
+    val stepStops: MutableList<(Player) -> Boolean> get() = movement.stopChecks
+
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
