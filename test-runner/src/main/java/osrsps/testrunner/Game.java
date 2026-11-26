@@ -272,6 +272,13 @@ interface Game
 	String castOnItem(int interfaceId, int component, String item, int itemId);
 
 	/**
+	 * (0.30.0) Picks the spell at {@code interfaceId:component} and casts it on the nearest item on the ground with this
+	 * name (or id, when the name is null) on the player's plane, on the tile when given, as clicking the spell and then
+	 * "Cast ... -> item" on the ground would (Telekinetic Grab). Returns null once sent, or why it couldn't be yet.
+	 */
+	String castOnGroundItem(int interfaceId, int component, String item, int itemId, Tile at);
+
+	/**
 	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
 	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
 	 */

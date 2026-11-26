@@ -637,6 +637,14 @@ internal class HeadlessGame(
         return null
     }
 
+    override fun castOnGroundItem(interfaceId: Int, component: Int, item: String?, itemId: Int, at: Tile?): String? {
+        val client = c() ?: return "not logged in"
+        if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open"
+        val obj = nearestGroundItem(client, item, itemId, at) ?: return groundItemMissing(item, itemId, at)
+        client.objTarget(obj.id, obj.coord.x, obj.coord.z, interfaceId, component)
+        return null
+    }
+
     override fun castOnPlayer(interfaceId: Int, component: Int, player: String): String =
         "castOnPlayer needs other players' names, which the headless client doesn't read yet"
 

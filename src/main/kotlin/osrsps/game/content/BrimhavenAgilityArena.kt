@@ -307,6 +307,8 @@ class AgilityArena(private val world: World) {
             }
         }
         if (shown.size > players.size) shown.keys.retainAll(players.mapTo(HashSet()) { it.saveKey })
+        // Pad streaks of players gone offline (round 60, R60B-5): a streak is only for the cooldown, so it can go.
+        if (pads.size > players.size) pads.keys.retainAll(players.mapTo(HashSet()) { it.saveKey })
     }
 
     /** [tenthsAfter]: the player's Agility XP (tenths) after the streak's last pad, so XP from anything else ends it. */
@@ -325,16 +327,34 @@ class AgilityArena(private val world: World) {
             val to = trail[i]
             if (!BrimhavenAgilityArena.inArena(to.x, to.z)) continue
             val trap = BrimhavenAgilityArena.trapAt(to.x, to.z) ?: continue
-            val dx = (to.x - trail[i - 1].x).sign
-            val dz = (to.z - trail[i - 1].z).sign
+            val from = trail[i - 1]
+            val dx = (to.x - from.x).sign
+            val dz = (to.z - from.z).sign
             if (dx == 0 && dz == 0) continue
-            var end = to.x to to.z
-            while (BrimhavenAgilityArena.trapAt(end.first + dx, end.second + dz) == trap) end = end.first + dx to end.second + dz
-            val landing = end.first + dx to end.second + dz
-            val before = to.x - dx to to.z - dz
-            world.scripts.start(player) { jump(this, trap, landing, before) }
+            // A jump goes straight across: a diagonal step jumps along one of its two axes, the one the trap doesn't run
+            // along first (round 60, R60B-2: a diagonal landing could be outside the 2-wide corridors). Only onto a tile
+            // the player can stand on; with none, they are put back where they stepped from.
+            val axes = if (dx != 0 && dz != 0) listOf(dx to 0, 0 to dz) else listOf(dx to dz)
+            val landings = axes.map { (ax, az) ->
+                var end = to.x to to.z
+                while (BrimhavenAgilityArena.trapAt(end.first + ax, end.second + az) == trap) end = end.first + ax to end.second + az
+                Triple(end == (to.x to to.z), end.first + ax, end.second + az)
+            }.sortedByDescending { it.first }
+            val landing = landings.firstOrNull { world.canStand(it.second, it.third, player.level) }
+            val before = from.x to from.z
+            if (landing == null) {
+                world.scripts.start(player) { putBack(this, before) }
+                return
+            }
+            world.scripts.start(player) { jump(this, trap, landing.second to landing.third, before) }
             return
         }
+    }
+
+    private suspend fun putBack(context: ScriptContext, before: Pair<Int, Int>) = with(context) {
+        player.waypoints.clear()
+        player.forcedSteps.clear()
+        world.teleport(player, before.first, before.second, player.level)
     }
 
     private suspend fun jump(context: ScriptContext, trap: BrimhavenAgilityArena.Trap, landing: Pair<Int, Int>, before: Pair<Int, Int>) = with(context) {
@@ -467,10 +487,13 @@ internal object AgilityArenaStore : OmnishopOwner {
         }
     }
 
-    override fun delivers(stock: OmnishopStock): Boolean? = when (stock.obj) {
-        BrimhavenAgilityArena.STORE_XP -> true
+    override fun delivers(stock: OmnishopStock): Boolean? = when {
+        // Nothing in this store is free (round 60, R60B-4: an XP entry costing 0 would give XP a click). Other omnishops,
+        // as the raid's failure shop, do hand out free supplies, so the check is here and not in the screen.
+        stock.cost <= 0 -> false
+        stock.obj == BrimhavenAgilityArena.STORE_XP -> true
         // Not built: the recolour wants the six graceful pieces too, and the recoloured set.
-        BrimhavenAgilityArena.STORE_GRACEFUL_RECOLOUR -> false
+        stock.obj == BrimhavenAgilityArena.STORE_GRACEFUL_RECOLOUR -> false
         else -> null
     }
 
