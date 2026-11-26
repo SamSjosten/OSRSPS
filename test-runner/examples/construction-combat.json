@@ -1,5 +1,5 @@
 {
- "name": "Construction step CON6a: in building mode, a combat room added off the garden takes a boxing ring over its whole ring space (the Wiki's 420 XP) and a glove rack (120 XP), whose Search gives boxing gloves, worn to climb over the ring's rope and back (::keys on)",
+ "name": "Construction step CON6a: in building mode, a combat room added off the garden takes a boxing ring over its whole ring space (the Wiki's 420 XP) and a glove rack (120 XP), whose Search gives boxing gloves, worn to climb over the ring's rope and back; then the ring removed and the ranging pedestals built (720 XP) and a magic barrier walked through both ways (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -271,6 +271,73 @@
   {
    "step": "waitTicks",
    "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 13129,
+   "option": "Remove",
+   "comment": "the boxing ring goes whole, from any of its parts"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 71",
+   "expectMessage": "71",
+   "comment": "the ranging pedestals"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 8",
+   "expectMessage": "Teak plank"
+  },
+  {
+   "step": "locOption",
+   "locId": 15277,
+   "option": "Build",
+   "comment": "the combat ring space again"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 7,
+   "comment": "slot 4: the ranging pedestals, after the three rings"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Teak plank",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 13145,
+   "option": "Walk-through",
+   "comment": "through the nearest pedestal's magic barrier (the headless test checks the tiles both ways)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "locOption",
+   "locId": 13145,
+   "option": "Walk-through",
+   "comment": "and back out"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
   },
   {
    "step": "command",

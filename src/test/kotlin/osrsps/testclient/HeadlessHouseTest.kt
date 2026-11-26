@@ -29,6 +29,7 @@ import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.CombatRoom
 import osrsps.game.skill.construction.EstateAgent
 import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.FurnitureBuilds
 import osrsps.game.skill.construction.FurnitureData
 import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
@@ -101,6 +102,9 @@ class HeadlessHouseTest {
         hotspot(RING_WALL_SPACE, "Combat ring space"), hotspot(RING_FLOOR_SPACE, "Combat ring space"), hotspot(STORAGE_SPACE, "Storage space"),
         LocType(BOXING_ROPE, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         built(BOXING_MAT, "Boxing mat"),
+        hotspot(RING_CORNER_SPACE, "Combat ring space"), hotspot(PEDESTAL_WALL_SPACE, "Combat ring space"),
+        LocType(BOXING_CORNER, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BARRIER, "Magic barrier", ops = listOf("Walk-through", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
     ).associateBy { it.id }
 
@@ -209,6 +213,9 @@ class HeadlessHouseTest {
                 // (the cache's is 6 by 6 round a 4 by 4 mat), and its storage space.
                 add(ZoneLoc(RING_WALL_SPACE, LocShape.WALL_STRAIGHT, 2, combat.templateX + 2, combat.templateZ + 3, 0))
                 add(ZoneLoc(RING_FLOOR_SPACE, LocShape.GROUND_DECOR, 0, combat.templateX + 3, combat.templateZ + 3, 0))
+                // A corner post at the north-east corner of 2,1 (across to 3,2), and a pedestal's wall on the west side of 5,5.
+                add(ZoneLoc(RING_CORNER_SPACE, LocShape.WALL_SQUARE_CORNER, 1, combat.templateX + 2, combat.templateZ + 1, 0))
+                add(ZoneLoc(PEDESTAL_WALL_SPACE, LocShape.WALL_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 5, 0))
                 add(ZoneLoc(STORAGE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 6, 0))
                 doors(combat.templateX, combat.templateZ, listOf(0, 2, 3)).forEach(::add)
             },
@@ -1154,11 +1161,52 @@ class HeadlessHouseTest {
                 client.await("in the ring") { client.position?.takeIf { it == Coord(cx + 3, cz + 3, House.GROUND) } }
                 client.locOp(BOXING_ROPE, cx + 2, cz + 3, CombatRoom.CROSS)
                 client.await("out of the ring") { client.position?.takeIf { it == Coord(cx + 2, cz + 3, House.GROUND) } }
+                // A corner post too, from its own tile and back from the diagonal one (Codex review on #991).
+                client.await("the corner post") { if (client.shown(BOXING_CORNER, cx + 2, cz + 1)) Unit else null }
+                client.command("tele ${cx + 2} ${cz + 1} ${House.GROUND}")
+                client.await("at the corner") { client.position?.takeIf { it == Coord(cx + 2, cz + 1, House.GROUND) } }
+                client.locOp(BOXING_CORNER, cx + 2, cz + 1, CombatRoom.CROSS)
+                client.await("in at the corner") { client.position?.takeIf { it == Coord(cx + 3, cz + 2, House.GROUND) } }
+                client.locOp(BOXING_CORNER, cx + 2, cz + 1, CombatRoom.CROSS)
+                client.await("out at the corner") { client.position?.takeIf { it == Coord(cx + 2, cz + 1, House.GROUND) } }
+                // And stays out: a walk round to the post's own tile would climb straight back in.
+                client.awaitTicks(CombatRoom.CROSS_TICKS + 3)
+                assertEquals(Coord(cx + 2, cz + 1, House.GROUND), client.position)
 
                 // A save from inside leaves the worn gloves behind; leaving takes them.
                 assertTrue(server.world.snapshot(player).equipment.values.none { it.id == CombatRoom.RED_GLOVES })
                 client.tele(OUTSIDE.x, OUTSIDE.z)
                 client.await("the gloves gone") { if (client.inventory(Inventory.WORN).none { it?.id == CombatRoom.RED_GLOVES }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `the ranging pedestals' magic barrier is walked through both ways`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("mira").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("mira")!!
+                // A combat room with the ranging pedestals already in it: its barriers on the "ranging" walls.
+                val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                val pedestals = FurnitureBuilds.BUILDS.getValue(PEDESTALS_ROW)
+                for (id in FurnitureBuilds.siblings(PEDESTAL_WALL_SPACE)) {
+                    val loc = pedestals.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                    if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                }
+                player.house!!.rooms += room
+                val at = client.goIn(House.HOME)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                client.await("the barrier") { if (client.shown(BARRIER, cx + 5, cz + 5)) Unit else null }
+                client.command("tele ${cx + 4} ${cz + 5} ${House.GROUND}")
+                client.await("beside the barrier") { client.position?.takeIf { it == Coord(cx + 4, cz + 5, House.GROUND) } }
+                client.locOp(BARRIER, cx + 5, cz + 5, CombatRoom.CROSS)
+                client.await("through it") { client.position?.takeIf { it == Coord(cx + 5, cz + 5, House.GROUND) } }
+                client.locOp(BARRIER, cx + 5, cz + 5, CombatRoom.CROSS)
+                client.await("back through it") { client.position?.takeIf { it == Coord(cx + 4, cz + 5, House.GROUND) } }
             }
         }
     }
@@ -1251,8 +1299,12 @@ class HeadlessHouseTest {
         const val RING_BLUE_CORNER_SPACE = 15278
         const val PEDESTAL_WALL_SPACE = 15283
         const val BOXING_BLUE_CORNER = 13132
+        const val RING_CORNER_SPACE = 15279
+        const val BOXING_CORNER = 13130
+        const val BARRIER = 13145
         const val STORAGE_SPACE = 15296
         const val BOXING_RING_ROW = 5633
+        const val PEDESTALS_ROW = 5636
         const val GLOVE_RACK_ROW = 5638
         const val BOXING_ROPE = 13129
         const val BOXING_MAT = 13127

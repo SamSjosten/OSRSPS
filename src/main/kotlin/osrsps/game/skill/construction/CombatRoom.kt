@@ -8,6 +8,7 @@ import osrsps.game.content.arriveDelay
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.Agility
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.Tile
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -42,6 +43,9 @@ class CombatRoom(private val world: World, private val houses: Houses) {
                 arriveDelay()
                 cross(this, op.loc ?: return@onLoc)
             }
+            // Used from either side: a corner post's reach is only its own tile, so its diagonal side needs naming
+            // (Codex review on #991).
+            world.useLocFrom(loc) { _, at -> sides(at)?.toList()?.map { (x, z) -> Tile(x, z) }.orEmpty() }
         }
     }
 
