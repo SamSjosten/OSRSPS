@@ -410,7 +410,7 @@ class NpcDropsTest {
         val def = drops[mossGiant]!!
         assertEquals(listOf("Big bones"), def.always.map { it.type.name })
         assertEquals(
-            listOf("Ensouled giant head" to 24, "Clue scroll (beginner)" to 45, "Mossy key" to 150, "Long bone" to 400),
+            listOf("Ensouled giant head" to 24, "Clue scroll (beginner)" to 45, "Mossy key" to 150, "Long bone" to 400, "Giant champion scroll" to 5000),
             def.tertiary.map { it.item.type.name to it.denominator },
         )
         val random = GameRandom(53)
@@ -465,7 +465,7 @@ class NpcDropsTest {
         assertEquals(listOf("Big bones"), caves[giantFrog]!!.always.map { it.type.name })
         assertEquals(listOf("Bones"), caves[goblins[3]]!!.always.map { it.type.name })
         assertEquals(listOf("Clue scroll (easy)" to 128), caves[slime]!!.tertiary.map { it.item.type.name to it.denominator })
-        assertEquals(listOf("Clue scroll (beginner)" to 64, "Clue scroll (easy)" to 128), caves[goblins[0]]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 64, "Clue scroll (easy)" to 128, "Goblin champion scroll" to 5000), caves[goblins[0]]!!.tertiary.map { it.item.type.name to it.denominator })
         assertEquals(listOf("Long bone" to 400, "Curved bone" to 5013), caves[giantFrog]!!.tertiary.map { it.item.type.name to it.denominator })
         assertEquals(50, caves[goblins[1]]!!.table!!.slots)
         assertTrue(crawlers.all { caves[it]!!.table == caves[crawlers[0]]!!.table })
@@ -684,7 +684,7 @@ class NpcDropsTest {
         assertEquals(128, wizardDef.table!!.slots)
         val demonDef = tower[demon]!!
         assertEquals(listOf("Vile ashes"), demonDef.always.map { it.type.name })
-        assertEquals(listOf("Ensouled demon head" to 50), demonDef.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Ensouled demon head" to 50, "Lesser demon champion scroll" to 5000), demonDef.tertiary.map { it.item.type.name to it.denominator })
         val random = GameRandom(53)
         val counts = HashMap<String, Int>()
         val ashes = HashMap<Int, Int>()
@@ -781,8 +781,8 @@ class NpcDropsTest {
         assertTrue(sewer.warnings.all { it.startsWith("no NPC called") }, sewer.warnings.toString())
         for (name in names) assertEquals(128, sewer[sewerTypes.find(name)!!]!!.table!!.slots, name)
         // Skeletons leave a beginner clue now and then; zombies only their table.
-        assertEquals(listOf("Clue scroll (beginner)" to 100), sewer[sewerTypes.find("skeleton_armed")!!]!!.tertiary.map { it.item.type.name to it.denominator })
-        assertEquals(emptyList(), sewer[sewerTypes.find("zombie_armed_sewer4")!!]!!.tertiary)
+        assertEquals(listOf("Clue scroll (beginner)" to 100, "Skeleton champion scroll" to 5000), sewer[sewerTypes.find("skeleton_armed")!!]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Zombie champion scroll" to 5000), sewer[sewerTypes.find("zombie_armed_sewer4")!!]!!.tertiary.map { it.item.type.name to it.denominator })
         fun kills(name: String, seed: Long): Map<String, Int> {
             val def = sewer[sewerTypes.find(name)!!]!!
             val random = GameRandom(seed)
@@ -839,7 +839,7 @@ class NpcDropsTest {
             assertNull(def(name).table, name)
         }
         for (name in names.drop(3).filter { !it.startsWith("giant") }) assertEquals(128, def(name).table!!.slots, name)
-        assertEquals(listOf("Clue scroll (beginner)" to 70), def("hobgoblin_armed").tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 70, "Hobgoblin champion scroll" to 5000), def("hobgoblin_armed").tertiary.map { it.item.type.name to it.denominator })
         fun kills(name: String, seed: Long): Map<String, Int> {
             val random = GameRandom(seed)
             val counts = HashMap<String, Int>()
@@ -875,7 +875,7 @@ class NpcDropsTest {
         // (the Wiki's Hill Giant, Pre-roll), and a beginner clue rolls on its own.
         assertEquals(listOf("Big bones"), def("giant6").always.map { it.type.name })
         assertEquals(listOf("Giant key" to 128), def("giant").preroll.map { it.item.type.name to it.denominator })
-        assertEquals(listOf("Clue scroll (beginner)" to 50), def("giant").tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 50, "Giant champion scroll" to 5000), def("giant").tertiary.map { it.item.type.name to it.denominator })
         assertEquals(127, def("giant").table!!.slots)
         val giant = HashMap<String, Int>()
         val random = GameRandom(44)
@@ -1148,6 +1148,46 @@ class NpcDropsTest {
             assertEquals(listOf("Dragon bones", "Black dragonhide"), def.always.map { it.type.name }, name)
             assertEquals(128, def.table!!.slots, name)
         }
+    }
+
+    @Test
+    fun `the jungle's jogres drop jogre bones always, out of 129, often a bronze spear or trading sticks, a medium clue 1 in 129 and their champion scroll 1 in 5000`() {
+        val types = NpcTypes.of(NpcType(2094, "Jogre", internalName = "jogre"))
+        val def = NpcDrops.load(types, objTypes)[types.find("jogre")!!]!!
+        assertEquals(listOf("Jogre bones"), def.always.map { it.type.name })
+        assertEquals(129, def.table!!.slots)
+        assertEquals(listOf("Clue scroll (medium)" to 129, "Jogre champion scroll" to 5000), def.tertiary.map { it.item.type.name to it.denominator })
+        val random = GameRandom(41)
+        var sticks = 0
+        repeat(KILLS) { if (def.roll(random).any { it.type.name == "Trading sticks" && it.count == 22 }) sticks++ }
+        val p = 27.0 / 129
+        val mean = KILLS * p
+        val sigma = sqrt(KILLS * p * (1 - p))
+        assertTrue(abs(sticks - mean) <= 5 * sigma + 1, "22 trading sticks in $sticks of $KILLS, expected about ${mean.toInt()}")
+    }
+
+    @Test
+    fun `Brimhaven Dungeon's dragons drop their bones always, the metal ones five bars and a dragon legs pre-roll, the fire giants big bones`() {
+        val names = listOf("dog_wild", "babyreddragon", "babygreendragon1", "red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant", "greater_demon", "black_demon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(3100 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
+        fun def(name: String) = drops[types.find(name)!!]!!
+        assertEquals(
+            mapOf(
+                "dog_wild" to listOf("Bones"), "babyreddragon" to listOf("Babydragon bones"), "babygreendragon1" to listOf("Babydragon bones"),
+                "red_dragon" to listOf("Dragon bones", "Red dragonhide"), "bronze_dragon" to listOf("Dragon bones", "Bronze bar"),
+                "iron_dragon" to listOf("Dragon bones", "Iron bar"), "steel_dragon" to listOf("Dragon bones", "Steel bar"), "firegiant" to listOf("Big bones"),
+                "greater_demon" to listOf("Vile ashes"), "black_demon" to listOf("Malicious ashes"),
+            ),
+            names.associateWith { name -> def(name).always.map { it.type.name } },
+        )
+        for (name in listOf("bronze_dragon", "iron_dragon", "steel_dragon")) {
+            assertEquals(5, def(name).always.last().count(GameRandom(1)), name)
+            assertEquals(listOf("Dragon plateskirt", "Dragon platelegs"), def(name).preroll.map { it.item.type.name }, name)
+        }
+        assertEquals(listOf(2048, 1024, 512), listOf("bronze_dragon", "iron_dragon", "steel_dragon").map { def(it).preroll.first().denominator })
+        for (name in names.filter { def(it).table != null }) assertEquals(128, def(name).table!!.slots, name)
     }
 
     @Test

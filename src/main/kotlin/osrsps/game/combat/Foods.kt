@@ -60,6 +60,9 @@ data class Food(
     val message: Line = FoodLines.EAT,
     val anglerfish: Boolean = false,
     val painful: Int = 0,
+    /** A boost the bite gives [boostSkill] over its level (a cooked t-bone steak's +2 Strength); 0 for none. */
+    val boost: Int = 0,
+    val boostSkill: Skill? = null,
 )
 
 /**
@@ -105,6 +108,15 @@ class Foods(
         player.anim(EAT_ANIM)
         val before = player.hitpoints
         player.hitpoints = healed(player, food)
+        food.boostSkill?.let { skill ->
+            // Guessed: as a potion's boost (Potions.apply): the current level plus the boost, capped at the base level plus
+            // the boost, never lowering a higher one. The Wiki gives only "+2 Strength", so a drained level comes up by 2
+            // and is not restored to base (exploit review R58A-2).
+            val base = player.skills.baseLevel(skill)
+            val current = player.skills.currentLevel(skill)
+            val boosted = minOf(base + food.boost, current + food.boost)
+            if (boosted > current) player.skills.setCurrentLevel(skill, boosted)
+        }
         val text = words(player)
         message(player, text[food.message, "food" to food.name])
         if (player.hitpoints > before) message(player, text[FoodLines.HEALS])
@@ -186,6 +198,10 @@ class Foods(
                         message = message ?: FoodLines.EAT,
                         anglerfish = entry["anglerfish"]?.jsonPrimitive?.boolean ?: false,
                         painful = entry["painful"]?.jsonPrimitive?.int?.also { require(it in 1..99) { "painful $it" } } ?: 0,
+                        boost = entry["boost"]?.jsonPrimitive?.int?.also { require(it in 1..20) { "boost $it" } } ?: 0,
+                        boostSkill = entry["boostSkill"]?.jsonPrimitive?.content?.let { name ->
+                            Skill.entries.firstOrNull { it.displayName.equals(name, ignoreCase = true) } ?: throw IllegalArgumentException("\"boostSkill\": \"$name\"")
+                        },
                     )
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: foods entry ${i + 1}: ${e.message}", e)
@@ -202,7 +218,7 @@ class Foods(
             }
         }
 
-        private val KEYS = setOf("food", "heals", "next", "eatDelay", "attackDelay", "combo", "message", "anglerfish", "painful")
+        private val KEYS = setOf("food", "heals", "next", "eatDelay", "attackDelay", "combo", "message", "anglerfish", "painful", "boost", "boostSkill")
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
     }

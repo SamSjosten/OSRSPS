@@ -60,14 +60,17 @@ class ImplingsTest {
     }
 
     @Test
-    fun `the loot file reads, every impling has a table, and only the gourmet has a pre-roll and the crystal a tertiary`() {
+    fun `the loot file reads, every impling has a table, and only the gourmet has a pre-roll, and every jar a clue`() {
         val drops = NpcDrops.parse(text, NpcTypes.NONE, objTypes())
         assertEquals(emptyList(), drops.warnings)
         for (impling in Implings.ALL) assertTrue(drops.chests[impling.loot]?.table != null, impling.loot)
         assertEquals(listOf("gourmet"), Implings.ALL.filter { drops.chests[it.loot]!!.preroll.isNotEmpty() }.map { it.loot })
-        assertEquals(listOf("crystal"), Implings.ALL.filter { drops.chests[it.loot]!!.tertiary.isNotEmpty() }.map { it.loot })
+        // Treasure Trails step TT9: every jar has its clue scrolls as tertiaries (the Wiki's drop sources).
+        val clues = setOf(23182, 2677, 2801, 2722, 12073)
+        for (impling in Implings.ALL) assertTrue(drops.chests[impling.loot]!!.tertiary.any { it.item.type.id in clues }, impling.loot)
+        assertEquals(listOf(50, 100), drops.chests["baby"]!!.tertiary.map { it.denominator })
         assertEquals(500, drops.chests["gourmet"]!!.preroll.single().denominator)
-        assertEquals(128, drops.chests["crystal"]!!.tertiary.single().denominator)
+        assertEquals(listOf(128, 50), drops.chests["crystal"]!!.tertiary.map { it.denominator })
         // A thousand dragon jars always give something, each from the table.
         val random = GameRandom(3)
         repeat(1000) { assertTrue(drops.chests["dragon"]!!.roll(random).isNotEmpty()) }

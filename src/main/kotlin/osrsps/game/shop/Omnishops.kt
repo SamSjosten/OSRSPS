@@ -14,6 +14,13 @@ data class OmnishopStock(
     val buyable: Boolean = true,
     val viewOnly: Boolean = false,
     val multiplier: Int = 1,
+    /** The currency [cost] is in, when the entry names its own (a shop of two currencies); null for the shop's. */
+    val currency: OmnishopCurrency? = null,
+    /**
+     * Whether the entry hands over its item noted: column 20, set only on the Agility Arena Store's toadflax and
+     * snapdragon, which the Wiki says come noted (inferred from that).
+     */
+    val noted: Boolean = false,
 )
 
 /**

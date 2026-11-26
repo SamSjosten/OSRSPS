@@ -222,6 +222,30 @@ class HeadlessTreasureTrailsTest {
         }
     }
 
+    @Test
+    fun `a casket can hold a master scroll box, but not past the master cap`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fern").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("clue lucky on") { it.startsWith("Every") }
+                client.command("item ${TrailTier.EASY.rewardCasket} 2")
+                client.op(TrailTier.EASY.rewardCasket, 1)
+                client.seen("[trail.completed count=1 tier=easy]")
+                client.await("the master scroll box") { client.backpack().firstOrNull { it?.id == TrailTier.MASTER.scrollBox } }
+                client.closeModal()
+
+                // A second master box makes two, the cap: the next casket holds none.
+                client.command("item ${TrailTier.MASTER.scrollBox} 1")
+                client.await("two master boxes") { client.backpack().filterNotNull().filter { it.id == TrailTier.MASTER.scrollBox }.sumOf { it.count }.takeIf { it == 2 } }
+                client.op(TrailTier.EASY.rewardCasket, 1)
+                client.seen("[trail.completed count=2 tier=easy]")
+                client.awaitTicks(2)
+                assertEquals(2, client.backpack().filterNotNull().filter { it.id == TrailTier.MASTER.scrollBox }.sumOf { it.count })
+                client.closeModal()
+            }
+        }
+    }
+
     private companion object {
         const val COINS = 995
         const val DAGGER = 1205

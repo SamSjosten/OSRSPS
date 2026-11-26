@@ -128,6 +128,9 @@ class Quests(val all: List<Quest>) {
             963 to 2, 964 to 2,
             // Daddy's Home leaves Marlo's house mended: each piece of furniture and the carpet at its _fixed form (3).
             10563 to 3, 10564 to 3, 10565 to 3, 10566 to 3, 10567 to 3, 10568 to 3, 10569 to 3,
+            // tog_juna_bowl: after Tears of Guthix, Juna's multiloc shows her Story option (2 shows tog_juna_2ops; inferred
+            // from the forms' names and ops; [osrsps.game.content.TearsOfGuthix]).
+            451 to 2,
             // Demon Slayer: Sir Prysin's sword case (qip_ds_silverlight_case) stands empty once he has handed over
             // Silverlight (inferred from its two forms, full and empty).
             2567 to 1,
@@ -135,9 +138,31 @@ class Quests(val all: List<Quest>) {
             // (ent) shows Travel, Talk-to and Last-destination from 2, the lowest value whose form has them (inferred;
             // [osrsps.game.content.SpiritTrees]).
             598 to 2,
+            // The Lost Tribe's varbit (532) ends the quest at 11, which shows Kazgar and Mistag with only Talk-to and
+            // Follow; their Mines/Watermill/Cellar forms (lost_tribe_guide_3ops, lost_tribe_mistag_3ops) are the multinpcs'
+            // entry 12, inferred to be where Death to the Dorgeshuun leaves it. 12 changes nothing else that reads it
+            // (Sigmund in the H.A.M. store and the cellar wall read the same at 11 and 12). Nightly 2026-11-23.
+            532 to 12,
             // The Restless Ghost: the Wizards' Tower basement's altar (restless_ghost_altar) bare, the skull back in the
             // coffin (1, restless_ghost_altar_no_skull).
             2130 to 1,
+            // Enlightened Journey, with every balloon route flown (Sam, 19 Nov 2026: all routes open): each station's basket
+            // ready, zep_multi_basket (Entrana) and zep_multi_piccard (Taverley) at 2, the quest's last step, and
+            // zep_multi_cast, _gno, _craft and _varr at 1 (inferred from the baskets' multiloc forms;
+            // [osrsps.game.content.Balloons]).
+            2867 to 2, 2868 to 2, 2869 to 1, 2870 to 1, 2871 to 1, 2872 to 1,
+            // vm_digsite_tablet, vm_digsite_talisman: The Dig Site fills the Varrock Museum's tablet and talisman cases
+            // (Wiki, Display case numbers 42 and 43; [osrsps.game.content.MuseumDisplays]).
+            3643 to 1,
+            3644 to 1,
+            // golem_retrieved_statuette: The Golem takes the statuette from the museum's terracotta case, which then
+            // shows empty, its Study saying it was stolen (Wiki, Display case number 30; [osrsps.game.content.MuseumDisplays]).
+            355 to 1,
+            // surok_tunnelcheck, surok_portal: What Lies Below leaves the Saradomin statue east of Varrock open over the
+            // Tunnel of Chaos, and the Chaos Altar maze's portal back to the tunnel there (the Wiki's Tunnel of Chaos,
+            // "during and after" the quest; [osrsps.game.content.TunnelOfChaos]).
+            3524 to 1,
+            3529 to 1,
         )
 
         val NONE = Quests(emptyList())

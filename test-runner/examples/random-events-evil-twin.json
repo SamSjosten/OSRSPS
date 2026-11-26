@@ -80,7 +80,7 @@
     {"step": "continueDialogue"},
     {"step": "assertNoDialogue"},
     {"step": "locOption", "loc": "Door", "option": "Open", "timeoutMs": 20000},
-    {"step": "waitTicks", "ticks": 2},
+    {"comment": "The walk to the door can take several ticks from where Molly stood; a click on the panel before the door is reached would cancel it.", "step": "waitTicks", "ticks": 8},
     {"step": "locOption", "loc": "Control panel", "option": "Use", "timeoutMs": 20000},
     {"comment": "The claw controls: look that four arrows and a grab button replace the side panel.", "step": "assertInterface", "interfaceId": 277, "timeoutMs": 20000},
     {"comment": "Right twice: look that the claw and its glowing mark move two tiles east.", "step": "clickWidget", "interfaceId": 277, "component": 7, "op": 1},

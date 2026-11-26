@@ -9,6 +9,8 @@ import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.SlayerHelm
+import osrsps.game.content.DiaryArea
+import osrsps.game.content.DiaryTier
 import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
@@ -228,10 +230,15 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun blocked(player: Player, master: SlayerMaster, task: Int): Boolean = (1..BLOCK_SLOTS + 1).any { blockedIn(player, master, it) == task }
 
     /**
-     * The block slots [player] may use: one for every 50 quest points, up to six. Left out: the seventh, the Lumbridge &
-     * Draynor Elite diary's (no diaries are built).
+     * The block slots [player] may use, 1 to 7: one for every 50 quest points, up to six, and the seventh once the
+     * Lumbridge & Draynor Elite diary is done with the tiers below it (the Wiki's rewards; guessed: their tasks done is
+     * enough, claimed or not).
      */
-    fun blockSlots(player: Player): Int = (player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)
+    fun blockSlots(player: Player): List<Int> {
+        val slots = (1..(player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)).toList()
+        val diary = world.diaries.perkEarned(player, DiaryArea.LUMBRIDGE, DiaryTier.ELITE)
+        return if (diary) slots + (BLOCK_SLOTS + 1) else slots
+    }
 
     fun setBlocked(player: Player, master: SlayerMaster, slot: Int, task: Int) = player.vars.setVarbit(blockVarbit(master, slot), task)
 
@@ -361,7 +368,7 @@ class Slayer(private val world: World, val data: SlayerData) {
         superiors.xpTenths(npc)?.let { superiorXp ->
             val player = online(killerKey) ?: return
             player.skills.addTenths(Skill.SLAYER, superiorXp)
-            if (onTask(player, npc) && countsHere(player)) countKill(player)
+            if (onTask(player, npc) && countsHere(player)) countKill(player, world.jewelleryEffects.taskKills(player))
             return
         }
         val xp = xpTenths(npc)
@@ -372,7 +379,7 @@ class Slayer(private val world: World, val data: SlayerData) {
             if (!onTask(player, npc) || !countsHere(player)) continue
             player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
             superiors.rolled(player, npc)
-            countKill(player)
+            countKill(player, world.jewelleryEffects.taskKills(player))
         }
     }
 
@@ -389,9 +396,13 @@ class Slayer(private val world: World, val data: SlayerData) {
         return false
     }
 
-    /** One off [player]'s task, completing it with the last. */
-    private fun countKill(player: Player) {
-        val left = remaining(player) - 1
+    /**
+     * [kills] off [player]'s task, completing it with the last: one, or the expeditious bracelet's two or the bracelet of
+     * slaughter's none ([osrsps.game.skill.magic.JewelleryEffects.taskKills]).
+     */
+    private fun countKill(player: Player, kills: Int) {
+        if (kills <= 0) return
+        val left = maxOf(0, remaining(player) - kills)
         player.vars[VARP_COUNT] = left
         if (left == 0) complete(player)
     }

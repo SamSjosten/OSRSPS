@@ -36,6 +36,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val SUSPICION_HARD = line("suspicion_hard", "a hard scroll box likewise")
     val SUSPICION_ELITE = line("suspicion_elite", "an elite scroll box likewise")
     val SUSPICION_MASTER = line("suspicion_master", "a master scroll box likewise")
+    val ALREADY_CLUE = line("already_clue", "Take on a clue scroll while holding one of its tier (the Wiki's Treasure Trails page)")
+    val BOXES_DESTROYED = line("boxes_destroyed", "Take on scroll boxes past the tier's cap: the ones over it are destroyed (the Wiki's Treasure Trails page)")
     val WELL_DONE = line("well_done", "opening a reward casket (the Wiki's Reward casket pages)")
     val COMPLETED = line("completed", "after well_done, in red: the caskets of the tier opened so far (tier is easy, medium and so on)", "count", "tier")
     val WORTH = line("worth", "after completed, in red: the reward's Grand Exchange value, with commas", "value")
@@ -70,12 +72,14 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 /**
  * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
  * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4), the STASH units ([StashUnits], TT5), the puzzle and light boxes ([TrailBoxes], TT6), the fights and key steps ([TrailFights], TT7), and Charlie
- * and the hot-cold steps ([HotCold], TT8). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * and the hot-cold steps ([HotCold], TT8), and the clue sources beside drops (TT9: [give] for pickpockets, impling
+ * jars and chests, [SkillingClues] for mining, woodcutting and fishing). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
  *   scroll box. A player holds at most [cap] boxes and scrolls of a tier together (the Wiki: the cap starts at 2, and
- *   each scroll case opened raises it by one); a box past that is not dropped, and the killer is told so.
+ *   each scroll case opened raises it by one); a box past that is not dropped, and the killer is told so. A pickpocket's,
+ *   impling jar's or chest's clue scroll comes the same way ([give]); skilling rolls only the tiers below the cap.
  * - Open on a box takes one and gives a clue scroll of its tier on a new trail, unless a clue of the tier is already in
  *   the backpack or the bank. The trail's length is rolled in the tier's range ([TrailTier.minSteps]); each step is a
  *   built step of the tier ([built]) not yet done on this trail.
@@ -143,6 +147,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     /** Hot-cold steps and their strange devices (TT8). */
     val hotCold = HotCold(world, this)
 
+    /** Scroll boxes from mining, woodcutting and fishing (TT9). */
+    val skilling = SkillingClues(world, this)
+
     /** The step each challenge scroll belongs to. */
     private val byChallenge: Map<Int, ClueStep> = data.steps.values.filter { it.challengeItem >= 0 }.associateBy { it.challengeItem }
 
@@ -189,15 +196,23 @@ class TreasureTrails(private val world: World, val data: TrailData) {
 
     private fun Inventory.hasClue(tier: TrailTier) = contents().any { (_, obj) -> obj.count > 0 && tierOf(obj.id) == tier }
 
-    /** Whether [player] holds a clue scroll of [tier] in the backpack or the bank. */
-    fun holdsClue(player: Player, tier: TrailTier): Boolean = player.inventory.hasClue(tier) || player.bank.hasClue(tier)
+    /**
+     * The player's containers a clue scroll or scroll box can wait in: the backpack, the bank, their gravestone and the
+     * raid's unclaimed loot (exploit review R55B-2 and R55B-3: a grave filled by dying again and again, or a raid chest left
+     * unclaimed, held boxes the cap didn't count).
+     */
+    private fun stores(player: Player): List<Inventory> =
+        listOfNotNull(player.inventory, player.bank, world.deaths.graveOf(player)?.items, player.archiveChest)
+
+    /** Whether [player] holds a clue scroll of [tier] in the backpack, the bank, their grave or unclaimed raid loot. */
+    fun holdsClue(player: Player, tier: TrailTier): Boolean = stores(player).any { it.hasClue(tier) }
 
     /** How many scroll boxes and clue scrolls of [tier] [player] may hold together: [BOX_CAP], and one per scroll case opened. */
     fun cap(player: Player, tier: TrailTier): Int = BOX_CAP + SCROLL_CASES.getValue(tier).count { it in player.trails.cases }
 
     /** Scroll boxes and clue scrolls of [tier] the player holds, against [cap]. */
     fun held(player: Player, tier: TrailTier): Long =
-        player.inventory.count(tier.scrollBox) + player.bank.count(tier.scrollBox) + if (holdsClue(player, tier)) 1 else 0
+        stores(player).sumOf { it.count(tier.scrollBox) } + if (holdsClue(player, tier)) 1 else 0
 
     /**
      * What a monster's drop of clue scroll [obj] becomes for [killer]: its tier's scroll box, or null when the killer
@@ -211,6 +226,54 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             return null
         }
         return box
+    }
+
+    /**
+     * Gives [player] [count] of [type] from a source that isn't a monster's drop (a pickpocket, an impling jar, a chest):
+     * a clue scroll as its tier's scroll box, or nothing past the cap (told so), into the backpack or on their tile.
+     */
+    fun give(player: Player, type: ObjType, count: Int) {
+        val given = dropFor(player, type) ?: return
+        world.groundObjs.give(player, given, count)
+    }
+
+    /**
+     * Take on a scroll box or clue scroll on the ground (exploit review R45C-2: the cap and the one clue a tier hold on
+     * pickup too, as on live). A clue scroll of a tier already held stays where it is; scroll boxes past the cap are
+     * destroyed, the rest taken (the Wiki's Treasure Trails page for both messages).
+     */
+    suspend fun take(context: ScriptContext, obj: osrsps.game.zone.ZoneObj) {
+        val player = context.player
+        // From beside the tile (on a table), a tick's wait and human_pickuptable first, as GroundObjs takes anything
+        // else; the checks below are made after it (Codex review on #907).
+        if (player.x != obj.x || player.z != obj.z) {
+            context.delay(1)
+            player.anim(GroundObjs.ANIM_PICKUP_TABLE)
+        }
+        takeChecked(player, obj)
+    }
+
+    /**
+     * [take]'s checks and the taking, with no walk or wait: for Telekinetic Grab's arrival too (Codex review on #982:
+     * a grabbed clue keeps the one-a-tier rule and a grabbed box the cap).
+     */
+    fun takeChecked(player: Player, obj: osrsps.game.zone.ZoneObj) {
+        val box = TrailTier.entries.firstOrNull { it.scrollBox == obj.id }
+        if (box == null) {
+            val tier = tierOf(obj.id)
+            if (tier != null && holdsClue(player, tier)) return world.message(player, TrailLines.ALREADY_CLUE)
+            // A dropped clue taken back past the cap (boxes gained while it lay there) stays where it is, with the
+            // suspicion line (exploit review R55B-4; guessed: the Wiki names only the one-clue rule for scrolls).
+            if (tier != null && held(player, tier) >= cap(player, tier)) return world.message(player, TrailLines.suspicion(tier))
+            world.groundObjs.take(player, obj)
+            return
+        }
+        val room = (cap(player, box) - held(player, box)).coerceAtLeast(0L)
+        if (obj.count.toLong() <= room) {
+            world.groundObjs.take(player, obj)
+            return
+        }
+        if (world.groundObjs.takeUpTo(player, obj, room.toInt())) world.message(player, TrailLines.BOXES_DESTROYED)
     }
 
     /** Starts a new trail of [tier] for [player] at [first] (a random built step when null), returning its clue item. */
@@ -312,7 +375,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val step = stepOf(player, tier, obj.id) ?: continue
             if (!isDig(step) || step !in pool(tier) || !dressed(player, step)) continue
             val spot = step.targets.first().tile
-            val range = if (step.type == StepType.HOT_COLD) HotCold.digRange(tier) else DIG_RANGE
+            val range = if (step.type == StepType.HOT_COLD) HotCold.DIG_RANGE else DIG_RANGE
             if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > range) continue
             if (mustFight(player, tier, step)) return
             solve(context, slot, tier, step)
@@ -598,6 +661,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         val count = player.trails.completed(tier) + 1
         player.trails.setCompleted(tier, count)
         val drops = ArrayList(rewards.roll(world.random))
+        masterBox(player, tier)?.let { drops += Drop(it, 1) }
         for (milestone in rewards.milestones) {
             val id = milestone.type.id
             // A scroll case comes with every casket from its count on until it is opened (the Wiki's Scroll case page).
@@ -618,6 +682,19 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         // Coins count at face value: they have no guide price.
         val value = drops.sumOf { (if (it.type.id == COINS) 1L else world.itemPrices.price(it.type) ?: 0L) * it.count }
         world.message(player, TrailLines.WORTH, "value" to "%,d".format(value))
+    }
+
+    /**
+     * The master scroll box an easy, medium, hard or elite casket can hold (TT10; the Wiki's Clue scroll (master) page:
+     * 1/50, 1/30, 1/15 and 1/5), unless the player holds as many master boxes and clues as they may. Every roll hits
+     * for a player on `::clue lucky`. Left out: Watson, who swaps one clue of each lower tier for a master (Hosidius,
+     * outside the built regions).
+     */
+    private fun masterBox(player: Player, tier: TrailTier): ObjType? {
+        val chance = MASTER_CHANCES[tier] ?: return null
+        if (held(player, TrailTier.MASTER) >= cap(player, TrailTier.MASTER)) return null
+        if (player.saveKey !in skilling.lucky && world.random.nextInt(chance) != 0) return null
+        return world.objTypes[TrailTier.MASTER.scrollBox]
     }
 
     private fun removeFromBank(player: Player, id: Int) {
@@ -652,6 +729,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     companion object {
         /** The scroll boxes and clue scrolls of a tier a player may hold together, before scroll cases. */
         const val BOX_CAP = 2
+
+        /** The 1-in chance of a master scroll box in each tier's casket (the Wiki's Clue scroll (master) page). */
+        val MASTER_CHANCES: Map<TrailTier, Int> = mapOf(TrailTier.EASY to 50, TrailTier.MEDIUM to 30, TrailTier.HARD to 15, TrailTier.ELITE to 5)
 
         /** Coins, worth one each in a casket's value. */
         const val COINS = 995
@@ -770,6 +850,10 @@ fun registerTreasureTrails(world: World) {
         world.handlers.onObj(item, 2) { op -> trails.checkSteps(this, op.sub) }
     }
     world.handlers.onObj(TreasureTrails.SPADE, 1) { trails.dig(this) }
+    // Every clue scroll in the cache (a Read op and a tier's param), not only the ones a built step names.
+    val pickups = TrailTier.entries.map { it.scrollBox } + TrailTier.entries.map { it.sharedClue }.filter { it >= 0 } + trails.data.byItem.keys +
+        (0 until world.objTypes.size).filter { trails.tierOf(it) != null }
+    for (id in pickups.distinct()) world.handlers.onGroundObj(id, GroundObjs.TAKE_OPTION) { op -> trails.take(this, op.groundObj ?: return@onGroundObj) }
     // Talk and search steps take their NPC's or loc's click ahead of its own handler.
     world.handlers.first(trails::intercept)
     for (uri in TreasureTrails.URI.values) world.handlers.onNpc(uri, 1) { op -> trails.talkToUri(this, op.npc ?: return@onNpc) }

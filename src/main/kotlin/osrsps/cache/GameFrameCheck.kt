@@ -7,6 +7,7 @@ import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.Prayers
 import osrsps.game.content.ApothecaryPotions
+import osrsps.game.content.Diaries
 import osrsps.game.content.AvaDevicesShop
 import osrsps.game.content.Ellis
 import osrsps.game.content.SlayerRewards
@@ -54,7 +55,7 @@ object GameFrameCheck {
             GameFrame.ORBS_CACHE_NAMES, WorldMapScreen.CACHE_NAMES, EquipmentTab.CACHE_NAMES, Chatbox.CACHE_NAMES,
             BankScreen.CACHE_NAMES, DepositBox.CACHE_NAMES, BankPinSettings.CACHE_NAMES, SettingsSide.CACHE_NAMES,
             AllSettings.CACHE_NAMES, ShopScreen.CACHE_NAMES, GrandExchangeScreen.CACHE_NAMES, PriceChecker.CACHE_NAMES,
-            JournalTab.CACHE_NAMES, World.CACHE_NAMES, Clans.CACHE_NAMES, FriendChats.CACHE_NAMES, IgnoreLists.CACHE_NAMES,
+            JournalTab.CACHE_NAMES, Diaries.CACHE_NAMES, World.CACHE_NAMES, Clans.CACHE_NAMES, FriendChats.CACHE_NAMES, IgnoreLists.CACHE_NAMES,
             Reports.CACHE_NAMES, Trades.CACHE_NAMES, Smithing.CACHE_NAMES, Crafting.CACHE_NAMES, Prayers.CACHE_NAMES,
             LevelUps.CACHE_NAMES, Deaths.CACHE_NAMES, HomeTeleport.CACHE_NAMES, AvaDevicesShop.CACHE_NAMES,
             Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES, SlayerRewards.CACHE_NAMES, osrsps.game.ge.ItemSetsScreen.CACHE_NAMES, osrsps.game.ge.PriceGuides.CACHE_NAMES,
@@ -67,6 +68,11 @@ object GameFrameCheck {
             osrsps.game.content.randomevents.PrisonPete.CACHE_NAMES,
             osrsps.game.content.randomevents.EvilTwin.CACHE_NAMES,
             osrsps.game.content.randomevents.Maze.CACHE_NAMES,
+            osrsps.game.content.PollBooths.CACHE_NAMES,
+            osrsps.game.content.ClanCoffer.CACHE_NAMES,
+            osrsps.game.content.ClanParty.CACHE_NAMES,
+            osrsps.game.content.randomevents.Pinball.CACHE_NAMES,
+            osrsps.game.content.randomevents.Pillory.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */

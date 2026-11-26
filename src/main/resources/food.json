@@ -1,5 +1,5 @@
 {
- "_comment": "Foods by cache internal name. heals: hitpoints a bite heals. next: what is left in the slot after the bite (the next bite, a pie dish, a bowl). eatDelay: ticks before the next food (3 if left out); attackDelay: ticks added to an attack still waiting (3 if left out); combo: eaten on its own timer, after other food in the same tick; message: the line for the bite (eat if left out). painful: the poison hit a bite gives instead of healing (poison karambwan, from 6 hitpoints). Heals and delays from the OSRS Wiki's Food, Food/All food and Combo eating pages, read 2026-10-29; Leftovers (tfa_midraid_supplies_leftovers) from its own Wiki page, read 2026-11-11.",
+ "_comment": "Foods by cache internal name. heals: hitpoints a bite heals. next: what is left in the slot after the bite (the next bite, a pie dish, a bowl). eatDelay: ticks before the next food (3 if left out); attackDelay: ticks added to an attack still waiting (3 if left out); combo: eaten on its own timer, after other food in the same tick; message: the line for the bite (eat if left out). painful: the poison hit a bite gives instead of healing (poison karambwan, from 6 hitpoints). Heals and delays from the OSRS Wiki's Food, Food/All food and Combo eating pages, read 2026-10-29; Leftovers (tfa_midraid_supplies_leftovers) from its own Wiki page, read 2026-11-11. boost and boostSkill: a boost the bite gives over the skill's level (Cooked t-bone steak: 9 and +2 Strength, its Wiki page, read 2026-11-22).",
  "foods": [
   {"food": "shrimp", "heals": 3},
   {"food": "anchovies", "heals": 1},
@@ -49,7 +49,7 @@
   {"food": "cooked_chicken", "heals": 3},
   {"food": "cooked_meat", "heals": 3},
   {"food": "cooked_rabbit", "heals": 5},
-  {"food": "tbone_steak", "heals": 9},
+  {"food": "tbone_steak", "heals": 9, "boost": 2, "boostSkill": "strength"},
   {"food": "bread", "heals": 5},
   {"food": "peach", "heals": 8},
   {"food": "banana", "heals": 2},

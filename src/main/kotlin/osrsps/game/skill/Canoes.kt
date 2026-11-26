@@ -7,6 +7,7 @@ import osrsps.game.Interfaces
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.content.DiaryTask
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -223,6 +224,7 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
                 setState(player, station, type.number)
                 if (player.vars.types.varbit(VARBIT_CANOE_TYPE) != null) player.vars.setVarbit(VARBIT_CANOE_TYPE, type.number)
                 player.skills.addTenths(Skill.WOODCUTTING, type.xpTenths)
+                if (type == CanoeType.WAKA && station == CanoeStation.EDGEVILLE) world.diaries.complete(player, DiaryTask.VARROCK_HARD_3)
                 return
             }
         }
@@ -258,6 +260,10 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         setState(player, station, TREE)
         delay(TRIP_TICKS)
         world.teleport(player, destination.x, destination.z, 0)
+        // "Travel from Lumbridge to Edgeville on a Waka canoe": a stable dugout reaches Edgeville too, but isn't a waka.
+        if (state - 10 == CanoeType.WAKA.number && station == CanoeStation.LUMBRIDGE && destination == CanoeDestination.EDGEVILLE) {
+            world.diaries.complete(player, DiaryTask.LUMBRIDGE_HARD_4)
+        }
         val text = world.textFor(player)
         player.message(text[destination.arrive])
         player.message(text[CanoeLines.SINKS])

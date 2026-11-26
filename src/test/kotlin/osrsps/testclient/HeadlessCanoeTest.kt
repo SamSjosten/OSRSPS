@@ -41,6 +41,7 @@ class HeadlessCanoeTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(LUM_X shr 6, LUM_Z shr 6)
                 markLoaded(CHAMPIONS_X shr 6, CHAMPIONS_Z shr 6)
+                markLoaded(EDGE_X shr 6, EDGE_Z shr 6)
                 // Every landing the tests paddle to.
                 for (to in CanoeDestination.entries) markLoaded(to.x shr 6, to.z shr 6)
             },
@@ -50,6 +51,7 @@ class HeadlessCanoeTest {
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(CanoeStation.LUMBRIDGE.loc, LocShape.CENTREPIECE_STRAIGHT, 0, LUM_X, LUM_Z, 0))
                 add(ZoneLoc(CanoeStation.CHAMPIONS_GUILD.loc, LocShape.CENTREPIECE_STRAIGHT, 0, CHAMPIONS_X, CHAMPIONS_Z, 0))
+                add(ZoneLoc(CanoeStation.EDGEVILLE.loc, LocShape.CENTREPIECE_STRAIGHT, 0, EDGE_X, EDGE_Z, 0))
             },
             varTypes = VarTypes(
                 6_000,
@@ -74,6 +76,8 @@ class HeadlessCanoeTest {
 
     private fun HeadlessClient.champions(): Int = (varp(STATIONS_VARP) ushr 8) and 0xFF
 
+    private fun HeadlessClient.edgeville(): Int = (varp(STATIONS_VARP) ushr 24) and 0xFF
+
     private fun HeadlessClient.state(value: Int, station: HeadlessClient.() -> Int = { lumbridge() }) =
         await("station state $value", timeoutMillis = 20_000) { if (station() == value) Unit else null }
 
@@ -91,20 +95,25 @@ class HeadlessCanoeTest {
         tele(LUM_X + 2, LUM_Z - 1)
     }
 
-    /** Chops the Lumbridge tree, shapes [type] and floats it, checking each state and the XP. */
-    private fun HeadlessClient.makeAndFloat(type: CanoeType) {
-        val station = CanoeStation.LUMBRIDGE.loc
-        locOp(station, LUM_X, LUM_Z, 1)
-        state(Canoes.FALLING)
-        state(Canoes.FALLEN)
-        locOp(station, LUM_X, LUM_Z, 1)
+    /** Chops the tree of the station [loc] at [x], [z] and shapes [type], checking each state and the XP. */
+    private fun HeadlessClient.shape(loc: Int, x: Int, z: Int, type: CanoeType, station: HeadlessClient.() -> Int = { lumbridge() }) {
+        locOp(loc, x, z, 1)
+        state(Canoes.FALLING, station)
+        state(Canoes.FALLEN, station)
+        locOp(loc, x, z, 1)
         await("the shaping box") { if (Canoes.SHAPING in openInterfaces()) Unit else null }
         // The events come in the packet after the box's own: wait for them rather than race the reader.
         await("Make on ${type.name} clickable") { if (opEnabled(Canoes.SHAPING, type.component, 0, 1)) Unit else null }
         val xp = stat(WOODCUTTING)!!.xp
         ifButton(Canoes.SHAPING, type.component, 1, sub = 0)
-        state(type.number)
+        state(type.number, station)
         assertEquals(xp + type.xpTenths / 10, await("the canoe's XP") { stat(WOODCUTTING)?.takeIf { it.xp > xp } }.xp)
+    }
+
+    /** Chops the Lumbridge tree, shapes [type] and floats it, checking each state and the XP. */
+    private fun HeadlessClient.makeAndFloat(type: CanoeType) {
+        val station = CanoeStation.LUMBRIDGE.loc
+        shape(station, LUM_X, LUM_Z, type)
         locOp(station, LUM_X, LUM_Z, 1)
         state(type.number + 4)
         state(type.number + 10)
@@ -175,6 +184,46 @@ class HeadlessCanoeTest {
                 client.seen("[canoe.arrive_pond]")
                 client.seen("[canoe.pond_walk]")
                 assertEquals(35, Wilderness.level(pond.x, pond.z))
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "only Edgeville is the diary's waka trip")
+            }
+        }
+    }
+
+    @Test
+    fun `a waka from Lumbridge to Edgeville is the Lumbridge & Draynor hard diary task, and a stable dugout isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.canoeist(99)
+                client.makeAndFloat(CanoeType.STABLE_DUGOUT)
+                client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
+                val edgeville = CanoeDestination.EDGEVILLE
+                client.await("landed at Edgeville by dugout", timeoutMillis = 20_000) { client.position?.takeIf { it.x == edgeville.x && it.z == edgeville.z } }
+                client.seen("[canoe.sinks]")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "a stable dugout isn't a waka")
+
+                client.tele(LUM_X + 2, LUM_Z - 1)
+                client.makeAndFloat(CanoeType.WAKA)
+                client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
+                val to = CanoeDestination.EDGEVILLE
+                client.await("landed at Edgeville", timeoutMillis = 20_000) { client.position?.takeIf { it.x == to.x && it.z == to.z } }
+                client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
+            }
+        }
+    }
+
+    @Test
+    fun `a waka shaped at Edgeville is the Varrock hard diary task, and a stable dugout there isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivan").use { client ->
+                client.canoeist(99)
+                client.tele(EDGE_X + 2, EDGE_Z - 1)
+                client.shape(CanoeStation.EDGEVILLE.loc, EDGE_X, EDGE_Z, CanoeType.STABLE_DUGOUT) { edgeville() }
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "a stable dugout isn't a waka")
+                // Starting the tree again clears the dugout (a station holds one canoe), so a waka can be shaped.
+                client.command("varbit ${CanoeStation.EDGEVILLE.varbit} ${Canoes.TREE}")
+                client.state(Canoes.TREE) { edgeville() }
+                client.shape(CanoeStation.EDGEVILLE.loc, EDGE_X, EDGE_Z, CanoeType.WAKA) { edgeville() }
+                client.await("the diary task") { client.messages().firstOrNull { it.text.startsWith("[diary.task_done") } }
             }
         }
     }
@@ -248,6 +297,9 @@ class HeadlessCanoeTest {
         const val LUM_Z = 3235
         const val CHAMPIONS_X = 3200
         const val CHAMPIONS_Z = 3341
+        /** Guessed: beside the Edgeville landing. */
+        const val EDGE_X = 3131
+        const val EDGE_Z = 3510
         const val STATIONS_VARP = 674
         const val STARTFROM_VARP = 5481
         const val RUNE_AXE = 1359

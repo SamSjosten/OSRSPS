@@ -210,15 +210,15 @@
   },
   {
    "step": "command",
-   "text": "::tele 3238 9762 0",
-   "expectMessage": "Teleported to 3238, 9762, 0",
+   "text": "::tele 3235 9762 0",
+   "expectMessage": "Teleported to 3235, 9762, 0",
    "comment": "beside the chest"
   },
   {
    "step": "locOption",
    "locId": 2403,
    "option": "Open",
-   "x": 3238,
+   "x": 3235,
    "y": 9761,
    "timeoutMs": 20000
   },
@@ -243,11 +243,11 @@
   },
   {
    "step": "assertLocation",
-   "x": 3244,
-   "y": 3382,
+   "x": 3243,
+   "y": 3383,
    "plane": 0,
    "timeoutMs": 20000,
-   "comment": "beside the street's ladder, on the side the player stood"
+   "comment": "beside the street's ladder: the tile south of it (the side the player stood) is walled off, so the first open one, west (nightly Nov 25)"
   },
   {
    "step": "command",

@@ -97,6 +97,14 @@ class ShopTest {
         6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
         438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
         9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430, 21298 to 56320, 21301 to 84000, 21304 to 67000,
+        // Brimhaven's shops (the 242 cache's values).
+        1718 to 300, 1727 to 900, 1729 to 1275, 1725 to 2025, 1731 to 3525, 347 to 10, 339 to 10, 361 to 40, 379 to 70, 373 to 80, 3144 to 250,
+        // Tai Bwo Wannai's shops (the 242 cache's values; Jiminua's others are with the shops above).
+        36 to 3, 2142 to 4, 2309 to 12, 229 to 2, 11877 to 200, 227 to 2, 11879 to 201, 233 to 4, 175 to 288, 973 to 45, 975 to 40, 7936 to 4,
+        6341 to 300, 6343 to 250, 6345 to 200, 6349 to 100, 6347 to 150, 6351 to 300, 6353 to 250, 6355 to 200, 6357 to 100, 6359 to 150,
+        6361 to 300, 6363 to 250, 6365 to 200, 6367 to 100, 6369 to 150, 6371 to 300, 6373 to 250, 6375 to 200, 6377 to 100, 6379 to 150,
+        6313 to 500, 6315 to 1000, 6317 to 2000, 1625 to 20, 1627 to 30, 1629 to 40, 1609 to 100, 1611 to 150, 1613 to 200, 6311 to 200,
+        2084 to 30, 2092 to 30, 2048 to 30, 2054 to 30, 2064 to 30, 2074 to 30, 2080 to 30,
     )
 
     /**
@@ -191,6 +199,11 @@ class ShopTest {
             NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
             NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
             NpcType(996, "Nardok", internalName = "dttd_bone_dealer"),
+            NpcType(8680, "Davon", internalName = "davon"),
+            NpcType(4920, "Alfonse the waiter", internalName = "alfonse_the_waiter"),
+            NpcType(2893, "Jiminua", internalName = "jiminua"),
+            NpcType(6424, "Gabooty", internalName = "tbwcu_gabooty"),
+            NpcType(6425, "Gabooty", internalName = "tbwcu_gabooty_nosticks"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -289,6 +302,16 @@ class ShopTest {
         "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
         // Nardok's Bone Weapons, read 2026-11-19.
         "nardoks_bone_weapons" to listOf(600, 600, 2000, 2000, 3, 350),
+        // Brimhaven's shops, read 2026-11-18: Davon's at 120% with none in stock, the Shrimp and Parrot's at 130%.
+        "davons_amulet_store" to listOf(360, 1080, 1530, 2430, 4230),
+        "the_shrimp_and_parrot" to listOf(13, 13, 52, 91, 104, 325),
+        // Tai Bwo Wannai's shops, read 2026-11-19: Jiminua's at 150%, Gabooty's at 120% in trading sticks.
+        "jiminuas_jungle_store" to listOf(1, 4, 6, 1, 27, 31, 9, 9, 6, 18, 3, 300, 3, 301, 6, 432, 15, 67, 9, 1, 60, 1, 4, 24, 1, 84, 12, 6),
+        "gabootys_tai_bwo_wannai_cooperative" to listOf(
+            360, 300, 240, 120, 180, 600, 1200, 2400, 360, 300, 240, 120, 180, 24, 36, 48,
+            360, 300, 240, 120, 180, 120, 180, 240, 360, 300, 240, 120, 180, 240,
+        ),
+        "gabootys_tai_bwo_wannai_drinky_store" to List(7) { 30 },
     )
 
     @Test
@@ -310,6 +333,8 @@ class ShopTest {
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
         assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        assertEquals(shops["davons_amulet_store"], shops.ofNpc(8680))
+        assertEquals(shops["the_shrimp_and_parrot"], shops.ofNpc(4920))
         // The Sawmill operator's Construction supplies buys back at 50% with no change per item (the Wiki's 5, 250, 1, 2, 1).
         val supplies = shops["construction_supplies"]!!
         assertEquals(supplies, shops.ofNpc(3101))
@@ -333,7 +358,12 @@ class ShopTest {
         assertTrue(tzhaar.all { shops[it]!!.currency == 6529 })
         val equipment = shops[tzhaar[0]]!!
         assertEquals(9000, Shop(equipment).sellPrice(6568, 60000, 1))
-        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key && it.key !in tzhaar }.all { it.currency == ShopScreen.COINS })
+        val cooperative = shops["gabootys_tai_bwo_wannai_cooperative"]!!
+        val drinks = shops["gabootys_tai_bwo_wannai_drinky_store"]!!
+        assertEquals(listOf(6306, 6306), listOf(cooperative.currency, drinks.currency))
+        assertEquals(emptyList(), drinks.npcs)
+        assertEquals(listOf(cooperative, cooperative, shops["jiminuas_jungle_store"]), listOf(6424, 6425, 2893).map { shops.ofNpc(it) })
+        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key && it.key !in tzhaar && it != cooperative && it != drinks }.all { it.currency == ShopScreen.COINS })
         // Her sales alone go in the collection log (its Rooftop Agility page).
         assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
         // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies and the Sheared

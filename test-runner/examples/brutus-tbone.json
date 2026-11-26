@@ -1,0 +1,24 @@
+{
+ "name": "Brutus step 3: a raw t-bone steak (his always-drop) cooks on the Lumbridge Castle kitchen range at 99 for 90 XP, and the cooked steak heals 9 (cooking.cooked_tbone, ::keys on). The +2 Strength boost is checked in HeadlessTboneSteakTest",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "command", "text": "::setlevel cooking 99", "expectMessage": "Cooking set to level 99", "comment": "it stops burning at 50"},
+  {"step": "command", "text": "::item 33106", "expectMessage": "Added 1 x Raw t-bone steak"},
+  {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215, "comment": "one raw steak: cooked straight away, no Make-X box"},
+  {"step": "assertInventory", "itemId": 33109, "count": 1, "timeoutMs": 10000, "comment": "Cooked t-bone steak"},
+  {"step": "assertMessage", "contains": "cooking.cooked_tbone"},
+  {"step": "assertStat", "skill": "Cooking", "level": 99, "xp": 13034521, "comment": "90 XP"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
+  {"step": "command", "text": "::hit 20 me", "expectMessage": "Hit yourself for 20: 79/99 hp"},
+  {"step": "itemOption", "itemId": 33109, "option": "Eat"},
+  {"step": "assertInventory", "itemId": 33109, "count": 0},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 88/99 hitpoints", "comment": "heals 9"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

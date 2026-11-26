@@ -1,0 +1,6 @@
+{
+  "about": "The Champions' Challenge in the Champions' Guild's basement (post-quest step 9, ChampionsChallenge.kt): Larxus by the Champion Statue, at the tile of his OSRS Wiki map (read 2026-11-19). The champions come in for each duel and aren't spawned here. Left out: the six Champions of Champions seated as Mystery figures, whose seats no source gives.",
+  "spawns": [
+    {"npc": "champions_doorman", "x": 3187, "z": 9758, "wander": 2, "source": "Larxus, in the basement's gallery. OSRS Wiki, Larxus (3187,9758); the wander range guessed"}
+  ]
+}

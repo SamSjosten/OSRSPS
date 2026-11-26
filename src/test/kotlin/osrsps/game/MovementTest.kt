@@ -34,6 +34,17 @@ class MovementTest {
     }
 
     @Test
+    fun `the step trail holds each tile of a run that turns between its steps`() {
+        val player = player().apply { runEnabled = true }
+        player.waypoints.addAll(listOf(Tile(3211, 3210), Tile(3211, 3212)))
+        assertEquals(MoveResult.RAN, movement.process(player))
+        assertEquals(listOf(Tile(3210, 3210), Tile(3211, 3210), Tile(3211, 3211)), player.stepTrail.toList())
+        player.waypoints.clear()
+        movement.process(player)
+        assertTrue(player.stepTrail.isEmpty(), "cleared when the player stands still")
+    }
+
+    @Test
     fun `a weary player walks with run on, and runs again once it wears off`() {
         val player = player().apply { runEnabled = true; wearyTicks = 2 }
         movement.request(player, 3220, 3210, invertRun = false)

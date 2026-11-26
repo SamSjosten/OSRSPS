@@ -137,6 +137,8 @@ class HeadlessHamHideoutTest {
 
                 client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, HamHideout.OP_OPEN_OR_CLIMB)
                 client.awaitAt(HamHideout.INSIDE.first, HamHideout.INSIDE.second)
+                // Entering is the Lumbridge & Draynor easy diary's twelfth task.
+                client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
                 client.locOp(ladder.id, ladder.x, ladder.z, 1)
                 client.awaitAt(HamHideout.SURFACE.first, HamHideout.SURFACE.second)
 
@@ -163,6 +165,7 @@ class HeadlessHamHideoutTest {
                     if (client.seen(BUNDLED) > 0) return@repeat
                     val wins = client.seen("[pickpocket.success who=H.A.M. member]")
                     val fails = client.seen("[pickpocket.fail who=H.A.M. member]")
+                    val blows = client.seen(CONCUSSED) + client.seen(AVOIDED)
                     val xp = client.stat(THIEVING)!!.xp
                     client.await("the wait to end") { if (server.world.tick >= bob.nextPickpocketTick && !server.world.statusEffects.isStunned(bob)) Unit else null }
                     client.npcOp(view.index, Pickpocketing.HAM_PICKPOCKET)
@@ -179,7 +182,10 @@ class HeadlessHamHideoutTest {
                         Unit
                     } else {
                         // The stunned message gives way to the concussion's (or Agility's).
-                        client.await("the blow") { if (client.seen(CONCUSSED) + client.seen(AVOIDED) > 0) Unit else null }
+                        // This fail's own blow: the counts are the whole test's, so an earlier blow mustn't satisfy the
+                        // wait and leave a third concussion unread, with the next click going to a member the thief was
+                        // just thrown away from (CI on #946, 2026-11-25).
+                        client.await("the blow") { if (client.seen(CONCUSSED) + client.seen(AVOIDED) > blows) Unit else null }
                         assertEquals(0, client.seen("[pickpocket.stunned]"))
                         // The third concussion's bundling comes as a message of its own in the same tick: the client may
                         // not have read it yet when the concussion wakes this wait, and another click would go to a

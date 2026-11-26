@@ -35,7 +35,7 @@ class HeadlessCookingTest {
         val none = listOf<String?>(null, null, null, null, null)
         fun loc(id: Int, name: String, ops: List<String?>) = LocType(id, name, ops, LocCollisionType(width = 1, length = 1))
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(GUILD_INSIDE_X shr 6, GUILD_INSIDE_Z shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
             locTypes = LocTypes(
                 listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook), loc(Cooking.EVIL_DAVE_STOVE, "Stove", cook), loc(Cooking.COOKS_GUILD_RANGE, "Range", cook))
                     .associateBy { it.id },
@@ -46,6 +46,7 @@ class HeadlessCookingTest {
                 add(ZoneLoc(Cooking.DRAYNOR_FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, DRAYNOR_X, DRAYNOR_Z, 0))
                 add(ZoneLoc(Cooking.EVIL_DAVE_STOVE, LocShape.CENTREPIECE_STRAIGHT, 0, STOVE_X, STOVE_Z, 0))
                 add(ZoneLoc(Cooking.COOKS_GUILD_RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, GUILD_RANGE_X, GUILD_RANGE_Z, 0))
+                add(ZoneLoc(Cooking.COOKS_GUILD_RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, GUILD_INSIDE_X, GUILD_INSIDE_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -256,7 +257,39 @@ class HeadlessCookingTest {
         }
     }
 
+    @Test
+    fun `a summer pie baked in the Cooks' Guild is the Varrock elite diary task, and one baked outside isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel cooking 99")
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                // One raw pie at a time, so no Make-X box, until one comes out cooked.
+                fun bake(loc: Int, x: Int, z: Int) {
+                    val end = System.currentTimeMillis() + 30_000
+                    while (client.count(Cooking.SUMMER_PIE.cooked) == 0) {
+                        check(System.currentTimeMillis() < end) { "No summer pie came out cooked" }
+                        client.give(Cooking.SUMMER_PIE.raw)
+                        client.locTarget(loc, x, z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Cooking.SUMMER_PIE.raw), Cooking.SUMMER_PIE.raw)
+                        client.await("the pie out", timeoutMillis = 10_000) { if (client.count(Cooking.SUMMER_PIE.raw) == 0) Unit else null }
+                    }
+                }
+                bake(Cooking.RANGE, RANGE_X, RANGE_Z)
+                assertEquals(0, diaryTasksDone(), "outside the Cooks' Guild")
+                client.command("empty")
+                client.await("an empty pack") { if (client.count(Cooking.SUMMER_PIE.cooked) == 0) Unit else null }
+                client.command("tele ${GUILD_INSIDE_X - 1} $GUILD_INSIDE_Z 0")
+                client.await("in the guild") { client.position?.takeIf { it.x == GUILD_INSIDE_X - 1 && it.z == GUILD_INSIDE_Z } }
+                bake(Cooking.COOKS_GUILD_RANGE, GUILD_INSIDE_X, GUILD_INSIDE_Z)
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+            }
+        }
+    }
+
     private companion object {
+        /** Inside the diary's Cooks' Guild box. */
+        const val GUILD_INSIDE_X = 3145
+        const val GUILD_INSIDE_Z = 3448
         const val GUILD_RANGE_X = 3230
         const val GUILD_RANGE_Z = 3218
         const val STOVE_X = 3228

@@ -1,0 +1,23 @@
+{
+ "name": "Brutus step 2: his fight. Into a field of the player's own, he butts (cow_boss_attack 13783), then after four or five butts a special: his charge (cow_boss_charge 13778, *growls*) or his stomp (cow_boss_stomp 13785, *snorts*). Out by the gate. The turns, the stomp's tiles and the *huff* are in HeadlessBrutusFightTest",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario brutus", "expectMessage": "Started scenario brutus.", "comment": "south of the pen's gate; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "he is aggressive; his specials still show, for 0"},
+  {"step": "locOption", "locId": 60763, "option": "Release", "x": 3262, "y": 3294},
+  {"step": "assertDialogue", "contains": "[brutus.release_yes]", "timeoutMs": 10000, "comment": "on an account that once picked don't-ask-again there is no menu: drop this step and the next"},
+  {"step": "chooseOption", "text": "[brutus.release_yes]"},
+  {"step": "waitTicks", "ticks": 5, "comment": "the field's region drawn"},
+  {"step": "assertAnimation", "npc": "Brutus", "id": 13783, "timeoutMs": 30000, "comment": "he comes to the player and butts"},
+  {"step": "assertHitsplat", "self": true, "timeoutMs": 20000, "comment": "a butt lands (0 under ::god)"},
+  {"step": "assertAnimation", "npc": "Brutus", "id": 13785, "timeoutMs": 90000, "comment": "a stomp: his first special or his second, as they take turns (the charge, 13778, is never made toward the gate's wall)"},
+  {"step": "waitTicks", "ticks": 14, "comment": "his stomps over"},
+  {"step": "locOption", "locId": 60765, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -68,6 +68,8 @@ class HeadlessVarrockSkillingTest {
                     loc(Cooking.VARROCK_OVEN, "Oven", "Cook"),
                     loc(DYING_TREE, "Dying tree", "Chop down"),
                     LocType(DYING_STUMP, "Dying tree Stump", none, LocCollisionType(width = 1, length = 1)),
+                    loc(TREE, "Tree", "Chop down"),
+                    LocType(TREE_STUMP, "Tree stump", none, LocCollisionType(width = 1, length = 1)),
                     loc(SINK, "Sink"),
                     loc(WELL, "Well"),
                     loc(TrainingDummies.DUMMY, "Dummy", "Attack"),
@@ -77,6 +79,7 @@ class HeadlessVarrockSkillingTest {
                 add(ZoneLoc(Cooking.VARROCK_RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3218, 0))
                 add(ZoneLoc(Cooking.VARROCK_OVEN, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3222, 0))
                 add(ZoneLoc(DYING_TREE, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3218, 0))
+                add(ZoneLoc(TREE, LocShape.CENTREPIECE_STRAIGHT, 0, 3230, 3218, 0))
                 add(ZoneLoc(SINK, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3222, 0))
                 add(ZoneLoc(WELL, LocShape.CENTREPIECE_STRAIGHT, 0, 3214, 3222, 0))
                 add(ZoneLoc(TrainingDummies.DUMMY, LocShape.CENTREPIECE_STRAIGHT, 0, 3214, 3218, 0))
@@ -125,10 +128,20 @@ class HeadlessVarrockSkillingTest {
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.give(BRONZE_AXE)
+                // Logs from an ordinary tree first: no diary task.
+                client.locOp(TREE, 3230, 3218, 1)
+                client.await("the tree's logs", timeoutMillis = 30_000) { if (client.count(LOGS) == 1) Unit else null }
+                client.await("its stump") { if (client.locAt(3230, 3218) == TREE_STUMP) Unit else null }
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.task_done") }, "an ordinary tree")
+                client.command("empty")
+                client.await("an empty pack") { if (client.count(LOGS) == 0) Unit else null }
+                client.give(BRONZE_AXE)
                 client.locOp(DYING_TREE, 3218, 3218, 1)
                 client.await("logs", timeoutMillis = 30_000) { if (client.count(LOGS) == 1) Unit else null }
-                assertEquals(25, client.await("Woodcutting XP") { client.stat(WOODCUTTING)?.takeIf { it.xp > 0 } }.xp)
+                assertEquals(50, client.await("Woodcutting XP") { client.stat(WOODCUTTING)?.takeIf { it.xp > 25 } }.xp)
                 client.await("the stump") { if (client.locAt(3218, 3218) == DYING_STUMP) Unit else null }
+                // Chopping a dying tree is the Varrock easy diary task.
+                client.await("the diary task") { Unit.takeIf { client.messages().count { it.text.startsWith("[diary.task_done") } == 1 } }
             }
         }
     }
@@ -242,6 +255,8 @@ class HeadlessVarrockSkillingTest {
         const val BRONZE_AXE = 1351
         const val DYING_TREE = 3648
         const val DYING_STUMP = 3649
+        const val TREE = 1276
+        const val TREE_STUMP = 1342
         const val SINK = 1763
         const val WELL = 3646
         const val VIAL = 229

@@ -21,9 +21,22 @@ import osrsps.game.combat.RuneCost
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.combat.Teleblock
+import osrsps.game.content.DiaryArea
+import osrsps.game.content.DiaryTier
+import osrsps.game.content.HomeTeleportLines
+import osrsps.game.content.message
+import osrsps.game.dialogue.Line
+import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 
 private val logger = KotlinLogging.logger {}
+
+/** Varrock Teleport's Grand Exchange words; unsourced, as no recording has them yet. */
+object TeleportLines : Lines("teleport", "Varrock Teleport (the Grand Exchange option's messages aren't on the Wiki)") {
+    val GE_LOCKED = line("ge_locked", "Varrock Teleport's Grand Exchange or Configure without the medium Varrock Diary")
+    val SET_GE = line("set_ge", "Configure: the spell now goes to the Grand Exchange")
+    val SET_VARROCK = line("set_varrock", "Configure: the spell now goes to Varrock Square")
+}
 
 /**
  * Where a teleport lands: a tile picked at random from [areas] (each `minX, minZ, maxX, maxZ`, inclusive) on [level],
@@ -197,10 +210,35 @@ class Teleports(private val world: World, private val data: TeleportData) {
         for (spell in data.spells) {
             world.handlers.onButton(Spells.SPELLBOOK, spell.component, CAST) { cast(spell) }
             if (spell.tablet >= 0) world.handlers.onObj(spell.tablet, BREAK) { op -> breakTablet(spell, op.sub) }
+            if (spell.obj == VARROCK_SPELL) registerGrandExchange(spell)
         }
     }
 
-    private suspend fun ScriptContext.cast(spell: TeleportSpell) {
+    /**
+     * Varrock Teleport's Grand Exchange options, for the medium Varrock Diary (the Wiki's Varrock Teleport and Varrock
+     * Diary): the spell's ops in the client (magic_spellbook.if3, osrs-dumps) are 1 Cast, 2 Grand Exchange, 3 Cast and
+     * 10 Configure, and `magic_spellbook_modifyops` shows op 3's Cast in place of op 1's while `varrock_ge_teleport` is
+     * set, so Grand Exchange is the left click. Grand Exchange lands round the Wiki's 3165,3479; Configure flips the
+     * varbit. Guessed: the words, that Configure flips at once rather than asking, and the 5 by 5 landing square (as the
+     * other teleports' areas). Without the medium diary's tasks all done both are refused.
+     */
+    private fun registerGrandExchange(spell: TeleportSpell) {
+        world.handlers.onButton(Spells.SPELLBOOK, spell.component, GRAND_EXCHANGE) {
+            if (geUnlocked(player)) cast(spell, GE_LANDING) else world.message(player, TeleportLines.GE_LOCKED)
+        }
+        world.handlers.onButton(Spells.SPELLBOOK, spell.component, CAST_SECOND) { cast(spell) }
+        world.handlers.onButton(Spells.SPELLBOOK, spell.component, CONFIGURE) {
+            if (!geUnlocked(player)) return@onButton world.message(player, TeleportLines.GE_LOCKED)
+            if (player.vars.types.varbit(VARBIT_VARROCK_GE) == null) return@onButton
+            val ge = player.vars.getVarbit(VARBIT_VARROCK_GE) == 0
+            world.interfaces.setVarbitNow(player, VARBIT_VARROCK_GE, if (ge) 1 else 0)
+            world.message(player, if (ge) TeleportLines.SET_GE else TeleportLines.SET_VARROCK)
+        }
+    }
+
+    private fun geUnlocked(player: Player) = world.diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.MEDIUM)
+
+    private suspend fun ScriptContext.cast(spell: TeleportSpell, landing: Landing = spell.landing) {
         // Only the standard book's teleports are built; their buttons are the standard book's own.
         if (Spellbook.of(player) != Spellbook.STANDARD) return
         if (!allowedHere(player)) return
@@ -218,11 +256,12 @@ class Teleports(private val world: World, private val data: TeleportData) {
         }
         for (cost in costs) take(player, cost)
         player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-        start()
+        start(this)
         player.anim(CAST_ANIM)
         player.spotanim(CAST_SPOTANIM, CAST_HEIGHT)
         delay(CAST_TICKS)
-        land(spell)
+        land(this, landing)
+        world.diaries.teleported(player, spell.obj)
         player.anim(-1)
     }
 
@@ -230,38 +269,44 @@ class Teleports(private val world: World, private val data: TeleportData) {
         if (player.inventory[slot]?.id != spell.tablet) return
         if (!allowedHere(player)) return
         player.inventory.remove(slot, 1)
-        start()
+        start(this)
         player.anim(TABLET_SMASH_ANIM)
         delay(TABLET_ABSORB_TICK)
         player.anim(TABLET_ABSORB_ANIM)
         player.spotanim(TABLET_SPOTANIM)
         delay(TABLET_TICKS - TABLET_ABSORB_TICK)
-        land(spell)
+        land(this, spell.landing)
         player.anim(-1)
     }
 
     /**
-     * Whether [player] may teleport from where they stand, telling them why not: every teleport stops above level 20
-     * Wilderness, and while Tele Blocked ([Teleblock]).
+     * Whether [player] may teleport from where they stand, telling them why not: above level 20 Wilderness (or the
+     * [limit] of a teleport that goes deeper, with its [tooDeep] lines), and while Tele Blocked ([Teleblock]).
      */
-    private fun allowedHere(player: Player): Boolean {
-        val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z))
+    fun allowedHere(
+        player: Player,
+        limit: Int = Wilderness.TELEPORT_LIMIT,
+        tooDeep: List<Line> = listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2),
+    ): Boolean {
+        val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z), limit, tooDeep)
         if (refusal.isEmpty()) return true
         val text = world.textFor(player)
         for (line in refusal) player.message(text[line])
         return false
     }
 
-    /** The teleport stops whatever the player was doing: an open interface, a route, an interaction, a queued activity. */
-    private fun ScriptContext.start() {
+    /** A teleport stops whatever the player was doing: an open interface, a route, an interaction, a queued activity. */
+    fun start(context: ScriptContext) {
+        val player = context.player
         world.interfaces.closeModals(player)
         player.scripts.dropWeak()
         player.waypoints.clear()
         player.interaction = null
     }
 
-    private fun ScriptContext.land(spell: TeleportSpell) {
-        val landing = spell.landing
+    /** Puts [context]'s player on a free tile of [landing] ([Landing.pick]). */
+    fun land(context: ScriptContext, landing: Landing) {
+        val player = context.player
         val (x, z) = landing.pick({ x, z -> world.canStand(x, z, landing.level) }) { world.random.nextInt(it) }
         world.teleport(player, x, z, landing.level)
     }
@@ -285,6 +330,14 @@ class Teleports(private val world: World, private val data: TeleportData) {
         /** The spells' op1, Cast, and the tablets' iop1, Break. */
         const val CAST = 1
         const val BREAK = 1
+
+        /** Varrock Teleport's other ops (see [registerGrandExchange]), and its spell obj (`25_varrock_teleport`). */
+        const val GRAND_EXCHANGE = 2
+        const val CAST_SECOND = 3
+        const val CONFIGURE = 10
+        const val VARROCK_SPELL = 3286
+        const val VARBIT_VARROCK_GE = 4585
+        val GE_LANDING = Landing(0, listOf(intArrayOf(3163, 3477, 3167, 3481)))
 
         /** `human_castteleport` and `teleport_casting`, at 2004Scape's height. */
         const val CAST_ANIM = 714

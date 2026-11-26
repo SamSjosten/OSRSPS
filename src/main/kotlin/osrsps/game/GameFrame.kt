@@ -59,6 +59,7 @@ enum class GameFrame(
          */
         const val SIDEBUTTON_SWITCH_SCRIPT = 915
         const val SIDE_TAB_COMBAT = 0
+        const val SIDE_TAB_QUEST = 2
         const val SIDE_TAB_WORN = 4
         const val SIDE_TAB_PRAYER = 5
 

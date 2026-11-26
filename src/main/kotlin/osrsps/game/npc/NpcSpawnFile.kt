@@ -118,6 +118,14 @@ object NpcSpawnFile {
         "crandor.json",
         "mor-ul-rek.json",
         "dorgeshuun-tunnels.json",
+        "brimhaven.json",
+        "balloons.json",
+        "sourhog-cave.json",
+        "brimhaven-dungeon.json",
+        "champions-challenge.json",
+        "diaries.json",
+        "karamja-jungle.json",
+        "tai-bwo-wannai.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

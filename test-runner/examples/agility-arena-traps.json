@@ -1,0 +1,30 @@
+{
+  "name": "Karamja step K3.4d: the Brimhaven Agility Arena's floor spikes, a pressure pad and the spinning blades jumped by walking onto them, at 99 Agility (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's levels back"},
+    {"step": "command", "text": "::setlevel agility 99", "expectMessage": "Agility set to level 99", "comment": "nothing fails at 99"},
+    {"step": "command", "text": "::tele 2772 9553 3", "expectMessage": "Teleported to 2772, 9553, 3", "comment": "north of the floor spikes below the second row's middle pillar"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "walk", "x": 2772, "y": 9550, "comment": "the spikes' landing tile: the walk ends where the jump puts the player"},
+    {"step": "assertLocation", "x": 2772, "y": 9550, "plane": 3, "timeoutMs": 10000, "comment": "jumped the two spike tiles and stopped"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::tele 2772 9586 3", "expectMessage": "Teleported to 2772, 9586, 3", "comment": "north of the pressure pad by the north-west platforms"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "walk", "x": 2772, "y": 9583, "comment": "the pad's landing tile"},
+    {"step": "assertLocation", "x": 2772, "y": 9583, "plane": 3, "timeoutMs": 10000, "comment": "dived over the pad"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::tele 2782 9575 3", "expectMessage": "Teleported to 2782, 9575, 3", "comment": "north of the spinning blades (3580 at 2782,9573)"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "walk", "x": 2782, "y": 9572, "comment": "the blades' landing tile"},
+    {"step": "assertLocation", "x": 2782, "y": 9572, "plane": 3, "timeoutMs": 10000, "comment": "jumped the blades"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::tele 2760 9572 3", "expectMessage": "Teleported to 2760, 9572, 3", "comment": "south-west of the west spikes (2761,9573 and 2761,9574)"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "walk", "x": 2762, "y": 9573, "comment": "the first step is diagonal onto the spikes; the jump goes straight east across them"},
+    {"step": "assertLocation", "x": 2762, "y": 9573, "plane": 3, "timeoutMs": 10000, "comment": "landed east of the spikes, not diagonally on"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

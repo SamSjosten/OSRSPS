@@ -45,9 +45,16 @@ class Movement(private val collision: CollisionMap) {
         player.invertRun = invertRun
     }
 
+    /**
+     * Tiles a run stops on after its first step, without taking the second: a tile that starts something there (the
+     * Agility Arena's floor traps), so the player isn't carried past it.
+     */
+    val stopChecks = ArrayList<(Player) -> Boolean>()
+
     fun process(player: Player): MoveResult {
         // A dead player goes nowhere, even partway along an obstacle.
         if (player.dead) player.forcedSteps.clear()
+        player.stepTrail.clear()
         // Counted down by the world at the tick's start, so the walk and the attack delay end on the same tick.
         val weary = player.wearyTicks > 0
         if (player.forcedSteps.isNotEmpty()) {
@@ -61,6 +68,8 @@ class Movement(private val collision: CollisionMap) {
             // One tile at most, so a step can't carry the player off along a gap in the list.
             player.x += (to.x - player.x).sign
             player.z += (to.z - player.z).sign
+            player.stepTrail += player.lastStepFrom!!
+            player.stepTrail += Tile(player.x, player.z)
             updateEnergy(player, MoveResult.WALKED)
             return MoveResult.WALKED
         }
@@ -70,7 +79,10 @@ class Movement(private val collision: CollisionMap) {
         // Rooted or frozen, they keep their route but take no step of it (a follow or a click made after the fight's part).
         val steps = if (player.scripts.delayed || player.rootedTicks > 0 || player.freezeTicks > 0) 0 else if (wantsRun && player.runEnergy > 0 && !weary) 2 else 1
         var taken = 0
-        while (taken < steps && step(player)) taken++
+        while (taken < steps && step(player)) {
+            taken++
+            if (stopChecks.any { it(player) }) break
+        }
         val result = when (taken) {
             0 -> MoveResult.NONE
             1 -> MoveResult.WALKED
@@ -91,8 +103,10 @@ class Movement(private val collision: CollisionMap) {
             return false
         }
         player.lastStepFrom = Tile(player.x, player.z)
+        if (player.stepTrail.isEmpty()) player.stepTrail += player.lastStepFrom!!
         player.x += dx
         player.z += dz
+        player.stepTrail += Tile(player.x, player.z)
         if (player.x == target.x && player.z == target.z) player.waypoints.removeFirst()
         return true
     }

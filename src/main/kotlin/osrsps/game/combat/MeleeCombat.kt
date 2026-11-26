@@ -124,8 +124,21 @@ class MeleeCombat(
     private val projectile: (Projectile) -> Unit = {},
     /** A player's hit, swing, shot, spell or command, took this much off an NPC (not poison or venom): a raid's contribution. */
     private val npcDamaged: (Npc, Player, Int) -> Unit = { _, _, _ -> },
+    /**
+     * Told of a player left alive by a hit, before Redemption: the jewellery that saves them
+     * ([osrsps.game.skill.magic.JewelleryEffects.hurt]), saying what it did ([Rescue]).
+     */
+    private val hurtAlive: (Player) -> Rescue = { Rescue.NONE },
+    /** A phoenix necklace's heal: the other players' attacks on their way to [Player] land nowhere ([PvpCombat.dropIncoming]). */
+    private val dropPvpHits: (Player) -> Unit = {},
 ) {
-    private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
+    /**
+     * What the jewellery that saves a player did on a hit they lived through: nothing that matters to combat, a phoenix
+     * necklace's heal (the attacks on their way land nowhere), or a ring of life's teleport (no hitting back).
+     */
+    enum class Rescue { NONE, HEALED, ESCAPED }
+
+    private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, var respawnTick: Long)
 
     /**
      * After each player's melee swing on an NPC lands, hit or 0, killing blow too ([land]): the Fight Cave's Tz-Kek
@@ -293,6 +306,8 @@ class MeleeCombat(
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
         player.attackedNpc = npc
         player.attackedNpcTick = tick
+        player.launchedAtNpc = npc
+        player.launchedAtNpcTick = tick
     }
 
     /**
@@ -421,7 +436,12 @@ class MeleeCombat(
     private class Shot(
         val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long,
         val type: AttackType = AttackType.MAGIC, val prayedOnLanding: Boolean = false,
-    )
+        /** The [NpcBlinding] it lands with on a player without its protection, null for none. */
+        val blinding: NpcBlinding? = null,
+    ) {
+        /** A phoenix necklace's heal while it flew: it lands nowhere. Marked, not removed, as [landShots] may be walking the list. */
+        var cancelled = false
+    }
 
     private val shots = ArrayList<Shot>()
 
@@ -552,7 +572,7 @@ class MeleeCombat(
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
         // A boss whose fight picks its moves never retreats, whatever its range or hitpoints.
         if (npc.scriptedAttacks) return retaliate(npc, player, tick)
-        val inRange = npc.huntsAnywhere || Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
+        val inRange = npc.huntsAnywhere || Aggression.inAggressionRange(npc, from.x, from.z, attackRange(npc))
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
             if (!inRange) {
@@ -718,9 +738,23 @@ class MeleeCombat(
         // Chase's own far limit may have let go of them; a fighting NPC keeps after them while they are in range.
         if (npc.following !== player) npcs.follow(npc, player)
         val size = npc.type.size
-        if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return
+        if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return breatheFromRange(npc, def, player, tick)
         if (tick < npc.nextAttackTick) return
         swingAt(npc, player, tick)
+    }
+
+    /**
+     * A dragon with a dragonfire [NpcDragonfire.range] that can't reach [player] breathes at them when its attack is due
+     * and they stand in that range and its sight (the metal dragons, R56A-1: else a rock between makes a safespot).
+     */
+    private fun breatheFromRange(npc: Npc, def: NpcCombatDef, player: Player, tick: Long) {
+        val fire = def.dragonfire ?: return
+        if (fire.range <= 0 || tick < npc.nextAttackTick || npc.hidden) return
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+        if (distance !in 1..fire.range || !LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)) return
+        npc.nextAttackTick = tick + def.attackSpeed
+        npc.fightTick = tick
+        breathe(npc, player, fire, tick)
     }
 
     /**
@@ -741,7 +775,7 @@ class MeleeCombat(
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
-        if (type == null && spell != null && spellCasts(spell, player) && castsNow(spell, def, player)) return cast(npc, player, spell.attack, tick)
+        if (type == null && spell != null && spellCasts(spell, player) && castsNow(spell, def, player)) return cast(npc, player, spell.attack, tick, spell.type)
         val fire = def.dragonfire
         if (type == null && fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
@@ -763,6 +797,16 @@ class MeleeCombat(
     }
 
     /**
+     * How far [npc] attacks from, for its aggression range: its own range (melee's 1 when it has none), or its
+     * dragonfire's range when that is further (the metal dragons, exploit review R58A-1), so a player it can breathe at
+     * is in range and a hit from there doesn't make it retreat.
+     */
+    internal fun attackRange(npc: Npc): Int {
+        val def = combat.npcCombat[npc.type] ?: return Aggression.ATTACK_RANGE
+        return maxOf(def.range, def.dragonfire?.range ?: 0)
+    }
+
+    /**
      * Whether [npc] has lost [player]: they stand outside its aggression range ([Aggression.inAggressionRange]), where
      * it can't follow them (it keeps within its max range of its spawn, [Npcs.MAX_RANGE]), it hasn't swung at them or
      * taken them on for [IN_COMBAT_TICKS], and they haven't hit it in that time. The Wiki (Aggressiveness) says the
@@ -770,7 +814,7 @@ class MeleeCombat(
      * waits there first is guessed.
      */
     private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
-        !npc.unleashed && !Aggression.inAggressionRange(npc, player.x, player.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE) &&
+        !npc.unleashed && !Aggression.inAggressionRange(npc, player.x, player.z, attackRange(npc)) &&
             tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
 
     /**
@@ -795,6 +839,10 @@ class MeleeCombat(
     /** Whether [npc] stands where its melee reaches [player], as its fight back asks before a swing. */
     fun reaches(npc: Npc, player: Player): Boolean =
         npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
+
+    /** Whether [npc], with its south-west tile on [x], [z], would reach [player] from there: where a boss lands beside them. */
+    fun reachesFrom(npc: Npc, x: Int, z: Int, player: Player): Boolean =
+        npc.level == player.level && Reach.reachedEntity(collision, npc.level, x, z, npc.type.size, player.x, player.z, 1, 1)
 
     /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
     fun sees(npc: Npc, player: Player): Boolean =
@@ -872,29 +920,38 @@ class MeleeCombat(
     /**
      * A melee NPC's spell at [player] in its reach ([NpcMeleeSpell]): its animation, the projectile, and a magic roll
      * against their Magic defence, landing after [HitDelay.MAGIC] as an NPC's shot does ([shoot]); Protect from
-     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's.
+     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's. A ranged spit
+     * ([type] ranged) rolls against Ranged defence, lands after [HitDelay.BOW] and Protect from Missiles blocks it; an
+     * NPC that blinds ([NpcCombatDef.blinds]) hits a player without the protection for its blinding's damage instead,
+     * and its drain comes as the hit lands (guessed: the accuracy roll still counts, and the prayer blocks both).
      */
-    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long) {
+    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long, type: AttackType = AttackType.MAGIC) {
         val def = combat.npcCombat[npc.type] ?: return
         val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
         if (anim >= 0) npc.effects.anim(anim)
         npc.face(player)
         if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
         val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z).coerceAtLeast(1)
-        val delay = HitDelay.MAGIC.ticks(distance)
+        val delay = (if (type == AttackType.MAGIC) HitDelay.MAGIC else HitDelay.BOW).ticks(distance)
         if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
-        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val roll = combat.npcAttack(npc, player, type) ?: return
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = attack.maxHit ?: roll.maxHit
-        val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val blocked = protects(player, AttackType.MAGIC)
+        val blinding = def.blinds?.takeIf { blinds -> blinds.protection.none { player.equipment.count(it) > 0 } }
+        val damage = when {
+            !hit -> 0
+            blinding != null -> blinding.min + random.nextInt(blinding.max - blinding.min + 1)
+            max > 0 -> CombatMath.rollDamage(random, max)
+            else -> 0
+        }
+        val blocked = protects(player, type)
         val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay, blinding = blinding)
     }
 
     /**
      * [npc] breathes dragonfire at [player] ([Dragonfire]): its Magic accuracy against their Magic defence, capped by an
-     * anti-dragon shield or Protect from Magic, with the message for which held.
+     * anti-dragon shield or Protect from Magic (not a metallic dragon's), with the message for which held.
      */
     private fun breathe(npc: Npc, player: Player, fire: NpcDragonfire, tick: Long) {
         if (fire.anim >= 0) npc.effects.anim(fire.anim)
@@ -903,7 +960,7 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
         val resisted = !CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val shield = Dragonfire.shielded(player)
-        val prayer = protects(player, AttackType.MAGIC)
+        val prayer = !fire.metallic && protects(player, AttackType.MAGIC)
         val damage = CombatMath.rollDamage(random, Dragonfire.maxHit(shield, prayer, resisted))
         message(player, words(player)[Dragonfire.line(shield, prayer, resisted)])
         hitPlayer(player, npc, damage, tick)
@@ -926,6 +983,7 @@ class MeleeCombat(
             val shot = iterator.next()
             if (tick < shot.landTick) continue
             iterator.remove()
+            if (shot.cancelled) continue
             val player = shot.player
             if (player.loggedOut || player.dead || player.hitpoints <= 0) continue
             if (!shotLands(shot.npc, player)) continue
@@ -945,6 +1003,7 @@ class MeleeCombat(
             }
             if (shot.attack.impact >= 0) player.effects.spotanim(0, shot.attack.impact, IMPACT_HEIGHT, 0)
             shot.attack.drain?.let { drain(player, it) }
+            shot.blinding?.let { blinding -> for (skill in blinding.skills) drain(player, StatDrain(skill, blinding.drainPercent)) }
             if (shot.attack.maxHit == 0) {
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
@@ -1052,8 +1111,10 @@ class MeleeCombat(
             died(player)
             return dealt
         }
+        val rescue = saved(player, dealt)
         redemption(player)
-        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
+        // A ring of life's teleport takes them out of the fight: no hitting back (Codex review on #956).
+        if (rescue != Rescue.ESCAPED && source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
         return dealt
@@ -1070,8 +1131,32 @@ class MeleeCombat(
         val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage, sourceSees = true)
         player.attackedByPlayer = attacker
         player.attackedByPlayerTick = tick
-        if (player.hitpoints <= 0) died(player) else redemption(player)
+        if (player.hitpoints <= 0) {
+            died(player)
+        } else {
+            saved(player, dealt)
+            redemption(player)
+        }
         return dealt
+    }
+
+    /**
+     * [hurtAlive]'s say on a hit of [dealt] that [player] lived through; a hit of 0 saves no one (round 59, R59A-3: a
+     * splash made the ring of life an escape at will). A phoenix necklace's heal or a ring of life's escape drops the
+     * NPCs' shots and the players' attacks coming for them (R59A-2: none lands at the respawn point); the heal shows
+     * the healed health bar, as Redemption does.
+     */
+    private fun saved(player: Player, dealt: Int): Rescue {
+        if (dealt <= 0) return Rescue.NONE
+        val rescue = hurtAlive(player)
+        if (rescue != Rescue.NONE) {
+            for (shot in shots) if (shot.player === player) shot.cancelled = true
+            dropPvpHits(player)
+        }
+        if (rescue == Rescue.HEALED) {
+            player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
+        }
+        return rescue
     }
 
     /**
@@ -1104,7 +1189,12 @@ class MeleeCombat(
         player.hitpoints -= dealt
         player.effects.hit(-1, hitsplat, otherHitsplat, otherHitsplat, dealt)
         player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
-        if (player.hitpoints <= 0) died(player) else redemption(player)
+        if (player.hitpoints <= 0) {
+            died(player)
+        } else {
+            saved(player, dealt)
+            redemption(player)
+        }
         return dealt
     }
 
@@ -1149,7 +1239,8 @@ class MeleeCombat(
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
      * alone, if it is in that 3x3 and can be fought (not a wall beast's hole); the spotanim on the player; the targets'
      * hits on this tick; an NPC their Slayer level can't hurt, or that they are shut out of fighting ([Combat.barred]),
-     * passed over, as every other attack refuses it.
+     * passed over, as every other attack refuses it; but not for the weapon worn, as the prayer isn't the weapon's
+     * attack (exploit review R52C-5).
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
@@ -1158,13 +1249,13 @@ class MeleeCombat(
         val targets = if (multi.at(player.level, player.x, player.z)) {
             npcs.inPlay.filter {
                 !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
-                    combat.barred(player, it) == null
+                    combat.barred(player, it, weapon = false) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
                     !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
-                        withinATile(player, it) && combat.barred(player, it) == null
+                        withinATile(player, it) && combat.barred(player, it, weapon = false) == null
                 },
             )
         }
@@ -1267,6 +1358,16 @@ class MeleeCombat(
     /** Forgets the deaths of NPCs in, or from, the tiles where [inside] holds (an instance ending): none comes back there. */
     fun forgetArea(inside: (Int, Int) -> Boolean) {
         dying.removeIf { inside(it.npc.x, it.npc.z) || inside(it.npc.spawn.x, it.npc.spawn.z) }
+    }
+
+    /**
+     * Brings back, on [tick] (never before its body goes), the dead NPC of type [type] whose spawn [inside] holds:
+     * the cowbell amulet's Ring, which can make the wait longer as well as shorter. False when none is waiting.
+     */
+    fun respawnOn(type: Int, tick: Long, inside: (Int, Int) -> Boolean): Boolean {
+        val entry = dying.firstOrNull { it.npc.spawn.respawns && it.npc.spawn.type.id == type && inside(it.npc.spawn.x, it.npc.spawn.z) } ?: return false
+        entry.respawnTick = maxOf(tick, entry.removeTick)
+        return true
     }
 
     fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =

@@ -200,7 +200,13 @@ class Making(private val world: World) {
         val units = if (recipe.batch) minOf(recipe.amount.toLong(), recipe.units(player.inventory)).toInt() else 1
         val chance = recipe.chance
         val failed = chance != null && !SuccessRoll.roll(world.random, chance.low, chance.high, player.skills.currentLevel(recipe.skill))
-        val product = if (failed) chance!!.failed else recipe.product
+        // An amulet of chemistry may make a 3-dose potion a 4-dose one (not sanfew serum's steps).
+        val product = when {
+            failed -> chance!!.failed
+            recipe.skill == Skill.HERBLORE && recipe.key in world.herblore.data.chemistryPotions ->
+                world.jewelleryEffects.potion(player, recipe.product)
+            else -> recipe.product
+        }
         val type = if (product < 0) null else world.objTypes[product] ?: error("No obj type $product for recipe ${recipe.key}")
         val saved = player.inventory.contents().toMap()
         for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count * units)
@@ -216,6 +222,8 @@ class Making(private val world: World) {
         }
         // Supplies made in a raid run from what the player brought count as brought (R26A-1, Codex review on #636).
         world.archiveRaids.supplies.made(player, recipe.inputs.map { it.obj to it.count * units }, outputs.map { (t, n) -> t.id to n })
+        // The product only: a byproduct (soft clay's empty bowl, a bucket back) isn't something made (Codex on #932).
+        type?.let { world.diaries.made(player, it.id, made) }
         val line = if (failed) chance!!.failedLine else recipe.made
         player.skills.addTenths(recipe.skill, (if (failed) chance!!.failedXpTenths else recipe.xpTenths) * units)
         player.message(world.textFor(player).get(line, *args(recipe, line, made)))

@@ -1,0 +1,122 @@
+{
+ "name": "Achievement diaries: the Skill Cape emote in a quest point cape does the Lumbridge & Draynor elite task in the Wise Old Man's house and not outside it (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6314,
+   "value": 0,
+   "comment": "lumbridge_elite_count"
+  },
+  {
+   "step": "command",
+   "text": "::item 9813",
+   "expectMessage": "Added 1 x Quest point cape"
+  },
+  {
+   "step": "itemOption",
+   "item": "Quest point cape",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "item": "Quest point cape",
+   "slot": "cape"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 216,
+   "component": 2,
+   "slot": 43,
+   "comment": "Skill Cape, outside the Wise Old Man's house"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 4945,
+   "timeoutMs": 5000,
+   "comment": "skillcapes_player_quest_cape"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20,
+   "comment": "the cape's emote runs its course"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6314,
+   "value": 0,
+   "comment": "not in the house: no task"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3090 3253 0",
+   "expectMessage": "Teleported to 3090, 3253, 0",
+   "comment": "inside the Wise Old Man's house in Draynor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 216,
+   "component": 2,
+   "slot": 43,
+   "comment": "Skill Cape again, in the house"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 4945,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6314,
+   "value": 1,
+   "timeoutMs": 5000,
+   "comment": "the elite task: the count goes to 1"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20
+  },
+  {
+   "step": "command",
+   "text": "::diary reset lumbridge",
+   "expectMessage": "Reset lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

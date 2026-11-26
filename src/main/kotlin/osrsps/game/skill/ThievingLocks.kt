@@ -347,7 +347,9 @@ object ThievingLocks {
             player.inventory.add(type, item.count)
         }
         chest.table?.let { table ->
-            for (drop in world.npcDrops.chests[table]?.roll(world.random).orEmpty()) {
+            for (rolled in world.npcDrops.chests[table]?.roll(world.random).orEmpty()) {
+                // A clue scroll (the Rogues' Castle chest's hard one) comes as its scroll box (Treasure Trails step TT9).
+                val drop = world.trails.dropFor(player, rolled.type)?.let { rolled.copy(type = it) } ?: continue
                 val over = drop.count - player.inventory.add(drop.type, drop.count)
                 if (over > 0) {
                     world.groundObjs.addPrivate(

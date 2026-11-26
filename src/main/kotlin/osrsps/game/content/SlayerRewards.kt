@@ -46,8 +46,7 @@ object SlayerRewardsLines : Lines("slayer_rewards", "Slayer Rewards") {
  * bolts or arrows), as the client draws them (slayer_rewards_buy_draw): ops 2 to 5 on buy_items' child buy 1, 5, 10 or 50,
  * and the herb sack, rune pouch and looting bag only 1. The herb sack needs base Herblore 58, and a rune pouch or looting
  * bag is refused to a player who already has one anywhere (the OSRS Wiki's item pages). Guessed: a Buy takes as many as
- * the points, the inventory and the stack limit allow, and refuses only when not even one fits. Left out: Task Storage's store and unstore, the seventh block
- * slot (the Lumbridge & Draynor Elite diary), and the content restrictions on some unlocks (Leagues and the like).
+ * the points, the inventory and the stack limit allow, and refuses only when not even one fits. Left out: Task Storage's store and unstore, and the content restrictions on some unlocks (Leagues and the like).
  * Guessed: the refusals' words and that they are game messages.
  */
 class SlayerRewards(private val world: World) {
@@ -201,7 +200,8 @@ class SlayerRewards(private val world: World) {
         val task = slayer.task(player) ?: return player.message(text[SlayerRewardsLines.NO_TASK])
         if (task.id in UNBLOCKABLE) return player.message(text[SlayerRewardsLines.CANT_BLOCK])
         if (slayer.blocked(player, master, task.id)) return player.message(text[SlayerRewardsLines.ALREADY_BLOCKED])
-        val slot = (1..slayer.blockSlots(player)).firstOrNull { slayer.blockedIn(player, master, it) == 0 }
+        // Only a slot whose varbit the cache has: points are never spent on a block that can't be written.
+        val slot = slayer.blockSlots(player).firstOrNull { world.varTypes.varbit(slayer.blockVarbit(master, it)) != null && slayer.blockedIn(player, master, it) == 0 }
             ?: return player.message(text[SlayerRewardsLines.NO_BLOCK_SLOT])
         if (!pay(player, master.blockCost)) return
         slayer.setBlocked(player, master, slot, task.id)

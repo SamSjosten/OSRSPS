@@ -117,14 +117,17 @@ class ItemSpells(private val world: World) {
         return true
     }
 
-    /** Casts [spell] once its item and runes ([pay]) are taken: starts the clock, gives the XP and shows it. */
-    fun cast(context: ScriptContext, spell: ItemSpell) {
+    /**
+     * Casts [spell] once its item and runes ([pay]) are taken: starts the clock, gives the XP and shows it, with [anim]
+     * and [spotanim] where they aren't the spell's own (a ring's enchantment).
+     */
+    fun cast(context: ScriptContext, spell: ItemSpell, anim: Int = spell.anim, spotanim: Int = spell.spotanim) {
         val player = context.player
         nextCast[player] = world.tick + spell.ticks
         player.interaction = null
         if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-        player.anim(spell.anim)
-        player.spotanim(spell.spotanim, SPOTANIM_HEIGHT)
+        player.anim(anim)
+        player.spotanim(spotanim, SPOTANIM_HEIGHT)
         world.interfaces.switchSideTab(player, GameFrame.SIDE_TAB_MAGIC)
     }
 

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.ObjType
+import osrsps.game.Player
 import osrsps.game.PlayerEffects
 import osrsps.game.Skill
 import osrsps.game.Stance
@@ -46,6 +47,17 @@ object AgilityLines : Lines("agility", "Agility") {
     val EDGEVILLE_DUNGEON_SOUTH_PIPE_LEVEL = line("edgeville_dungeon_south_pipe_level", "Shortcut: the Edgeville Dungeon's south obstacle pipe clicked below level 60", "level")
     val PIPE_STUCK = line("pipe_stuck", "Shortcut: an Edgeville Dungeon obstacle pipe crossed with damage (the Wiki's Obstacle pipe (Edgeville Dungeon) page quotes it)")
     val LUMBRIDGE_CELLAR_HOLE_LEVEL = line("lumbridge_cellar_hole_level", "Shortcut: the Lumbridge Castle cellar's hole clicked below level 13; words unsourced", "level")
+    val BRIMHAVEN_ROPESWING_LEVEL = line("brimhaven_ropeswing_level", "Shortcut: a Brimhaven ropeswing to or from Moss Giant Island clicked below level 10 (keys only: the Wiki gives no words)", "level")
+    val BRIMHAVEN_DUNGEON_WEST_STONES_LEVEL = line("brimhaven_dungeon_west_stones_level", "Shortcut: Brimhaven Dungeon's western stepping stones, from the north, below level 12 (keys only: the Wiki gives no words)", "level")
+    val BRIMHAVEN_DUNGEON_ENTRANCE_PIPE_LEVEL = line("brimhaven_dungeon_entrance_pipe_level", "Shortcut: Brimhaven Dungeon's pipe by the entrance, toward the moss giants, below level 22 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_LOG_LEVEL = line("brimhaven_dungeon_log_level", "Shortcut: Brimhaven Dungeon's log balance, toward the red dragons, below level 30 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_PIPE_LEVEL = line("brimhaven_dungeon_pipe_level", "Shortcut: Brimhaven Dungeon's pipe, from the red dragons to the black demons, below level 34 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_STONES_NORTH_LEVEL = line("brimhaven_dungeon_stones_north_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the north-west, below level 56 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_STONES_SOUTH_LEVEL = line("brimhaven_dungeon_stones_south_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the red dragons, below level 56 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_VINE_LEVEL = line("brimhaven_dungeon_vine_level", "Shortcut: Brimhaven Dungeon's vine to the baby green dragons, below level 87 (keys only)", "level")
+    val CAIRN_ROCKS_LEVEL = line("cairn_rocks_level", "Shortcut: the rock slide up to Cairn Isle's bridge, below level 15 (keys only: the Wiki gives no words)", "level")
+    val CAIRN_ROCKS_FALL = line("cairn_rocks_fall", "Shortcut: the rock slide up to Cairn Isle's bridge, failed (the Wiki's Rock slide (Cairn Isle) page)")
+    val BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL = line("brimhaven_arena_hand_holds_level", "Brimhaven Agility Arena: the hand holds clicked below level 20 (keys only: the Wiki gives no words)", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -66,7 +78,7 @@ sealed interface AgilityMove {
      * Walks the player along [path] one tile a tick, through whatever is in the way, with [anim] as every walking and
      * standing animation of their stance meanwhile (a log balance's, a tightrope's).
      */
-    data class Walk(val path: List<Tile>, val anim: Int) : AgilityMove
+    data class Walk(val path: List<Tile>, val anim: Int, val ticks: Int = 0) : AgilityMove
 
     /**
      * Slides the player from where they stand to [to] (the client's exact move), starting [startCycles] client cycles
@@ -84,9 +96,16 @@ sealed interface AgilityMove {
 /**
  * One way across an obstacle: the tile the player starts from, what crossing does, for an obstacle that can be failed
  * what a failure does instead ([fail], empty for one that can't), and where the obstacle is one of several locs, the
- * tiles of the locs this route is for ([at], empty for every loc).
+ * tiles of the locs this route is for ([at], empty for every loc), and the Agility level this way needs when it isn't the
+ * obstacle's ([level]: a shortcut that asks a level only one way, as the Brimhaven Dungeon's, is free back).
  */
-class AgilityRoute(val from: AgilityTile, val moves: List<AgilityMove>, val fail: List<AgilityMove>, val at: List<AgilityTile> = emptyList())
+class AgilityRoute(
+    val from: AgilityTile,
+    val moves: List<AgilityMove>,
+    val fail: List<AgilityMove>,
+    val at: List<AgilityTile> = emptyList(),
+    val level: Int? = null,
+)
 
 /**
  * An obstacle: the loc and its option (by the start of the cache's option text), any other loc types that are the same
@@ -124,14 +143,32 @@ class Obstacle(
      * as their Wiki pages say; 0 for most.
      */
     val safeAtHp: Int = 0,
+    /** Further tiles that are this obstacle besides [at], for one of several locs that share a type with another obstacle. */
+    val alsoAt: List<AgilityTile> = emptyList(),
+    /**
+     * The percent of the player's current Hitpoints a failure deals on top of [damage], rounded down: the Brimhaven
+     * Agility Arena's falls deal HP * 5 / 100 + 2 (Mod Ash, 10 March 2016, on the Wiki's obstacle pages). 0 for most.
+     */
+    val damageHpPercent: Int = 0,
+    /**
+     * Whether something other than a success roll decides a crossing ([Agility.rigs] by [key]): the Agility Arena's
+     * planks, where the smooth one always holds and the others always break.
+     */
+    val rigged: Boolean = false,
+    /** How many hitsplats of that damage a failure deals, each its own: Cairn Isle's rock slide deals two. */
+    val damageHits: Int = 1,
 ) {
+    /** Whether the loc at [tile] is this obstacle, when its type is several. */
+    fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
+
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
 
     init {
         require(routes.isNotEmpty()) { "Obstacle $key has no route" }
         require(loc !in alsoLocs && alsoLocs.toSet().size == alsoLocs.size) { "Obstacle $key lists a loc twice" }
-        require((success == null) == routes.all { it.fail.isEmpty() }) { "Obstacle $key needs both a success pair and fail moves, or neither" }
+        require((success == null && !rigged) == routes.all { it.fail.isEmpty() }) { "Obstacle $key needs both a success pair (or a rig) and fail moves, or neither" }
+        require(success == null || !rigged) { "Obstacle $key is rigged, so it rolls no success pair" }
     }
 }
 
@@ -223,6 +260,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                     route.getValue("moves").jsonArray.map { move(key, it.jsonObject) },
                     route["fail"]?.jsonArray?.map { move(key, it.jsonObject) } ?: emptyList(),
                     route["at"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
+                    route["level"]?.jsonPrimitive?.int,
                 )
             }
             return Obstacle(
@@ -235,6 +273,10 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["failDouses"]?.jsonPrimitive?.boolean ?: false,
                 json["failLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey),
                 json["safeAtHp"]?.jsonPrimitive?.int ?: 0,
+                json["alsoAt"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
+                json["damageHpPercent"]?.jsonPrimitive?.int ?: 0,
+                json["rigged"]?.jsonPrimitive?.boolean ?: false,
+                json["damageHits"]?.jsonPrimitive?.int ?: 1,
             )
         }
 
@@ -244,6 +286,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
             "walk" -> AgilityMove.Walk(
                 json.getValue("path").jsonArray.map { it.jsonArray.let { tile -> Tile(tile[0].jsonPrimitive.int, tile[1].jsonPrimitive.int) } },
                 json.int("anim"),
+                json["ticks"]?.jsonPrimitive?.int ?: 0,
             )
             "slide" -> AgilityMove.Slide(
                 tile(json.getValue("to").jsonArray), json.int("anim"), json.int("startCycles"), json.int("endCycles"), json.int("ticks"),
@@ -275,6 +318,12 @@ class Agility(private val world: World, val data: AgilityData) {
     /** The clock's minute now, which the marks' timer counts in; tests move it. */
     var nowMinutes: () -> Long = { System.currentTimeMillis() / 60_000 }
 
+    /**
+     * What decides a rigged obstacle's crossing, by its key: true for across, false for a failure. Content that owns
+     * the obstacle sets it; a rigged obstacle with none set always holds.
+     */
+    val rigs = HashMap<String, (Player, ZoneLoc) -> Boolean>()
+
     fun register() {
         for ((locId, obstacles) in data.byLoc) {
             world.handlers.onLoc(locId, option(locId, obstacles.first().option)) { op -> cross(op, obstacles) }
@@ -297,16 +346,22 @@ class Agility(private val world: World, val data: AgilityData) {
         val loc = op.loc ?: return
         val obstacle = obstacleAt(obstacles, loc) ?: return
         arriveDelay()
-        if (player.skills.currentLevel(Skill.AGILITY) < obstacle.level) {
-            player.message(world.textFor(player)[obstacle.levelLine, "level" to obstacle.level])
+        val route = routeFor(obstacle, loc) ?: return
+        val level = route.level ?: obstacle.level
+        if (player.skills.currentLevel(Skill.AGILITY) < level) {
+            player.message(world.textFor(player)[obstacle.levelLine, "level" to level])
             return
         }
-        val route = routeFor(obstacle, loc) ?: return
         if (!walkTo(route.from)) return
-        val success = player.hitpoints <= obstacle.safeAtHp || obstacle.success?.let { (low, high) ->
-            SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
-        } ?: true
+        val success = when {
+            obstacle.rigged -> rigs[obstacle.key]?.invoke(player, loc) ?: true
+            player.hitpoints <= obstacle.safeAtHp -> true
+            else -> obstacle.success?.let { (low, high) ->
+                SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
+            } ?: true
+        }
         for (move in if (success) route.moves else route.fail) play(move)
+        world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
             if (obstacle.xpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
@@ -316,11 +371,18 @@ class Agility(private val world: World, val data: AgilityData) {
             if (obstacle.failDouses) LightSources.extinguish(player)
             obstacle.failLine?.let { player.message(world.textFor(player)[it]) }
             if (obstacle.damage.isEmpty()) return
-            var damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
-            // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
-            if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
-            if (damage <= 0) return
-            world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+            val hitpoints = player.skills.currentLevel(Skill.HITPOINTS)
+            repeat(obstacle.damageHits) {
+                var damage = world.random.between(obstacle.damage.first, obstacle.damage.last) + hitpoints * obstacle.damageHpPercent / 100
+                // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
+                if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
+                if (damage <= 0) return
+                val x = player.x
+                val z = player.z
+                world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+                // Dead, or a ring of life took them away: no more hits.
+                if (player.dead || player.x != x || player.z != z) return
+            }
         }
     }
 
@@ -343,6 +405,7 @@ class Agility(private val world: World, val data: AgilityData) {
         player.charges[course.lapsCounter] = laps
         if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
         player.message(world.textFor(player)[course.lapLine, "count" to laps])
+        world.diaries.lap(player, course.lapLine)
         rollMark(course)
     }
 
@@ -377,7 +440,7 @@ class Agility(private val world: World, val data: AgilityData) {
 
     /** The obstacle [loc] is: the only one of its type, or the one standing on its tile. */
     private fun obstacleAt(obstacles: List<Obstacle>, loc: ZoneLoc): Obstacle? =
-        obstacles.singleOrNull()?.takeIf { it.at == null } ?: obstacles.firstOrNull { it.at == AgilityTile(loc.x, loc.z, loc.level) }
+        obstacles.singleOrNull()?.takeIf { it.at == null } ?: obstacles.firstOrNull { it.stands(AgilityTile(loc.x, loc.z, loc.level)) }
 
     /**
      * The way across from where the player is: of the routes on their level, those that name the loc clicked (one net or
@@ -437,11 +500,26 @@ class Agility(private val world: World, val data: AgilityData) {
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
         try {
-            forcedWalk(steps(Tile(player.x, player.z), move.path))
+            val steps = steps(Tile(player.x, player.z), move.path)
+            if (move.ticks <= steps.size) forcedWalk(steps) else pacedWalk(steps, move.ticks)
         } finally {
             // The stance goes back even if the walk is cut short (a logout).
             player.stanceOverride = null
         }
+    }
+
+    /**
+     * Walks [steps] spread evenly over [ticks] ticks, for an obstacle slower than a tile a tick (the Brimhaven arena's
+     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due.
+     */
+    private suspend fun ScriptContext.pacedWalk(steps: List<Tile>, ticks: Int) {
+        val start = world.tick
+        for ((i, step) in steps.withIndex()) {
+            val due = start + ticks.toLong() * i / steps.size
+            while (world.tick < due) delay(1)
+            forcedWalk(listOf(step))
+        }
+        while (world.tick < start + ticks) delay(1)
     }
 
     /**

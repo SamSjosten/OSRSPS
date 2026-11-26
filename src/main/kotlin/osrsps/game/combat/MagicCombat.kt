@@ -139,7 +139,7 @@ class MagicCombat(
             logger.info { "${player.username} cast ${spell.name} on $npc, which only players can be" }
             return
         }
-        val barred = combat.barred(player, npc)
+        val barred = combat.barred(player, npc, type = AttackType.MAGIC)
         if (barred != null) {
             message(player, words(player)[barred])
             return
@@ -210,7 +210,7 @@ class MagicCombat(
         }
         // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight, and a player can
         // leave where the NPC is fought.
-        val barred = combat.barred(player, npc)
+        val barred = combat.barred(player, npc, type = AttackType.MAGIC)
         if (barred != null) {
             message(player, words(player)[barred])
             stopFacing(player)
@@ -285,7 +285,8 @@ class MagicCombat(
         if (!ready(player, spell, "$npc", held)) return false
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
         if (!pay(player, spell, tick, speed)) return false
-        if (combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
+        // The weapon's own spell only: a spellbook cast keeps its speed (exploit review R52C-1).
+        if (spell.staff != null && combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
@@ -296,7 +297,7 @@ class MagicCombat(
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
             for (other in around(npc)) {
-                if (combat.barred(player, other) != null) continue
+                if (combat.barred(player, other, type = AttackType.MAGIC) != null) continue
                 val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
                 roll(player, other, spell, otherMatchup, landTick, defensive)
             }

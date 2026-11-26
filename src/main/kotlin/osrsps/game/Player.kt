@@ -146,6 +146,12 @@ class Player(
     var lastStepFrom: Tile? = null
 
     /**
+     * The tiles the player stood on in this tick's movement: where they started, then each tile stepped onto (two for a
+     * run, which can turn between its steps). Empty when they didn't move. Set by [Movement.process].
+     */
+    val stepTrail = ArrayList<Tile>(3)
+
+    /**
      * The last tick the player took a step on, -1 before their first. A ladder walked to waits a tick when the player
      * arrived on this one; see [osrsps.game.content.arriveDelay].
      */
@@ -412,6 +418,13 @@ class Player(
      */
     var attackedNpc: Npc? = null
     var attackedNpcTick: Long = -1
+
+    /**
+     * The NPC they last launched an attack on (swung at, fired or cast on, not when it lands), and the tick they did: a
+     * fight's start for a boss's kill times (Brutus's scoreboard). Not saved.
+     */
+    var launchedAtNpc: Npc? = null
+    var launchedAtNpcTick: Long = -1
 
     /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
     val tolerance = osrsps.game.combat.Tolerance()

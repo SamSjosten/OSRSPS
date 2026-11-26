@@ -38,10 +38,11 @@ object HotColdLines : Lines("hotcold", "Treasure Trails hot-cold") {
  * - Feel: the Chebyshev distance to the spot (the Wiki: "the number of steps it would take ... ignoring any
  *   obstacles"), as a temperature band (RuneLite's HotColdTemperature), and from the second feel on the step, warmer,
  *   colder or the same as last time. The master device hits for 3 to 8 each feel (the Wiki).
- * - Dig within the hottest band of the spot ([digRange]) solves the step.
+ * - Dig within [DIG_RANGE] of the spot solves the step (the Wiki's Hot Cold guide: "a 9x9 square in which you can
+ *   dig", both tiers).
  *
- * Guessed: another floor counts as ice cold; warmer and colder compare the distance, not the band; the dig counts
- * anywhere in the hottest band; no animation on Feel.
+ * Guessed: another floor counts as ice cold; warmer and colder compare the distance, not the band; no animation on
+ * Feel.
  */
 class HotCold(private val world: World, private val trails: TreasureTrails) {
     /**
@@ -100,8 +101,11 @@ class HotCold(private val world: World, private val trails: TreasureTrails) {
         const val MASTER_MIN_HIT = 3
         const val MASTER_MAX_HIT = 8
 
-        /** How near the spot Dig counts: the hottest band. */
-        fun digRange(tier: TrailTier): Int = if (tier == TrailTier.MASTER) 4 else 3
+        /** How near the spot Dig counts: the Wiki's 9x9 square, 4 tiles either way, for both tiers. */
+        const val DIG_RANGE = 4
+
+        /** The edge of the hottest band, "visibly shaking" (RuneLite's HotColdTemperature): 3 tiles, master 4. */
+        private fun shakingRange(tier: TrailTier): Int = if (tier == TrailTier.MASTER) 4 else 3
 
         fun band(tier: TrailTier, distance: Int) = when {
             distance >= 500 -> HotColdLines.ICE_COLD
@@ -110,7 +114,7 @@ class HotCold(private val world: World, private val trails: TreasureTrails) {
             distance >= 100 -> HotColdLines.WARM
             distance >= 70 -> HotColdLines.HOT
             distance >= 30 -> HotColdLines.VERY_HOT
-            distance > digRange(tier) -> HotColdLines.INCREDIBLY_HOT
+            distance > shakingRange(tier) -> HotColdLines.INCREDIBLY_HOT
             else -> HotColdLines.SHAKING
         }
     }

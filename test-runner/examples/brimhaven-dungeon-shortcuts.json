@@ -1,0 +1,317 @@
+{
+  "name": "Karamja step K3.3: Brimhaven Dungeon's shortcuts there and back at 99 Agility: the western stepping stones (sure at 99), the log, the black demons' pipe, both pairs of eastern stepping stones and the vine to the upper level; tiles and timings guessed, so a failure says where live puts the player",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario gathering",
+      "expectMessage": "Started scenario gathering.",
+      "comment": "any scenario: ::reset at the end puts the account's levels back"
+    },
+    {
+      "step": "command",
+      "text": "::setlevel agility 99", "expectMessage": "Agility set to level 99", "comment": "at 99 the western stones (225-255 out of 256) cannot fail, so every crossing lands"
+    },
+    {
+      "step": "command",
+      "text": "::tele 2649 9562 0",
+      "expectMessage": "Teleported to 2649, 9562, 0",
+      "comment": "the western stepping stones"
+    },
+    {
+      "step": "command",
+      "text": "::god on",
+      "expectMessage": "You can't be hurt now (::god again to turn it off).",
+      "comment": "the moss giants by the western stones attack; without this they kill a low-level account (nightly 26 Nov)"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 21738,
+      "option": "Jump-from",
+      "x": 2649,
+      "y": 9561
+    },
+    {
+      "step": "assertLocation",
+      "x": 2647,
+      "y": 9557,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2647 9557 0",
+      "expectMessage": "Teleported to 2647, 9557, 0"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 21739,
+      "option": "Jump-from",
+      "x": 2647,
+      "y": 9558
+    },
+    {
+      "step": "assertLocation",
+      "x": 2649,
+      "y": 9562,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2682 9506 0",
+      "expectMessage": "Teleported to 2682, 9506, 0",
+      "comment": "the log balance"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 20882,
+      "option": "Walk-across",
+      "x": 2683,
+      "y": 9506
+    },
+    {
+      "step": "assertLocation",
+      "x": 2687,
+      "y": 9506,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2687 9506 0",
+      "expectMessage": "Teleported to 2687, 9506, 0"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 20884,
+      "option": "Walk-across",
+      "x": 2686,
+      "y": 9506
+    },
+    {
+      "step": "assertLocation",
+      "x": 2682,
+      "y": 9506,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2698 9500 0",
+      "expectMessage": "Teleported to 2698, 9500, 0",
+      "comment": "the black demons' pipe"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 21727,
+      "option": "Squeeze-through",
+      "x": 2698,
+      "y": 9498
+    },
+    {
+      "step": "assertLocation",
+      "x": 2698,
+      "y": 9492,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2698 9492 0",
+      "expectMessage": "Teleported to 2698, 9492, 0"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 60840,
+      "option": "Squeeze-through",
+      "x": 2698,
+      "y": 9493
+    },
+    {
+      "step": "assertLocation",
+      "x": 2698,
+      "y": 9500,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2682 9548 0",
+      "expectMessage": "Teleported to 2682, 9548, 0",
+      "comment": "the northern stepping stones"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 19040,
+      "option": "Cross",
+      "x": 2684,
+      "y": 9548
+    },
+    {
+      "step": "assertLocation",
+      "x": 2690,
+      "y": 9547,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2690 9547 0",
+      "expectMessage": "Teleported to 2690, 9547, 0"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 19040,
+      "option": "Cross",
+      "x": 2688,
+      "y": 9547
+    },
+    {
+      "step": "assertLocation",
+      "x": 2682,
+      "y": 9548,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2697 9525 0",
+      "expectMessage": "Teleported to 2697, 9525, 0",
+      "comment": "the southern stepping stones"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 19040,
+      "option": "Cross",
+      "x": 2696,
+      "y": 9527
+    },
+    {
+      "step": "assertLocation",
+      "x": 2695,
+      "y": 9533,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2695 9533 0",
+      "expectMessage": "Teleported to 2695, 9533, 0"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 19040,
+      "option": "Cross",
+      "x": 2695,
+      "y": 9531
+    },
+    {
+      "step": "assertLocation",
+      "x": 2697,
+      "y": 9525,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2673 9583 0",
+      "expectMessage": "Teleported to 2673, 9583, 0",
+      "comment": "the vine up to the upper level"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 26880,
+      "option": "Climb",
+      "x": 2672,
+      "y": 9583
+    },
+    {
+      "step": "assertLocation",
+      "x": 2671,
+      "y": 9583,
+      "plane": 2,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::tele 2671 9583 2",
+      "expectMessage": "Teleported to 2671, 9583, 2"
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 3
+    },
+    {
+      "step": "locOption",
+      "locId": 26882,
+      "option": "Climb",
+      "x": 2671,
+      "y": 9583
+    },
+    {
+      "step": "assertLocation",
+      "x": 2673,
+      "y": 9583,
+      "plane": 0,
+      "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::god off",
+      "expectMessage": "You can be hurt again."
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}

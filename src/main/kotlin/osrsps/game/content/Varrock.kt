@@ -85,6 +85,9 @@ object Varrock {
 
     /** `dog_stray` (grey) and `dog_stray2` (brown). */
     val STRAY_DOGS = listOf(2902, 2922)
+
+    /** Plain `bones`, what the diary's dog takes. */
+    const val BONES = 526
     const val SHOO_AWAY = 4
     const val PET = 5
 
@@ -131,6 +134,8 @@ fun registerVarrock(world: World) {
     registerMuseumFinds(world)
     registerMuseumKudos(world)
     registerNaturalHistoryQuiz(world)
+    registerMuseumDisplays(world)
+    registerTunnelOfChaos(world)
     VarrockMuseumPeople.register(world)
     registerVarrockPalace(world)
     registerPalaceGarden(world)
@@ -189,6 +194,15 @@ fun registerVarrock(world: World) {
             world.handlers.onNpc(dog, PET) { op ->
                 player.sound(PET_SOUND)
                 op.npc!!.effects.say(world.dialogueText[StrayDogLines.WOOF])
+            }
+            // Feed, with bones (the Stray dog page; "Give a dog a bone" is a Varrock easy diary task). Guessed: one bone
+            // goes, the dog barks as for Pet; its following the player a while, and the meats it also eats, are left out.
+            world.handlers.onObjOnNpc(dog, BONES) { op ->
+                val slot = player.inventory.contents().firstOrNull { it.second.id == BONES }?.first ?: return@onObjOnNpc
+                player.inventory.remove(slot, 1)
+                player.sound(PET_SOUND)
+                op.npc!!.effects.say(world.dialogueText[StrayDogLines.WOOF])
+                world.diaries.complete(player, DiaryTask.VARROCK_EASY_9)
             }
         }
     }

@@ -322,7 +322,7 @@ class GroundObjs(
         zones.objsAt(x, z, level).filter { it.visibleTo(player.saveKey) }
 
     /** The obj [player] means by a click on [id] on a tile: guessed to be the oldest one they can see there. */
-    private fun find(player: Player, id: Int, x: Int, z: Int, level: Int): ZoneObj? =
+    fun find(player: Player, id: Int, x: Int, z: Int, level: Int): ZoneObj? =
         visibleAt(player, x, z, level).firstOrNull { it.id == id }
 
     /** The item spawn [obj] came from, or null if it wasn't spawned. */
@@ -436,8 +436,28 @@ class GroundObjs(
         return true
     }
 
+    /**
+     * Takes at most [count] of [obj] for [player] and destroys the rest of its stack, as scroll boxes past their tier's
+     * cap are on pickup. Like [take], it must still be there for them; a [count] of 0 only destroys it. Returns false,
+     * after telling them why, if nothing happened.
+     */
+    fun takeUpTo(player: Player, obj: ZoneObj, count: Int): Boolean {
+        if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) {
+            message(player, words(player)[GameLines.TOO_LATE])
+            return false
+        }
+        if (count <= 0) return remove(obj)
+        val type = objTypes[obj.id] ?: return false
+        if (!fits(player.inventory, type, minOf(count, obj.count))) {
+            message(player, words(player)[GameLines.NO_SPACE])
+            return false
+        }
+        if (count < obj.count) zones.setObjCount(obj, count)
+        return take(player, obj)
+    }
+
     /** Whether all of [count] of [type] would go into [inventory]. */
-    private fun fits(inventory: Inventory, type: ObjType, count: Int): Boolean {
+    fun fits(inventory: Inventory, type: ObjType, count: Int): Boolean {
         if (!type.stackable) return inventory.freeSlots >= count
         val have = inventory.count(type.id)
         if (have > 0) return have + count <= Inventory.MAX_STACK

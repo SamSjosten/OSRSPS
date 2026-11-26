@@ -138,6 +138,14 @@ class Combat(
     var outsideFight: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
+     * Set by content: the line refusing [Player]'s attack on [Npc] under a fight's own rules, null when the rules allow
+     * it: a Champions' Challenge duel's ([osrsps.game.content.ChampionsChallenge]), whose champion is fought with one
+     * kind of attack only, or is another player's. The [AttackType] is the attack's own when the caller knows it (a
+     * spell cast, autocast or not), null to judge by the attack style set.
+     */
+    var ruled: (Player, Npc, AttackType?) -> Line? = { _, _, _ -> null }
+
+    /**
      * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
      * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
      * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
@@ -179,19 +187,22 @@ class Combat(
 
     /**
      * Set by content: whether [Player]'s attack on [Npc] leaves them free to attack again on the next tick, whatever
-     * their weapon's speed: the rat bone weapons on Scurrius's giant rats ([osrsps.game.content.RatBoneWeapons]).
+     * their weapon's speed: the rat bone weapons on Scurrius's giant rats ([osrsps.game.content.RatBoneWeapons]). Asked
+     * for the weapon's own attack only (a swing, a shot, a powered staff's spell), never a spellbook cast.
      */
     var noCooldown: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
-     * or spreads to another NPC.
+     * or spreads to another NPC. [weapon] false leaves out what the wielded weapon bars ([weaponBarred]), for damage
+     * that isn't the weapon's, such as Retribution (exploit review R52C-5). [type] is the attack's own type when the
+     * caller knows it ([ruled]).
      */
-    fun barred(player: Player, npc: Npc): Line? = when {
+    fun barred(player: Player, npc: Npc, weapon: Boolean = true, type: AttackType? = null): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
-        else -> weaponBarred(player, npc) ?: notYours(player, npc)
+        else -> (if (weapon) weaponBarred(player, npc) else null) ?: ruled(player, npc, type) ?: notYours(player, npc)
     }
 
     /**
@@ -445,7 +456,13 @@ class Combat(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
             // A spell with no damage (Bind) stays harmless: no bonus to make it roll damage XP (Codex, PR 878).
-            maxHit = if (spell.maxHit == 0) 0 else maxHit + maxHitAdded(player, npc),
+            // Only a powered staff's own spell is the weapon's attack: a spellbook spell (a barrage splashing onto Scurrius)
+            // gets no bonus (exploit review R52C-1).
+            maxHit = when {
+                spell.maxHit == 0 -> 0
+                spell.staff == null -> maxHit
+                else -> maxHit + maxHitAdded(player, npc)
+            },
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }

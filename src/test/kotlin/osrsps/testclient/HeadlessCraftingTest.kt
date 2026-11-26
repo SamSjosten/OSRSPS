@@ -59,7 +59,7 @@ class HeadlessCraftingTest {
         objs[GREEN_BODY] = ObjType(GREEN_BODY, "Green d'hide body", tradeable = true)
         val spin = listOf(null, Crafting.SPIN, null, null, null)
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(5),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(VILLAGE_X shr 6, VILLAGE_Z shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(5),
             locTypes = LocTypes(
                 mapOf(
                     Crafting.LUMBRIDGE_WHEEL to LocType(Crafting.LUMBRIDGE_WHEEL, "Spinning wheel", spin, LocCollisionType(width = 1, length = 1)),
@@ -73,6 +73,7 @@ class HeadlessCraftingTest {
                 add(ZoneLoc(Smithing.FURNACE, LocShape.CENTREPIECE_STRAIGHT, 0, FURNACE_X, FURNACE_Z, 0))
                 add(ZoneLoc(Crafting.POTTERS_WHEEL, LocShape.CENTREPIECE_STRAIGHT, 0, POTTERY_X, POTTERY_Z, 0))
                 add(ZoneLoc(Crafting.POTTERY_OVEN, LocShape.CENTREPIECE_STRAIGHT, 0, POTTERY_X + 2, POTTERY_Z, 0))
+                add(ZoneLoc(Crafting.POTTERY_OVEN, LocShape.CENTREPIECE_STRAIGHT, 0, VILLAGE_X + 1, VILLAGE_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -391,6 +392,36 @@ class HeadlessCraftingTest {
     }
 
     @Test
+    fun `a bowl fired in Barbarian Village is the Varrock easy diary task, and one emptied softening clay there isn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("mo").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                fun diaryTasksDone() = client.messages().count { it.text.startsWith("[diary.task_done") }
+                client.command("tele $VILLAGE_X $VILLAGE_Z 0")
+                client.await("in the village") { client.position?.takeIf { it.x == VILLAGE_X && it.z == VILLAGE_Z } }
+                // Softening clay with bowls of water leaves empty bowls: no bowl was made.
+                client.give(CLAY, 2)
+                client.give(BOWL_OF_WATER, 2)
+                client.use(BOWL_OF_WATER, CLAY)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                client.await("two soft clay") { if (client.count(SOFT_CLAY) == 2) Unit else null }
+                assertEquals(2, client.count(BOWL))
+                assertEquals(0, diaryTasksDone(), "a bowl emptied")
+                client.command("empty")
+                client.give(UNFIRED_BOWL)
+                val boxes = client.boxes()
+                client.locOp(Crafting.POTTERY_OVEN, VILLAGE_X + 1, VILLAGE_Z, 1)
+                client.box(after = boxes)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("the bowl", timeoutMillis = 20_000) { if (client.count(BOWL) == 1) Unit else null }
+                client.await("the diary task") { Unit.takeIf { diaryTasksDone() == 1 } }
+            }
+        }
+    }
+
+    @Test
     fun `a ball of wool strings an amulet for 4 XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hank").use { client ->
@@ -418,6 +449,11 @@ class HeadlessCraftingTest {
         const val SOFT_CLAY = 1761
         const val BUCKET_OF_WATER = 1929
         const val UNFIRED_BOWL = 1791
+        const val BOWL = 1923
+        const val BOWL_OF_WATER = 1921
+        /** Inside the diary's Barbarian Village box. */
+        const val VILLAGE_X = 3085
+        const val VILLAGE_Z = 3409
         const val UNFIRED_POT = 1787
         const val POT = 1931
         const val UNFIRED_CUP = 28193

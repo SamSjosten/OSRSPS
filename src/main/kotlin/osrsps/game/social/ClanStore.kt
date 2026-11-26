@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -13,9 +14,13 @@ import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 
 private val logger = KotlinLogging.logger {}
 
@@ -44,6 +49,15 @@ class ClanStore(private val file: Path? = null) {
 
         /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
         val settings = HashMap<Int, Int>()
+
+        /** Whether it is on the clan recruitment boards (List your clan). */
+        var listed = false
+
+        /** The coins in its coffer, in the clan hall. */
+        var coffer = 0
+
+        /** Its interests, a bit each in enum_3792's order; nothing sets them yet. */
+        var interests = 0
 
         /** Players banned from its channel, oldest first. */
         val banned = ArrayList<Banned>()
@@ -78,6 +92,41 @@ class ClanStore(private val file: Path? = null) {
 
     /** The clan with [id], or null once it is deleted. */
     fun byId(id: Long): Clan? = clans[id]
+
+    /** Every clan, oldest first. */
+    fun all(): Collection<Clan> = clans.values
+
+    /**
+     * Sets the coins in [clan]'s coffer and saves at once: coins came out of or went into someone's inventory. When the
+     * file can't be written the coffer stays as it was and this is false, so the coins don't move (exploit review R58C-2).
+     */
+    fun setCoffer(clan: Clan, coins: Int): Boolean {
+        val before = clan.coffer
+        clan.coffer = coins
+        return when (write()) {
+            Written.YES -> true
+            Written.NO -> {
+                clan.coffer = before
+                false
+            }
+            // The file holds the new sum but its move may not have reached the disk (Codex on PR 966). Whichever way
+            // that goes may only lose coins, never make them: a deposit keeps the new sum (the player's side is already
+            // saved without the coins), and a withdrawal goes back to the old one and gives nothing. Either is written
+            // again at the next flush.
+            Written.UNSYNCED -> if (coins > before) {
+                true
+            } else {
+                clan.coffer = before
+                write()
+                false
+            }
+        }
+    }
+    /** Puts [clan] on the recruitment boards or takes it off, written at the next [flush]. */
+    fun setListed(clan: Clan, listed: Boolean) {
+        clan.listed = listed
+        unwritten = true
+    }
 
     /** The day (days since 1970) [key] last founded a clan, or null. */
     fun foundedDay(key: String): Long? = founded[key]
@@ -130,10 +179,13 @@ class ClanStore(private val file: Path? = null) {
         return true
     }
 
-    /** Adds [member] to [clan] and saves (`::clanjoin`, for test scripts). */
+    /**
+     * Adds [member] to [clan], written at the next [flush] (the autosave), not now: joins and leaves can be repeated as
+     * fast as Recruit and Leave are answered, and each write is the whole file (exploit review R53A-4).
+     */
     fun addMember(clan: Clan, member: Member) {
         clan.members += member
-        save()
+        unwritten = true
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
@@ -172,10 +224,10 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
     }
 
-    /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
+    /** Takes [key] out of [clan]'s members, written at the next [flush] as [addMember]'s; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false
-        save()
+        unwritten = true
         logger.info { "$key left clan '${clan.name}'" }
         return true
     }
@@ -186,23 +238,47 @@ class ClanStore(private val file: Path? = null) {
     }
 
     /**
-     * Writes every clan; a failure is logged and the clans stay as they are in the game, written at the next change or
-     * the next [flush].
+     * Writes every clan, forced to the disk as player saves are (exploit review R58C-2), and whether it was written; a
+     * failure is logged and the clans stay as they are in the game, written at the next change or the next [flush].
      */
-    fun save() {
-        val file = file ?: return
+    fun save(): Boolean = write() == Written.YES
+
+    /** How far a write got: [Written.UNSYNCED] is a file moved into place whose move couldn't be forced to the disk. */
+    private enum class Written { YES, NO, UNSYNCED }
+
+    private fun write(): Written {
+        val file = file ?: return Written.YES
         unwritten = true
+        val dir = file.toAbsolutePath().parent
         try {
-            file.parent?.let(Files::createDirectories)
+            Files.createDirectories(dir)
             val temp = file.resolveSibling("${file.fileName}.tmp")
-            Files.writeString(temp, format.encodeToString(JsonObject.serializer(), toJson()))
+            FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { channel ->
+                val bytes = ByteBuffer.wrap(format.encodeToString(JsonObject.serializer(), toJson()).toByteArray(Charsets.UTF_8))
+                while (bytes.hasRemaining()) channel.write(bytes)
+                channel.force(true)
+            }
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-            unwritten = false
         } catch (e: Exception) {
             logger.error(e) { "Couldn't write ${file.fileName}; trying again at the next autosave" }
+            return Written.NO
         }
+        // The move itself: Linux opens a folder for this, Windows doesn't, so it's skipped only when the folder can't
+        // be opened. A failed force leaves the write unsure (Codex on PR 966).
+        try {
+            val folder = try {
+                FileChannel.open(dir, StandardOpenOption.READ)
+            } catch (_: IOException) {
+                null
+            }
+            folder?.use { it.force(true) }
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't force ${file.fileName} to the disk; writing it again at the next autosave" }
+            return Written.UNSYNCED
+        }
+        unwritten = false
+        return Written.YES
     }
-
     private fun toJson(): JsonObject = buildJsonObject {
         put("nextId", nextId)
         putJsonArray("clans") {
@@ -222,6 +298,9 @@ class ClanStore(private val file: Path? = null) {
                         }
                     }
                     putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
+                    if (clan.listed) put("listed", true)
+                    if (clan.coffer != 0) put("coffer", clan.coffer)
+                    if (clan.interests != 0) put("interests", clan.interests)
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
                             addJsonObject {
@@ -257,6 +336,9 @@ class ClanStore(private val file: Path? = null) {
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
             // Files from before settings, applications or bans have none.
             for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
+            clan.listed = obj["listed"]?.jsonPrimitive?.boolean ?: false
+            clan.coffer = obj["coffer"]?.jsonPrimitive?.int ?: 0
+            clan.interests = obj["interests"]?.jsonPrimitive?.int ?: 0
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
                 clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())

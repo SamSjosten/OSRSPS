@@ -100,7 +100,11 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
                 fragments = rules.fragments.filter { owns(member, it.type.id) || varbit(member, it.unlocked) != 0 }.map { it.type.id }.toSet(),
             )
         }
-        val result = rules.roll(world.random, members, size)
+        val rolled = rules.roll(world.random, members, size)
+        // A clue scroll comes as its tier's scroll box, or not at all for one holding as many as they may, as a
+        // monster's does (exploit review round 45, R45C-3). Guessed: that the raid's clue follows the same rule.
+        val byKey = paid.associate { (_, member) -> member.saveKey to member }
+        val result = LootResult(rolled.chests.mapValues { (key, drops) -> drops.mapNotNull { boxed(byKey[key], it) } }, rolled.unique)
         run.loot = result
         for ((slot, member) in paid) {
             run.chestSlots[member.saveKey] = slot
@@ -203,6 +207,13 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
             run.revealing -= slot
             reveal(run, slot)
         }
+    }
+
+    /** [drop] as [player]'s chest holds it: a clue scroll as its scroll box ([osrsps.game.trail.TreasureTrails.dropFor]). */
+    private fun boxed(player: Player?, drop: Drop): Drop? {
+        if (world.trails.tierOf(drop.type.id) == null) return drop
+        val type = world.trails.dropFor(player, drop.type) ?: return null
+        return if (type === drop.type) drop else Drop(type, drop.count)
     }
 
     /** [slot]'s window opens by itself for its owner, if they're still in the vault, and their loot is told of. */

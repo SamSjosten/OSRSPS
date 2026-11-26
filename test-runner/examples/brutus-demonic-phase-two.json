@@ -1,0 +1,33 @@
+{
+ "name": "Brutus step 7: Demonic Brutus's second phase and his rewards. His first 0 is his second-phase line and 487 hitpoints, with orbs over the player in each special; his kill drops Brutus slippers and puts Read (Demonic) on the scoreboard. The quicker and anticlockwise specials and the orbs' styles are checked in HeadlessDemonicBrutusTest",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario brutus", "expectMessage": "Started scenario brutus.", "comment": "south of the pen's gate; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::item 33118 1"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 60763, "option": "Release", "x": 3262, "y": 3294},
+  {"step": "assertDialogue", "contains": "[demonic_brutus.feed_yes]", "timeoutMs": 10000},
+  {"step": "chooseOption", "text": "[demonic_brutus.feed_yes]"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "npcOption", "npc": "Demonic Brutus", "option": "Attack", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus", "comment": "his first 0: the second phase, not his death"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "waitTicks", "ticks": 30, "comment": "three butts, then a special with its four orbs"},
+  {"step": "assertSpotanim", "id": 3596, "timeoutMs": 20000, "comment": "the first orb, magic, landing"},
+  {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus"},
+  {"step": "assertMessage", "contains": "demonic_brutus.kill_count", "timeoutMs": 10000},
+  {"step": "assertGroundItem", "itemId": 33099, "timeoutMs": 10000, "comment": "Brutus slippers, always"},
+  {"step": "locOption", "locId": 60765, "option": "Quick-escape", "timeoutMs": 10000},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000},
+  {"step": "walk", "x": 3258, "y": 3297},
+  {"step": "locOption", "locId": 60766, "option": "Read (Demonic)", "x": 3258, "y": 3298, "timeoutMs": 20000, "comment": "cowboss_scoreboard_uber (60768) shows once he's killed"},
+  {"step": "assertInterface", "interfaceId": 950, "timeoutMs": 10000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

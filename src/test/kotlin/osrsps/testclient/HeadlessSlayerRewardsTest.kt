@@ -88,7 +88,7 @@ class HeadlessSlayerRewardsTest {
             // _diary_1) and slayer_master_in_focus (slayer_misc).
             varTypes = VarTypes(
                 20_000,
-                mapOf(
+                osrsps.game.content.DIARY_VARBITS + mapOf(
                     Slayer.VARBIT_MASTER to VarbitType(661, 2, 5), Slayer.VARBIT_POINTS to VarbitType(661, 6, 22),
                     Slayer.VARBIT_STREAK to VarbitType(1077, 0, 13), Slayer.VARBIT_COMBAT_CHECK_OFF to VarbitType(1077, 29, 29),
                     Slayer.VARBIT_WILDERNESS_STREAK to VarbitType(1565, 0, 13),
@@ -196,6 +196,35 @@ class HeadlessSlayerRewardsTest {
                 client.open()
                 client.confirm(SlayerRewards.UNBLOCK[0])
                 client.awaitVarp(4833, "Vannaka's first block slot empty") { it and 0xFF == 0 }
+            }
+        }
+    }
+
+    @Test
+    fun `with no quest points only the Lumbridge & Draynor elite tier, with the tiers below it, opens a block slot, the seventh`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.commandReply("setlevel all 40") { it.startsWith("Every skill") }
+                client.commandReply("slayer points 200") { it.startsWith("Streak") }
+                client.commandReply("slayer task rats 50 vannaka") { it.startsWith("Task") }
+                client.open()
+                client.confirm(SlayerRewards.BLOCK)
+                client.awaitMessage("[slayer_rewards.no_block_slot]") { it == "[slayer_rewards.no_block_slot]" }
+                assertEquals(200, client.points())
+
+                client.closeModal()
+                // The elite tier's tasks without the medium tier's: no slot yet.
+                for (tier in listOf("easy", "hard", "elite")) client.commandReply("diary complete lumbridge $tier all") { "task(s) done" in it }
+                client.open()
+                client.confirm(SlayerRewards.BLOCK)
+                client.awaitMessage("[slayer_rewards.no_block_slot] again") { _ -> client.messages().count { it.text == "[slayer_rewards.no_block_slot]" } == 2 }
+
+                client.closeModal()
+                client.commandReply("diary complete lumbridge medium all") { "task(s) done" in it }
+                client.open()
+                client.confirm(SlayerRewards.BLOCK)
+                client.awaitVarp(4842, "rats in Vannaka's diary block slot") { (it shr 16) and 0xFF == 3 }
+                assertEquals(140, client.points())
             }
         }
     }

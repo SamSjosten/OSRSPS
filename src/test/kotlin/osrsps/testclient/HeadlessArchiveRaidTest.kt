@@ -39,6 +39,9 @@ import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
 import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
+import osrsps.game.trail.TrailLines
+import osrsps.game.trail.TrailTier
+import osrsps.game.trail.TreasureTrails
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
@@ -109,6 +112,10 @@ class HeadlessArchiveRaidTest {
     private val axe = ObjType(1351, "Bronze axe", cost = 16, internalName = "bronze_axe")
     private val pickaxe = ObjType(1265, "Bronze pickaxe", cost = 1, tradeable = true, iops = listOf(null, null, null, null, "Drop"), internalName = "bronze_pickaxe")
 
+    // The chest's elite clue and its scroll box, as the cache has them: Read, and the elite tier's param.
+    private val eliteClue = ObjType(12073, "Clue scroll (elite)", iops = listOf("Read", null, null, null, "Drop"), params = mapOf(TrailTier.ELITE.param to 1), internalName = "trail_elite_emote_exp1")
+    private val eliteBox = ObjType(TrailTier.ELITE.scrollBox, "Scroll box (elite)", stackable = true, internalName = "league_clue_box_elite")
+
     /**
      * The reward vault's chests as the 241.4 cache has them: what one shows as, closed (Open) or the Rift it leaves
      * (Search), the player's own or not; and the eight, closed and open, each showing as the player's own with
@@ -126,7 +133,12 @@ class HeadlessArchiveRaidTest {
         }
     }
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    /**
+     * A server with the raid's rooms, chests and Rift out. [clues] adds the elite clue and its scroll box to the cache:
+     * only the clue test has them, since the loot file's tertiary clue (1 in 10) would otherwise put a box in other
+     * tests' chests now and then (the Nov 25 CI failure of the empty-rooms test after #910).
+     */
+    private fun server(dir: Path, clues: Boolean = false) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             // Lumbridge's square too, for Home Teleport's landing.
@@ -138,7 +150,7 @@ class HeadlessArchiveRaidTest {
             },
             locTypes = locTypes,
             staticLocs = staticLocs,
-            objTypes = ObjTypes.of(axe, pickaxe),
+            objTypes = if (clues) ObjTypes.of(axe, pickaxe, eliteClue, eliteBox) else ObjTypes.of(axe, pickaxe),
             npcTypes = NpcTypes.of(
                 NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
                 // The reward vault's Rift out, as the 241.4 cache has it.
@@ -280,7 +292,12 @@ class HeadlessArchiveRaidTest {
         val key = server.world.playerNamed(username)!!.saveKey
         assertEquals(listOf(key), run.loot?.chests?.keys?.toList())
         assertEquals(mapOf(key to 0), run.chestSlots.toMap())
-        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing. Unclaimed: nothing.", commandReply("raid loot") { it.contains("oot") })
+        // The elite clue's scroll box is a 1-in-10 tertiary roll on an unseeded random (#910), so the chest may hold it.
+        val loot = commandReply("raid loot") { it.contains("oot") }
+        assertTrue(
+            Regex("""Loot for 1, no unique\. Your chest is 1, closed: (nothing|Scroll box \(elite\) x1)\. Unclaimed: \1\.""").matches(loot),
+            loot,
+        )
         assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
             // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
@@ -301,6 +318,8 @@ class HeadlessArchiveRaidTest {
         }
         // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
+        // A scroll box left unclaimed waits in the Loot Wheelbarrow and would keep the Archive Door shut for the next run.
+        server.world.playerNamed(username)!!.archiveChest.clear()
     }
 
     @Test
@@ -1202,6 +1221,44 @@ class HeadlessArchiveRaidTest {
         val grave = assertNotNull(world.deaths.all.singleOrNull { it.owner == saveKey }, "$username's grave")
         assertEquals(Triple(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "$username's grave in the lobby")
         assertEquals(lost, grave.items.contents().sumOf { it.second.count }, "$username's grave")
+    }
+
+    @Test
+    fun `the chest's clue scroll comes as its scroll box, and not at all for one holding as many as they may`(@TempDir dir: Path) {
+        server(dir, clues = true).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val world = server.world
+                    val carolKey = world.playerNamed("carol")!!.saveKey
+                    val daveKey = world.playerNamed("dave")!!.saveKey
+                    // Dave already holds the two elite scroll boxes a player may (exploit review round 45, R45C-3).
+                    dave.command("item ${eliteBox.id} ${TreasureTrails.BOX_CAP}")
+                    dave.await("his two boxes") { if (world.playerNamed("dave")!!.inventory.count(eliteBox.id) == TreasureTrails.BOX_CAP.toLong()) Unit else null }
+                    // A table with nothing but the elite clue, every run.
+                    world.archiveRaids.chests.table = ArchiveLoot(1, 4, null, 3, 1, null, DropItem(eliteClue, 1, 1), 1, null, 15, emptySet(), emptyList(), 20, null)
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        carol.command("raid tp ${room.name.lowercase()}")
+                        carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    // Both in Ocellus's room as it begins, so both have a share.
+                    carol.commandReply("pause") { it.contains("aused after tick") }
+                    carol.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    carol.stepTicks(1)
+                    val loot = assertNotNull(run.loot, "the loot")
+                    carol.commandReply("resume") { it.startsWith("Resumed") }
+                    assertTrue(run.points.getValue(daveKey) > 0, "Dave has a share")
+                    assertEquals(listOf(eliteBox.id to 1), loot.chests.getValue(carolKey).map { it.type.id to it.count }, "the box, not the scroll")
+                    assertEquals(emptyList(), loot.chests.getValue(daveKey), "nothing past the cap")
+                    dave.await("the sneaking suspicion") { dave.messages().firstOrNull { it.text.contains(TrailLines.suspicion(TrailTier.ELITE).key) } }
+                }
+            }
+        }
     }
 
     @Test

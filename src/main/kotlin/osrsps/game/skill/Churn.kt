@@ -3,6 +3,8 @@ package osrsps.game.skill
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Line
+import osrsps.game.content.BottomlessMilkBucket
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 
 /**
@@ -22,16 +24,66 @@ class Churn(private val world: World) {
         for (loc in CHURNS) {
             world.handlers.onLoc(loc, 1) { choose() }
             for (input in listOf(MILK, CREAM, BUTTER)) world.handlers.onObjOnLoc(loc, input) { choose() }
+            world.handlers.onObjOnLoc(loc, BottomlessMilkBucket.FILLED) { fromBucket() }
         }
     }
 
     private suspend fun ScriptContext.choose() {
         val recipes = PRODUCTS.mapNotNull { product -> RECIPES.firstOrNull { it.product == product && it.times(player.inventory) > 0 } }
+        // Guessed: the bottomless milk bucket only when there is nothing else to churn.
+        if (recipes.isEmpty() && BottomlessMilkBucket.type(player) == BottomlessMilkBucket.REGULAR) return fromBucket()
         if (recipes.isEmpty()) {
             player.message(world.textFor(player)[CookingMixLines.CHURN_NOTHING])
             return
         }
         world.making.choose(this, recipes)
+    }
+
+    /**
+     * The bottomless milk bucket's regular milk churned (its Wiki page): the milk recipes, a use of the bucket for each
+     * bucket of milk and no bucket back. Guessed: the same ticks, XP and messages as from buckets.
+     */
+    private suspend fun ScriptContext.fromBucket() {
+        val have = BottomlessMilkBucket.uses(player)
+        if (BottomlessMilkBucket.type(player) != BottomlessMilkBucket.REGULAR || have <= 0) {
+            player.message(world.textFor(player)[CookingMixLines.CHURN_NOTHING])
+            return
+        }
+        var picked = 0 to 1
+        world.dialogues.start(this) { picked = makeX(MakeLines.TITLE, BUCKET_RECIPES.map { it.product }, have) }
+        val recipe = BUCKET_RECIPES.getOrNull(picked.first) ?: return
+        if (!BottomlessMilkBucket.held(player)) return
+        world.interfaces.closeChatModal(player)
+        world.scripts.clearQueue(player, Making.QUEUE)
+        player.interaction = null
+        if (!levelled(recipe, tell = true)) return
+        if (picked.second <= 0) return
+        player.anim(recipe.anim)
+        queue(Making.QUEUE, QueueType.WEAK, recipe.first) { churnOne(recipe, picked.second) }
+    }
+
+    private fun ScriptContext.churnOne(recipe: MakeRecipe, left: Int) {
+        if (!levelled(recipe, tell = false)) return
+        val type = world.objTypes[recipe.product] ?: return
+        if (BottomlessMilkBucket.type(player) != BottomlessMilkBucket.REGULAR || !BottomlessMilkBucket.held(player)) return
+        if (player.inventory.add(type, 1) < 1) {
+            player.message(world.textFor(player)[MakeLines.NO_SPACE])
+            return
+        }
+        BottomlessMilkBucket.takeMilk(player)
+        val before = player.skills.baseLevel(Skill.COOKING)
+        player.skills.addTenths(Skill.COOKING, recipe.xpTenths)
+        player.message(world.textFor(player)[recipe.made])
+        if (player.skills.baseLevel(Skill.COOKING) > before || left <= 1 || BottomlessMilkBucket.uses(player) <= 0) return
+        player.anim(recipe.anim)
+        queue(Making.QUEUE, QueueType.WEAK, recipe.interval) { churnOne(recipe, left - 1) }
+    }
+
+    private fun ScriptContext.levelled(recipe: MakeRecipe, tell: Boolean): Boolean {
+        if (player.skills.currentLevel(Skill.COOKING) >= recipe.level) return true
+        val name = world.objTypes[recipe.product]?.name?.lowercase() ?: "item ${recipe.product}"
+        if (tell) player.message(world.textFor(player).get(CookingMixLines.LEVEL, "level" to recipe.level, "item" to name))
+        return false
     }
 
     companion object {
@@ -63,5 +115,8 @@ class Churn(private val world: World) {
             churn("churn_cream_cheese", CREAM, CHEESE, 48, 460, 19, MEDIUM, CookingMixLines.CHURN_CHEESE),
             churn("churn_milk_cheese", MILK, CHEESE, 48, 640, 26, LONG, CookingMixLines.CHURN_CHEESE),
         )
+
+        /** What the bottomless milk bucket's milk can become: cream, butter and cheese, from milk. */
+        val BUCKET_RECIPES = PRODUCTS.map { product -> RECIPES.first { it.product == product && it.inputs.single().obj == MILK } }
     }
 }

@@ -1,0 +1,101 @@
+{
+ "name": "Achievement diaries: an easy lamp rubbed for 2,500 Mining XP (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::setlevel mining 30",
+   "expectMessage": "Mining set to level 30"
+  },
+  {
+   "step": "command",
+   "text": "::item 13145 1",
+   "comment": "an easy diary lamp"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "itemOption",
+   "item": "Antique lamp",
+   "option": "Rub"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 240
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 240,
+   "component": 26,
+   "contains": "antique_lamp.title"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "let the screen settle: its if1/if2 varps arrive after it opens, and their onvartransmit redraw (xpreward_update with no skill) undoes a choice made in the same moment, as three 217 runs showed"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 240,
+   "component": 17,
+   "op": 1,
+   "comment": "xpreward:mining, row 3 column 4 (osrs-dumps xpreward.if3: attack is 2, then six to a row with sailing at 7)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client mark the choice before Confirm"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 240,
+   "component": 27,
+   "op": 1,
+   "comment": "Confirm: Mining"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "antique_lamp.granted amount=2,500 skill=Mining",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 240,
+   "absent": true
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -59,12 +59,15 @@ class ClanStoreTest {
         store.addApplicant(clan, "dave", "dave")
         assertTrue(store.removeApplicant(clan, "dave"))
         assertFalse(store.removeApplicant(clan, "dave"))
-        // Applicants wait for the autosave's flush; a member leaving is written at once, with them.
+        // Applicants wait for the autosave's flush, and so does a member leaving (exploit review R53A-4).
         assertTrue(store.unwritten)
         assertTrue(ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.applicants.isEmpty())
         store.flush()
         assertFalse(store.unwritten)
         assertTrue(store.removeMember(clan, "bob"))
+        assertTrue(store.unwritten)
+        assertEquals(listOf("alice", "bob"), ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.members.map { it.key })
+        store.flush()
         val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
         assertEquals(listOf("carol" to "Carol"), reloaded.applicants.map { it.key to it.name })
         assertEquals(listOf("alice"), reloaded.members.map { it.key })
@@ -114,5 +117,21 @@ class ClanStoreTest {
         assertNull(clan.banned("carol"))
         store.flush()
         assertEquals(listOf("dave"), ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.banned.map { it.key })
+    }
+
+    @Test
+    fun `a coffer change that can't be written leaves the coffer as it was`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        assertTrue(store.setCoffer(clan, 500))
+        // A folder where the temp file goes: the write fails.
+        val blocker = dir.resolve("${ClanStore.FILE_NAME}.tmp")
+        Files.createDirectories(blocker)
+        Files.writeString(blocker.resolve("in-the-way"), "x")
+        assertFalse(store.setCoffer(clan, 900))
+        assertEquals(500, clan.coffer)
+        blocker.toFile().deleteRecursively()
+        store.flush()
+        assertEquals(500, ClanStore(dir.resolve(ClanStore.FILE_NAME)).byId(clan.id)!!.coffer)
     }
 }

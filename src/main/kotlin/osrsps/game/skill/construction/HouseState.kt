@@ -1,5 +1,6 @@
 package osrsps.game.skill.construction
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.int
@@ -10,6 +11,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * A room type, as the cache's `poh_room` table (dbtable 111, the 242 cache) has it: its [id] there (`room_type`, what
@@ -78,6 +81,32 @@ enum class RoomType(
      * hotspots go to nothing out of building mode, as it has no walls.
      */
     val outdoors: Boolean get() = this == GARDEN || this == FORMAL_GARDEN || this == SUPERIOR_GARDEN || this == MENAGERIE_OUTDOORS
+
+    /**
+     * The type this room is upstairs (step CON5): a hall's is the hall at the top of a staircase (its stair space the
+     * staircase's top, `poh_hall1_1_stairs_top`), every other room's itself.
+     */
+    val upstairs: RoomType get() = when (this) {
+        SKILL_HALL -> SKILL_HALL_STAIRS
+        QUEST_HALL -> QUEST_HALL_STAIRS
+        else -> this
+    }
+
+    /** The type whose hotspots and furniture it has: a hall at the top of a staircase has its hall's (the `poh_room` rows list the same places). */
+    val base: RoomType get() = when (this) {
+        SKILL_HALL_STAIRS -> SKILL_HALL
+        QUEST_HALL_STAIRS -> QUEST_HALL
+        else -> this
+    }
+
+    /** Whether it may be on [floor]: the ground floor's types never upstairs, a hall's top only upstairs, dungeon rooms only below. */
+    fun goesOn(floor: Int): Boolean = when {
+        floors == RoomFloors.DUNGEON -> floor == House.DUNGEON
+        floor == House.DUNGEON -> false
+        this == SKILL_HALL_STAIRS || this == QUEST_HALL_STAIRS -> floor == House.UPPER
+        floor == House.UPPER -> floors == RoomFloors.ABOVE_GROUND && this != SKILL_HALL && this != QUEST_HALL
+        else -> true
+    }
 
     companion object {
         /** The template area's south-west tile. */
@@ -183,8 +212,8 @@ object HouseSaves {
 
     /**
      * Throws [IllegalArgumentException] for a house no server would have saved: an unknown room, two rooms in a cell, no
-     * rooms, a room off the ground floor, something built that this server doesn't build on that hotspot, or other than
-     * one exit portal (exploit review R43B-1). Each step that builds something new adds it to [builds].
+     * rooms, a room on a floor its type can't go on (the dungeon until step CON10), a room upstairs with none below it,
+     * something built that this server doesn't build on that hotspot, or no exit portal (exploit review R43B-1). Each step that builds something new adds it to [builds].
      */
     fun fromJson(json: JsonObject): HouseState {
         val locationKey = json["location"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("House has no location")
@@ -203,21 +232,30 @@ object HouseSaves {
                 entry["rotation"]?.jsonPrimitive?.int ?: 0, built,
             )
             require(rooms.none { it.x == room.x && it.z == room.z && it.floor == room.floor }) { "Two rooms in cell ${room.x}, ${room.z}" }
-            require(room.floor == House.GROUND) { "A room on floor ${room.floor}" }
-            for ((hotspot, loc) in built) require(builds(type, hotspot, loc)) { "$loc built on $hotspot in a ${type.key}" }
+            // Upstairs since step CON5; the dungeon comes with CON10.
+            require(room.floor != House.DUNGEON && type.goesOn(room.floor)) { "A ${type.key} on floor ${room.floor}" }
+            // A piece this server doesn't build there is dropped, not the whole house (R52B-1): a table changed since the
+            // save mustn't lock its owner out. The exit portal is checked below either way.
+            built.entries.removeIf { (hotspot, loc) ->
+                (!builds(type, hotspot, loc)).also { if (it) logger.warn { "Dropped $loc built on $hotspot in a ${type.key}" } }
+            }
             rooms += room
         }
         require(rooms.isNotEmpty()) { "A house with no rooms" }
+        require(rooms.all { it.floor != House.UPPER || rooms.any { below -> below.floor == House.GROUND && below.x == it.x && below.z == it.z } }) {
+            "A room upstairs with nothing below it"
+        }
         require(rooms.size <= House.MAX_ROOMS) { "A house of ${rooms.size} rooms" }
         val portals = rooms.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } }
-        require(portals == 1) { "A house with $portals exit portals" }
+        require(portals >= 1) { "A house with no exit portal" }
         return HouseState(location, rooms)
     }
 
     /** Whether this server builds [loc] on [hotspot] in a [type] room: the garden's exit portal, or CON3's furniture. */
     private fun builds(type: RoomType, hotspot: Int, loc: Int): Boolean {
         if (loc == House.EXIT_PORTAL) return type == RoomType.GARDEN && hotspot == House.CENTREPIECE_SPACE
-        if (FurnitureBuilds.HOTSPOTS[hotspot]?.room != type) return false
+        val spot = FurnitureBuilds.HOTSPOTS[hotspot] ?: return false
+        if (spot.room != type.base || (spot.only != null && spot.only != type)) return false
         return FurnitureBuilds.buildsOn(hotspot, loc)
     }
 

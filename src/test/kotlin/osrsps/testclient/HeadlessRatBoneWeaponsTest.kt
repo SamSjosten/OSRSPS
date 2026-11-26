@@ -53,6 +53,14 @@ class HeadlessRatBoneWeaponsTest {
         ObjType(RatBoneWeapons.BONE_MACE, "Bone mace", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "rat_bone_mace"),
         ObjType(RatBoneWeapons.BONE_SHORTBOW, "Bone shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "rat_bone_bow"),
         ObjType(RatBoneWeapons.BONE_STAFF, "Bone staff", iops = listOf(null, "Wield", "Check", "Uncharge", null), wearpos1 = WearPos.WEAPON, internalName = "rat_bone_staff"),
+        // Fire Strike and its runes, as HeadlessFountainOfRuneTest's: a spellbook cast with a bone weapon worn.
+        ObjType(
+            3279, "Fire Strike", internalName = "13_fire_strike",
+            params = mapOf(601 to "Fire Strike", 604 to 13, 596 to (218 shl 16 or FIRE_STRIKE), 365 to MIND, 366 to 1, 367 to FIRE, 368 to 3, 369 to AIR, 370 to 2, 1935 to 8),
+        ),
+        ObjType(AIR, "Air rune", stackable = true),
+        ObjType(FIRE, "Fire rune", stackable = true),
+        ObjType(MIND, "Mind rune", stackable = true),
     )
 
     // The powered staff row of dbtable 78, as the 241 cache has it (HeadlessShadowTest's).
@@ -70,9 +78,11 @@ class HeadlessRatBoneWeaponsTest {
         val array = arrayOfNulls<ObjType>(objs.maxOf { it.id } + 1)
         for (type in objs) array[type.id] = type
         val npcTypes = NpcTypes.of(aldo, rat, man, angry)
+        val objTypes = ObjTypes(array)
         World(
-            crcs, CollisionMap().apply { markLoaded(3276 shr 6, 9870 shr 6) }, random = GameRandom(3), objTypes = ObjTypes(array),
-            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), attackStyles = styles, cycleMillis = millis,
+            crcs, CollisionMap().apply { markLoaded(3276 shr 6, 9870 shr 6) }, random = GameRandom(3), objTypes = objTypes,
+            npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), attackStyles = styles,
+            spells = osrsps.game.combat.Spells.load(objTypes, SeqNames.NONE, osrsps.game.SpotanimNames.NONE), cycleMillis = millis,
         )
     }
 
@@ -183,6 +193,7 @@ class HeadlessRatBoneWeaponsTest {
                 val before = world.combat.matchup(erin, giant)!!.maxHit
                 erin.equipment[WearPos.WEAPON] = InvObj(RatBoneWeapons.BONE_MACE, 1)
                 assertEquals(RatBoneLines.ONLY_RATS, world.combat.barred(erin, human), "rats only")
+                assertNull(world.combat.barred(erin, human, weapon = false), "Retribution isn't the weapon's (R52C-5)")
                 assertNull(world.combat.barred(erin, giant))
                 assertEquals(RatBoneLines.ONLY_RATS, world.combat.weaponBarredOnPlayer(erin), "no players either")
                 assertEquals(before + RatBoneWeapons.MAX_HIT_BONUS, world.combat.matchup(erin, giant)!!.maxHit, "+10 on a rat")
@@ -201,6 +212,12 @@ class HeadlessRatBoneWeaponsTest {
                 // A spell with no damage (as Bind) gets no +10: it stays harmless, earning no damage XP.
                 assertEquals(0, world.combat.magicMatchup(erin, giant, spell.copy(maxHit = 0, staff = null))!!.maxHit)
                 erin.skills.setLevel(Skill.MAGIC, 99)
+                // A spellbook spell (a barrage splashing onto Scurrius) gets no +10: only the staff's own spell (R52C-1).
+                val book = spell.copy(maxHit = 20, staff = null)
+                val withStaff = world.combat.magicMatchup(erin, giant, book)!!.maxHit
+                erin.equipment[WearPos.WEAPON] = null
+                assertEquals(world.combat.magicMatchup(erin, giant, book)!!.maxHit, withStaff, "no bonus on a spellbook spell")
+                erin.equipment[WearPos.WEAPON] = InvObj(RatBoneWeapons.BONE_STAFF, 1)
                 assertEquals(38, world.combat.magicMatchup(erin, giant, world.magicCombat.poweredSpell(erin)!!)!!.maxHit, "the Wiki's 38 at 99 Magic")
                 erin.equipment[WearPos.WEAPON] = null
                 assertNull(world.combat.barred(erin, human), "anything goes without one")
@@ -217,7 +234,34 @@ class HeadlessRatBoneWeaponsTest {
         }
     }
 
+    @Test
+    fun `a spellbook cast on a giant rat keeps its speed with a bone weapon worn`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                val world = server.world
+                val erin = world.playerNamed("erin")!!
+                world.spawnNpc(osrsps.game.npc.NpcSpawn(rat, 3226, 3218, 0, source = "test"))!!
+                val giant = client.await("the giant rat in view") { client.npcs().firstOrNull { it.id == rat.id } }
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                erin.skills.setLevel(Skill.MAGIC, 13)
+                for (id in listOf(AIR, FIRE, MIND)) erin.inventory.add(world.objTypes[id]!!, 100)
+                erin.equipment[WearPos.WEAPON] = InvObj(RatBoneWeapons.BONE_MACE, 1)
+                client.npcTarget(giant.index, osrsps.game.combat.Spells.SPELLBOOK, FIRE_STRIKE)
+                client.stepTicks(1)
+                val cast = world.tick
+                assertTrue(erin.inventory.count(AIR) < 100, "Fire Strike cast")
+                // Exploit review R52C-1: the no-cooldown rule was letting barrages go once a tick at Scurrius.
+                assertTrue(erin.nextAttackTick >= cast + 5, "next cast at ${erin.nextAttackTick}, cast on $cast")
+            }
+        }
+    }
+
     private companion object {
+        const val FIRE_STRIKE = 19
+        const val AIR = 556
+        const val FIRE = 554
+        const val MIND = 558
         const val BACKPACK = 93
         val IOP_BUTTON_OPS = intArrayOf(2, 3, 4, 6, 7)
         const val INVENTORY = 149

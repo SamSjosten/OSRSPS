@@ -90,6 +90,16 @@ class AgilityDataTest {
                 "shortcut_edgeville_dungeon_south_pipe" to (60 to 100),
                 "shortcut_lumbridge_cellar_hole" to (13 to 0),
                 "shortcut_goblin_maze_hole" to (1 to 0),
+                "shortcut_brimhaven_ropeswing" to (10 to 30),
+                "shortcut_sourhog_cave_blockage" to (1 to 0),
+                "shortcut_brimhaven_dungeon_west_stones" to (12 to 75),
+                "shortcut_brimhaven_dungeon_entrance_pipe" to (22 to 85),
+                "shortcut_brimhaven_dungeon_log" to (30 to 100),
+                "shortcut_brimhaven_dungeon_pipe" to (34 to 100),
+                "shortcut_brimhaven_dungeon_stones_north" to (56 to 0),
+                "shortcut_brimhaven_dungeon_stones_south" to (56 to 0),
+                "shortcut_brimhaven_dungeon_vine" to (87 to 0),
+                "shortcut_cairn_isle_rocks" to (15 to 10),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -108,6 +118,7 @@ class AgilityDataTest {
             setOf(
                 "shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft",
                 "shortcut_lumbridge_swamp_desert_stone", "shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south",
+                "shortcut_brimhaven_dungeon_west_stones", "shortcut_brimhaven_dungeon_stones_north", "shortcut_brimhaven_dungeon_stones_south",
             ),
             shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )
@@ -120,12 +131,23 @@ class AgilityDataTest {
         assertTrue(refusing.none { it.levelLine == AgilityLines.LEVEL })
         // Only the swamp caves' stones put the lights out on a fall.
         assertEquals(setOf("shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south"), shortcuts.filter { it.failDouses }.map { it.key }.toSet())
-        // Each way ends where the other starts.
-        for (shortcut in shortcuts) {
+        // Each way ends where the other starts, but for the Brimhaven ropeswings: one rope swings each way, each from its own tile.
+        val ropeswing = shortcuts.single { it.key == "shortcut_brimhaven_ropeswing" }
+        assertEquals(listOf(listOf(AgilityTile(2705, 3209, 0)), listOf(AgilityTile(2703, 3205, 0))), ropeswing.routes.map { it.at })
+        for (shortcut in shortcuts - ropeswing) {
             val (there, back) = shortcut.routes
             assertEquals(back.from, landing(there.moves), shortcut.key)
             assertEquals(there.from, landing(back.moves), shortcut.key)
         }
+        // Brimhaven Dungeon's shortcuts but the vine need their level only going deeper; back out is level 1.
+        assertEquals(
+            setOf(
+                "shortcut_brimhaven_dungeon_west_stones", "shortcut_brimhaven_dungeon_entrance_pipe", "shortcut_brimhaven_dungeon_log",
+                "shortcut_brimhaven_dungeon_pipe", "shortcut_brimhaven_dungeon_stones_north", "shortcut_brimhaven_dungeon_stones_south",
+            ),
+            shortcuts.filter { shortcut -> shortcut.routes.any { it.level != null } }.map { it.key }.toSet(),
+        )
+        assertTrue(shortcuts.flatMap { it.routes }.mapNotNull { it.level }.all { it == 1 })
         val stone = shortcuts.single { it.key == "shortcut_champions_guild_stone" }
         assertEquals(10, stone.failXpTenths)
         assertEquals(1..3, stone.damage)
@@ -138,6 +160,57 @@ class AgilityDataTest {
         is AgilityMove.Slide -> last.to
         is AgilityMove.Walk -> AgilityTile(last.path.last().x, last.path.last().z, 0)
         else -> error("No tile in $last")
+    }
+
+    @Test
+    fun `the Agility Arena's obstacles have the Wiki's levels and XP, fall into the pit, and only the planks are rigged`() {
+        val arena = AgilityData.load().obstacles.filter { it.key.startsWith("arena_") }
+        assertEquals(
+            mapOf(
+                "arena_balancing_rope" to (1 to 100), "arena_log_balance" to (1 to 120), "arena_balancing_ledge" to (1 to 160),
+                "arena_monkey_bars" to (1 to 140), "arena_plank" to (1 to 60), "arena_hand_holds" to (20 to 220),
+                "arena_pillar" to (1 to 180), "arena_rope_swing" to (1 to 200), "arena_low_wall" to (1 to 80),
+            ),
+            arena.associate { it.key to (it.level to it.xpTenths) },
+        )
+        assertEquals(listOf("arena_plank"), arena.filter { it.rigged }.map { it.key })
+        for (obstacle in arena) {
+            // Every way across starts on a platform (level 3) and none fails at 99.
+            assertTrue(obstacle.routes.all { it.from.level == 3 }, obstacle.key)
+            assertTrue(obstacle.success == null || obstacle.success!!.second == 255, obstacle.key)
+            if (obstacle.key == "arena_low_wall") {
+                // A stumble back where they started, with no damage.
+                assertTrue(obstacle.damage.isEmpty())
+                assertTrue(obstacle.routes.all { route -> route.fail.all { it is AgilityMove.Anim } })
+                continue
+            }
+            assertEquals(2..2, obstacle.damage, obstacle.key)
+            assertEquals(5, obstacle.damageHpPercent, obstacle.key)
+            // A fall lands in the pit below the start.
+            for (route in obstacle.routes) assertEquals(AgilityTile(route.from.x, route.from.z, 0), landing(route.fail), obstacle.key)
+        }
+        // Each loc crossing lands on the start of the crossing back, so every one goes both ways.
+        for (obstacle in arena) {
+            val starts = obstacle.routes.map { it.from }.toSet()
+            for (route in obstacle.routes) {
+                val end = landing(route.moves).let { if (it.level == 0) it.copy(level = 3) else it }
+                assertTrue(end in starts, "${obstacle.key} from ${route.from}")
+            }
+        }
+        assertEquals(AgilityLines.BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL, arena.single { it.key == "arena_hand_holds" }.levelLine)
+    }
+
+    @Test
+    fun `a rigged obstacle needs fail moves and rolls no success pair`() {
+        val fail = """"routes": [{"from": [3200, 3200, 0], "moves": [], "fail": [{"type": "anim", "anim": 764, "ticks": 1}]}]"""
+        val rigged = """{"key": "a", "loc": 1, "option": "Walk", "level": 1, "xpTenths": 10, "rigged": true, $fail}"""
+        assertTrue(AgilityData.parse("""{"obstacles": [$rigged]}""").obstacles.single().rigged)
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${rigged.replace("\"rigged\": true", "\"rigged\": true, \"success\": [10, 20]")}]}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"rigged\": true")}]}""")
+        }
     }
 
     @Test
