@@ -200,7 +200,9 @@ class JewelleryEffects(private val world: World) {
         if (player.equipment[WearPos.RING]?.id == ringOfLife && ringOfLife >= 0 && player.hitpoints * 10 <= max && canEscape(player)) {
             player.equipment[WearPos.RING] = null
             player.message(text[JewelleryEffectLines.RING_OF_LIFE])
-            world.interfaces.closeModals(player)
+            // Everything they had going stops, as at a death (round 59, R59A-1: a poison tick mid-obstacle left the
+            // Agility script running, its forced steps walking them from Lumbridge through walls).
+            world.scripts.clearAll(player)
             player.waypoints.clear()
             player.interaction = null
             if (EdgevilleRespawn.active(world, player)) {

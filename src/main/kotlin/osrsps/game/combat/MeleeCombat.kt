@@ -1099,7 +1099,7 @@ class MeleeCombat(
             died(player)
             return dealt
         }
-        val rescue = saved(player)
+        val rescue = saved(player, dealt)
         redemption(player)
         // A ring of life's teleport takes them out of the fight: no hitting back (Codex review on #956).
         if (rescue != Rescue.ESCAPED && source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
@@ -1122,21 +1122,26 @@ class MeleeCombat(
         if (player.hitpoints <= 0) {
             died(player)
         } else {
-            saved(player)
+            saved(player, dealt)
             redemption(player)
         }
         return dealt
     }
 
     /**
-     * [hurtAlive]'s say on a hit [player] lived through. A phoenix necklace's heal drops the NPCs' shots and the players'
-     * attacks coming for them and shows the healed health bar, as Redemption does.
+     * [hurtAlive]'s say on a hit of [dealt] that [player] lived through; a hit of 0 saves no one (round 59, R59A-3: a
+     * splash made the ring of life an escape at will). A phoenix necklace's heal or a ring of life's escape drops the
+     * NPCs' shots and the players' attacks coming for them (R59A-2: none lands at the respawn point); the heal shows
+     * the healed health bar, as Redemption does.
      */
-    private fun saved(player: Player): Rescue {
+    private fun saved(player: Player, dealt: Int): Rescue {
+        if (dealt <= 0) return Rescue.NONE
         val rescue = hurtAlive(player)
-        if (rescue == Rescue.HEALED) {
+        if (rescue != Rescue.NONE) {
             for (shot in shots) if (shot.player === player) shot.cancelled = true
             dropPvpHits(player)
+        }
+        if (rescue == Rescue.HEALED) {
             player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
         }
         return rescue
@@ -1175,7 +1180,7 @@ class MeleeCombat(
         if (player.hitpoints <= 0) {
             died(player)
         } else {
-            saved(player)
+            saved(player, dealt)
             redemption(player)
         }
         return dealt
