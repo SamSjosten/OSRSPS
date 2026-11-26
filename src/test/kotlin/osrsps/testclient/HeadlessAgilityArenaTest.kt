@@ -12,6 +12,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.loc.LocType
@@ -490,12 +491,26 @@ class HeadlessAgilityArenaTest {
                 client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
                 val player = server.world.playerNamed("tia")!!
                 for ((from, landing, ticks) in listOf(Triple(Coord(2772, 9553, 3), Coord(2772, 9550, 3), 4), Triple(Coord(2782, 9575, 3), Coord(2782, 9572, 3), 5))) {
-                    client.tele(from.x, from.z, 3)
-                    client.awaitTicks(2)
-                    client.walk(landing.x, landing.z)
-                    val landed = client.await("landed") { if (player.x == landing.x && player.z == landing.z) server.world.tick else null }
-                    // From the step onto the trap; the poll can see the landing a tick late.
-                    val took = landed - player.lastMoveTick
+                    // The blades still fail 1 time in 256 at 99: a failure (the hit) is tried again.
+                    var took = -1L
+                    for (attempt in 1..5) {
+                        client.commandReply("setlevel hitpoints 99") { true }
+                        client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                        client.tele(from.x, from.z, 3)
+                        client.awaitTicks(2)
+                        client.walk(landing.x, landing.z)
+                        val landed = client.await("landed or hit") {
+                            when {
+                                player.x == landing.x && player.z == landing.z -> server.world.tick
+                                player.skills.currentLevel(Skill.HITPOINTS) < 99 -> -1L
+                                else -> null
+                            }
+                        }
+                        if (landed < 0) continue
+                        // From the step onto the trap; the poll can see the landing a tick late.
+                        took = landed - player.lastMoveTick
+                        break
+                    }
                     assertTrue(took in ticks - 1..ticks, "the crossing to $landing took $took ticks after the step on, not ${ticks - 1}")
                 }
             }

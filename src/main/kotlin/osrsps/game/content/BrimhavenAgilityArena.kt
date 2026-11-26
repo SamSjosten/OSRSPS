@@ -343,7 +343,8 @@ class AgilityArena(private val world: World) {
             return@with
         }
         val angle = Agility.angle(landing.first - player.x, landing.second - player.z)
-        player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, landing.first, landing.second, 0, JUMP_CYCLES, angle))
+        // The slide lasts until the landing teleport, so the client doesn't walk back to the trap tile once it ends.
+        player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, landing.first, landing.second, 0, (trap.ticks - 1) * CYCLES_PER_TICK, angle))
         player.anim(trap.anim)
         // The step onto the trap was the crossing's first tick.
         delay(trap.ticks - 1)
@@ -564,8 +565,8 @@ internal object AgilityArenaTalk {
     }
 }
 
-/** Guessed: the slide over a trap in the jump's first second. */
-private const val JUMP_CYCLES = 50
+/** Client cycles (20 ms) in a 600 ms tick. */
+private const val CYCLES_PER_TICK = 30
 
 fun registerBrimhavenAgilityArena(world: World) {
     val arena = world.agilityArena
