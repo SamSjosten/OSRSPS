@@ -72,6 +72,7 @@ class BrutusRecords(private val file: Path? = null) {
 
     companion object {
         const val FILE_NAME = "brutus-records.json"
+        const val DEMONIC_FILE_NAME = "brutus-demonic-records.json"
     }
 }
 
@@ -95,9 +96,16 @@ object BrutusScoreboard {
     const val SCOREBOARD = 60767
     const val SCOREBOARD_DEMONIC = 60768
     const val READ = 1
+    /** Read (Demonic), on the scoreboard once the player has killed or died to Demonic Brutus. */
+    const val READ_DEMONIC = 2
 
-    /** `cowboss_scoreboards`: 1 once the player has killed Brutus (the scoreboard in place of the plant). */
+    /**
+     * `cowboss_scoreboards`: 1 once the player has killed Brutus (the scoreboard in place of the plant), 2 once they have
+     * killed or died to Demonic Brutus (`cowboss_scoreboard_uber`, with Read (Demonic)).
+     */
     const val SCOREBOARDS_VARBIT = 20090
+    const val SCOREBOARD_SHOWN = 1
+    const val SCOREBOARD_DEMONIC_SHOWN = 2
 
     const val INTERFACE = 950
     const val PERSONAL_KILLS = 8
@@ -123,35 +131,43 @@ object BrutusScoreboard {
     // Guessed: numbers with commas, set as text.
     private fun number(value: Long) = "%,d".format(value)
 
-    /** A kill of Brutus by [player], [ticks] after their first attack (null when unknown). */
-    fun killed(world: World, player: Player, ticks: Long?) {
-        world.brutusRecords.killed(ticks)
-        val best = world.customVars.brutusBestVarp
+    private fun records(world: World, demonic: Boolean) = if (demonic) world.brutusDemonicRecords else world.brutusRecords
+
+    /** Shows the scoreboard at [value] or above: the plain one after a kill of Brutus, the Demonic one after Demonic Brutus. */
+    private fun show(player: Player, value: Int) {
+        if (player.vars.types.varbit(SCOREBOARDS_VARBIT) != null && player.vars.getVarbit(SCOREBOARDS_VARBIT) < value) player.vars.setVarbit(SCOREBOARDS_VARBIT, value)
+    }
+
+    /** A kill of Brutus (or Demonic Brutus) by [player], [ticks] after their first attack (null when unknown). */
+    fun killed(world: World, player: Player, ticks: Long?, demonic: Boolean = false) {
+        records(world, demonic).killed(ticks)
+        val best = if (demonic) world.customVars.brutusDemonicBestVarp else world.customVars.brutusBestVarp
         if (ticks != null && ticks > 0 && best < player.vars.types.varpCount) {
             val had = player.vars[best]
             if (had == 0 || ticks < had) player.vars[best] = ticks.toInt()
         }
-        val types = player.vars.types
-        if (types.varbit(SCOREBOARDS_VARBIT) != null && player.vars.getVarbit(SCOREBOARDS_VARBIT) == 0) player.vars.setVarbit(SCOREBOARDS_VARBIT, 1)
+        show(player, if (demonic) SCOREBOARD_DEMONIC_SHOWN else SCOREBOARD_SHOWN)
     }
 
-    /** [player] died in a field. Guessed: kept in our own varp, live's isn't known. */
-    fun died(world: World, player: Player) {
-        world.brutusRecords.died()
-        val deaths = world.customVars.brutusDeathsVarp
+    /** [player] died in a field (Demonic Brutus's when [demonic]). Guessed: kept in our own varps, live's isn't known. */
+    fun died(world: World, player: Player, demonic: Boolean = false) {
+        records(world, demonic).died()
+        val deaths = if (demonic) world.customVars.brutusDemonicDeathsVarp else world.customVars.brutusDeathsVarp
         if (deaths < player.vars.types.varpCount) player.vars[deaths] = player.vars[deaths] + 1
+        // "Read (Demonic)" comes "after first killing or dying to Demonic Brutus".
+        if (demonic) show(player, SCOREBOARD_DEMONIC_SHOWN)
     }
 
-    /** Read: the player's numbers and the server's. */
-    fun read(world: World, player: Player) {
-        val records = world.brutusRecords
+    /** Read (or Read (Demonic)): the player's numbers and the server's. */
+    fun read(world: World, player: Player, demonic: Boolean = false) {
+        val records = records(world, demonic)
         fun varp(id: Int) = if (id < player.vars.types.varpCount) player.vars[id].toLong() else 0L
         // Guessed: opened as a main modal, its numbers set by text alone.
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, INTERFACE)
         val texts = listOf(
-            PERSONAL_KILLS to number(varp(Brutus.KILL_COUNT_VARP)),
-            PERSONAL_DEATHS to number(varp(world.customVars.brutusDeathsVarp)),
-            PERSONAL_BEST to time(varp(world.customVars.brutusBestVarp)),
+            PERSONAL_KILLS to number(varp(if (demonic) Brutus.HARDMODE_KILL_COUNT_VARP else Brutus.KILL_COUNT_VARP)),
+            PERSONAL_DEATHS to number(varp(if (demonic) world.customVars.brutusDemonicDeathsVarp else world.customVars.brutusDeathsVarp)),
+            PERSONAL_BEST to time(varp(if (demonic) world.customVars.brutusDemonicBestVarp else world.customVars.brutusBestVarp)),
             GLOBAL_KILLS to number(records.kills),
             GLOBAL_DEATHS to number(records.deaths),
             GLOBAL_BEST to time(records.bestTicks),
@@ -165,6 +181,16 @@ fun registerBrutusScoreboard(world: World) {
         world.handlers.onLoc(id, BrutusScoreboard.READ) {
             arriveDelay()
             BrutusScoreboard.read(world, player)
+        }
+    }
+    for (id in listOf(BrutusScoreboard.SCOREBOARD_MULTI, BrutusScoreboard.SCOREBOARD_DEMONIC)) {
+        world.handlers.onLoc(id, BrutusScoreboard.READ_DEMONIC) {
+            arriveDelay()
+            // The map's loc lets any option through: the Demonic page only once it shows.
+            if (player.vars.types.varbit(BrutusScoreboard.SCOREBOARDS_VARBIT) != null &&
+                player.vars.getVarbit(BrutusScoreboard.SCOREBOARDS_VARBIT) < BrutusScoreboard.SCOREBOARD_DEMONIC_SHOWN
+            ) return@onLoc
+            BrutusScoreboard.read(world, player, demonic = true)
         }
     }
 }
