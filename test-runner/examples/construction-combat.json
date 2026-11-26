@@ -1,0 +1,281 @@
+{
+ "name": "Construction step CON6a: in building mode, a combat room added off the garden takes a boxing ring over its whole ring space (the Wiki's 420 XP) and a glove rack (120 XP), whose Search gives boxing gloves, worn to climb over the ring's rope and back (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 34",
+   "expectMessage": "34",
+   "comment": "the combat room and the boxing ring need 32, the glove rack 34"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 25000",
+   "expectMessage": "25,000",
+   "comment": "the combat room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 50,
+   "comment": "the combat room's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 25,000 for the combat room"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 8",
+   "expectMessage": "Oak plank",
+   "comment": "6 for the boxing ring, 2 for the glove rack"
+  },
+  {
+   "step": "command",
+   "text": "::item 8790 4",
+   "expectMessage": "Bolt of cloth"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15277,
+   "option": "Build",
+   "comment": "a rope tile of the combat ring space (poh_gr_1_wall_combat)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the boxing ring"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 20644,
+   "timeoutMs": 5000,
+   "comment": "level 34's 20,224 XP and the ring's 420"
+  },
+  {
+   "step": "locOption",
+   "locId": 15296,
+   "option": "Build",
+   "comment": "the storage space (poh_combat_room_4)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the glove rack"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 20764,
+   "timeoutMs": 5000,
+   "comment": "the rack's 120"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Oak plank",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 13381,
+   "option": "Search",
+   "comment": "the glove rack"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 5000,
+   "comment": "the Make-X box of its gloves"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the red gloves, first in the box"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Boxing gloves",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "itemOption",
+   "item": "Boxing gloves",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Boxing gloves"
+  },
+  {
+   "step": "locOption",
+   "locId": 13129,
+   "option": "Climb-over",
+   "comment": "over the nearest rope"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 3689,
+   "timeoutMs": 10000,
+   "comment": "human_get_over_combatring_redgloves"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 13129,
+   "option": "Climb-over",
+   "comment": "and back out"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 3689,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -155,6 +155,75 @@ object FurnitureBuilds {
         15389 to Hotspot(RoomType.QUEST_HALL, 0, CORNER),
         15390 to Hotspot(RoomType.QUEST_HALL, 0, STAIRS, RoomType.QUEST_HALL),
         15391 to Hotspot(RoomType.QUEST_HALL, 0, TOP, RoomType.QUEST_HALL_STAIRS),
+        // The combat room (step CON6). The combat ring space (poh_gr_1_*): one loc type a tile, named for the rings that
+        // put something there, the walls round the ring (_wall_*) and the floor inside it (_floor_*). Then the storage
+        // space (poh_combat_room_4), the decoration space (_5) and the combat dummy space (_6).
+        15277 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_WALL),
+        15278 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_BLUE_CORNER),
+        15279 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_CORNER),
+        15280 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_EVERY_WALL),
+        15281 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_RED_CORNER),
+        15282 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_BEAM_CORNER),
+        15283 to Hotspot(RoomType.COMBAT_ROOM, 0, PEDESTAL_WALL),
+        15284 to Hotspot(RoomType.COMBAT_ROOM, 0, PEDESTAL_BEAM_WALL),
+        15285 to Hotspot(RoomType.COMBAT_ROOM, 0, BEAM_WALL),
+        15286 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_BEAM_WALL),
+        15287 to Hotspot(RoomType.COMBAT_ROOM, 0, RING_PEDESTAL_WALL),
+        15288 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_N),
+        15289 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_NE),
+        15290 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_NW),
+        15291 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_SIDE),
+        15292 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_MIDDLE),
+        15293 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_S),
+        15294 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_SW),
+        15295 to Hotspot(RoomType.COMBAT_ROOM, 0, FLOOR_SE),
+        15296 to Hotspot(RoomType.COMBAT_ROOM, 3),
+        15297 to Hotspot(RoomType.COMBAT_ROOM, 4),
+        29335 to Hotspot(RoomType.COMBAT_ROOM, 5),
+    )
+
+    // The combat ring space's tiles, by their loc names: poh_gr_1_wall_combat, _bluecorner, _cobat_corner, _everything,
+    // _redcorner, _combat_agility_corner, _ranging, _ranging_agility, _agility, _combat_agility, _ranging_combat; and
+    // _floor_n, _ne, _nw, _side, _middle, _s, _sw, _se. "Combat" is the three fighting rings, "ranging" the pedestals,
+    // "agility" the balance beam.
+    private const val RING_WALL = "ring_wall"
+    private const val RING_BLUE_CORNER = "ring_blue_corner"
+    private const val RING_CORNER = "ring_corner"
+    private const val RING_EVERY_WALL = "ring_every_wall"
+    private const val RING_RED_CORNER = "ring_red_corner"
+    private const val RING_BEAM_CORNER = "ring_beam_corner"
+    private const val PEDESTAL_WALL = "pedestal_wall"
+    private const val PEDESTAL_BEAM_WALL = "pedestal_beam_wall"
+    private const val BEAM_WALL = "beam_wall"
+    private const val RING_BEAM_WALL = "ring_beam_wall"
+    private const val RING_PEDESTAL_WALL = "ring_pedestal_wall"
+    private const val FLOOR_N = "floor_n"
+    private const val FLOOR_NE = "floor_ne"
+    private const val FLOOR_NW = "floor_nw"
+    private const val FLOOR_SIDE = "floor_side"
+    private const val FLOOR_MIDDLE = "floor_middle"
+    private const val FLOOR_S = "floor_s"
+    private const val FLOOR_SW = "floor_sw"
+    private const val FLOOR_SE = "floor_se"
+
+    private val RING_WALLS = listOf(RING_WALL, RING_EVERY_WALL, RING_BEAM_WALL, RING_PEDESTAL_WALL)
+    private val RING_CORNERS = listOf(RING_CORNER, RING_BLUE_CORNER, RING_RED_CORNER, RING_BEAM_CORNER)
+    private val FLOOR_CORNERS = listOf(FLOOR_NW, FLOOR_NE, FLOOR_SW, FLOOR_SE)
+    private val FLOOR_SIDES = listOf(FLOOR_N, FLOOR_S, FLOOR_SIDE)
+    private val RING_SPACE = RING_WALLS + RING_CORNERS + listOf(PEDESTAL_WALL, PEDESTAL_BEAM_WALL, BEAM_WALL) + FLOOR_CORNERS + FLOOR_SIDES + FLOOR_MIDDLE
+
+    /**
+     * One of the combat ring space's pieces: [parts] by tile kind, every other tile of the space bare. The ring's
+     * walls, by the hotspots' names: a fighting ring's rope goes on every "combat" wall and corner, a mat on the floor
+     * (corners, sides and middle).
+     */
+    private fun ringSpace(xp: Int, parts: Map<String, Int>) = Build(parts.values.first(), xp, RING_SPACE.associateWith { parts[it] ?: NONE })
+
+    /** A boxing, fencing or combat ring: [rope] on the walls, [corner] on the two plain corners, the mat on the floor. */
+    private fun fightingRing(xp: Int, rope: Int, corner: Int, blue: Int, red: Int, matCorner: Int, matSide: Int, matMiddle: Int) = ringSpace(
+        xp,
+        RING_WALLS.associateWith { rope } + mapOf(RING_CORNER to corner, RING_BEAM_CORNER to corner, RING_BLUE_CORNER to blue, RING_RED_CORNER to red) +
+            FLOOR_CORNERS.associateWith { matCorner } + FLOOR_SIDES.associateWith { matSide } + mapOf(FLOOR_MIDDLE to matMiddle),
     )
 
     /** A rug: its corners, sides and middle; in a hall it leaves the stair space bare. */
@@ -336,6 +405,33 @@ object FurnitureBuilds {
         5650 to staircase(13503, 13503, 1040),
         5651 to staircase(13501, 13502, 3200),
         5654 to staircase(13505, 13505, 4400),
+        // The combat room (the Combat room page's XP). The rings, built over the whole combat ring space; which part goes
+        // on which tile is INFERRED from the hotspots' and the parts' names (poh_boxing_ringwall_white, _corner, _red,
+        // _blue and poh_boxing_ring_mat_*; poh_fencing_ringwall and _ring_mat_*; poh_combat_ringwall and _mat_*): the
+        // rope on the 6 by 6 ring's edge, the red and blue corners on the corner hotspots named for them, the mat on the
+        // 4 by 4 floor inside.
+        5633 to fightingRing(420, 13129, 13130, 13132, 13131, 13126, 13128, 13127),
+        5634 to fightingRing(570, 13133, 13133, 13133, 13133, 13135, 13134, 13136),
+        5635 to fightingRing(630, 13137, 13137, 13137, 13137, 13138, 13139, 13140),
+        // Ranging pedestals: a ranging spot (poh_magic_circle_mat) on the north-west and south-east floor corners, each
+        // walled in by the "ranging" walls' magic barriers (poh_magic_circle_wall). INFERRED likewise.
+        5636 to ringSpace(720, listOf(RING_EVERY_WALL, PEDESTAL_WALL, PEDESTAL_BEAM_WALL, RING_PEDESTAL_WALL).associateWith { 13145 } + mapOf(FLOOR_NW to 13147, FLOOR_SE to 13147)),
+        // The balance beam: its left end, middle and right end (poh_balancebeam_endl, _middle, _endr) along the north row
+        // of the floor, railed in by the "agility" walls (poh_agility_rail). INFERRED likewise.
+        5637 to ringSpace(
+            1000,
+            mapOf(FLOOR_NW to 13143, FLOOR_N to 13142, FLOOR_NE to 13144) +
+                listOf(RING_EVERY_WALL, PEDESTAL_BEAM_WALL, BEAM_WALL, RING_BEAM_WALL, RING_BEAM_CORNER).associateWith { 13141 },
+        ),
+        // Glove rack, weapons rack, extra weapons rack (poh_weapons_rack_gloves, _gloves+woodenstuff, +pugels).
+        5638 to Build(13381, 120),
+        5639 to Build(13382, 180),
+        5640 to Build(13383, 440),
+        // Combat dummy, undead and ornate undead (poh_combat_dummy, _undeadslayer, poh_combat_dummy_upgraded_1_undead),
+        // each over the one before (the Undead and Ornate undead combat dummy pages: 660, 220 and 300 XP).
+        5641 to Build(29336, 660),
+        5642 to Build(29337, 220),
+        5643 to Build(9355, 300),
     )
 
     /**
@@ -379,6 +475,10 @@ object FurnitureBuilds {
         (RoomType.GARDEN to 6) to 5896..5898,
         (RoomType.SKILL_HALL to 0) to listOf(5525, 5526, 5644, 5647, 5650, 5651, 5654, 5527, 5528),
         (RoomType.QUEST_HALL to 0) to listOf(5525, 5526, 5644, 5647, 5650, 5651, 5654, 5527, 5528),
+        (RoomType.COMBAT_ROOM to 0) to 5633..5637,
+        (RoomType.COMBAT_ROOM to 3) to 5638..5640,
+        (RoomType.COMBAT_ROOM to 4) to listOf(5587, 5588, 5589, 6027),
+        (RoomType.COMBAT_ROOM to 5) to 5641..5643,
     )
 
     /** The staircases' rows (the Stair Space page). */
@@ -428,10 +528,10 @@ object FurnitureBuilds {
     }
 
     /**
-     * Built locs with Upgrade as their op 4: `poh_tools1` to `4`, the steel framed bench and the bench with a vice, and
-     * crafting tables 1 to 3. Each opens the creation menu with what builds over it.
+     * Built locs with Upgrade as their op 4: `poh_tools1` to `4`, the steel framed bench and the bench with a vice,
+     * crafting tables 1 to 3, and the combat dummy and undead combat dummy. Each opens the creation menu with what builds over it.
      */
-    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798)
+    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798, 29336, 29337)
 
     /**
      * The oak, teak and gilded wall decorations: each shows the player's family crest (poh_decor_oak_arrav and the
@@ -478,6 +578,10 @@ object FurnitureBuilds {
  * bare). The garden: trees and plants go in without a hammer and saw and give as much Farming XP as Construction, a
  * bagged tree or plant needs a watering can with water, and the house's only exit portal can't be removed (the Garden and Exit
  * portal pages). GUESSED: the can's water isn't used; planting plays the build animation.
+ *
+ * Step CON6a (the combat room): a ring is built over the whole combat ring space, one hotspot loc type a tile, each
+ * taking the ring's part for it or going bare ([FurnitureBuilds.NONE]); which part goes where is INFERRED from the locs'
+ * names. The combat dummy upgrades as the tool stores do. Its racks and ropes are [CombatRoom]'s.
  *
  * GUESSED: the materials text's layout (count and name, the obj types' names from the cache); the build taking 2
  * ticks; the remove prompt; removing with the same animation; the messages (held, no source yet). Left out: nail
