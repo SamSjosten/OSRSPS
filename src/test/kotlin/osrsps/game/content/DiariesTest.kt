@@ -79,6 +79,28 @@ class DiariesTest {
     }
 
     @Test
+    fun `the highest tier done, and the skull sceptre's charges and fragments that grow with Varrock's`() {
+        val player = player()
+        assertEquals(null, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertEquals(SkullSceptre.MAX_CHARGES, SkullSceptre.maxCharges(diaries, player))
+        DiaryArea.VARROCK.tasks(DiaryTier.EASY).forEach { player.mark(it) }
+        assertEquals(DiaryTier.EASY, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertEquals(14, SkullSceptre.maxCharges(diaries, player))
+        DiaryArea.VARROCK.tasks(DiaryTier.ELITE).forEach { player.mark(it) }
+        assertEquals(DiaryTier.EASY, diaries.highestDone(player, DiaryArea.VARROCK), "elite with medium and hard undone doesn't count")
+        assertEquals(14, SkullSceptre.maxCharges(diaries, player))
+        assertTrue(!diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.ELITE))
+        DiaryArea.VARROCK.tasks(DiaryTier.MEDIUM).forEach { player.mark(it) }
+        DiaryArea.VARROCK.tasks(DiaryTier.HARD).forEach { player.mark(it) }
+        assertEquals(DiaryTier.ELITE, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertTrue(diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.ELITE))
+        assertEquals(26, SkullSceptre.maxCharges(diaries, player))
+        assertEquals(4, SkullSceptre.varrockTiers(diaries, player))
+        assertEquals(4, SkullSceptre.COMPONENTS[SkullSceptre.SCEPTRE])
+        assertEquals(1, SkullSceptre.COMPONENTS[SkullSceptre.LEFT_SKULL_HALF])
+    }
+
+    @Test
     fun `a done task's bit sets, the count and the started flag, and the last of a tier its flag`() {
         val player = player()
         player.mark(DiaryTask.LUMBRIDGE_EASY_5)
@@ -95,6 +117,30 @@ class DiariesTest {
         diaries.undo(player, DiaryTask.LUMBRIDGE_EASY_1)
         assertEquals(11, player.vars.getVarbit(6311))
         assertEquals(0, player.vars.getVarbit(4495))
+    }
+
+    @Test
+    fun `logging in ends every two-stage task's first stage, and leaves other progress`() {
+        val player = player()
+        player.charges[Diaries.SOS_EMOTES_CHARGE] = 15
+        for ((_, charge) in Diaries.STAGES) player.charges[charge] = 1
+        diaries.login(player)
+        for ((task, charge) in Diaries.STAGES) assertEquals(0, player.charges[charge], "$task")
+        assertEquals(15, player.charges[Diaries.SOS_EMOTES_CHARGE])
+    }
+
+    @Test
+    fun `resetting a task that remembers progress clears that progress too, and other resets leave it`() {
+        val player = player()
+        player.charges[Diaries.SOS_EMOTES_CHARGE] = 15
+        player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE] = 1
+        diaries.undo(player, DiaryTask.VARROCK_EASY_1)
+        assertEquals(15, player.charges[Diaries.SOS_EMOTES_CHARGE])
+        assertEquals(1, player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE])
+        diaries.undo(player, DiaryTask.VARROCK_MEDIUM_5)
+        assertEquals(0, player.charges[Diaries.SOS_EMOTES_CHARGE])
+        diaries.undo(player, DiaryTask.VARROCK_HARD_1)
+        assertEquals(0, player.charges[Diaries.SPOTTIER_BOUGHT_CHARGE])
     }
 
     @Test

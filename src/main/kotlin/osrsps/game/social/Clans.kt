@@ -745,6 +745,12 @@ class Clans(
     fun mayWithdraw(player: Player, clan: ClanStore.Clan): Boolean = clan.member(player.saveKey) != null && has(player, clan, VAR_COFFER_WITHDRAW)
 
     /**
+     * Whether [player] in [clan]'s hall has party permission [id] ([VAR_PARTY_DEPOSIT], [VAR_PARTY_LEVER] or
+     * [VAR_PARTY_BALLOONS]): a member by rank, anyone else as a guest.
+     */
+    fun mayParty(player: Player, clan: ClanStore.Clan, id: Int): Boolean = has(player, clan, id)
+
+    /**
      * Puts [amount] coins into [clan]'s coffer, or takes them out when negative, saved at once, and the new sum to every
      * online member. A withdrawal tells every online member who took how much (the Wiki: withdrawing "will always notify
      * all members of the clan"; the line is guessed).
@@ -2027,6 +2033,15 @@ class Clans(
         const val VAR_COFFER_DEPOSIT = 19
         const val VAR_COFFER_WITHDRAW = 20
 
+        /**
+         * The party chest's permissions (proc clan_permission_get): Deposit in the party chest (struct_4387), Pull the
+         * lever for the party chest (struct_4388) and Get drops from party balloons (struct_4389). Each struct's
+         * param_1253 is -1, Guest, taken as both floor and default as for Enter clan hall.
+         */
+        const val VAR_PARTY_DEPOSIT = 94
+        const val VAR_PARTY_LEVER = 95
+        const val VAR_PARTY_BALLOONS = 96
+
         /** varclan_3: the coins in the clan's coffer. */
         const val VARCLAN_COFFER = 3
 
@@ -2093,6 +2108,7 @@ class Clans(
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
             VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_FOUNDER, PERM_KICK to RANK_OWNER,
             VAR_ENTER_HALL to RANK_GUEST, VAR_COFFER_DEPOSIT to RANK_FOUNDER, VAR_COFFER_WITHDRAW to RANK_OWNER,
+            VAR_PARTY_DEPOSIT to RANK_GUEST, VAR_PARTY_LEVER to RANK_GUEST, VAR_PARTY_BALLOONS to RANK_GUEST,
         )
 
         /**
@@ -2103,6 +2119,7 @@ class Clans(
             VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
             VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR,
             VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_GUEST, VAR_ENTER_HALL to RANK_GUEST,
+            VAR_PARTY_DEPOSIT to RANK_GUEST, VAR_PARTY_LEVER to RANK_GUEST, VAR_PARTY_BALLOONS to RANK_GUEST,
         )
 
         /** The permission each rests on (param_1254): it never needs less than that one. */
@@ -2128,6 +2145,7 @@ class Clans(
             // coffer (18, 19) in enum_3825's order, as clan_permission_init numbers the buttons (Codex on PR 911).
             18 to VAR_COFFER_DEPOSIT, 19 to VAR_COFFER_WITHDRAW,
             20 to VAR_ENTER_HALL,
+            22 to VAR_PARTY_DEPOSIT, 23 to VAR_PARTY_LEVER, 24 to VAR_PARTY_BALLOONS,
         )
 
         /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */

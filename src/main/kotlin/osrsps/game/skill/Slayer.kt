@@ -9,6 +9,8 @@ import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.SlayerHelm
+import osrsps.game.content.DiaryArea
+import osrsps.game.content.DiaryTier
 import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
@@ -228,10 +230,15 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun blocked(player: Player, master: SlayerMaster, task: Int): Boolean = (1..BLOCK_SLOTS + 1).any { blockedIn(player, master, it) == task }
 
     /**
-     * The block slots [player] may use: one for every 50 quest points, up to six. Left out: the seventh, the Lumbridge &
-     * Draynor Elite diary's (no diaries are built).
+     * The block slots [player] may use, 1 to 7: one for every 50 quest points, up to six, and the seventh once the
+     * Lumbridge & Draynor Elite diary is done with the tiers below it (the Wiki's rewards; guessed: their tasks done is
+     * enough, claimed or not).
      */
-    fun blockSlots(player: Player): Int = (player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)
+    fun blockSlots(player: Player): List<Int> {
+        val slots = (1..(player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)).toList()
+        val diary = world.diaries.perkEarned(player, DiaryArea.LUMBRIDGE, DiaryTier.ELITE)
+        return if (diary) slots + (BLOCK_SLOTS + 1) else slots
+    }
 
     fun setBlocked(player: Player, master: SlayerMaster, slot: Int, task: Int) = player.vars.setVarbit(blockVarbit(master, slot), task)
 

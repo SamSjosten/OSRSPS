@@ -17,11 +17,18 @@
   },
   {
    "step": "command",
-   "text": "::empty"
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
   },
   {
    "step": "command",
-   "text": "::setlevel mining 30"
+   "text": "::setlevel mining 30",
+   "expectMessage": "Mining set to level 30"
   },
   {
    "step": "command",
@@ -48,15 +55,21 @@
    "contains": "antique_lamp.title"
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "let the screen settle: its if1/if2 varps arrive after it opens, and their onvartransmit redraw (xpreward_update with no skill) undoes a choice made in the same moment, as three 217 runs showed"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 240,
    "component": 17,
    "op": 1,
-   "comment": "the Mining icon"
+   "comment": "xpreward:mining, row 3 column 4 (osrs-dumps xpreward.if3: attack is 2, then six to a row with sailing at 7)"
   },
   {
    "step": "waitTicks",
-   "ticks": 1
+   "ticks": 3,
+   "comment": "let the client mark the choice before Confirm"
   },
   {
    "step": "clickWidget",
@@ -67,7 +80,8 @@
   },
   {
    "step": "assertMessage",
-   "contains": "antique_lamp.granted"
+   "contains": "antique_lamp.granted amount=2,500 skill=Mining",
+   "timeoutMs": 10000
   },
   {
    "step": "assertInterface",
@@ -77,6 +91,11 @@
   {
    "step": "command",
    "text": "::keys off"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
   }
  ]
 }

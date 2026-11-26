@@ -51,6 +51,7 @@ import osrsps.game.skill.magic.JewelleryEnchantLines
 import osrsps.game.skill.magic.JewelleryEffectLines
 import osrsps.game.skill.magic.JewelleryTeleportLines
 import osrsps.game.skill.magic.SuperheatLines
+import osrsps.game.skill.magic.TeleportLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
@@ -142,6 +143,7 @@ object DialogueLines {
         JewelleryTeleportLines,
         BorkLines,
         BrutusLines,
+        CowbellLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,
@@ -310,6 +312,10 @@ object DialogueLines {
         MartinLines,
         MatthiasLines,
         MikasiLines,
+        TwiggyLines,
+        ZaffBarrelLines,
+        TeleportLines,
+        ExplorersRingLines,
         HaystackLines,
         HeadChefLines,
         HerbloreLines,
@@ -368,6 +374,7 @@ object DialogueLines {
         ClerkLines,
         ClanHallLines,
         ClanCofferLines,
+        ClanPartyLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,

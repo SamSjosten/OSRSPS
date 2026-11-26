@@ -838,6 +838,8 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
+                // A grown tree's logs count for the diaries as a wild tree's do (a palace yew is the church task's chop).
+                world.diaries.made(player, logs.id, 1)
                 if (tree.birdNests) world.birdNests.roll(player)
                 if (world.random.nextInt(TREE_DEPLETE) == 0) {
                     state.stump = true
@@ -924,7 +926,11 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             val level = player.skills.currentLevel(Skill.FARMING)
             // A fruit tree's stump has no roots and always comes up (guessed).
             if (info.roots == 0 || SuccessRoll.roll(world.random, STUMP_LOW, STUMP_HIGH, level)) {
-                if (info.roots != 0) giveOrDrop(info.roots, Trees.roots(crop, level))
+                if (info.roots != 0) {
+                    val roots = Trees.roots(crop, level)
+                    giveOrDrop(info.roots, roots)
+                    world.diaries.made(player, info.roots, roots)
+                }
                 world.message(player, FarmingLines.STUMP_CLEARED)
                 state.clear()
                 refresh(player)

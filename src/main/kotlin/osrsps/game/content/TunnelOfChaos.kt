@@ -50,6 +50,17 @@ object TunnelOfChaos {
     const val MAZE_LEVEL = 1
     val PORTAL_LANDING = Tile(3153, 5233)
 
+    /**
+     * The map regions (x shr 6, z shr 6) these locs answer in: the cache places the statue a second time, at 3987,4940,
+     * so each handler acts only on the copy in its own region (the Varrock statue's, the tunnel's, the maze's).
+     */
+    val STATUE_REGION = 51 to 54
+    val TUNNEL_REGION = 49 to 81
+    val MAZE_REGION = 35 to 75
+
+    fun inRegion(loc: osrsps.game.zone.ZoneLoc?, region: Pair<Int, Int>): Boolean =
+        loc != null && loc.x shr 6 == region.first && loc.z shr 6 == region.second
+
     /** Whether [player] may use the tunnel's portal: a chaos talisman carried, or a chaos or catalytic tiara, a Runecraft cape or a max cape worn. */
     fun mayUsePortal(player: Player): Boolean {
         if (player.inventory.count(CHAOS_TALISMAN) > 0) return true
@@ -71,15 +82,25 @@ object TunnelOfChaos {
 
 fun registerTunnelOfChaos(world: World) {
     with(TunnelOfChaos) {
-        world.handlers.onLoc(STATUE, OP) { go(world, TUNNEL_LANDING, 0, Climbing.ANIM_PICKUP_FLOOR) }
-        for (stairs in listOf(STAIRS, STAIRS_WALL)) world.handlers.onLoc(stairs, OP) { go(world, SURFACE_LANDING, 0) }
-        world.handlers.onLoc(PORTAL, OP) {
+        world.handlers.onLoc(STATUE, OP) { op ->
+            if (!inRegion(op.loc, STATUE_REGION)) return@onLoc
+            go(world, TUNNEL_LANDING, 0, Climbing.ANIM_PICKUP_FLOOR)
+        }
+        for (stairs in listOf(STAIRS, STAIRS_WALL)) world.handlers.onLoc(stairs, OP) { op ->
+            if (!inRegion(op.loc, TUNNEL_REGION)) return@onLoc
+            go(world, SURFACE_LANDING, 0)
+        }
+        world.handlers.onLoc(PORTAL, OP) { op ->
+            if (!inRegion(op.loc, TUNNEL_REGION)) return@onLoc
             if (!mayUsePortal(player)) {
                 arriveDelay()
                 return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             }
             go(world, MAZE_LANDING, MAZE_LEVEL)
         }
-        world.handlers.onLoc(MAZE_PORTAL, OP) { go(world, PORTAL_LANDING, 0) }
+        world.handlers.onLoc(MAZE_PORTAL, OP) { op ->
+            if (!inRegion(op.loc, MAZE_REGION)) return@onLoc
+            go(world, PORTAL_LANDING, 0)
+        }
     }
 }
