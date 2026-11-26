@@ -329,10 +329,12 @@ object DemonicBrutus {
         // The real bull is kept in his field: past its edge the map isn't copied, and he'd be stuck where a kill counts
         // for nothing (exploit review R60A-2). Only where he stands moves; the tiles he hits stay aimed at the player.
         // Guessed: live's field may not let a bull start so near its edge at all.
+        // And on a tile he can stand on that the player can walk to beside him from, not shut away in his pen behind its
+        // gate, where they'd be safe to range him (exploit review R61B-1): else the nearest such tile, else where he is.
         val field = if (ghost == null) world.brutusPens.runAt(target.x, target.z) else null
-        fun kept(tile: Tile) = field?.let { fieldTile(it, tile, boss.type.size) } ?: tile
-        val at = kept(aimedAt)
-        val end = kept(aimedEnd)
+        fun kept(tile: Tile, fallback: Tile) = field?.let { landing(world, boss, it, target, fieldTile(it, tile, boss.type.size)) ?: fallback } ?: tile
+        val at = kept(aimedAt, Tile(boss.x, boss.z))
+        val end = kept(aimedEnd, at)
         val npc = if (ghost == null) {
             world.npcs.teleport(boss, at.x, at.z)
             boss.effects.anim(ANIM_FADE_IN)
@@ -357,6 +359,24 @@ object DemonicBrutus {
             if (end != at) world.npcs.teleport(npc, end.x, end.z)
         }
         if (npc != null && npc !== boss) after(window + 1) { world.removeNpc(npc) }
+    }
+
+    /** How far round a bull's tile [landing] looks for one the player can reach him on. Guessed. */
+    const val LANDING_SEARCH = 4
+
+    /**
+     * Where the real bull lands for [at] (already within the field): [at] itself when he can stand there and [target]
+     * can walk to beside him, else the nearest such tile within [LANDING_SEARCH] in the field; null when there's none.
+     */
+    fun landing(world: World, boss: Npc, run: BrutusPens.Run, target: Player, at: Tile): Tile? {
+        fun ok(tile: Tile) = fieldTile(run, tile, boss.type.size) == tile && world.npcs.canStand(boss, tile.x, tile.z) &&
+            world.canWalkBeside(target, tile.x, tile.z, boss.type.size)
+        if (ok(at)) return at
+        return (1..LANDING_SEARCH).asSequence().flatMap { r ->
+            (-r..r).asSequence().flatMap { dx -> (-r..r).asSequence().map { dz -> Tile(at.x + dx, at.z + dz) } }
+                .filter { maxOf(abs(it.x - at.x), abs(it.z - at.z)) == r }
+                .sortedBy { abs(it.x - at.x) + abs(it.z - at.z) }
+        }.firstOrNull(::ok)
     }
 
     /** [at] moved the least it takes for a [size] footprint there to lie within [run]'s copy of the field. */

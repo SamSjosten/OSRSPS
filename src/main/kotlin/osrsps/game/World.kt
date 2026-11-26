@@ -2956,6 +2956,9 @@ class World(
     fun noWallBetween(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean =
         osrsps.map.Steps.canStep(collision, level, x, z, dx, dz, block = 0)
 
+    /** Whether [player] could walk to beside a [size] by [size] footprint at [x], [z] (a route that isn't the closest-tile fallback). */
+    fun canWalkBeside(player: Player, x: Int, z: Int, size: Int): Boolean = !movement.find(player, RouteTarget.entity(x, z, size)).alternative
+
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 

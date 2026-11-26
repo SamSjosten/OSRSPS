@@ -28,6 +28,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
@@ -66,8 +67,8 @@ class HeadlessDemonicBrutusTest {
     )
     private val ghost = NpcType(DemonicBrutus.GHOST, "Demonic Brutus", size = 3, combatLevel = 1224, internalName = "cowboss_hardmode_ghost")
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
+    private fun server(dir: Path, map: CollisionMap = CollisionMap()) = TestServer(dir) { crcs, millis ->
+        map.apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
         val npcTypes = NpcTypes.of(brutus, demonic, ghost)
         val objs = ObjTypes.of(
             ObjType(DemonicBrutus.POTATO, "Abyssal potato", iops = listOf("Eat", null, null, null, "Drop")),
@@ -230,6 +231,30 @@ class HeadlessDemonicBrutusTest {
                 server.world.endInstance(run.instance)
                 client.await("his fight called off") { if (encounter.ended) Unit else null }
                 client.await("him gone") { if (server.world.npcs[boss.index] !== boss) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a bull doesn't land where the player can't walk to him, as shut in behind a fence`(@TempDir dir: Path) {
+        val map = CollisionMap()
+        server(dir, map).use { server ->
+            server.login("fay").use { client ->
+                val run = client.feedIn(server, "fay", 3262, 3270)
+                val boss = run.boss!!
+                val fay = server.world.playerNamed("fay")!!
+                // A pen of fence round a 3 by 3 spot in the field, as his own pen behind its gate.
+                val inside = run.inside(3250, 3264)
+                for (x in inside.x - 1..inside.x + 3) for (z in inside.z - 1..inside.z + 3) {
+                    if (x == inside.x - 1 || x == inside.x + 3 || z == inside.z - 1 || z == inside.z + 3) map.add(x, z, 0, CollisionFlag.LOC)
+                }
+                assertTrue(server.world.npcs.canStand(boss, inside.x, inside.z), "he'd fit in it")
+                val landed = DemonicBrutus.landing(server.world, boss, run, fay, inside)
+                assertTrue(landed != null && landed != inside, "not shut in: $landed")
+                assertTrue(server.world.canWalkBeside(fay, landed.x, landed.z, 3))
+                // Where she can reach him already, he lands as aimed.
+                val open = run.inside(3256, 3270)
+                assertEquals(open, DemonicBrutus.landing(server.world, boss, run, fay, open))
             }
         }
     }
