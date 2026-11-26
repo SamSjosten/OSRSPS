@@ -557,6 +557,27 @@ class HeadlessAgilityArenaTest {
         }
     }
 
+    @Test
+    fun `a diagonal step onto the spikes jumps straight across them, not off to the side`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("dia").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                // The spikes at 2761,9573 and 2761,9574 run north-south, so the jump goes east: from 2760,9572 the first
+                // step is north-east onto 2761,9573, and the landing is 2762,9573, not 2762,9574 diagonally on.
+                client.tele(2760, 9572, 3)
+                client.awaitTicks(2)
+                client.walk(2763, 9575)
+                // The jump clears the walk, so the player stays where it lands.
+                assertEquals(Coord(2762, 9573, 3), client.await("over the spikes") { client.position?.takeIf { it.x >= 2762 } })
+                client.awaitTicks(2)
+                assertEquals(Coord(2762, 9573, 3), client.position)
+            }
+        }
+    }
+
     private data class Crossing(val from: Coord, val trap: Coord, val landing: Coord, val ticks: Int, val run: Boolean)
 
     @Test
