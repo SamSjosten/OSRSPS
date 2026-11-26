@@ -187,6 +187,17 @@ class InstancesTest {
         assertFails { InstancePart(3208, 3208, 0, 2, 1, 0, 0, 0, rotation = 1) }
     }
 
+    @Test
+    fun `ending an instance takes away a cleared zone that never had a copy, with its blocking`() {
+        // One zone copied of three; the third, never copied, cleared on level 1 (a house's open air upstairs).
+        val before = map.storedZones
+        val instance = assertNotNull(instances.create(3, 1, listOf(InstancePart(3208, 3208, 0, 1, 1, 0, 0, 0)), 3222, 3218, 0))
+        instances.clear(instance, 2, 0, 1)
+        assertTrue(map.storedZones > before)
+        instances.destroy(instance)
+        assertEquals(before, map.storedZones, "exploit review round 62, C-1")
+    }
+
     private companion object {
         const val WALL = 1
         const val BOX = 2
