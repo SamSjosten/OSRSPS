@@ -355,11 +355,14 @@ class ClanParty(private val world: World) {
         for (viewer in viewers(party)) sendChest(viewer, party)
     }
 
-    /** Whether any of item [id] fits in [chest]: a free slot, or room on its stack if it stacks. */
+    /**
+     * Whether any of item [id] fits in [chest], as [Inventory.add] places it: a stackable item on its stack when the chest
+     * has one (room left on it), else in a free slot (Codex on PR 975).
+     */
     private fun fits(chest: Inventory, id: Int): Boolean {
-        if (chest.freeSlots > 0) return true
-        if (world.objTypes[id]?.stackable != true) return false
-        return chest.contents().any { (_, obj) -> obj.id == id && obj.count < Inventory.MAX_STACK }
+        val type = world.objTypes[id] ?: return false
+        if (type.stackable) chest.contents().firstOrNull { (_, obj) -> obj.id == id }?.let { (_, obj) -> return obj.count < Inventory.MAX_STACK }
+        return chest.freeSlots > 0
     }
 
         private fun viewers(party: Party): List<Player> =
