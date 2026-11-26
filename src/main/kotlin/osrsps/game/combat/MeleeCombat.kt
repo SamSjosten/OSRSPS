@@ -306,6 +306,8 @@ class MeleeCombat(
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
         player.attackedNpc = npc
         player.attackedNpcTick = tick
+        player.launchedAtNpc = npc
+        player.launchedAtNpcTick = tick
     }
 
     /**
