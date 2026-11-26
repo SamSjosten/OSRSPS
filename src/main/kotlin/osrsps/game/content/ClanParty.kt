@@ -237,18 +237,19 @@ class ClanParty(private val world: World) {
 
     /** Confirm: the offer into the chest, for good; what doesn't fit stays offered. */
     private fun confirm(player: Player) {
-        val (clan, party) = partyHere(player) ?: return
-        if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
         if (player.priceChecker.contents().isEmpty()) return
-        // Each confirm writes the donor's save, so they're spaced out: a client can't stall the tick with saves.
-        // One confirm per chest a tick as well, and the map keeps only the confirms still cooling down (exploit review
-        // R59C-1).
+        // Each confirm writes the donor's save, so they're spaced out: a client can't stall the tick with saves. The
+        // player's own cooldown is checked and marked first, before partyHere walks every online player, so spammed
+        // clicks cost nothing (exploit review R62B-2); and the map keeps only the confirms still cooling down (R59C-1).
         val last = lastConfirm[player.saveKey]
         if (last != null && world.tick - last < CONFIRM_TICKS) return
-        if (party.lastConfirm == world.tick) return
-        if (!world.clans.takeDurableWrite(world.tick)) return
         lastConfirm.entries.removeIf { world.tick - it.value >= CONFIRM_TICKS }
         lastConfirm[player.saveKey] = world.tick
+        val (clan, party) = partyHere(player) ?: return
+        if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
+        // One confirm per chest a tick, and one disk-writing action a tick across every clan (R59C-1, R60C-1).
+        if (party.lastConfirm == world.tick) return
+        if (!world.clans.takeDurableWrite(world.tick)) return
         party.lastConfirm = world.tick
         var full = false
         val moved = ArrayList<Pair<osrsps.game.ObjType, Int>>()
