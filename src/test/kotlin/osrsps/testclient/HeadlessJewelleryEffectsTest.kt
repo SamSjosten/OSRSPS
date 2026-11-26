@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InventoryTab
@@ -122,6 +123,53 @@ class HeadlessJewelleryEffectsTest {
                 client.hit(9, 1)
                 client.saw("the ring", "[jewellery_effect.ring_of_life]")
                 client.await("in Edgeville") { client.position?.takeIf { it.x == EdgevilleRespawn.X && it.z == EdgevilleRespawn.Z } }
+            }
+        }
+    }
+
+    @Test
+    fun `a hit of 0 sets off no ring of life (round 59, R59A-3)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                client.commandReply("tele 3235 3235") { it.startsWith("Teleported") }
+                client.await("away from Lumbridge") { client.position?.takeIf { it.x == 3235 && it.z == 3235 } }
+                client.hit(9, 1)
+                client.wear(RING_OF_LIFE, WearPos.RING)
+                client.hit(0, 1)
+                client.awaitTicks(2)
+                assertEquals(3235, client.position?.x, "no escape at will")
+                assertEquals(RING_OF_LIFE, client.inventory(WORN).getOrNull(WearPos.RING)?.id)
+            }
+        }
+    }
+
+    @Test
+    fun `a ring of life's escape stops the script the player was in, as a death does (round 59, R59A-1)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.ready()
+                client.wear(RING_OF_LIFE, WearPos.RING)
+                client.commandReply("pause") { it.startsWith("Paused") }
+                val world = server.world
+                val player = world.playerNamed("fred")!!
+                var carriedOn = false
+                // An obstacle-like script waiting out a delay when poison hits.
+                world.scripts.start(player) {
+                    delay(5)
+                    carriedOn = true
+                }
+                // A background timer, as wine fermenting has (Codex review on #964).
+                var timerFired = false
+                world.scripts.setTimer(player, "test_background", 3, osrsps.game.script.TimerType.NORMAL) { timerFired = true }
+                assertEquals(true, player.scripts.delayed)
+                world.meleeCombat.statusHit(player, 9, osrsps.game.combat.Poison.POISON_HITSPLAT)
+                assertFalse(player.scripts.delayed, "the escape dropped it")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.saw("the ring", "[jewellery_effect.ring_of_life]")
+                client.awaitTicks(8)
+                assertFalse(carriedOn, "never carries on at Lumbridge")
+                assertEquals(true, timerFired, "the timer carried on")
             }
         }
     }

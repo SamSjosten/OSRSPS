@@ -1139,6 +1139,9 @@ class World(
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
 
+    /** Bones to Bananas and Bones to Peaches; see [osrsps.game.skill.magic.BonesToFruit]. */
+    val bonesToFruit = osrsps.game.skill.magic.BonesToFruit(this, osrsps.game.skill.magic.BonesToFruit.load(objTypes))
+
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
@@ -1412,6 +1415,7 @@ class World(
         boltEnchant.register()
         alchemy.register()
         superheat.register()
+        bonesToFruit.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
         jewelleryEffects.register()
