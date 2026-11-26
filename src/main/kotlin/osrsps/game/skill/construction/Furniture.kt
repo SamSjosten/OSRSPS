@@ -563,9 +563,9 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         // Only a piece the save check knows for this place (R52B-1): what is built must always load again. Checked across
         // the place, as a tool store leaves bare the spaces past its own (Codex review on #968).
         if (!FurnitureBuilds.buildsAt(hotspot.id, piece.row, room.type)) return world.message(player, GameLines.NOTHING_INTERESTING)
-        // Step CON5: a staircase asks which way it goes, and is built at its other end too where a hall there waits for it.
-        val plan = if (piece.row in FurnitureBuilds.STAIRCASES) Stairs.prepare(world, context, state, room, piece.row) ?: return else null
-        val times = if (plan?.otherEnd != null) 2 else 1
+        // Step CON5: a staircase asks which way it goes; upstairs it must be the one of the hall below.
+        val staircase = piece.row in FurnitureBuilds.STAIRCASES
+        if (staircase && !Stairs.prepare(world, context, state, room, piece.row)) return
         if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
@@ -574,26 +574,21 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         if (piece.row in FurnitureBuilds.NEEDS_WATERING_CAN && FurnitureBuilds.WATERING_CANS.none { player.inventory.count(it) > 0 }) {
             return world.message(player, ConstructionLines.FURNITURE_WATERING_CAN)
         }
-        val nails = nailsFor(player, piece, times) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+        val nails = nailsFor(player, piece) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
         player.anim(BUILD_ANIM)
         context.delay(BUILD_TICKS)
-        // Checked again after the wait: the materials may have gone, or the room or hotspot with them, or the other end.
+        // Checked again after the wait: the materials may have gone, or the room or hotspot with them, or the hall below.
         if (!placeStands(house, room, hotspot, shown, current, player)) return
-        if (plan != null && plan != Stairs.plan(state, room, piece.row)) return
-        if (nailsFor(player, piece, times) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
-        for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count * times)
+        if (staircase && !Stairs.fits(state, room, piece.row)) return
+        if (nailsFor(player, piece) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+        for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
         for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
-        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10 * times)
+        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
         if (build.farmingXp > 0) player.skills.addTenths(Skill.FARMING, build.farmingXp * 10)
         // Every hotspot of the same place in the room takes the piece: each rug tile its corner, side or middle, every
         // window its curtains.
         fill(room, hotspot.id, build)
         redraw(house, room, hotspot.id)
-        plan?.otherEnd?.let { other ->
-            val space = Stairs.stairSpace(other.type) ?: return@let
-            fill(other, space, build)
-            redraw(house, other, space)
-        }
         logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
     }
 
@@ -685,16 +680,14 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         if (obj == ANY_NAILS) NAILS.sumOf { player.inventory.count(it) } else player.inventory.count(obj)
 
     /**
-     * Whether [player] has [piece]'s materials, [times] over (a staircase built at both ends), and which nails it takes:
-     * null when they lack any, else the nails by kind
+     * Whether [player] has [piece]'s materials, and which nails it takes: null when they lack any, else the nails by kind
      * and count (empty when it needs none). Nails are taken best kind first (the Wiki's Nails page: "the higher tier ones
      * are used first"), across kinds when no one kind has enough, as the menu counts every kind together (Codex review
      * on #869).
      */
-    internal fun nailsFor(player: Player, piece: FurnitureOption, times: Int = 1): Map<Int, Int>? {
+    internal fun nailsFor(player: Player, piece: FurnitureOption): Map<Int, Int>? {
         val nails = LinkedHashMap<Int, Int>()
-        for ((obj, one) in piece.materials) {
-            val count = one * times
+        for ((obj, count) in piece.materials) {
             if (obj == ANY_NAILS) {
                 var left = count.toLong()
                 for (kind in NAILS) {

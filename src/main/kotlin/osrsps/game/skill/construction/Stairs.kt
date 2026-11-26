@@ -22,9 +22,11 @@ private val logger = KotlinLogging.logger {}
  *   a quest hall, whichever hall the staircase is in. That room ([RoomType.upstairs]) is built over the hall, turned the
  *   same way, with the same staircase at its top, so the staircase's materials are taken again (the Hall pages: a marble
  *   spiral with a skill hall above "costs 20x Teak plank + 14x Marble block") and its XP given again (GUESSED).
- * - A staircase built where the hall at its other end faces the same way with a bare stair space is built there too,
- *   for the same double materials (the pages: it "will connect to the room above or below by default if and only if the
- *   room is facing the proper direction"); upstairs, only the staircase of the hall below can go in.
+ * - Each end of a staircase is built, and paid for, on its own: twice the materials at once wouldn't fit in a backpack
+ *   with a hammer and saw (Codex review on #990). Climb-up where the hall above faces the same way with a bare stair
+ *   space, in building mode, builds the top there and climbs (the pages: it "will connect to the room above or below
+ *   by default if and only if the room is facing the proper direction"). Upstairs, only the staircase of the hall
+ *   below, or any while its stair space is bare, can go in.
  * - Climb-up and Climb-down move the player straight up or down, on their own tile (GUESSED: the pages don't say where
  *   a climb lands); a spiral's Climb goes up from the ground floor and down from upstairs.
  * - Remove-room on a staircase removes its room, as Build on a doorway to it would.
@@ -75,12 +77,64 @@ class Stairs(private val world: World, private val houses: Houses, private val f
         val player = context.player
         if (loc.level != House.GROUND) return world.message(player, GameLines.NOTHING_INTERESTING)
         val (house, state, room) = roomOf(context, loc) ?: return
+        val above = state.room(room.x, room.z, House.UPPER)
+        val waiting = otherEnd(state, room)?.takeIf(::bare)
         when {
             connected(state, room) -> world.teleport(player, player.x, player.z, House.UPPER)
-            state.room(room.x, room.z, House.UPPER) != null -> world.message(player, ConstructionLines.STAIRS_BLOCKED)
+            house.buildingMode && waiting != null -> connectTop(context, house, state, room, waiting)
+            above != null -> world.message(player, ConstructionLines.STAIRS_BLOCKED)
             !house.buildingMode -> world.message(player, ConstructionLines.STAIRS_NOTHING_ABOVE)
             else -> buildTop(context, house, state, room)
         }
+    }
+
+    /**
+     * Climb-up on [hall]'s staircase where [top], the hall above, waits for it: its top built there for its materials,
+     * and the climb.
+     */
+    private fun connectTop(context: ScriptContext, house: Houses.Open, state: HouseState, hall: HouseRoom, top: HouseRoom) {
+        val player = context.player
+        val row = staircase(hall) ?: return
+        val build = pay(context, hall, row) ?: return
+        val space = stairSpace(top.type) ?: return
+        furniture.fill(top, space, build)
+        houses.lay(house, state, top.type, Houses.Cell(top.x, top.z, top.floor), top.rotation)
+        world.teleport(player, player.x, player.z, House.UPPER)
+        logger.info { "${player.username} built the top of their staircase at ${top.x}, ${top.z}" }
+    }
+
+    /**
+     * The level, tools and materials for staircase [row] in [hall]'s place, taken, with its XP given; null (with a
+     * message) when the player lacks any.
+     */
+    private fun pay(context: ScriptContext, hall: HouseRoom, row: Int): FurnitureBuilds.Build? {
+        val player = context.player
+        val piece = furniture.data.options(hall.type.base.id, 0).firstOrNull { it.row == row }
+        val build = FurnitureBuilds.BUILDS[row]
+        if (piece == null || build == null) {
+            world.message(player, GameLines.NOTHING_INTERESTING)
+            return null
+        }
+        val lacks = when {
+            player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level -> {
+                world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
+                true
+            }
+            !furniture.hasTools(player) -> {
+                world.message(player, ConstructionLines.FURNITURE_TOOLS)
+                true
+            }
+            else -> false
+        }
+        if (lacks) return null
+        val nails = furniture.nailsFor(player, piece) ?: run {
+            world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+            return null
+        }
+        for ((obj, count) in piece.materials) if (obj != Furniture.ANY_NAILS) Ned.take(player.inventory, obj, count)
+        for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
+        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
+        return build
     }
 
     /** Climb-down on [loc]: down to the hall at its foot. */
@@ -114,15 +168,8 @@ class Stairs(private val world: World, private val houses: Houses, private val f
         if (state.rooms.size >= House.maxRooms(level)) return world.message(player, ConstructionLines.ROOM_LIMIT, "max" to House.maxRooms(level))
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < type.level) return world.message(player, ConstructionLines.ROOM_LEVEL, "level" to type.level)
         if (player.inventory.count(EstateAgent.COINS) < type.cost) return world.message(player, ConstructionLines.ROOM_COINS, "cost" to type.cost)
-        val piece = furniture.data.options(hall.type.base.id, 0).firstOrNull { it.row == row } ?: return world.message(player, GameLines.NOTHING_INTERESTING)
-        val build = FurnitureBuilds.BUILDS[row] ?: return
-        if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
-        if (!furniture.hasTools(player)) return world.message(player, ConstructionLines.FURNITURE_TOOLS)
-        val nails = furniture.nailsFor(player, piece) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+        val build = pay(context, hall, row) ?: return
         Ned.take(player.inventory, EstateAgent.COINS, type.cost)
-        for ((obj, count) in piece.materials) if (obj != Furniture.ANY_NAILS) Ned.take(player.inventory, obj, count)
-        for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
-        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
         val top = HouseRoom(type, hall.x, hall.z, House.UPPER, hall.rotation)
         furniture.fill(top, stairSpace(type) ?: return, build)
         state.rooms += top
@@ -131,8 +178,6 @@ class Stairs(private val world: World, private val houses: Houses, private val f
         logger.info { "${player.username} built a ${type.key} at ${top.x}, ${top.z} upstairs, over their staircase, for ${type.cost} coins" }
     }
 
-    /** What building a staircase at one end does at the other: [otherEnd] is the hall there that takes it too, if any. */
-    data class Plan(val otherEnd: HouseRoom?)
 
     companion object {
         /** A staircase's foot (Climb-up): `poh_stairs_3` to `5`. */
@@ -181,36 +226,37 @@ class Stairs(private val world: World, private val houses: Houses, private val f
             return staircase(other) == row
         }
 
-        /** What building staircase [row] in [room] does at its other end now, or null where it can't be built. */
-        fun plan(state: HouseState, room: HouseRoom, row: Int? = null): Plan? {
-            val other = otherEnd(state, room)
-            val space = other?.let { stairSpace(it.type) }
-            val bare = other != null && space != null && FurnitureBuilds.siblings(space, other.type).none { it in other.built }
-            if (room.floor == House.UPPER && row != null && (other == null || (!bare && staircase(other) != row))) return null
-            return Plan(if (bare) other else null)
+        /** Whether nothing is built at [room]'s stair space's place. */
+        fun bare(room: HouseRoom): Boolean {
+            val space = stairSpace(room.type) ?: return false
+            return FurnitureBuilds.siblings(space, room.type).none { it in room.built }
+        }
+
+        /** Whether staircase [row] can go in [room]: anywhere downstairs; upstairs over a hall whose place is bare or holds [row]. */
+        fun fits(state: HouseState, room: HouseRoom, row: Int): Boolean {
+            if (room.floor != House.UPPER) return true
+            val below = otherEnd(state, room) ?: return false
+            return bare(below) || staircase(below) == row
         }
 
         /**
          * Before staircase [row] goes in [room]: on the ground floor, the prompt for its way (Down waits for the
-         * dungeon); upstairs, the check that it is the staircase of the hall below. Null (with a message) where it can't.
+         * dungeon); upstairs, the check that it is the staircase of the hall below ([fits]). False (with a message, but
+         * for a prompt left) where it can't.
          */
-        suspend fun prepare(world: World, context: ScriptContext, state: HouseState, room: HouseRoom, row: Int): Plan? {
+        suspend fun prepare(world: World, context: ScriptContext, state: HouseState, room: HouseRoom, row: Int): Boolean {
             val player = context.player
             if (room.floor == House.GROUND) {
                 var pick = 0
                 world.dialogues.start(context) {
                     pick = choice(ConstructionLines.STAIRS_UP, ConstructionLines.STAIRS_DOWN, title = text(ConstructionLines.STAIRS_TITLE))
                 }
-                if (pick == 2) {
-                    world.message(player, ConstructionLines.STAIRS_DOWN_LATER)
-                    return null
-                }
-                if (pick != 1) return null
+                if (pick == 2) world.message(player, ConstructionLines.STAIRS_DOWN_LATER)
+                return pick == 1
             }
-            return plan(state, room, row) ?: run {
-                world.message(player, ConstructionLines.STAIRS_NO_MATCH)
-                null
-            }
+            if (fits(state, room, row)) return true
+            world.message(player, ConstructionLines.STAIRS_NO_MATCH)
+            return false
         }
 
         /**

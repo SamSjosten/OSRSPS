@@ -359,6 +359,8 @@ class Houses(private val world: World) {
         }
         val outside = outsideTile(state.location)
         val instance = world.instances.create(House.GRID, House.GRID, parts, outside.x, outside.z, 0) ?: return null
+        // Open air upstairs can't be walked into (Codex review on #990).
+        for (x in 0 until House.GRID) for (z in 0 until House.GRID) if (state.room(x, z, House.UPPER) == null) world.instances.clear(instance, x, z, House.UPPER)
         val house = Open(player.saveKey, instance, buildingMode)
         for (room in state.rooms) furnish(house, state, room)
         open[player.saveKey] = house

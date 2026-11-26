@@ -150,7 +150,8 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
 
     /**
      * Empties the zone [toDx], [toDz] zones in from [instance]'s south-west corner on [level], as [replace] lays a part
-     * there: what it showed goes, and the client is left nothing to draw there (an empty cell upstairs in a house).
+     * there: what it showed goes, the client is left nothing to draw there, and its tiles are blocked (an empty cell
+     * upstairs in a house).
      */
     fun clear(instance: Instance, toDx: Int, toDz: Int, level: Int) = lay(instance, toDx, toDz, 1, 1, level, null)
 
@@ -178,9 +179,11 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
             }
         }
         for (zone in replaced) {
-            if (instance.sources.remove(zone.packed) == null) continue
-            staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
-            for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, 0)
+            if (instance.sources.remove(zone.packed) != null) staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
+            // A zone left empty can't be walked into: the map loads every level of a zone at once, so its tiles would
+            // otherwise read as open floor (Codex review on #990: open air upstairs in a house).
+            val flags = if (part == null) CollisionFlag.FLOOR else 0
+            for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, flags)
         }
         if (part != null) for ((from, to, rotation) in copyTerrain(instance, part)) copyLocs(instance, from, to, rotation)
         val neighbours = HashSet<ZoneKey>()
