@@ -1,0 +1,20 @@
+{
+  "about": "Tai Bwo Wannai's people (Karamja step K4.2): the ten trading-stick villagers (the cache's multi-NPCs, which each player's chat_* varbit shows with or without sticks), Jiminua and the village's chickens, where the mejrs NPC list puts them. Left out for step K4.2b: Aisles, Banisoch, Trufitus, Timfraku and the Tai Bwo Wannai Trio's family (quest talk), Imiago and the Tool Leprechaun (Farming's calquat patch). The jungle's monsters are in karamja-jungle.json.",
+  "spawns": [
+    {"npc": "tbwcu_sharimika_multinpc", "x": 2794, "z": 3076, "level": 1, "wander": 1, "source": "Sharimika, upstairs in the northern building. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_mamma_bufetta_multinpc", "x": 2794, "z": 3076, "wander": 2, "source": "Mamma Bufetta, the northern building. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_layleen_multinpc", "x": 2786, "z": 3074, "level": 1, "wander": 1, "source": "Layleen, upstairs in the northern building. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_karaday_multinpc", "x": 2799, "z": 3084, "wander": 3, "source": "Karaday, by the eastern quest start. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_safta_doc_multinpc", "x": 2790, "z": 3100, "wander": 3, "source": "Safta Doc, near the anvil. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_gabooty_multinpc", "x": 2794, "z": 3065, "wander": 3, "source": "Gabooty, the middle of the fenced area. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_fanellaman_multinpc", "x": 2759, "z": 3096, "wander": 5, "source": "Fanellaman, the western coast. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_jagbakoba_multinpc", "x": 2799, "z": 3047, "wander": 3, "source": "Jagbakoba, south of the fence by the fires. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_murcaily_multinpc", "x": 2816, "z": 3083, "wander": 1, "source": "Murcaily, outside the Hardwood Grove's doors. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "tbwcu_rionasta_multinpc", "x": 2782, "z": 3094, "wander": 3, "source": "Rionasta, between the blacksmith's and Timfraku's hut. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "jiminua", "x": 2767, "z": 3122, "wander": 2, "source": "Jiminua, his Jungle Store. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "chicken", "x": 2780, "z": 3064, "wander": 4, "source": "Chicken, inside the fence. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "chicken", "x": 2808, "z": 3067, "wander": 4, "source": "Chicken, inside the fence. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "chicken_brown", "x": 2788, "z": 3061, "wander": 4, "source": "Chicken, inside the fence. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "chicken_brown", "x": 2805, "z": 3064, "wander": 4, "source": "Chicken, inside the fence. mejrs NPCList_OSRS; wander guessed"}
+  ]
+}

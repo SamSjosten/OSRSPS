@@ -5,7 +5,7 @@
     {"step": "waitForLogin"},
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's levels back"},
-    {"step": "command", "text": "::setlevel agility 99", "comment": "nothing fails at 99"},
+    {"step": "command", "text": "::setlevel agility 99", "expectMessage": "Agility set to level 99", "comment": "nothing fails at 99"},
     {"step": "command", "text": "::tele 2772 9553 3", "expectMessage": "Teleported to 2772, 9553, 3", "comment": "north of the floor spikes below the second row's middle pillar"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "walk", "x": 2772, "y": 9550, "comment": "the spikes' landing tile: the walk ends where the jump puts the player"},

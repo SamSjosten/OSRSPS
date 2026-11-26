@@ -129,14 +129,21 @@ class CustomVars(
     val brutusDemonicDeathsVarp: Int = firstVarp + 16
     val brutusDemonicBestVarp: Int = firstVarp + 17
 
+    /**
+     * The player's Tai Bwo Wannai Cleanup progress, a bit each ([TaiBwoWannai.Progress]): met Murcaily, hacked jungle,
+     * heard where the fence is, repaired a fence, had trading sticks from Murcaily. Live keeps some of this somewhere we
+     * haven't matched (varp tai_bwo_cleanup's bits aren't named); ours is guessed.
+     */
+    val tbwCleanupVarp: Int = firstVarp + 18
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp, tbwCleanupVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS] and [BRUTUS_DEMONIC_BEST]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS], [BRUTUS_DEMONIC_BEST] and [TBW_CLEANUP]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
@@ -145,6 +152,7 @@ class CustomVars(
         BRUTUS_DEATHS to brutusDeathsVarp, BRUTUS_BEST to brutusBestVarp,
         TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
         BRUTUS_DEMONIC_DEATHS to brutusDemonicDeathsVarp, BRUTUS_DEMONIC_BEST to brutusDemonicBestVarp,
+        TBW_CLEANUP to tbwCleanupVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -208,6 +216,9 @@ class CustomVars(
         const val BRUTUS_BEST = "brutus.best_ticks"
         const val BRUTUS_DEMONIC_DEATHS = "brutus.demonic_deaths"
         const val BRUTUS_DEMONIC_BEST = "brutus.demonic_best_ticks"
+
+        /** The Tai Bwo Wannai Cleanup's progress varp's name. */
+        const val TBW_CLEANUP = "tbw_cleanup"
 
         /** The Tears of Guthix's last-visit varps' names. */
         const val TOG_VISIT = "tears_of_guthix"
