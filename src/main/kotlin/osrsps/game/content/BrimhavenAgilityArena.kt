@@ -349,10 +349,12 @@ class AgilityArena(private val world: World) {
         if (!success) {
             player.anim(trap.failAnim)
             val damage = player.skills.currentLevel(Skill.HITPOINTS) * 5 / 100 + 2
+            val x = player.x
+            val z = player.z
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
             if (trap == BrimhavenAgilityArena.Trap.SPINNING_BLADES) player.message(world.textFor(player)[AgilityArenaLines.SPINNING_BLADES])
-            // A hit that kills leaves the player to the death script, not put back by this one.
-            if (player.dead) return@with
+            // A hit that kills leaves the player to the death script, and a ring of life's escape stands: not put back.
+            if (player.dead || player.x != x || player.z != z) return@with
             delay(1)
             world.teleport(player, before.first, before.second, player.level)
             return@with

@@ -74,7 +74,8 @@
     "Locs: Karamja (step K3.4b): the Brimhaven Agility Arena's obstacles and the pit's climbing ropes (the 242 cache, 2026-11-19).",
     "Achievement diaries step 8 (2026-11-19): Twiggy O'Korn and her squirrel, npc-spawns/diaries.json, from each page.",
     "Locs: Karamja (step K3.4b): the Brimhaven Agility Arena's obstacles and the pit's climbing ropes, and (step K3.4d) its floor traps and blades (the 242 cache, 2026-11-19).",
-    "The Chasm of Tears (post-quest step 10, TearsOfGuthix.kt): Juna's multiloc, the tunnels in and out, the weeping wall, the magical rocks and the rock slopes (the 242 cache, 2026-11-19)."
+    "The Chasm of Tears (post-quest step 10, TearsOfGuthix.kt): Juna's multiloc, the tunnels in and out, the weeping wall, the magical rocks and the rock slopes (the 242 cache, 2026-11-19).",
+    "Locs and NPCs: Karamja (step K4.1): the jungle's jogres and the rock slide up to Cairn Isle's bridge (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -344,6 +345,7 @@
     {"npc": 2091, "name": "Moss giant"},
     {"npc": 2092, "name": "Moss giant"},
     {"npc": 2093, "name": "Moss giant"},
+    {"npc": 2094, "name": "Jogre"},
     {"npc": 2098, "name": "Hill Giant"},
     {"npc": 2099, "name": "Hill Giant"},
     {"npc": 2100, "name": "Hill Giant"},
@@ -1510,6 +1512,7 @@
     {"loc": 2149, "name": "Trellis"},
     {"loc": 2151, "name": "Obelisk of Water"},
     {"loc": 2195, "name": "Metal pieces"},
+    {"loc": 2231, "name": "Rocks"},
     {"loc": 2237, "name": "Palm tree", "wiki": "Palm tree (Shilo Village) page, infobox"},
     {"loc": 2280, "name": "Lathe"},
     {"loc": 2281, "name": "Drill"},
