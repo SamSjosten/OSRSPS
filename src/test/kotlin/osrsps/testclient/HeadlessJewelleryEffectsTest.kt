@@ -159,6 +159,9 @@ class HeadlessJewelleryEffectsTest {
                     delay(5)
                     carriedOn = true
                 }
+                // A background timer, as wine fermenting has (Codex review on #964).
+                var timerFired = false
+                world.scripts.setTimer(player, "test_background", 3, osrsps.game.script.TimerType.NORMAL) { timerFired = true }
                 assertEquals(true, player.scripts.delayed)
                 world.meleeCombat.statusHit(player, 9, osrsps.game.combat.Poison.POISON_HITSPLAT)
                 assertFalse(player.scripts.delayed, "the escape dropped it")
@@ -166,6 +169,7 @@ class HeadlessJewelleryEffectsTest {
                 client.saw("the ring", "[jewellery_effect.ring_of_life]")
                 client.awaitTicks(8)
                 assertFalse(carriedOn, "never carries on at Lumbridge")
+                assertEquals(true, timerFired, "the timer carried on")
             }
         }
     }
