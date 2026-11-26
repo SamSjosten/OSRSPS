@@ -74,7 +74,13 @@ private fun stepped(world: World, player: Player, trail: List<Tile>) {
             return@start
         }
         val hit = CairnIsle.fallHit(player.skills.currentLevel(Skill.HITPOINTS))
-        repeat(CairnIsle.FALL_HITS) { world.meleeCombat.statusHit(player, hit, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER) }
+        val x = player.x
+        val z = player.z
+        for (i in 1..CairnIsle.FALL_HITS) {
+            world.meleeCombat.statusHit(player, hit, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+            // Dead, or a ring of life took them away: the fall is over, and they aren't put on the shore.
+            if (player.dead || player.x != x || player.z != z) return@start
+        }
         player.message(world.textFor(player)[CairnIsleLines.FELL])
         delay(1)
         world.teleport(player, CairnIsle.SHORE.x, CairnIsle.SHORE.z, 0)

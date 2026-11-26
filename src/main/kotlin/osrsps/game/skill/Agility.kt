@@ -377,7 +377,11 @@ class Agility(private val world: World, val data: AgilityData) {
                 // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
                 if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
                 if (damage <= 0) return
+                val x = player.x
+                val z = player.z
                 world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+                // Dead, or a ring of life took them away: no more hits.
+                if (player.dead || player.x != x || player.z != z) return
             }
         }
     }

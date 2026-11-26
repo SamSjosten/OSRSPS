@@ -3,12 +3,18 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InventoryTab
+import osrsps.game.ObjType
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.content.CairnIsle
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.skill.magic.TeleportObjs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -25,7 +31,9 @@ class HeadlessCairnIsleTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
             crcs,
-            CollisionMap().apply { markLoaded(2794 shr 6, 2979 shr 6); markLoaded(2770 shr 6, 2979 shr 6) },
+            // Lumbridge too, where a ring of life sends its wearer.
+            CollisionMap().apply { markLoaded(2794 shr 6, 2979 shr 6); markLoaded(2770 shr 6, 2979 shr 6); markLoaded(3222 shr 6, 3218 shr 6) },
+            objTypes = TeleportObjs.objTypes(ObjType(RING_OF_LIFE, "Ring of life", wearpos1 = WearPos.RING, iops = listOf(null, "Wear", null, null, "Drop"), internalName = "ring_of_life")),
             locTypes = LocTypes(mapOf(ROCKS to LocType(ROCKS, "Rocks", listOf("Climb", null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0)))),
             staticLocs = StaticLocs().apply { locs.forEach(::add) },
             cycleMillis = millis,
@@ -102,7 +110,49 @@ class HeadlessCairnIsleTest {
         }
     }
 
+    @Test
+    fun `a ring of life that saves a falling player keeps them in Lumbridge, not washed up on the shore`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dee").use { client ->
+                client.ready()
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                // Level 1 Agility: the bridge fails about seven times in ten. A crossing is tried again.
+                var saved = false
+                for (attempt in 1..20) {
+                    if (client.inventory(WORN).getOrNull(WearPos.RING)?.id != RING_OF_LIFE) {
+                        client.command("item $RING_OF_LIFE 1")
+                        val slot = client.await("the ring") { client.inventory(BACKPACK).indexOfFirst { it?.id == RING_OF_LIFE }.takeIf { it >= 0 } }
+                        client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, WEAR_BUTTON_OP, slot, RING_OF_LIFE)
+                        client.await("the ring worn") { client.inventory(WORN).getOrNull(WearPos.RING)?.takeIf { it.id == RING_OF_LIFE } }
+                    }
+                    // 12 of 99: the fall's three hits of 12 / 11 = 1 leave 9, which is 10% or less on the third.
+                    client.commandReply("setlevel hitpoints 99") { true }
+                    client.commandReply("hit 87 me") { it.startsWith("Hit yourself") }
+                    client.tele(CairnIsle.EAST_END + 1, CairnIsle.Z)
+                    client.walk(CairnIsle.EAST_END - 1, CairnIsle.Z)
+                    val text = client.await("across or saved") {
+                        client.messages().lastOrNull { it.text == "[cairn_isle.balance]" || it.text == "[jewellery_effect.ring_of_life]" }?.text
+                    }
+                    if (text == "[cairn_isle.balance]") continue
+                    val lumbridge = client.await("in Lumbridge") { client.position?.takeIf { it.x in 3219..3223 && it.z in 3217..3221 } }
+                    client.awaitTicks(3)
+                    assertEquals(lumbridge, client.position, "left in Lumbridge, not put on the shore")
+                    assertNull(client.inventory(WORN).getOrNull(WearPos.RING))
+                    saved = true
+                    break
+                }
+                assertTrue(saved, "no fall in 20 crossings at level 1")
+            }
+        }
+    }
+
     private companion object {
+        const val RING_OF_LIFE = 2570
+        const val BACKPACK = 93
+        const val WORN = 94
+        const val WEAR_BUTTON_OP = 3
+        const val HITPOINTS = 3
         const val ROCKS = 2231
         const val AGILITY = 16
     }
