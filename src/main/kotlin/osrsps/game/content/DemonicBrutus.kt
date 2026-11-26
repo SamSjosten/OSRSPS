@@ -7,6 +7,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.Foods
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
@@ -98,6 +99,16 @@ object DemonicBrutus {
     /** The orbs' styles by bull: magic, melee, ranged, then one of the three at random. */
     val ORB_STYLES = listOf(osrsps.game.combat.AttackType.MAGIC, osrsps.game.combat.AttackType.CRUSH, osrsps.game.combat.AttackType.RANGED)
     val SPOT_ORB_SPAWN = mapOf(osrsps.game.combat.AttackType.RANGED to 3600, osrsps.game.combat.AttackType.CRUSH to 3601, osrsps.game.combat.AttackType.MAGIC to 3602)
+    /**
+     * The spotanim slots of a special's four orb spawns, one each so none replaces another.
+     * Guessed: slots 1-4 (live's slots unseen).
+     */
+    val ORB_SPAWN_SLOTS = 1..4
+
+    /** The four orbs' spawn spotanims of a special, as (slot, spotanim id). */
+    fun orbSpawns(orbs: List<osrsps.game.combat.AttackType>): List<Pair<Int, Int>> =
+        orbs.mapIndexedNotNull { nth, style -> SPOT_ORB_SPAWN[style]?.let { (ORB_SPAWN_SLOTS.first + nth) to it } }
+
     val SPOT_ORB_IMPACT = mapOf(osrsps.game.combat.AttackType.RANGED to 3594, osrsps.game.combat.AttackType.CRUSH to 3595, osrsps.game.combat.AttackType.MAGIC to 3596)
 
     const val ANIM_ATTACK = BrutusFight.ANIM_ATTACK
@@ -133,6 +144,9 @@ object DemonicBrutus {
         var phaseTwo = false
         /** Each orb as it landed, for tests: its style and the damage. */
         val orbs = ArrayList<Pair<osrsps.game.combat.AttackType, Int>>()
+
+        /** The orb spawn spotanims of his last special, as (slot, spotanim id), for tests. */
+        var orbSpawns: List<Pair<Int, Int>> = emptyList()
         /** Each special's window and gap, for tests. */
         val timings = ArrayList<Pair<Int, Int>>()
     }
@@ -160,6 +174,8 @@ object DemonicBrutus {
                     onStart = {
                         boss.holdsAtZero = false
                         boss.hitpoints = PHASE_TWO_HEAL
+                        // His bar shows the heal; the 0's bar would otherwise stay up.
+                        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
                         fight(boss).phaseTwo = true
                         boss.effects.say(world.dialogueText[DemonicLines.MOO_MOO])
                         log("phase two on $PHASE_TWO_HEAL")
@@ -258,7 +274,8 @@ object DemonicBrutus {
         val gap = if (fast) FAST_GHOST_GAP else GHOST_GAP
         fight.timings += window to gap
         val orbs = if (fight.phaseTwo) ORB_STYLES + ORB_STYLES[roll(0, ORB_STYLES.size - 1)] else emptyList()
-        for (style in orbs.toSet()) SPOT_ORB_SPAWN[style]?.let { target.spotanim(it) }
+        fight.orbSpawns = orbSpawns(orbs)
+        for ((slot, id) in fight.orbSpawns) target.spotanim(id, slot = slot)
         // Guessed: the Slam's first corner the one clockwise from the Charge's side (west's is the north-west).
         val first = if (special == Special.CHARGE) fight.start else (fight.start + 1) % 4
         val order = order(first, fight.clockwise)

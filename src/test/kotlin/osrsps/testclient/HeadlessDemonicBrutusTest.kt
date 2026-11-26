@@ -212,6 +212,9 @@ class HeadlessDemonicBrutusTest {
                 client.await("four orbs", timeoutMillis = 60_000) { fight.orbs.takeIf { it.size >= 4 } }
                 assertEquals(DemonicBrutus.ORB_STYLES, fight.orbs.take(3).map { it.first })
                 assertTrue(fight.orbs[3].first in DemonicBrutus.ORB_STYLES)
+                // All four spawn graphics go out, each in its own slot.
+                assertEquals(listOf(1, 2, 3, 4), fight.orbSpawns.map { it.first })
+                assertEquals(fight.orbs.take(4).map { DemonicBrutus.SPOT_ORB_SPAWN.getValue(it.first) }, fight.orbSpawns.map { it.second })
             }
         }
     }
