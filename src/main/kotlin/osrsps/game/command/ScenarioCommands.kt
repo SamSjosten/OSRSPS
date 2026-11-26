@@ -70,7 +70,10 @@ internal fun resetScenario(world: World, player: Player): String {
     // event NPC out goes, so none crosses into the account.
     val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
     world.randomEvents.end(player)
+    // The pet cat out now goes, and the one the snapshot's follower varps hold comes back beside them.
+    world.cats.beforeRestore(player)
     before.restoreTo(player)
+    world.cats.afterRestore(player)
     for ((name, value) in kept) player.charges[name] = value
     // A trail being followed ends, and the restored varbits show none of its footprints.
     world.hunter.tracking.forget(player)

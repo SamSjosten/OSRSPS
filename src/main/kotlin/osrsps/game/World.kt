@@ -146,6 +146,8 @@ import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
+import osrsps.game.content.registerCats
+import osrsps.game.content.Cats
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -545,6 +547,8 @@ class World(
 
     /** Demonic Brutus's, the scoreboard's Read (Demonic). */
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
+    /** Pet cats out following their players; see [Cats]. */
+    val cats = Cats(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -1328,6 +1332,7 @@ class World(
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
+        registerCats(this, cats)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -2601,6 +2606,7 @@ class World(
         collectionLog.login(player)
         inferno.login(player)
         tearsOfGuthix.login(player)
+        cats.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -3716,6 +3722,7 @@ class World(
                     it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
                 )
             },
+            say = { extendedInfo.setSay(it) },
         )
     }
 
@@ -3915,6 +3922,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
