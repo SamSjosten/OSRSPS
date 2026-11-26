@@ -118,6 +118,15 @@ class ScriptRunner(
      * death. A dropped script never runs its `finally` blocks, so an Agility obstacle's forced steps and stance go here too.
      */
     fun clearAll(player: Player) {
+        dropActions(player)
+        player.scripts.timers.clear()
+    }
+
+    /**
+     * [clearAll] but the timers: what [player] was doing stops (modals, queues, a delay, held clicks, forced steps and
+     * stance), while background timers such as wine fermenting carry on. For a ring of life's escape (round 59, R59A-1).
+     */
+    fun dropActions(player: Player) {
         closeModals(player)
         player.heldActions.clear()
         player.forcedSteps.clear()
@@ -125,7 +134,6 @@ class ScriptRunner(
         val state = player.scripts
         state.queue.clear()
         state.dropWeak()
-        state.timers.clear()
         state.suspended = null
         state.delayedUntil = 0
         state.paused = null
