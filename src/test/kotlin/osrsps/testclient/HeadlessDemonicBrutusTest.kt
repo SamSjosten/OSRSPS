@@ -102,6 +102,21 @@ class HeadlessDemonicBrutusTest {
     }
 
     @Test
+    fun `a death to Demonic Brutus isn't counted on Brutus's scoreboard`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.feedIn(server, "dave", 3262, 3270)
+                val dave = server.world.playerNamed("dave")!!
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("hit 200 me") { it.startsWith("Hit yourself") }
+                client.await("dead") { if (dave.dead) Unit else null }
+                client.await("out of the field", timeoutMillis = 20_000) { if (!dave.dead && server.world.brutusPens.runOf(dave) == null) Unit else null }
+                assertEquals(0L, server.world.brutusRecords.deaths)
+            }
+        }
+    }
+
+    @Test
     fun `the potato plucks and eats for a strength point, and fed on release brings Demonic Brutus, whose kill counts and who stays dead`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->

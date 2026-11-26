@@ -846,7 +846,8 @@ class World(
         placeOf = ::deathPlace,
         fell = {
             archiveRaids.fell(it)
-            if (brutusPens.runOf(it) != null) osrsps.game.content.BrutusScoreboard.died(this, it)
+            // Demonic Brutus's deaths aren't Brutus's: his scoreboard page comes with step 7.
+            if (brutusPens.runOf(it)?.demonic == false) osrsps.game.content.BrutusScoreboard.died(this, it)
         },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },

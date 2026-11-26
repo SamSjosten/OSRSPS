@@ -145,6 +145,12 @@ class BrutusPens(private val world: World) {
             // Demonic Brutus is for the one fight the potato bought: he doesn't come back.
             run.boss = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = "Brutus's field", respawns = !demonic))
         }
+        // No room for him in the world's NPCs: no field either, so a fed potato is kept.
+        if (demonic && run.boss == null) {
+            runs.remove(instance.id)
+            world.endInstance(instance)
+            return null
+        }
         return run
     }
 
