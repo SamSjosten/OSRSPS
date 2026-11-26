@@ -413,6 +413,13 @@ class Player(
     var attackedNpc: Npc? = null
     var attackedNpcTick: Long = -1
 
+    /**
+     * The NPC they last launched an attack on (swung at, fired or cast on, not when it lands), and the tick they did: a
+     * fight's start for a boss's kill times (Brutus's scoreboard). Not saved.
+     */
+    var launchedAtNpc: Npc? = null
+    var launchedAtNpcTick: Long = -1
+
     /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
     val tolerance = osrsps.game.combat.Tolerance()
 
