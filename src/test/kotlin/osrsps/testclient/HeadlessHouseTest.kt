@@ -33,6 +33,7 @@ import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.Kitchen
 import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
+import osrsps.game.skill.construction.Stairs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -90,6 +91,9 @@ class HeadlessHouseTest {
         LocType(TOOLS_2, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         hotspot(TREE_SPACE, "Tree space"), hotspot(SMALL_PLANT_SPACE, "Small Plant space 1"),
         built(DEAD_TREE, "Dead Tree"), built(PLANT, "Plant"),
+        hotspot(STAIR_SPACE, "Stair Space", 2), hotspot(STAIR_TOP_SPACE, "Stair Space", 2),
+        LocType(OAK_STAIRS, "Staircase", ops = listOf("Climb-up", null, null, "Remove-room", "Remove"), collision = LocCollisionType(width = 2, length = 2)),
+        LocType(OAK_STAIRS_TOP, "Staircase", ops = listOf("Climb-down", null, null, "Remove-room", "Remove"), collision = LocCollisionType(width = 2, length = 2)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
 
@@ -136,6 +140,8 @@ class HeadlessHouseTest {
         val kitchen = RoomType.KITCHEN
         val dining = RoomType.DINING_ROOM
         val workshop = RoomType.WORKSHOP
+        val hall = RoomType.SKILL_HALL
+        val hallTop = RoomType.SKILL_HALL_STAIRS
         World(
             crcs,
             CollisionMap().apply {
@@ -183,6 +189,11 @@ class HeadlessHouseTest {
                 for ((i, space) in listOf(TOOL_SPACE_A, TOOL_SPACE_B, TOOL_SPACE_C).withIndex()) {
                     add(ZoneLoc(space, LocShape.CENTREPIECE_STRAIGHT, 0, workshop.templateX + 1, workshop.templateZ + 2 + i, 0))
                 }
+                // A skill hall's stair space, 2 by 2 at 3,3 as the cache has it, and the same hall at a staircase's top.
+                add(ZoneLoc(STAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hall.templateX + 3, hall.templateZ + 3, 0))
+                add(ZoneLoc(STAIR_TOP_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hallTop.templateX + 3, hallTop.templateZ + 3, 0))
+                doors(hall.templateX, hall.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                doors(hallTop.templateX, hallTop.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
@@ -194,6 +205,7 @@ class HeadlessHouseTest {
                     RoomType.DINING_ROOM.id to listOf(tables, emptyList(), emptyList(), emptyList(), emptyList(), decorations),
                     RoomType.WORKSHOP.id to listOf(workbenches, emptyList(), toolStores),
                     RoomType.GARDEN.id to listOf(emptyList(), emptyList(), trees, emptyList(), emptyList(), smallPlants),
+                    RoomType.SKILL_HALL.id to listOf(staircases),
                 ),
             ),
         )
@@ -229,6 +241,12 @@ class HeadlessHouseTest {
     /** The tree space's and first small plant space's first choices (rows 5880 and 5893), as the cache has them. */
     private val trees = listOf(FurnitureOption(DEAD_TREE_ROW, "Tree", 8173, listOf(BAGGED_DEAD_TREE to 1), level = 5))
     private val smallPlants = listOf(FurnitureOption(PLANT_ROW, "Plant", 8180, listOf(BAGGED_PLANT_1 to 1), level = 1))
+
+    /**
+     * The skill hall's stair space's first staircase (row 5644) at the Stair Space page's level; half its materials (10 oak
+     * planks and 4 steel bars), so twice them fit in a backpack.
+     */
+    private val staircases = listOf(FurnitureOption(OAK_STAIRCASE_ROW, "Oak staircase", 8249, listOf(OAK_PLANK to 5, STEEL_BAR to 2), level = 27))
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -289,7 +307,7 @@ class HeadlessHouseTest {
         return await("the house") { position?.takeIf { it.x >= 6400 && it.level == House.GROUND } }
     }
 
-    private fun HeadlessClient.shown(id: Int, x: Int, z: Int) = locChanges().any { it.id == id && it.coord == Coord(x, z, House.GROUND) }
+    private fun HeadlessClient.shown(id: Int, x: Int, z: Int, level: Int = House.GROUND) = locChanges().any { it.id == id && it.coord == Coord(x, z, level) }
 
     @Test
     fun `the estate agent sells the starter house, and the portal takes its owner in and out of it`(@TempDir dir: Path) {
@@ -958,7 +976,96 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a staircase goes up from a hall, builds a hall at its top, and the upper floor keeps to the Wiki's rules`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kira").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("kira")!!
+                val hx = House.STARTER_X + 1
+                val hz = House.STARTER_Z
+                player.house!!.rooms += HouseRoom(RoomType.SKILL_HALL, hx, hz)
+                client.command("setlevel construction 40")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 10")
+                client.command("item $STEEL_BAR 4")
+                client.command("item ${EstateAgent.COINS} 15000")
+                client.await("the materials") { if (client.count(OAK_PLANK) == 10 && client.count(STEEL_BAR) == 4 && client.count(EstateAgent.COINS) == 15000) Unit else null }
+                val xp = client.await("level 40") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 40 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val sx = instance.baseX + (hx shl 3) + 3
+                val sz = instance.baseZ + (hz shl 3) + 3
+                fun build() {
+                    client.locOp(STAIR_SPACE, sx, sz, House.BUILD)
+                    client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                    client.menu("construction.stairs_up", "construction.stairs_down")
+                }
+
+                // Down waits for the dungeon; Up builds the staircase's foot.
+                build()
+                client.chooseOption(2)
+                client.await("the refusal for Down") { client.messages().firstOrNull { it.text == "[construction.stairs_down_later]" } }
+                assertEquals(10, client.count(OAK_PLANK))
+                build()
+                client.chooseOption(1)
+                client.await("the staircase") { if (client.shown(OAK_STAIRS, sx, sz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 680 } }
+                assertEquals(5, client.count(OAK_PLANK))
+
+                // Climb-up with nothing above: the top room's prompt; a skill hall goes up with the staircase's top, for the
+                // hall's coins and the staircase's materials again, and the player with it.
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.menu("construction.stairs_top_skill_hall", "construction.stairs_top_quest_hall", "construction.stairs_top_cancel")
+                client.chooseOption(1)
+                client.await("upstairs") { client.position?.takeIf { it.level == House.UPPER } }
+                val top = assertNotNull(player.house!!.room(hx, hz, House.UPPER))
+                assertEquals(RoomType.SKILL_HALL_STAIRS, top.type)
+                assertEquals(mapOf(STAIR_TOP_SPACE to OAK_STAIRS_TOP), top.built)
+                client.await("the top's XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 1360 } }
+                assertEquals(0, client.count(OAK_PLANK))
+                assertEquals(0, client.count(EstateAgent.COINS))
+                assertEquals(OAK_STAIRS_TOP, server.world.locs.at(sx, sz, House.UPPER).firstOrNull { it.id == OAK_STAIRS_TOP }?.id)
+
+                // A staircase to the other floor stays; a room upstairs needs one under it.
+                client.locOp(OAK_STAIRS_TOP, sx, sz, Furniture.REMOVE)
+                client.await("the top's refusal") { client.messages().firstOrNull { it.text == "[construction.stairs_connected]" } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, instance.baseX + (hx shl 3) + 7, instance.baseZ + (hz shl 3) + 3, House.BUILD)
+                client.await("the refusal for no support") { client.messages().firstOrNull { it.text == "[construction.room_no_support]" } }
+
+                // Down again; the hall under the room upstairs can't be removed, nor its staircase.
+                client.locOp(OAK_STAIRS_TOP, sx, sz, 1)
+                client.await("downstairs") { client.position?.takeIf { it.level == House.GROUND } }
+                client.locOp(OAK_STAIRS, sx, sz, Stairs.REMOVE_ROOM)
+                client.await("the hall's refusal") { client.messages().firstOrNull { it.text == "[construction.remove_supporting]" } }
+                client.locOp(OAK_STAIRS, sx, sz, Furniture.REMOVE)
+                client.await("the foot's refusal") { client.messages().count { it.text == "[construction.stairs_connected]" }.takeIf { it == 2 } }
+
+                // Both floors are saved.
+                val read = assertNotNull(PlayerSave.fromJson(server.world.snapshot(player).toJson("kira")).house)
+                assertEquals(RoomType.SKILL_HALL_STAIRS, read.room(hx, hz, House.UPPER)?.type)
+                assertEquals(mapOf(STAIR_SPACE to OAK_STAIRS), assertNotNull(read.room(hx, hz)).built.toMap())
+
+                // Up, and Remove-room on the top: the room goes and the player with it to the floor below.
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.await("upstairs again") { client.position?.takeIf { it.level == House.UPPER } }
+                client.locOp(OAK_STAIRS_TOP, sx, sz, Stairs.REMOVE_ROOM)
+                client.menu("construction.remove_yes", "construction.remove_no")
+                client.chooseOption(1)
+                client.await("back down") { client.position?.takeIf { it.level == House.GROUND } }
+                assertNull(player.house!!.room(hx, hz, House.UPPER))
+            }
+        }
+    }
+
     private companion object {
+        const val STAIR_SPACE = 15380
+        const val STAIR_TOP_SPACE = 15381
+        const val OAK_STAIRCASE_ROW = 5644
+        const val OAK_STAIRS = 13497
+        const val OAK_STAIRS_TOP = 13498
         const val TREE_SPACE = 15363
         const val SMALL_PLANT_SPACE = 15366
         const val DEAD_TREE_ROW = 5880

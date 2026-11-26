@@ -69,4 +69,20 @@ class FurnitureBuildsTest {
         assertTrue(FurnitureBuilds.PLANTED.all { FurnitureBuilds.BUILDS.getValue(it).farmingXp > 0 })
         assertTrue(FurnitureBuilds.buildsOn(House.CENTREPIECE_SPACE, House.EXIT_PORTAL))
     }
+
+    @Test
+    fun `a hall's stair space is a staircase's foot or its top, and a rug leaves it bare`() {
+        assertEquals(setOf(15377, 15378, 15379, 15380), FurnitureBuilds.siblings(15377, RoomType.SKILL_HALL))
+        assertEquals(setOf(15377, 15378, 15379, 15381), FurnitureBuilds.siblings(15377, RoomType.SKILL_HALL_STAIRS))
+        assertEquals(setOf(15387, 15388, 15389, 15391), FurnitureBuilds.siblings(15391))
+        val oak = FurnitureBuilds.BUILDS.getValue(5644)
+        assertEquals(listOf(13497, 13498, FurnitureBuilds.NONE), listOf("stairs", "top", "middle").map(oak::locFor))
+        assertTrue(FurnitureBuilds.buildsAt(15377, 5644, RoomType.SKILL_HALL) && FurnitureBuilds.buildsAt(15391, 5654))
+        assertEquals(5644, FurnitureBuilds.builtRow(mapOf(15380 to 13497), 15380, RoomType.SKILL_HALL))
+        assertEquals(5644, FurnitureBuilds.builtRow(mapOf(15381 to 13498), 15377, RoomType.SKILL_HALL_STAIRS))
+        // The rug: its corners, sides and middle, the stair space bare.
+        assertEquals(5525, FurnitureBuilds.builtRow(mapOf(15377 to 6764, 15378 to 6763, 15379 to 6762), 15380, RoomType.SKILL_HALL))
+        assertTrue(!FurnitureBuilds.buildsOn(15380, 6764))
+        assertTrue(FurnitureBuilds.STAIRCASES.all { it in FurnitureBuilds.PLACES.getValue(RoomType.QUEST_HALL to 0) })
+    }
 }

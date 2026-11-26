@@ -55,8 +55,10 @@ object FurnitureBuilds {
     /**
      * A hotspot loc type: the room it is in, its place in the room's hotspot list (`poh_parlour_1` is the first), and for
      * a place with more than one loc type (a rug's corners, sides and middle; the bookcase's scroll rack) which it is.
+     * [only] is the one type of its room it is in, when its room's types share the rest: a hall's stair space is the
+     * staircase's foot in the hall and its top in the hall at the top of a staircase ([RoomType.upstairs]).
      */
-    data class Hotspot(val room: RoomType, val index: Int, val variant: String? = null)
+    data class Hotspot(val room: RoomType, val index: Int, val variant: String? = null, val only: RoomType? = null)
 
     /**
      * What a piece of furniture (by its row) builds as, its XP (and any Farming XP: the garden's trees and plants), and
@@ -78,6 +80,8 @@ object FurnitureBuilds {
     private const val CROCKERY = "crockery"
     private const val STOOL = "stool"
     private const val BIG = "big"
+    private const val STAIRS = "stairs"
+    private const val TOP = "top"
 
     /** The workshop's five tool spaces (`poh_workshop_3a` to `_3e`), in order. */
     private val TOOL_SPACES = listOf("a", "b", "c", "d", "e")
@@ -139,9 +143,29 @@ object FurnitureBuilds {
         15365 to Hotspot(RoomType.GARDEN, 4),
         15366 to Hotspot(RoomType.GARDEN, 5),
         15367 to Hotspot(RoomType.GARDEN, 6),
+        // poh_hall1_1_middle, _side, _corner (the rug) and _stairs_up or _stairs_top (the stair space): the skill hall's
+        // first place, one rug or one staircase. The quest hall's (poh_hall2_1_*) are the same.
+        15377 to Hotspot(RoomType.SKILL_HALL, 0, MIDDLE),
+        15378 to Hotspot(RoomType.SKILL_HALL, 0, SIDE),
+        15379 to Hotspot(RoomType.SKILL_HALL, 0, CORNER),
+        15380 to Hotspot(RoomType.SKILL_HALL, 0, STAIRS, RoomType.SKILL_HALL),
+        15381 to Hotspot(RoomType.SKILL_HALL, 0, TOP, RoomType.SKILL_HALL_STAIRS),
+        15387 to Hotspot(RoomType.QUEST_HALL, 0, MIDDLE),
+        15388 to Hotspot(RoomType.QUEST_HALL, 0, SIDE),
+        15389 to Hotspot(RoomType.QUEST_HALL, 0, CORNER),
+        15390 to Hotspot(RoomType.QUEST_HALL, 0, STAIRS, RoomType.QUEST_HALL),
+        15391 to Hotspot(RoomType.QUEST_HALL, 0, TOP, RoomType.QUEST_HALL_STAIRS),
     )
 
-    private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
+    /** A rug: its corners, sides and middle; in a hall it leaves the stair space bare. */
+    private fun rug(corner: Int, side: Int, middle: Int, xp: Int) =
+        Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle, STAIRS to NONE, TOP to NONE))
+
+    /**
+     * A staircase: [foot] on a hall's stair space, [top] on the stair space of the hall at its top; the rug's spaces
+     * round it stay bare (GUESSED: the cache puts both in one place, so a hall has a rug or a staircase).
+     */
+    private fun staircase(foot: Int, top: Int, xp: Int) = Build(foot, xp, mapOf(CORNER to NONE, SIDE to NONE, MIDDLE to NONE, TOP to top))
 
     private fun shelves(loc: Int, crockery: Int, xp: Int) = Build(loc, xp, mapOf(CROCKERY to crockery))
 
@@ -304,6 +328,14 @@ object FurnitureBuilds {
         5890 to plant(5131, 31), 5891 to plant(5132, 70), 5892 to plant(5133, 100),
         5893 to plant(5134, 31), 5894 to plant(5135, 70), 5895 to plant(5136, 100),
         5896 to plant(5137, 31), 5897 to plant(5138, 70), 5898 to plant(5139, 100),
+        // The staircases, by the order of their locs' names (inferred): oak, teak and marble are poh_stairs_3 to 5 and
+        // their poh_stairstop_3 to 5; the limestone and marble spirals are poh_spiralstairs and _2, the same loc at the
+        // top. XP is the Stair Space page's.
+        5644 to staircase(13497, 13498, 680),
+        5647 to staircase(13499, 13500, 980),
+        5650 to staircase(13503, 13503, 1040),
+        5651 to staircase(13501, 13502, 3200),
+        5654 to staircase(13505, 13505, 4400),
     )
 
     /**
@@ -345,7 +377,12 @@ object FurnitureBuilds {
         (RoomType.GARDEN to 4) to listOf(5890, 5891, 5892, 6023, 6024, 6025, 6028),
         (RoomType.GARDEN to 5) to 5893..5895,
         (RoomType.GARDEN to 6) to 5896..5898,
+        (RoomType.SKILL_HALL to 0) to listOf(5525, 5526, 5644, 5647, 5650, 5651, 5654, 5527, 5528),
+        (RoomType.QUEST_HALL to 0) to listOf(5525, 5526, 5644, 5647, 5650, 5651, 5654, 5527, 5528),
     )
+
+    /** The staircases' rows (the Stair Space page). */
+    val STAIRCASES: Set<Int> = setOf(5644, 5647, 5650, 5651, 5654)
 
     /** The bagged trees and plants, planted with a watering can with water in it (the Garden page's footnotes; Codex on #979). */
     val NEEDS_WATERING_CAN: Set<Int> = (5880..5898).toSet()
@@ -368,11 +405,11 @@ object FurnitureBuilds {
      * Whether furniture [row] is one [hotspot]'s place offers and builds on it: every part it puts on the place's
      * hotspots is one [buildsOn] accepts there, and it puts one on at least one of them.
      */
-    fun buildsAt(hotspot: Int, row: Int): Boolean {
+    fun buildsAt(hotspot: Int, row: Int, type: RoomType? = null): Boolean {
         val spot = HOTSPOTS[hotspot] ?: return false
         if (PLACES[spot.room to spot.index]?.contains(row) != true) return false
         val build = BUILDS[row] ?: return false
-        val parts = siblings(hotspot).map { it to build.locFor(HOTSPOTS.getValue(it).variant) }.filter { it.second != NONE }
+        val parts = siblings(hotspot, type).map { it to build.locFor(HOTSPOTS.getValue(it).variant) }.filter { it.second != NONE }
         return parts.isNotEmpty() && parts.all { (id, loc) -> buildsOn(id, loc) }
     }
 
@@ -380,9 +417,9 @@ object FurnitureBuilds {
      * The furniture row built at [hotspot]'s place, from what [built] (a room's, by hotspot) holds on it and its siblings:
      * the one row whose every part matches, or null when nothing is built there (or what is doesn't match one row).
      */
-    fun builtRow(built: Map<Int, Int>, hotspot: Int): Int? {
+    fun builtRow(built: Map<Int, Int>, hotspot: Int, type: RoomType? = null): Int? {
         val spot = HOTSPOTS[hotspot] ?: return null
-        val ids = siblings(hotspot)
+        val ids = siblings(hotspot, type)
         if (ids.none { it in built }) return null
         return PLACES[spot.room to spot.index]?.firstOrNull { row ->
             val build = BUILDS[row] ?: return@firstOrNull false
@@ -402,10 +439,14 @@ object FurnitureBuilds {
      */
     val NEEDS_CREST: Set<Int> = setOf(5587, 5588, 5589)
 
-    /** The hotspot loc types at the same place in the room as [hotspot] (itself included): built and removed together. */
-    fun siblings(hotspot: Int): Set<Int> {
+    /**
+     * The hotspot loc types at the same place in a [type] room as [hotspot] (itself included): built and removed
+     * together. Without a [type], the room [hotspot] is only in, else its own room's.
+     */
+    fun siblings(hotspot: Int, type: RoomType? = null): Set<Int> {
         val spot = HOTSPOTS[hotspot] ?: return setOf(hotspot)
-        return HOTSPOTS.filterValues { it.room == spot.room && it.index == spot.index }.keys
+        val room = type ?: spot.only ?: spot.room
+        return HOTSPOTS.filterValues { it.room == spot.room && it.index == spot.index && (it.only == null || it.only == room) }.keys
     }
 
     /** Every built loc type, each with Remove as its op 5. */
@@ -443,7 +484,7 @@ object FurnitureBuilds {
  * bending (the Wiki says nails bend, more often with worse nails and lower levels, but gives no odds); the crystal
  * saw's +3 boost; flatpacks (with the workshop).
  */
-class Furniture(private val world: World, private val houses: Houses, private val data: FurnitureData) {
+class Furniture(private val world: World, private val houses: Houses, internal val data: FurnitureData) {
     fun register() {
         for (hotspot in FurnitureBuilds.HOTSPOTS.keys) {
             world.handlers.onLoc(hotspot, House.BUILD) { op ->
@@ -492,7 +533,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
      */
     private suspend fun upgrade(context: ScriptContext, loc: ZoneLoc) {
         val house = houses.houseAt(loc.x, loc.z) ?: return world.message(context.player, GameLines.NOTHING_INTERESTING)
-        val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.layer)] ?: return
+        val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.level, loc.layer)] ?: return
         place(context, hotspot, loc)
     }
 
@@ -503,11 +544,13 @@ class Furniture(private val world: World, private val houses: Houses, private va
      */
     private suspend fun place(context: ScriptContext, hotspot: ZoneLoc, shown: ZoneLoc) {
         val player = context.player
-        val (house, room) = houses.buildingRoom(player, hotspot.x, hotspot.z) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
+        val (house, room) = houses.buildingRoom(player, hotspot.x, hotspot.z, hotspot.level) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
+        val state = player.house ?: return
         // Only a hotspot of the room it stands in: what is built is saved, and a save checks the two match (R50B note).
-        if (FurnitureBuilds.HOTSPOTS[hotspot.id]?.room != room.type) return world.message(player, GameLines.NOTHING_INTERESTING)
+        val spot = FurnitureBuilds.HOTSPOTS[hotspot.id]
+        if (spot == null || spot.room != room.type.base || (spot.only != null && spot.only != room.type)) return world.message(player, GameLines.NOTHING_INTERESTING)
         if ((room.built[hotspot.id] ?: hotspot.id) != shown.id) return
-        val current = FurnitureBuilds.builtRow(room.built, hotspot.id)
+        val current = FurnitureBuilds.builtRow(room.built, hotspot.id, room.type)
         if (current == null && hotspot.id in room.built) return
         val options = menu(hotspot.id, current)
         if (options.isEmpty()) return world.message(player, GameLines.NOTHING_INTERESTING)
@@ -519,7 +562,10 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val build = FurnitureBuilds.BUILDS[piece.row] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         // Only a piece the save check knows for this place (R52B-1): what is built must always load again. Checked across
         // the place, as a tool store leaves bare the spaces past its own (Codex review on #968).
-        if (!FurnitureBuilds.buildsAt(hotspot.id, piece.row)) return world.message(player, GameLines.NOTHING_INTERESTING)
+        if (!FurnitureBuilds.buildsAt(hotspot.id, piece.row, room.type)) return world.message(player, GameLines.NOTHING_INTERESTING)
+        // Step CON5: a staircase asks which way it goes, and is built at its other end too where a hall there waits for it.
+        val plan = if (piece.row in FurnitureBuilds.STAIRCASES) Stairs.prepare(world, context, state, room, piece.row) ?: return else null
+        val times = if (plan?.otherEnd != null) 2 else 1
         if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
@@ -528,61 +574,79 @@ class Furniture(private val world: World, private val houses: Houses, private va
         if (piece.row in FurnitureBuilds.NEEDS_WATERING_CAN && FurnitureBuilds.WATERING_CANS.none { player.inventory.count(it) > 0 }) {
             return world.message(player, ConstructionLines.FURNITURE_WATERING_CAN)
         }
-        val nails = nailsFor(player, piece) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+        val nails = nailsFor(player, piece, times) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
         player.anim(BUILD_ANIM)
         context.delay(BUILD_TICKS)
-        // Checked again after the wait: the materials may have gone, or the room or hotspot with them.
+        // Checked again after the wait: the materials may have gone, or the room or hotspot with them, or the other end.
         if (!placeStands(house, room, hotspot, shown, current, player)) return
-        if (nailsFor(player, piece) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
-        for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
+        if (plan != null && plan != Stairs.plan(state, room, piece.row)) return
+        if (nailsFor(player, piece, times) != nails) return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
+        for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count * times)
         for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
-        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
+        player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10 * times)
         if (build.farmingXp > 0) player.skills.addTenths(Skill.FARMING, build.farmingXp * 10)
         // Every hotspot of the same place in the room takes the piece: each rug tile its corner, side or middle, every
         // window its curtains.
-        for (id in FurnitureBuilds.siblings(hotspot.id)) {
+        fill(room, hotspot.id, build)
+        redraw(house, room, hotspot.id)
+        plan?.otherEnd?.let { other ->
+            val space = Stairs.stairSpace(other.type) ?: return@let
+            fill(other, space, build)
+            redraw(house, other, space)
+        }
+        logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
+    }
+
+    /** Puts [build] on [hotspot]'s place in [room]: each of its hotspots there takes its part, or goes bare. */
+    internal fun fill(room: HouseRoom, hotspot: Int, build: FurnitureBuilds.Build) {
+        for (id in FurnitureBuilds.siblings(hotspot, room.type)) {
             val loc = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
             if (loc == FurnitureBuilds.NONE) room.built.remove(id) else room.built[id] = loc
         }
-        redraw(house, room, hotspot.id)
-        logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
     }
 
     /** Whether [player] is still in [house] and [hotspot]'s place in [room] still holds [current], [shown] on its tile. */
     private fun placeStands(house: Houses.Open, room: HouseRoom, hotspot: ZoneLoc, shown: ZoneLoc, current: Int?, player: Player): Boolean =
         houses.stillHere(house, player) && world.locs[shown.x, shown.z, shown.level, shown.layer] == shown &&
-            (room.built[hotspot.id] ?: hotspot.id) == shown.id && FurnitureBuilds.builtRow(room.built, hotspot.id) == current
+            player.house?.room(room.x, room.z, room.floor) === room &&
+            (room.built[hotspot.id] ?: hotspot.id) == shown.id && FurnitureBuilds.builtRow(room.built, hotspot.id, room.type) == current
 
     /** Remove on built furniture [loc]: a prompt, then its hotspot back. */
     private suspend fun remove(context: ScriptContext, loc: ZoneLoc) {
         val player = context.player
-        val (house, room) = houses.buildingRoom(player, loc.x, loc.z) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
-        val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.layer)] ?: return
+        val (house, room) = houses.buildingRoom(player, loc.x, loc.z, loc.level) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
+        val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.level, loc.layer)] ?: return
         if (room.built[hotspot.id] != loc.id) return
         // A house needs an exit portal: the last one stays (the Exit portal page).
         if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return world.message(player, ConstructionLines.REMOVE_ONLY_PORTAL)
+        // A staircase to the other floor stays while the room at its top does (step CON5; GUESSED), so nobody is left upstairs.
+        if (connects(player, room)) return world.message(player, ConstructionLines.STAIRS_CONNECTED)
         var pick = 0
         world.dialogues.start(context) {
             pick = choice(ConstructionLines.REMOVE_FURNITURE_YES, ConstructionLines.REMOVE_FURNITURE_NO, title = text(ConstructionLines.REMOVE_FURNITURE_TITLE))
         }
         if (pick != 1 || !houses.stillHere(house, player) || room.built[hotspot.id] != loc.id || !world.locs.exists(loc)) return
         if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return
+        if (connects(player, room)) return
         player.anim(BUILD_ANIM)
-        for (id in FurnitureBuilds.siblings(hotspot.id)) room.built.remove(id)
+        for (id in FurnitureBuilds.siblings(hotspot.id, room.type)) room.built.remove(id)
         redraw(house, room, hotspot.id)
         logger.info { "${player.username} removed furniture ${loc.id} from hotspot ${hotspot.id}" }
     }
+
+    /** Whether [room]'s staircase in [player]'s house leads to the other floor. */
+    private fun connects(player: Player, room: HouseRoom): Boolean = player.house?.let { Stairs.connected(it, room) } == true
 
     /** How many exit portals [player]'s house has. */
     private fun portals(player: Player): Int = player.house?.rooms?.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } } ?: 0
 
     /** Shows what is built now on every tile of [room] holding [hotspot] or one of its siblings, or the hotspot itself. */
     private fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
-        val ids = FurnitureBuilds.siblings(hotspot)
+        val ids = FurnitureBuilds.siblings(hotspot, room.type)
         val baseX = house.instance.baseX + (room.x shl 3)
         val baseZ = house.instance.baseZ + (room.z shl 3)
         for (spot in house.hotspots.values) {
-            if (spot.id !in ids || spot.x - baseX !in 0..7 || spot.z - baseZ !in 0..7) continue
+            if (spot.id !in ids || spot.level != room.floor || spot.x - baseX !in 0..7 || spot.z - baseZ !in 0..7) continue
             val built = room.built[spot.id]
             world.locs.setPermanent(spot.x, spot.z, spot.level, spot.layer, if (built != null) spot.copy(id = built) else spot)
         }
@@ -621,14 +685,16 @@ class Furniture(private val world: World, private val houses: Houses, private va
         if (obj == ANY_NAILS) NAILS.sumOf { player.inventory.count(it) } else player.inventory.count(obj)
 
     /**
-     * Whether [player] has [piece]'s materials, and which nails it takes: null when they lack any, else the nails by kind
+     * Whether [player] has [piece]'s materials, [times] over (a staircase built at both ends), and which nails it takes:
+     * null when they lack any, else the nails by kind
      * and count (empty when it needs none). Nails are taken best kind first (the Wiki's Nails page: "the higher tier ones
      * are used first"), across kinds when no one kind has enough, as the menu counts every kind together (Codex review
      * on #869).
      */
-    private fun nailsFor(player: Player, piece: FurnitureOption): Map<Int, Int>? {
+    internal fun nailsFor(player: Player, piece: FurnitureOption, times: Int = 1): Map<Int, Int>? {
         val nails = LinkedHashMap<Int, Int>()
-        for ((obj, count) in piece.materials) {
+        for ((obj, one) in piece.materials) {
+            val count = one * times
             if (obj == ANY_NAILS) {
                 var left = count.toLong()
                 for (kind in NAILS) {
@@ -646,7 +712,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
     }
 
     /** A hammer and a saw, carried or worn (the Wiki's Construction page: the Imcando hammer and Amy's saw can be worn). */
-    private fun hasTools(player: Player): Boolean = HAMMERS.any { carries(player, it) } && SAWS.any { carries(player, it) }
+    internal fun hasTools(player: Player): Boolean = HAMMERS.any { carries(player, it) } && SAWS.any { carries(player, it) }
 
     private fun carries(player: Player, obj: Int) = player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0
 

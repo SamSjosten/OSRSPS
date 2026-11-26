@@ -183,15 +183,15 @@ class Locs(
     }
 
     /**
-     * Forgets every change and timed revert on the tiles from [fromX], [fromZ] to [toX], [toZ] on every level, sending
-     * nothing and leaving collision alone: for an instance's area at its end, when nobody is left to see it and its
+     * Forgets every change and timed revert on the tiles from [fromX], [fromZ] to [toX], [toZ] on every level (or only
+     * [level]), sending nothing and leaving collision alone: for an instance's area at its end, when nobody is left to see it and its
      * collision goes too ([osrsps.game.instance.Instances]).
      */
-    fun forgetArea(fromX: Int, fromZ: Int, toX: Int, toZ: Int) {
+    fun forgetArea(fromX: Int, fromZ: Int, toX: Int, toZ: Int, level: Int? = null) {
         val inArea = { slot: Long ->
             val x = (slot shr 16).toInt() and 0x3FFF
             val z = (slot shr 2).toInt() and 0x3FFF
-            x in fromX..toX && z in fromZ..toZ
+            x in fromX..toX && z in fromZ..toZ && (level == null || (slot shr 30).toInt() == level)
         }
         changes.keys.removeIf(inArea)
         reverts.keys.removeIf(inArea)
