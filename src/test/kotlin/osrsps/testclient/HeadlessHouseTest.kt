@@ -909,7 +909,7 @@ class HeadlessHouseTest {
     }
 
     @Test
-    fun `a tree is planted without a hammer or saw for Farming XP too, a plant needs a watering can, and the only exit portal stays`(@TempDir dir: Path) {
+    fun `a tree or plant needs a watering can but no hammer or saw, gives Farming XP too, and the only exit portal stays`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("jade").use { client ->
                 client.ready()
@@ -931,18 +931,20 @@ class HeadlessHouseTest {
                     client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
                 }
 
-                // No hammer or saw: a tree goes in all the same, for as much Farming XP as Construction.
+                // A tree needs a watering can: refused, its bag kept.
+                menu(TREE_SPACE, gx + 6, gz + 6)
+                client.await("the tree refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_watering_can]" } }
+                assertEquals(1, client.count(BAGGED_DEAD_TREE))
+                client.command("item $WATERING_CAN_8 1")
+                client.await("the can") { if (client.count(WATERING_CAN_8) == 1) Unit else null }
+
+                // No hammer or saw: with the can, a tree goes in all the same, for as much Farming XP as Construction.
                 menu(TREE_SPACE, gx + 6, gz + 6)
                 client.await("the tree") { if (client.shown(DEAD_TREE, gx + 6, gz + 6)) Unit else null }
                 client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 31 } }
                 client.await("its Farming XP") { client.stat(Skill.FARMING.id)?.takeIf { it.xp == farming + 31 } }
 
-                // A plant needs a watering can: refused, its bag kept; with one, planted.
-                menu(SMALL_PLANT_SPACE, gx + 1, gz + 6)
-                client.await("the refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_watering_can]" } }
-                assertEquals(1, client.count(BAGGED_PLANT_1))
-                client.command("item $WATERING_CAN_8 1")
-                client.await("the can") { if (client.count(WATERING_CAN_8) == 1) Unit else null }
+                // A plant goes in with the same can, its water not used.
                 menu(SMALL_PLANT_SPACE, gx + 1, gz + 6)
                 client.await("the plant") { if (client.shown(PLANT, gx + 1, gz + 6)) Unit else null }
                 assertEquals(1, client.count(WATERING_CAN_8))

@@ -347,8 +347,8 @@ object FurnitureBuilds {
         (RoomType.GARDEN to 6) to 5896..5898,
     )
 
-    /** The bagged plants, planted with a watering can with water in it (the Garden page). */
-    val NEEDS_WATERING_CAN: Set<Int> = (5887..5898).toSet()
+    /** The bagged trees and plants, planted with a watering can with water in it (the Garden page's footnotes; Codex on #979). */
+    val NEEDS_WATERING_CAN: Set<Int> = (5880..5898).toSet()
 
     /** The garden's trees and plants, planted without a hammer and saw (the Garden page: those are for the rest). */
     val PLANTED: Set<Int> = (5880..5898).toSet()
@@ -435,7 +435,7 @@ object FurnitureBuilds {
  * Step CON4 (the workshop): a piece whose row has `upgrade_source_relative` builds over the piece before it, by its
  * Upgrade op ([FurnitureBuilds.UPGRADABLE]); a tool store racks its first spaces ([FurnitureBuilds.NONE] leaves the rest
  * bare). The garden: trees and plants go in without a hammer and saw and give as much Farming XP as Construction, a
- * bagged plant needs a watering can with water, and the house's only exit portal can't be removed (the Garden and Exit
+ * bagged tree or plant needs a watering can with water, and the house's only exit portal can't be removed (the Garden and Exit
  * portal pages). GUESSED: the can's water isn't used; planting plays the build animation.
  *
  * GUESSED: the materials text's layout (count and name, the obj types' names from the cache); the build taking 2
