@@ -11,8 +11,10 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.HomeTeleport
 import osrsps.game.content.randomevents.Pillory
 import osrsps.game.content.randomevents.RandomEvents
+import osrsps.game.combat.Spells
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -188,6 +190,47 @@ class HeadlessPilloryTest {
                 client.await("the window shut") { if (Pillory.INTERFACE !in client.openInterfaces()) Unit else null }
                 assertEquals(before, client.inventory(Inventory.INV).filterNotNull())
                 client.commandReply("randomevent end") { it == "No random event holds you" }
+            }
+        }
+    }
+
+    @Test
+    fun `a teleport from the cage is refused, and a fight begun during the talk keeps the player out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                val erin = server.world.onlinePlayers.single()
+
+                // Codex on #993 (P1): yes after a fight began during the talk doesn't take them.
+                client.command("randomevent ${Pillory.key}")
+                val npc = client.await("the guard") { client.npcs().firstOrNull { it.id == Pillory.npcId } }
+                client.npcOp(npc.index, RandomEvents.TALK_TO)
+                client.chat("[pillory_guard.arrest]")
+                client.awaitDialogue("the options") { it is DialogueView.Menu }
+                erin.attackedTick = server.world.tick
+                client.chooseOption(1)
+                client.chat("[pillory_guard.come_quietly]")
+                client.over()
+                client.awaitTicks(2)
+                assertEquals(home, client.position)
+                assertEquals(null, Pillory.stayOf(erin))
+                client.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+
+                // Codex on #993 (P2): in the cage, Home Teleport is refused and they stay held.
+                val cell = client.arrested()
+                client.closeModal()
+                val before = client.messages().size
+                client.ifButton(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)
+                client.await("the refusal") { Unit.takeIf { client.messages().drop(before).any { it.text == "[pillory_guard.no_teleport]" } } }
+                client.awaitTicks(HomeTeleport.CAST_TICKS + 2)
+                assertEquals(Coord(cell.x, cell.z, 0), client.position)
+                assertTrue(Pillory.stayOf(erin) != null, "still held")
+
+                // Moved out by any other way (here the admin teleport), the stay is over.
+                client.command("tele 3222 3218 0")
+                client.await("home") { client.position?.takeIf { it == home } }
+                client.awaitTicks(1)
+                assertEquals(null, Pillory.stayOf(erin))
             }
         }
     }

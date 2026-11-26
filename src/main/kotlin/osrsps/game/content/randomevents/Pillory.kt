@@ -24,6 +24,8 @@ object PilloryGuardLines : Lines("pillory_guard", "Transcript:Pillory Guard") {
     val NOT_COMING = line("not_coming", "Standard dialogue: the second option, and the player's words")
     val HMMPH = line("hmmph", "The \"I'm not coming.\" option: his answer")
     val HERE_TO_ARREST = line("here_to_arrest", "Other players' Pillory Guard", "name")
+    /** Held: no source found, so no words; a teleport tried from the cage is refused (guessed, exploit review on #993). */
+    val NO_TELEPORT = line("no_teleport", "Held, no source: a teleport tried from the cage")
 }
 
 /**
@@ -109,7 +111,21 @@ object Pillory : RandomEvent("pillory", 380) {
 
     fun stayOf(player: Player): Stay? = stays[player]
 
+    /**
+     * Whether [player] is held in a cage: teleports are refused there ([osrsps.game.combat.Teleblock.refusal]), so only
+     * the lock window lets them out (Guessed; Codex on #993).
+     */
+    fun held(player: Player): Boolean = stays[player] != null && player.level == 0 && Tile(player.x, player.z) in CELLS
+
+    /** [player] is being moved to [x], [z], [level]: out of the cages by any way, their stay is over. */
+    fun moving(player: Player, x: Int, z: Int, level: Int) {
+        if (level != 0 || Tile(x, z) !in CELLS) stays.remove(player)
+    }
+
     private fun lockUp(world: World, player: Player) {
+        // Checked again as they say yes: a fight or Tele Block that began during the talk keeps them here (as
+        // EventAreas.takeAway does; Codex on #993).
+        if (!world.randomEvents.allowedAt(player, this)) return
         val town = TOWNS[world.random.nextInt(TOWNS.size)]
         val free = town.filter { cell -> world.onlinePlayers.none { it.x == cell.x && it.z == cell.z && it.level == 0 } }
         val cell = if (free.isNotEmpty()) free[world.random.nextInt(free.size)] else town[world.random.nextInt(town.size)]
