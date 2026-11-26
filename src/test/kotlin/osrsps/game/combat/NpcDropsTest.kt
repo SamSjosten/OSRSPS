@@ -1151,6 +1151,22 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the jungle's jogres drop jogre bones always, out of 129, often a bronze spear or trading sticks, a medium clue 1 in 129 and their champion scroll 1 in 5000`() {
+        val types = NpcTypes.of(NpcType(2094, "Jogre", internalName = "jogre"))
+        val def = NpcDrops.load(types, objTypes)[types.find("jogre")!!]!!
+        assertEquals(listOf("Jogre bones"), def.always.map { it.type.name })
+        assertEquals(129, def.table!!.slots)
+        assertEquals(listOf("Clue scroll (medium)" to 129, "Jogre champion scroll" to 5000), def.tertiary.map { it.item.type.name to it.denominator })
+        val random = GameRandom(41)
+        var sticks = 0
+        repeat(KILLS) { if (def.roll(random).any { it.type.name == "Trading sticks" && it.count == 22 }) sticks++ }
+        val p = 27.0 / 129
+        val mean = KILLS * p
+        val sigma = sqrt(KILLS * p * (1 - p))
+        assertTrue(abs(sticks - mean) <= 5 * sigma + 1, "22 trading sticks in $sticks of $KILLS, expected about ${mean.toInt()}")
+    }
+
+    @Test
     fun `Brimhaven Dungeon's dragons drop their bones always, the metal ones five bars and a dragon legs pre-roll, the fire giants big bones`() {
         val names = listOf("dog_wild", "babyreddragon", "babygreendragon1", "red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant", "greater_demon", "black_demon")
         val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(3100 + i, name, internalName = name) }.toTypedArray())
