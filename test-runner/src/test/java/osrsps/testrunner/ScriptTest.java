@@ -121,6 +121,8 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"castOnPlayer\",\"interfaceId\":218,\"component\":75}]}", "step 1 needs \"player\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"castOnNpc\",\"interfaceId\":218,\"npc\":\"Man\"}]}", "step 1 needs \"component\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"castOnItem\",\"interfaceId\":218,\"component\":47}]}", "needs \"item\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"castOnGroundItem\",\"interfaceId\":218,\"component\":30}]}", "needs \"item\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"castOnGroundItem\",\"interfaceId\":218,\"component\":30,\"item\":\"Coins\",\"x\":1}]}", "needs both \"x\" and \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertAnimation\",\"id\":-2}]}", "\"id\" must be 0 or more");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"itemOption\",\"item\":\"Bronze axe\"}]}", "needs \"option\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"groundItemOption\",\"item\":\"Logs\",\"option\":\"Light\"}]}", "step 1 needs \"op\"");
