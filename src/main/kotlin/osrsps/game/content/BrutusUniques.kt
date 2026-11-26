@@ -13,7 +13,7 @@ object BottomlessLines : Lines("bottomless_milk_bucket", "Transcript:Bottomless 
     val CHECK = line("check", "Check: {amount} use{s} of {type} (a type_* line)", "amount", "s", "type")
     val TYPE_MILK = line("type_milk", "the regular milk's name in Check and Fill")
     val TYPE_CHOCOLATEY = line("type_chocolatey", "chocolatey milk's name in Check and Fill")
-    val TYPE_CREAMY = line("type_creamy", "the milky mixture's name in Check and Fill (\"creamy milk\")")
+    val TYPE_CREAMY = line("type_creamy", "the milky mixture's name in Check and Fill")
     val TYPE_HANGOVER = line("type_hangover", "the hangover cure's name in Check and Fill")
     val NO_MILK = line("no_milk", "Fill with no milk of any kind in the backpack")
     val WRONG_MILK = line("wrong_milk", "Fill with only milk of another type than the bucket holds")
@@ -39,7 +39,7 @@ object BottomlessLines : Lines("bottomless_milk_bucket", "Transcript:Bottomless 
  * The bottomless milk bucket (Brutus step 5; the OSRS Wiki's Bottomless milk bucket and its transcript, read
  * 2026-11-22; ids and options from the 242 cache): up to [MAX_USES] uses of one kind of milk ([TYPES]).
  *
- * - **Fill**, or a bucket of the milk used on it: the empty bucket asks first ("ALL remaining milk ... will be LOST"),
+ * - **Fill**, or a bucket of the milk used on it: the empty bucket warns first ([BottomlessLines.FIRST_WARNING]),
  *   more than one bucket asks how many; each gives its bucket back.
  * - **Check** and **Empty** (with its warning).
  * - **Milked into**: a dairy cow milked with the bucket in the backpack puts a use in it every 7 ticks (6 with the
@@ -94,12 +94,14 @@ object BottomlessMilkBucket {
 
     private fun s(count: Int) = if (count == 1) "" else "s"
 
-    /** Sets the uses to [uses] of [type] and the buckets in the backpack to match. */
+    /** Sets the uses to [uses] of [type] and every bucket, in the backpack and the bank, to match (they share the uses). */
     fun set(player: Player, type: MilkType?, uses: Int) {
         player.charges[USES] = if (type == null) 0 else uses
         player.charges[TYPE] = if (type == null || uses == 0) 0 else TYPES.indexOf(type) + 1
         val (from, to) = if (uses(player) > 0) EMPTY to FILLED else FILLED to EMPTY
-        for ((slot, held) in player.inventory.contents()) if (held.id == from) player.inventory[slot] = InvObj(to, 1)
+        for (inv in listOf(player.inventory, player.bank)) {
+            for ((slot, held) in inv.contents()) if (held.id == from) inv[slot] = InvObj(to, held.count)
+        }
     }
 
     /** Whether a dairy cow milked now would fill the bucket: one held, empty or holding regular milk. */
