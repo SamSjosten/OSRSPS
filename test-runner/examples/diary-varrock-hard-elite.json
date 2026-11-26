@@ -74,6 +74,17 @@
    "comment": "torstol on the super attack"
   },
   {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "comment": "skillmulti, the Make-X box"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the super combat potion(4); an open box would stall the next script's reset"
+  },
+  {
    "step": "assertInventory",
    "itemId": 12695,
    "count": 1,
@@ -120,6 +131,17 @@
    "step": "useItemOnItem",
    "itemId": 269,
    "onItemId": 2436
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "comment": "skillmulti, the Make-X box"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the super combat potion(4); an open box would stall the next script's reset"
   },
   {
    "step": "assertInventory",
