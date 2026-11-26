@@ -2975,6 +2975,7 @@ class World(
         npcInteractions.leave(player)
         // Out of a random event's place by any way, its own items stay there.
         randomEvents.areas.moving(player, x, z)
+        osrsps.game.content.randomevents.Pillory.moving(player, x, z, level)
         player.x = x
         player.z = z
         player.level = level
