@@ -163,6 +163,8 @@ class Stairs(private val world: World, private val houses: Houses, private val f
     private fun landing(player: Player, house: Houses.Open, room: HouseRoom, loc: ZoneLoc): Pair<Int, Int>? {
         if (!houses.stillHere(house, player) || player.level != loc.level) return null
         val inRoom = (player.x - house.instance.baseX) shr 3 == room.x && (player.z - house.instance.baseZ) shr 3 == room.z
+        // GUESSED: one who has stepped out of the room lands just west of the staircase, still in its room (no live source;
+        // a safeguard so a delayed climb can't carry them anywhere else).
         return if (inRoom) player.x to player.z else loc.x - 1 to loc.z
     }
 
