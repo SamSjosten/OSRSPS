@@ -231,11 +231,12 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     /**
      * The block slots [player] may use, 1 to 7: one for every 50 quest points, up to six, and the seventh once the
-     * Lumbridge & Draynor Elite diary is done (the Wiki's rewards; guessed: its tasks done is enough, claimed or not).
+     * Lumbridge & Draynor Elite diary is done with the tiers below it (the Wiki's rewards; guessed: their tasks done is
+     * enough, claimed or not).
      */
     fun blockSlots(player: Player): List<Int> {
         val slots = (1..(player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)).toList()
-        val diary = world.diaries.tierDone(player, DiaryArea.LUMBRIDGE, DiaryTier.ELITE)
+        val diary = world.diaries.perkEarned(player, DiaryArea.LUMBRIDGE, DiaryTier.ELITE)
         return if (diary) slots + (BLOCK_SLOTS + 1) else slots
     }
 

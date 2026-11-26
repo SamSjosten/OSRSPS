@@ -226,9 +226,9 @@ private suspend fun ScriptContext.frontDoor(world: World, door: ZoneLoc) = with(
 private suspend fun ScriptContext.northDoor(world: World, door: ZoneLoc) {
     arriveDelay()
     val inside = player.x >= door.x
-    // The hard Varrock Diary opens it too (the Wiki's Varrock Diary rewards). Guessed: its tasks done is enough,
-    // claimed or not.
-    val diary = world.diaries.tierDone(player, DiaryArea.VARROCK, DiaryTier.HARD)
+    // The hard Varrock Diary opens it too (the Wiki's Varrock Diary rewards). Guessed: its tasks and the tiers
+    // below done are enough, claimed or not.
+    val diary = world.diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.HARD)
     if (!inside && !diary && player.skills.baseLevel(Skill.COOKING) < CooksGuild.NORTH_LEVEL) {
         world.message(player, CooksGuildLines.BANK_DOOR)
         return

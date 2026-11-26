@@ -130,7 +130,12 @@ class HeadlessDiaryPerksTest {
                     client.await("the refusal") { client.messages().firstOrNull { it.text == "[teleport.ge_locked]" } }
                     assertEquals(2, client.count(LAW))
 
+                    // The medium tier's tasks without the easy tier's: still locked.
                     client.done("diary complete varrock medium all")
+                    client.ifButton(Spells.SPELLBOOK, VARROCK_COMPONENT, Teleports.GRAND_EXCHANGE)
+                    client.await("the refusal again") { Unit.takeIf { client.messages().count { it.text == "[teleport.ge_locked]" } == 2 } }
+                    assertEquals(2, client.count(LAW))
+                    client.done("diary complete varrock easy all")
                     client.ifButton(Spells.SPELLBOOK, VARROCK_COMPONENT, Teleports.GRAND_EXCHANGE)
                     client.await("the Exchange") { client.position?.takeIf { it.x in 3163..3167 && it.z in 3477..3481 } }
                     assertEquals(1, client.count(LAW))
