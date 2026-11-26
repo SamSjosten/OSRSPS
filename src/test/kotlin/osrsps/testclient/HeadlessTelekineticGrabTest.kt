@@ -31,6 +31,7 @@ class HeadlessTelekineticGrabTest {
             ObjType(SPELL, "null", params = params, internalName = "33_tele_grab"),
             ObjType(COINS, "Coins", stackable = true, internalName = "coins"),
             ObjType(LOGS, "Logs", internalName = "logs"),
+            ObjType(NO_TAKE, "Statue piece", ops = listOf(null, null, null, null, null)),
         )
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = osrsps.game.GameRandom(7), objTypes = objTypes,
@@ -148,12 +149,30 @@ class HeadlessTelekineticGrabTest {
         }
     }
 
+    @Test
+    fun `an item with no Take casts nothing (exploit review R61A-1)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready(33)
+                client.give(TeleportObjs.LAW)
+                client.give(TeleportObjs.AIR)
+                client.drop(NO_TAKE, 1, 3226, 3218, 3222, 3218)
+                client.grab(NO_TAKE, 3226, 3218)
+                client.saw("refused", "[game.nothing_interesting]")
+                assertEquals(1, client.count(TeleportObjs.LAW), "nothing spent")
+                assertEquals(0, client.count(NO_TAKE))
+            }
+        }
+    }
+
     companion object {
         const val BACKPACK = 93
         const val MAGIC = 6
         const val SPELL = 3290
         const val COINS = 995
         const val LOGS = 1511
+        /** Made up: an obj whose ops have no Take. */
+        const val NO_TAKE = 30000
 
         /** magic_spellbook:telegrab, 218:30 in the 242 cache. */
         const val COMPONENT = 30

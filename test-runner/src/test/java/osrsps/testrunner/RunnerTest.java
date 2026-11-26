@@ -1124,6 +1124,19 @@ public class RunnerTest
 	}
 
 	@Test
+	public void castOnLocRetriesUntilItCan() throws Exception
+	{
+		game.castError = "no loc \"Obelisk of Air\" in the scene";
+		runner.start(script("{\"step\":\"castOnLoc\",\"interfaceId\":218,\"component\":62,\"loc\":\"Obelisk of Air\"}"), "file");
+		assertNull(cycle());
+		assertEquals("cast 218:62 on loc Obelisk of Air", game.actions.get(game.actions.size() - 1));
+		game.castError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("cast 218:62 on Obelisk of Air", r.steps.get(0).description);
+	}
+
+	@Test
 	public void castOnNpcRetriesUntilItCanThenSpotanimsCountOnlyAfterIt() throws Exception
 	{
 		game.castError = "no NPC \"Man\" in view";

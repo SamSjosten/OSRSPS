@@ -14,7 +14,7 @@ import osrsps.map.CollisionMap
 /**
  * Bones to Bananas and Bones to Peaches (Magic utility step U7a) through the headless client, with the spell objs
  * shaped as the 242 cache has them: every listed bone held turns into the fruit, slot for slot, for the spell's XP once;
- * noted bones and dragon bones stay; holding no bones, or only bones the spell doesn't change, casts nothing.
+ * noted bones, a stack and dragon bones stay; holding no bones, or only bones the spell doesn't change, casts nothing.
  * test-runner/examples/magic-bones-to-fruit.json does the same in RuneLite.
  */
 class HeadlessBonesToFruitTest {
@@ -42,6 +42,7 @@ class HeadlessBonesToFruitTest {
             ObjType(BONES_NOTE, "Bones", stackable = true, certlink = BONES, certtemplate = 799),
             ObjType(BIG_BONES, "Big bones", iops = bury, internalName = "big_bones"),
             ObjType(DRAGON_BONES, "Dragon bones", iops = bury, internalName = "dragon_bones"),
+            ObjType(STACKED_BONES, "Bones", iops = bury, stackable = true),
             ObjType(PEACH, "Peach", iops = listOf("Eat", null, null, null, "Drop"), internalName = "peach"),
         )
         World(
@@ -79,6 +80,7 @@ class HeadlessBonesToFruitTest {
                 client.give(BIG_BONES, 2)
                 client.give(DRAGON_BONES)
                 client.give(BONES_NOTE, 5)
+                client.give(STACKED_BONES, 4)
                 client.give(NATURE, 2)
                 client.give(TeleportObjs.WATER, 4)
                 client.give(TeleportObjs.EARTH, 4)
@@ -89,6 +91,7 @@ class HeadlessBonesToFruitTest {
                 assertEquals(0, client.count(BIG_BONES))
                 assertEquals(1, client.count(DRAGON_BONES), "not on the list")
                 assertEquals(5, client.count(BONES_NOTE), "noted")
+                assertEquals(4, client.count(STACKED_BONES), "a stack isn't changed whole for one fruit")
                 assertEquals(1, client.count(NATURE))
                 assertEquals(2, client.count(TeleportObjs.WATER))
                 client.await("25 XP") { if (client.xp() == before + 25) Unit else null }
@@ -133,6 +136,8 @@ class HeadlessBonesToFruitTest {
         const val BONES = 526
         const val BONES_NOTE = 527
         const val BIG_BONES = 532
+        /** One of the listed bones, made stackable here to check that a stack is left alone. */
+        const val STACKED_BONES = 30973
         const val DRAGON_BONES = 536
         const val PEACH = 6883
 

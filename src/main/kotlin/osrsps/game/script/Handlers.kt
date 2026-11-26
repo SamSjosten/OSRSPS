@@ -42,6 +42,12 @@ enum class OpTarget {
      * with the item in [Op.obj] and its slot in [Op.sub].
      */
     SPELL_ON_OBJ,
+
+    /**
+     * A spell cast on a loc (Charge Air Orb on its obelisk), by loc type id, with the spell's packed magic tab component
+     * in [Op.obj], once the player has walked to the loc.
+     */
+    SPELL_ON_LOC,
 }
 
 /**
@@ -78,6 +84,7 @@ data class Op(
         OpTarget.OBJ_ON_LOC -> "obj $obj on loc $id"
         OpTarget.OBJ_ON_PLAYER -> "obj $obj on player ${player?.username}"
         OpTarget.SPELL_ON_OBJ -> "spell $interfaceId:$componentId on obj $obj"
+        OpTarget.SPELL_ON_LOC -> "spell ${obj ushr 16}:${obj and 0xFFFF} on loc $id"
         else -> "${target.name.lowercase()} $id op $option"
     }
 
@@ -100,6 +107,10 @@ data class Op(
         /** The spell on [interfaceId]:[componentId] cast on item [obj] in inventory slot [slot]. */
         fun spellOnObj(interfaceId: Int, componentId: Int, obj: Int, slot: Int) =
             Op(OpTarget.SPELL_ON_OBJ, packButton(interfaceId, componentId), 1, slot, obj = obj)
+
+        /** The spell on [interfaceId]:[componentId] cast on [loc], which shows as loc type [locType]. */
+        fun spellOnLoc(locType: Int, interfaceId: Int, componentId: Int, loc: ZoneLoc? = null) =
+            Op(OpTarget.SPELL_ON_LOC, locType, 1, loc = loc, obj = packButton(interfaceId, componentId))
 
         fun packButton(interfaceId: Int, componentId: Int): Int {
             require(interfaceId in 0..0xFFFF && componentId in 0..0xFFFF) { "Bad component $interfaceId:$componentId" }
@@ -187,9 +198,20 @@ class Handlers {
         handlers[key] = handler
     }
 
+    /** The spell on magic tab component [interfaceId]:[componentId] cast on loc type [locId]. */
+    fun onSpellOnLoc(locId: Int, interfaceId: Int, componentId: Int, handler: Handler) {
+        require(locId >= 0) { "Bad id $locId" }
+        val key = Key(OpTarget.SPELL_ON_LOC, locId, Op.packButton(interfaceId, componentId))
+        require(key !in handlers) { "spell $interfaceId:$componentId on loc $locId already has a handler" }
+        handlers[key] = handler
+    }
+
     fun register(target: OpTarget, id: Int, option: Int, handler: Handler) {
-        require(target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC && target != OpTarget.OBJ_ON_PLAYER && target != OpTarget.SPELL_ON_OBJ) {
-            "Register items used on things with onObjOnNpc, onObjOnObj, onObjOnLoc or onObjOnPlayer, and spells on items with onSpellOnObj"
+        require(
+            target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC && target != OpTarget.OBJ_ON_PLAYER &&
+                target != OpTarget.SPELL_ON_OBJ && target != OpTarget.SPELL_ON_LOC,
+        ) {
+            "Register items used on things with onObjOnNpc, onObjOnObj, onObjOnLoc or onObjOnPlayer, and spells with onSpellOnObj or onSpellOnLoc"
         }
         val maxOption = when (target) {
             OpTarget.BUTTON -> MAX_BUTTON_OPTION
@@ -220,6 +242,7 @@ class Handlers {
         if (op.target == OpTarget.OBJ_ON_NPC || op.target == OpTarget.OBJ_ON_LOC) {
             return handlers[Key(op.target, op.id, op.obj)] ?: handlers[Key(op.target, op.id, ANY_OBJ)]
         }
+        if (op.target == OpTarget.SPELL_ON_LOC) return handlers[Key(op.target, op.id, op.obj)]
         if (op.target == OpTarget.OBJ_ON_OBJ) {
             // A pair's own handler first, then one for either item with any other.
             return handlers[Key(op.target, op.id, op.obj)] ?: handlers[Key(op.target, op.id, ANY_OBJ)] ?: handlers[Key(op.target, op.obj, ANY_OBJ)]

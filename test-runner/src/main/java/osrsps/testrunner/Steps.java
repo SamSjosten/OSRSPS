@@ -1689,6 +1689,43 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.31.0) Picks a spell in an interface (the spellbook) and casts it on a loc. Waits (to the timeout) for the
+	 * interface and the loc; does not wait for the result.
+	 */
+	static final class CastOnLoc extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final String loc;
+		final int locId;
+		final Tile at;
+
+		CastOnLoc(long timeoutMs, int interfaceId, int component, String loc, int locId, Tile at)
+		{
+			super("castOnLoc", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.loc = loc;
+			this.locId = locId;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.castOnLoc(interfaceId, component, loc, locId, at);
+			return error == null ? Poll.pass("cast") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "cast " + interfaceId + ":" + component + " on " + (loc != null ? loc : "loc " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
 	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
 	static final class ItemOption extends Step
 	{

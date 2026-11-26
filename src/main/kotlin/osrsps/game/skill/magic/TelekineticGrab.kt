@@ -42,7 +42,8 @@ object TelekineticGrabLines : Lines("telekinetic_grab", "Telekinetic Grab") {
  * arrives; a full backpack refusing the cast with Take's message and nothing spent; waiting out the 3 ticks rather than
  * dropping the click; the projectile's heights and timing (combat's); the impact graphic on the item's tile at
  * height 0; the cast going on when the player walks off after it (only distance stops it); no XP at the Fountain of
- * Rune. Not built: the Tower of Life, Ahab's beer and the other items the Wiki lists as ungrabbable, and members'
+ * Rune; the 3 ticks shared with the other spells cast on items; an item with no Take, or across unloaded map, refused
+ * with "Nothing interesting happens." Not built: the Tower of Life, Ahab's beer and the other items the Wiki lists as ungrabbable, and members'
  * objects on free worlds (this world is a members' world).
  */
 class TelekineticGrab(
@@ -51,9 +52,6 @@ class TelekineticGrab(
     private val collision: CollisionMap,
     private val movement: Movement,
 ) {
-    /** The tick before which each player can't cast it again. */
-    private val nextCast = java.util.WeakHashMap<Player, Long>()
-
     /** Whether component [component] of the magic tab is this spell. */
     fun casts(component: Int): Boolean = spell != null && spell.component == component
 
@@ -76,14 +74,14 @@ class TelekineticGrab(
             player.level == level && ((player.x == x && player.z == z) || LineOfSight.inRange(collision, level, player.x, player.z, 1, x, z, 1, 1, RANGE))
 
         /** Waiting out the 3 ticks in range keeps the click (Codex review on #982), rather than "I can't reach that!". */
-        override fun holding(player: Player): Boolean = inRange(player) && (nextCast[player] ?: 0L) > world.tick
+        override fun holding(player: Player): Boolean = inRange(player) && world.itemSpells.readyAt(player) > world.tick
 
         override fun tryInteract(player: Player): Boolean {
             if (player.level != level) return true
             val obj = world.groundObjs.find(player, id, x, z, level) ?: return true
             if (!inRange(player)) return false
             player.waypoints.clear()
-            if ((nextCast[player] ?: 0L) > world.tick) return false
+            if (world.itemSpells.readyAt(player) > world.tick) return false
             cast(player, spell, obj)
             return true
         }
@@ -95,6 +93,12 @@ class TelekineticGrab(
         if (!casting.hasLevel(player, spell)) return
         val type = world.objTypes[obj.id] ?: return
         val text = world.textFor(player)
+        // An item with no Take can't be grabbed either, as a click can't take it (exploit review R61A-1); nor one across
+        // a gap where no map is loaded, such as the void between an instance's rooms (R61A-4).
+        if (type.ops.getOrNull(GroundObjs.TAKE_OPTION - 1) == null || !overLoadedMap(player, obj)) {
+            player.message(text[GameLines.NOTHING_INTERESTING])
+            return
+        }
         // An item whose Take is content's own (a quest piece, giant bones that don't fit) isn't grabbed: nothing
         // interesting happens, nothing spent (guessed, as the Wiki's other ungrabbable items). Clues and scroll boxes go
         // through the trails' own checks on arrival.
@@ -108,7 +112,8 @@ class TelekineticGrab(
         }
         val costs = casting.runesToPay(player, spell) ?: return
         if (!casting.pay(player, costs)) return
-        nextCast[player] = world.tick + spell.ticks
+        // The clock alchemy, Superheat Item and the enchants share, so no two of them land in one tick (exploit review R61A-2).
+        casting.startClock(player, spell.ticks)
         if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
         player.infos.playerInfo.avatar.extendedInfo.setFaceLoc(obj.x, obj.z, 1, 1, instant = false, walkMode = 0)
         player.anim(spell.anim)
@@ -122,7 +127,9 @@ class TelekineticGrab(
         )
         // A queue first counts down in the next tick's script phase, before this tick's movement phase that casts, so
         // ARRIVAL - 1 lands it ARRIVAL ticks on (Codex review on #982).
-        world.scripts.queue(player, QUEUE, QueueType.SOFT, ARRIVAL - 1) { land(player, obj) }
+        // A normal queue waits out a delay or an open interface rather than closing it (exploit review R61A-3); the
+        // distance is checked again when it lands.
+        world.scripts.queue(player, QUEUE, QueueType.NORMAL, ARRIVAL - 1) { land(player, obj) }
     }
 
     /** The graphic reaches [obj]: it comes to the player if it is still there and they are near enough. */
@@ -133,6 +140,23 @@ class TelekineticGrab(
             return
         }
         if (isTrailPickup(obj.id)) world.trails.takeChecked(player, obj) else world.groundObjs.take(player, obj)
+    }
+
+    /**
+     * Whether every tile on the straight line from [player] to [obj] has a map loaded. Line of sight passes over unloaded
+     * tiles, so without this a grab could reach across the void between an instance's rooms into one the player can't
+     * walk to (exploit review R61A-4).
+     */
+    private fun overLoadedMap(player: Player, obj: ZoneObj): Boolean {
+        val dx = obj.x - player.x
+        val dz = obj.z - player.z
+        val steps = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dz))
+        for (i in 0..steps) {
+            val x = player.x + if (steps == 0) 0 else Math.round(dx * i.toDouble() / steps).toInt()
+            val z = player.z + if (steps == 0) 0 else Math.round(dz * i.toDouble() / steps).toInt()
+            if (collision[x, z, obj.level] and CollisionFlag.UNLOADED != 0) return false
+        }
+        return true
     }
 
     /** A clue scroll or scroll box, whose pickup has the trails' own rules. */

@@ -1439,8 +1439,29 @@ final class ClientGame implements Game
 		{
 			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
 		}
-		// As locOption finds a loc, without an option to match: the nearest one.
-		WorldPoint here = me.getWorldLocation();
+		TileObject best = nearestLoc(wv, me.getWorldLocation(), locName, locId, target);
+		if (best == null)
+		{
+			return "no loc " + (locName != null ? "\"" + locName + "\"" : "id " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y)
+				+ " in the scene";
+		}
+		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		ObjectComposition c = locComposition(best.getId());
+		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
+		// Use on the slot selects it; the click on the loc sends OPLOCT with the item, as useItemOnItem's second click
+		// sends IF_BUTTONT. Not yet seen in the client: whether these params are what a real click on the loc gives.
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
+		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, best.getId(), -1, "Use",
+			itemName + " -> " + (c == null ? "" : c.getName()));
+		return null;
+	}
+
+	/**
+	 * As locOption finds a loc, without an option to match: the nearest one with this name (or id) on the player's plane,
+	 * covering {@code target} when given; null if none.
+	 */
+	private TileObject nearestLoc(WorldView wv, WorldPoint here, String locName, int locId, LocalPoint target)
+	{
 		TileObject best = null;
 		int bestDistance = Integer.MAX_VALUE;
 		for (net.runelite.api.Tile[] column : wv.getScene().getTiles()[wv.getPlane()])
@@ -1470,19 +1491,42 @@ final class ClientGame implements Game
 				}
 			}
 		}
+		return best;
+	}
+
+	@Override
+	public String castOnLoc(int interfaceId, int component, String locName, int locId, osrsps.testrunner.Tile at)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		int packed = interfaceId << 16 | component;
+		Widget spell = client.getWidget(packed);
+		if (spell == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint target = at == null ? null : LocalPoint.fromWorld(wv, at.x, at.y);
+		if (at != null && target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		TileObject best = nearestLoc(wv, me.getWorldLocation(), locName, locId, target);
 		if (best == null)
 		{
 			return "no loc " + (locName != null ? "\"" + locName + "\"" : "id " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y)
 				+ " in the scene";
 		}
-		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		String spellName = spell.getName() == null ? "" : spell.getName();
 		ObjectComposition c = locComposition(best.getId());
 		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
-		// Use on the slot selects it; the click on the loc sends OPLOCT with the item, as useItemOnItem's second click
-		// sends IF_BUTTONT. Not yet seen in the client: whether these params are what a real click on the loc gives.
-		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
-		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, best.getId(), -1, "Use",
-			itemName + " -> " + (c == null ? "" : c.getName()));
+		// The spell first, as for castOnItem; then the loc, which the client sends as OPLOCT with the spell.
+		client.menuAction(-1, packed, MenuAction.WIDGET_TARGET, 0, -1, "Cast", spellName);
+		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, best.getId(), -1, "Cast",
+			spellName + " -> " + (c == null ? "" : c.getName()));
 		return null;
 	}
 
@@ -1511,6 +1555,24 @@ final class ClientGame implements Game
 		}
 		return -1;
 	}
+
+	/** The worn op (2 to 9) whose name, among the item's params 451 to 458, is [option]; -1 when none is. */
+	private int wornParamOp(int itemId, String option)
+	{
+		ItemComposition item = client.getItemDefinition(itemId);
+		for (int i = 0; item != null && i < 8; i++)
+		{
+			String name = item.getStringValue(FIRST_WORN_OP_PARAM + i);
+			if (name != null && Dialogue.clean(name).equalsIgnoreCase(option))
+			{
+				return i + 2;
+			}
+		}
+		return -1;
+	}
+
+	/** The item param naming its first worn option (op 2); params 451 to 458 name ops 2 to 9. */
+	private static final int FIRST_WORN_OP_PARAM = 451;
 
 	/** Ops 6 and up sort under the others in a component's menu, as RuneLite's menu entry swapper has them. */
 	private static MenuAction ccOp(int op)
@@ -1572,6 +1634,14 @@ final class ClientGame implements Game
 		// Op 1 is Remove and 10 Examine; the item's own worn options are ops 2 to 9 (its params 451 to 458), as
 		// RuneLite's menu entry swapper and our server have them, and the slot's actions say which is which.
 		int op = REMOVE.equalsIgnoreCase(option) ? 1 : isExamine(option) ? EXAMINE_OP : actionOp(slot.getActions(), option);
+		if (op < 0 && slot.getActions() == null)
+		{
+			// Seen on 217 (nightly 26 Nov 2026, runner 0.29.0): the slot's actions came back null with a ring of forging and
+			// an amulet of glory worn, though Remove (op 1, never looked up) works. Not known yet whether the real client
+			// shows these options there; the headless tests cover the server's side. Until that is known, the option is
+			// found in the item's own worn-op params, as the server reads them, so the script can go on.
+			op = wornParamOp(itemId, option);
+		}
 		if (op < 0)
 		{
 			return "the item in slot " + wearpos + " (" + itemId + ") has no option \"" + option + "\"; its options are "

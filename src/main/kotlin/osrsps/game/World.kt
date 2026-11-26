@@ -146,6 +146,8 @@ import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
+import osrsps.game.content.registerCats
+import osrsps.game.content.Cats
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -545,6 +547,8 @@ class World(
 
     /** Demonic Brutus's, the scoreboard's Read (Demonic). */
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
+    /** Pet cats out following their players; see [Cats]. */
+    val cats = Cats(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -1170,6 +1174,9 @@ class World(
     /** Telekinetic Grab; see [osrsps.game.skill.magic.TelekineticGrab]. */
     val telekineticGrab = osrsps.game.skill.magic.TelekineticGrab(this, osrsps.game.skill.magic.TelekineticGrab.load(objTypes), collision, movement)
 
+    /** Charge Water, Earth, Fire and Air Orb; see [osrsps.game.skill.magic.ChargeOrbs]. */
+    val chargeOrbs = osrsps.game.skill.magic.ChargeOrbs(this, osrsps.game.skill.magic.ChargeOrbs.load(objTypes))
+
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
@@ -1328,6 +1335,7 @@ class World(
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
+        registerCats(this, cats)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1449,6 +1457,7 @@ class World(
         alchemy.register()
         superheat.register()
         bonesToFruit.register()
+        chargeOrbs.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
         jewelleryEffects.register()
@@ -2601,6 +2610,7 @@ class World(
         collectionLog.login(player)
         inferno.login(player)
         tearsOfGuthix.login(player)
+        cats.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -2877,7 +2887,8 @@ class World(
         if (held(player)) return@act
         trades.interrupt(player)
         if (interfaceId != Spells.SPELLBOOK || !telekineticGrab.casts(componentId)) {
-            logger.info { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
+            // Debug, not info: a client can send these as fast as it likes (exploit review R61A-6).
+            logger.debug { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
             follows.clickedElsewhere(player)
             return@act
         }
@@ -2890,6 +2901,12 @@ class World(
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
+        if (interfaceId == Spells.SPELLBOOK) {
+            npcInteractions.leave(player)
+            locInteractions.castOn(player, id, x, z, interfaceId, componentId, ctrl)
+            follows.clickedElsewhere(player)
+            return@act
+        }
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -3717,6 +3734,7 @@ class World(
                     it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
                 )
             },
+            say = { extendedInfo.setSay(it) },
         )
     }
 
@@ -3916,6 +3934,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

@@ -180,7 +180,8 @@ class HeadlessReportTest {
                 alice.sendReport("bob", 14)
                 alice.saw("[report.received]")
                 assertEquals(listOf("bob"), server.world.reports.recent().map { it.name })
-                assertTrue(Reports.INTERFACE !in alice.openInterfaces())
+                // The close and the message can reach the client in either order, so wait for the close.
+                alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
                 // A second report on the same close isn't taken.
                 pass(Reports.COOLDOWN)
                 alice.sendReport("carol", 6)

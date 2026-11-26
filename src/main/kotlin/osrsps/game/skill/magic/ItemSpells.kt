@@ -88,6 +88,14 @@ class ItemSpells(private val world: World) {
         }
     }
 
+    /** The tick from which [player] can cast an item spell again (Telekinetic Grab shares the clock, exploit review R61A-2). */
+    fun readyAt(player: Player): Long = nextCast[player] ?: 0L
+
+    /** Starts the shared clock for a cast that doesn't go through [cast]: [ticks] until the next. */
+    fun startClock(player: Player, ticks: Int) {
+        nextCast[player] = world.tick + ticks
+    }
+
     /** Whether [player] has the level for [spell], saying so if not. */
     fun hasLevel(player: Player, spell: ItemSpell): Boolean {
         if (player.skills.currentLevel(Skill.MAGIC) >= spell.level) return true
