@@ -51,6 +51,7 @@ object CowbellAmulet {
     val AMULETS = listOf(EMPTY, CHARGED)
     const val AIR_RUNE = 556
 
+    // Guessed: the charges belong to the player, not to each amulet (live keeps them on each amulet).
     const val CHARGES = "cowbell_amulet"
     const val MAX_CHARGES = 1_000
 
@@ -65,8 +66,9 @@ object CowbellAmulet {
     const val MILK_TICKS = 6
 
     val DESTINATION = osrsps.map.Tile(3259, 3277)
-    const val DESTINATION_RADIUS = 2
+    const val DESTINATION_RADIUS = 2 // Guessed: the Wiki's r=2 read as a square of 2 tiles each way.
 
+    // Guessed: the standard spellbook's teleport animation, graphic and 3 ticks.
     const val TELEPORT_ANIM = 714
     const val TELEPORT_SPOTANIM = 111
     const val TELEPORT_SPOTANIM_HEIGHT = 92
@@ -89,6 +91,7 @@ object CowbellAmulet {
     }
 
     /** Air runes on the amulet, or its Charge: how many to add, then that many taken for as many charges. */
+    // Guessed: Charge does what air runes used on it do.
     suspend fun ScriptContext.charge(world: World) {
         val have = player.charges[CHARGES]
         if (have >= MAX_CHARGES) return world.message(player, CowbellLines.FULL)
@@ -170,7 +173,7 @@ object CowbellAmulet {
             val type = world.objTypes[EMPTY]
             if (type != null && !anywhere(player)) {
                 world.groundObjs.give(player, type, 1)
-                // The lost amulet's charges went with it.
+                // Guessed: the lost amulet's charges went with it, so the new one starts empty.
                 player.charges[CHARGES] = 0
             }
             objbox(EMPTY, CowbellLines.HANDS)
