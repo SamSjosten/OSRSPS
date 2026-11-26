@@ -12,6 +12,8 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Scenario
+import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.content.CatLines
@@ -30,7 +32,7 @@ class HeadlessCatsTest {
     private val ops = listOf("Pick-up", null, "Talk-to", "Chase", "Interact")
     private val kitten = NpcType(KITTEN_NPC, "Kitten", ops = ops, internalName = "kittenpet1")
     private val cat = NpcType(CAT_NPC, "Cat", ops = ops, internalName = "growncat")
-    private val rat = NpcType(RAT_NPC, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat")
+    private val rat = NpcType(RAT_NPC, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat", stats = osrsps.game.NpcStats(hitpoints = 2))
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -44,6 +46,7 @@ class HeadlessCatsTest {
                 ObjType(Cats.BALL_OF_WOOL, "Ball of wool"),
             ),
             npcSpawns = listOf(NpcSpawn(rat, 3230, 3218, source = "test")),
+            scenarios = Scenarios(listOf(Scenario.parse("bare", """{ "position": { "x": 3225, "z": 3218 } }"""))),
             cycleMillis = millis,
         )
     }
@@ -133,7 +136,8 @@ class HeadlessCatsTest {
                 // Pick-up puts it back; dropped again, it is the same kitten.
                 client.command("empty")
                 client.await("the backpack empty") { if (client.count(KITTEN_OBJ) == 0 && client.count(SARDINE) == 0) Unit else null }
-                client.dialogueView?.let { client.continueDialogue() }
+                // ::empty may close a page as it is read here, so a page gone in between is no failure.
+                client.dialogueView?.let { runCatching { client.continueDialogue() } }
                 client.npcOp(index, Cats.PICK_UP)
                 client.await("the kitten picked up") { if (client.count(KITTEN_OBJ) == 1) Unit else null }
                 assertEquals(-1, alice.vars[Cats.FOLLOWER_OBJ])
@@ -174,9 +178,11 @@ class HeadlessCatsTest {
                 client.drop(CAT_OBJ)
                 val index = client.npcIndex(CAT_NPC)
 
-                // Half the time a cat catches the rat; it is back after its respawn to try again.
+                // Half the time a cat catches the rat; it is back after its respawn to try again. Each rat is hurt
+                // first, so the one back after a catch shows it is a fresh rat at full hitpoints.
                 var tries = 0
                 while (cats.ratsCaught(bob) == 0 && tries++ < 20) {
+                    server.world.npcs.all.filter { it.type.id == RAT_NPC }.forEach { it.hitpoints = 1 }
                     client.npcOp(index, Cats.CHASE)
                     client.await("the chase over", timeoutMillis = 10_000) {
                         client.messages().lastOrNull()?.takeIf { cats.ratsCaught(bob) > 0 || it.text == DialogueText.NONE[CatLines.GOT_AWAY] }
@@ -184,6 +190,9 @@ class HeadlessCatsTest {
                     client.awaitTicks(Cats.RAT_RESPAWN_TICKS + 2)
                 }
                 assertEquals(1, cats.ratsCaught(bob))
+                client.await("a fresh rat back") {
+                    server.world.npcs.all.firstOrNull { it.type.id == RAT_NPC && !it.dead && it.hitpoints == rat.stats.hitpoints }
+                }
 
                 client.npcOp(index, Cats.INTERACT)
                 client.awaitDialogue("the interact menu") { it is DialogueView.Menu && it.options.size == 3 }
@@ -199,6 +208,33 @@ class HeadlessCatsTest {
                 assertEquals(-1, bob.vars[Cats.FOLLOWER_OBJ])
                 client.await("the cat gone") { if (server.world.npcs.all.none { it.type.id == CAT_NPC }) Unit else null }
                 assertEquals(1, cats.ratsCaught(bob), "the count stays")
+            }
+        }
+    }
+
+    @Test
+    fun `a reset puts back the cat that followed before the scenario, and a kitten from the scenario goes`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val cats = server.world.cats
+            server.login("cal").use { client ->
+                client.await("the login rebuild") { client.position }
+                val cal = server.world.playerNamed("cal")!!
+                client.commandReply("item $CAT_OBJ 1") { it.contains("Pet cat") }
+                client.drop(CAT_OBJ)
+                client.await("the cat following") { cats.follower(cal) }
+
+                client.command("scenario bare")
+                client.await("at the scenario's tile") { client.position?.takeIf { it == Coord(3225, 3218, 0) } }
+                client.npcOp(client.npcIndex(CAT_NPC), Cats.PICK_UP)
+                client.await("the cat picked up") { if (cats.follower(cal) == null) Unit else null }
+                client.commandReply("item $KITTEN_OBJ 1") { it.contains("Pet kitten") }
+                client.drop(KITTEN_OBJ)
+                client.await("the kitten following") { cats.follower(cal)?.takeIf { cats.followerKind(cal)?.stage == Cats.Stage.KITTEN } }
+
+                client.command("reset")
+                client.await("the cat back") { cats.follower(cal)?.takeIf { it.type.id == CAT_NPC } }
+                assertEquals(CAT_OBJ, cal.vars[Cats.FOLLOWER_OBJ])
+                client.await("the kitten gone") { if (server.world.npcs.all.none { it.type.id == KITTEN_NPC }) Unit else null }
             }
         }
     }

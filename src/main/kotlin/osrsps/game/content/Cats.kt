@@ -328,6 +328,14 @@ class Cats(private val world: World) {
     fun logout(player: Player) = despawn(player)
 
     /**
+     * `::reset` putting back [player]'s vars from before their scenario: the follower out now goes before, and the
+     * one the restored `follower_obj` holds comes back after, so the live cat and the vars agree (Codex review on #980).
+     */
+    fun beforeRestore(player: Player) = despawn(player)
+
+    fun afterRestore(player: Player) = login(player)
+
+    /**
      * Each tick a follower is out: it keeps up with its player (put back beside them after a teleport or on another
      * level), a kitten's care runs down, and it grows.
      */
@@ -632,7 +640,8 @@ class Cats(private val world: World) {
 
     /**
      * The rat dies to the cat: dead where it stands for its death animation's ticks, so clients see the animation and
-     * nothing can attack it, then out of sight until it respawns, with nothing dropped.
+     * nothing can attack it, then gone with nothing dropped, and a fresh rat from its spawn at the respawn time, as a
+     * combat death brings back, so no damage or poison carries over (Codex review on #980).
      */
     private fun catch(rat: Npc) {
         val def = world.combat.npcCombat[rat.type]
@@ -642,10 +651,9 @@ class Cats(private val world: World) {
         val respawn = maxOf(def?.respawnTicks ?: RAT_RESPAWN_TICKS, deathTicks)
         world.npcScripts.later(deathTicks) {
             if (world.npcs[rat.index] !== rat) return@later
-            rat.dead = false
-            world.hide(rat)
+            world.removeNpc(rat)
+            if (rat.spawn.respawns) world.npcScripts.later(respawn - deathTicks) { world.spawnNpc(rat.spawn) }
         }
-        world.npcScripts.later(respawn) { if (world.npcs[rat.index] === rat) world.show(rat) }
     }
 
     // ---- Items used on the cat ----------------------------------------------------------------------------------
