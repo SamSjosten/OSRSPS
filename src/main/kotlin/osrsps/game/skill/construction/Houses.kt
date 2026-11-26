@@ -580,11 +580,16 @@ class Houses(private val world: World) {
         lay(house, state, type, cell, rotation)
     }
 
-    /** Takes away [house]'s ghost, if it has one that wasn't built, putting the yard (or open air upstairs) back. */
+    /**
+     * Takes away [house]'s ghost, if it has one that wasn't built, putting the yard (or open air upstairs) back. Anyone who
+     * walked into an upstairs ghost goes to the floor below, as when a room upstairs is removed.
+     */
     private fun clearGhost(house: Open, state: HouseState) {
         val cell = house.ghost ?: return
         house.ghost = null
-        if (state.room(cell.x, cell.z, cell.floor) == null) lay(house, state, if (cell.floor == House.GROUND) RoomType.YARD else null, cell, 0)
+        if (state.room(cell.x, cell.z, cell.floor) != null) return
+        lay(house, state, if (cell.floor == House.GROUND) RoomType.YARD else null, cell, 0)
+        if (cell.floor == House.UPPER) Stairs.strand(world, house, state, cell)
     }
 
     /**

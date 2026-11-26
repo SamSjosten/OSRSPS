@@ -31,6 +31,7 @@ import osrsps.game.skill.construction.FurnitureData
 import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.Kitchen
+import osrsps.game.skill.construction.Houses
 import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.skill.construction.Stairs
@@ -1051,6 +1052,26 @@ class HeadlessHouseTest {
                 // Up, and Remove-room on the top: the room goes and the player with it to the floor below.
                 client.locOp(OAK_STAIRS, sx, sz, 1)
                 client.await("upstairs again") { client.position?.takeIf { it.level == House.UPPER } }
+
+                // A parlour's ghost upstairs, over a room below, walked into and left: the next Build takes it away and
+                // whoever stands in it goes to the floor below.
+                player.house!!.rooms += HouseRoom(RoomType.PARLOUR, hx + 1, hz)
+                client.command("item ${EstateAgent.COINS} ${RoomType.PARLOUR.cost}")
+                client.await("the parlour's coins") { if (client.count(EstateAgent.COINS) == RoomType.PARLOUR.cost) Unit else null }
+                val doorX = instance.baseX + (hx shl 3) + 7
+                val doorZ = instance.baseZ + (hz shl 3) + 3
+                client.locOp(House.DOOR_HOTSPOT_LEFT, doorX, doorZ, House.BUILD)
+                client.await("the add-room menu upstairs") { if (House.ADD_ROOM in client.openInterfaces()) Unit else null }
+                client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, RoomType.PARLOUR.id)
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+                assertEquals(Houses.Cell(hx + 1, hz, House.UPPER), server.world.houses.houseAt(doorX, doorZ)?.ghost)
+                client.command("tele ${doorX + 4} $doorZ ${House.UPPER}")
+                client.await("in the ghost") { client.position?.takeIf { it.x == doorX + 4 && it.level == House.UPPER } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, doorX, doorZ, House.BUILD)
+                client.await("down from the ghost") { client.position?.takeIf { it.level == House.GROUND } }
+                assertNull(player.house!!.room(hx + 1, hz, House.UPPER))
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.await("upstairs a third time") { client.position?.takeIf { it.level == House.UPPER } }
                 client.locOp(OAK_STAIRS_TOP, sx, sz, Stairs.REMOVE_ROOM)
                 client.menu("construction.remove_yes", "construction.remove_no")
                 client.chooseOption(1)
