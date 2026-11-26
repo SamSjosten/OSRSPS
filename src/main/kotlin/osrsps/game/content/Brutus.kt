@@ -66,6 +66,9 @@ class BrutusPens(private val world: World) {
     class Run(val instance: Instance, val owner: String) {
         var boss: Npc? = null
 
+        /** The tick of the player's first attack on this Brutus, for the scoreboard's times; -1 before it. */
+        var fightStart = -1L
+
         fun inside(x: Int, z: Int) = Tile(instance.baseX + x - Brutus.FIELD_X, instance.baseZ + z - Brutus.FIELD_Z)
     }
 
@@ -148,7 +151,16 @@ object Brutus {
     const val GATE_Z = 3294
 
     /** The locs whose handlers work in the fields, the instances: the way out's leaves and the dairy cows. */
-    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT) + GroatsFarm.DAIRY_COWS
+    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT) + GroatsFarm.DAIRY_COWS +
+        // The scoreboard west of the pen is inside the copied field: Read works there too.
+        setOf(BrutusScoreboard.SCOREBOARD_MULTI, BrutusScoreboard.SCOREBOARD, BrutusScoreboard.SCOREBOARD_DEMONIC)
+
+    /**
+     * The tick [player] launched their attack on [boss] (as they swing, fire or cast, before it lands), or null when they
+     * haven't attacked this Brutus. Their later attacks move it on, so it is read every tick until noted.
+     */
+    fun firstAttack(player: Player, boss: Npc): Long? =
+        player.launchedAtNpcTick.takeIf { player.launchedAtNpc === boss && it >= boss.spawnTick }
 
     /** The cache's `cowboss_regular_dontaskagain`: Release goes straight in. */
     const val DONT_ASK_VARBIT = 20160
@@ -198,12 +210,18 @@ fun registerBrutus(world: World, pens: BrutusPens) {
         world.npcScripts.onDeath(listOf(BOSS)) { boss ->
             boss.effects.say(world.dialogueText[BrutusLines.DYING])
             // Guessed: the kill counts for the player whose field it is (the Wiki doesn't say; the field is theirs alone).
-            val owner = pens.runAt(boss.x, boss.z)?.owner ?: return@onDeath
-            val player = world.onlinePlayers.firstOrNull { it.saveKey == owner && !it.loggedOut } ?: return@onDeath
+            val run = pens.runAt(boss.x, boss.z) ?: return@onDeath
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == run.owner && !it.loggedOut }
+            // A kill on the first attack dies before his fight's next tick could note it: the attack's tick is the start.
+            val start = run.fightStart.takeIf { it >= 0 } ?: player?.let { firstAttack(it, boss) }
+            val ticks = start?.let { world.tick - it }
+            run.fightStart = -1
+            if (player == null) return@onDeath
             if (KILL_COUNT_VARP < player.vars.types.varpCount) {
                 player.vars[KILL_COUNT_VARP] = player.vars[KILL_COUNT_VARP] + 1
                 world.message(player, BrutusLines.KILL_COUNT, "count" to player.vars[KILL_COUNT_VARP])
             }
+            BrutusScoreboard.killed(world, player, ticks)
         }
         // "Brutus' drops appear on the his tile closest to the player, rather than under his centre or south-west tile".
         world.dropTiles[BOSS] = { boss, killer ->

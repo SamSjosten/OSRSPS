@@ -91,7 +91,7 @@ class MetallicDragonfireTest {
 
     @Test
     fun `a metal dragon that can't reach the player breathes at them from its range, and one with no range doesn't`() {
-        val far = fireLines(breathFromAfar(range = 8))
+        val far = fireLines(breathFromAfar(range = 10))
         assertTrue(far.size >= 2, "a breath each time its attack comes round: $far")
         assertTrue(fireLines(breathFromAfar(range = 0)).isEmpty())
         // It walks up to the moat, 2 tiles off, and no nearer.
@@ -99,11 +99,11 @@ class MetallicDragonfireTest {
     }
 
     @Test
-    fun `the metal dragons breathe from 8 tiles, the red dragons only in reach`() {
+    fun `the metal dragons breathe from 10 tiles, the red dragons only in reach`() {
         val names = listOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon")
         val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(247 + i, name, internalName = name) }.toTypedArray())
         val combat = NpcCombat.load(types, SeqNames.NONE)
-        assertEquals(listOf(0, 8, 8, 8), names.map { combat[types.find(it)!!]!!.dragonfire!!.range })
+        assertEquals(listOf(0, 10, 10, 10), names.map { combat[types.find(it)!!]!!.dragonfire!!.range })
     }
 
     private fun fireLines(messages: List<String>) = messages.filter { it.startsWith("[dragonfire.") }
