@@ -246,6 +246,7 @@ class ClanParty(private val world: World) {
         val last = lastConfirm[player.saveKey]
         if (last != null && world.tick - last < CONFIRM_TICKS) return
         if (party.lastConfirm == world.tick) return
+        if (!world.clans.takeDurableWrite(world.tick)) return
         lastConfirm.entries.removeIf { world.tick - it.value >= CONFIRM_TICKS }
         lastConfirm[player.saveKey] = world.tick
         party.lastConfirm = world.tick
