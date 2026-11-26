@@ -192,6 +192,17 @@ class HeadlessTearsOfGuthixTest {
                 client.awaitTicks(3)
                 assertEquals(tears, tog.tears(dave), "no tears from a wall left behind")
                 assertTrue(tog.isPlaying(dave))
+
+                // Each stream leaves its wall every 16 ticks, never landing back on it.
+                var walls = tog.streamWalls()
+                val since = IntArray(walls.size)
+                repeat(4 * TearsOfGuthix.STREAM_TICKS) {
+                    client.awaitTicks(1)
+                    val now = tog.streamWalls()
+                    for (i in now.indices) if (now[i] != walls[i]) since[i] = 0 else since[i]++
+                    assertTrue(since.all { it <= TearsOfGuthix.STREAM_TICKS + 1 }, "a stream stayed on its wall: ${since.toList()}")
+                    walls = now
+                }
             }
         }
     }

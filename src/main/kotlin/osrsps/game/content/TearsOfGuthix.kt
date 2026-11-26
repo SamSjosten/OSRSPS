@@ -22,7 +22,7 @@ import osrsps.game.zone.ZoneLoc
 object JunaLines : Lines("juna", "Transcript:Juna, read 2026-11-19") {
     val TELL_ME = line("tell_me", "Talk-to")
     val OKAY = line("okay", "option and player")
-    val YOU_TELL = line("you_tell", "option and player: You tell me a story.")
+    val YOU_TELL = line("you_tell", "option and player: asking her for a story")
     val NOT_NOW = line("not_now", "option and player")
     val EMPTY_HANDS = line("empty_hands", "a weapon or shield worn")
     val STORIES = line("stories", "the box as the player tells her stories")
@@ -120,6 +120,9 @@ class TearsOfGuthix(private val world: World) {
     fun tears(player: Player): Int = playing[player.saveKey]?.tears ?: 0
 
     fun isPlaying(player: Player): Boolean = player.saveKey in playing
+
+    /** Each stream's wall, -1 before it is placed: for the tests. */
+    internal fun streamWalls(): List<Int> = streams.map { it.wall }
 
     /** Whether [player] is collecting at a wall: they collected this tick or the last. */
     fun isCollecting(player: Player): Boolean = (playing[player.saveKey]?.collectedAt ?: -1) >= 0
@@ -358,7 +361,7 @@ class TearsOfGuthix(private val world: World) {
     /** [stream] leaves its wall dry and takes one no other stream is on, until [until]. */
     private fun move(stream: Stream, until: Long) {
         val old = stream.wall
-        val free = WALLS.indices.filter { i -> streams.none { it !== stream && it.wall == i } }
+        val free = WALLS.indices.filter { i -> i != old && streams.none { it !== stream && it.wall == i } }
         stream.wall = free[world.random.nextInt(free.size)]
         stream.moveAt = until
         if (old >= 0 && old != stream.wall) show(old, null)
