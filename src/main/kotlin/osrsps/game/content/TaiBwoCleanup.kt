@@ -122,6 +122,11 @@ object TaiBwoCleanup {
             if (SuccessRoll.roll(world.random, low, high, level)) {
                 player.anim(HACK_SUCCESS)
                 next = cut(world, player, loc, jungle) ?: return
+                if (player.inventory.freeSlots == 0) {
+                    // The spar took the last slot: stop here, letting the success animation play out.
+                    hacks.remove(player.saveKey)
+                    return world.message(player, TaiBwoCleanupLines.INVENTORY_FULL)
+                }
             } else {
                 player.anim(HACK_FAIL)
                 player.skills.addTenths(Skill.WOODCUTTING, FAIL_XP_TENTHS)

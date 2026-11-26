@@ -177,6 +177,19 @@ class HeadlessTaiBwoWannaiTest {
                 client.locOp(GROVE_DOOR, HardwoodGrove.INSIDE_X, 3083, HardwoodGrove.OPEN)
                 client.await("out for free") { client.position?.takeIf { it == Coord(HardwoodGrove.INSIDE_X - 1, 3083, 0) } }
                 assertEquals(4L, client.count(TaiBwoWannai.TRADING_STICKS))
+
+                // A spar into the last free slot ends the hack without cutting the success animation short.
+                client.command("empty")
+                client.command("item $MACHETE 27")
+                client.await("one slot left") { if (client.count(MACHETE) == 27L && client.count(TaiBwoWannai.TRADING_STICKS) == 0L) Unit else null }
+                client.tele(2770, 3060)
+                val from = client.actorEvents().size
+                client.locOp(LIGHT_JUNGLE + 1, 2770, 3061, TaiBwoCleanup.HACK)
+                client.message("[tbw_cleanup.inventory_full]")
+                assertEquals(1L, client.count(SPAR_LIGHT))
+                client.awaitTicks(4)
+                val anims = client.actorEvents(from).filter { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION }
+                assertEquals(TaiBwoCleanup.HACK_SUCCESS, anims.last().id, "the success animation isn't stopped")
             }
         }
     }
