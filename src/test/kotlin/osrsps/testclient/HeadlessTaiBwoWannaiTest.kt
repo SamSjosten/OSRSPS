@@ -146,7 +146,19 @@ class HeadlessTaiBwoWannaiTest {
                 client.await("the spar used") { if (client.count(SPAR_LIGHT) == 0L) Unit else null }
                 client.await("0.4% favour") { if (client.favour() == 4) Unit else null }
 
+                // A full backpack: nothing taken, the favour kept, and he pays next time.
+                client.command("item $MACHETE 27")
+                client.await("a full backpack") { if (client.count(MACHETE) == 28L) Unit else null }
                 client.tele(2815, 3083)
+                client.npcOp(client.murcailyIndex(), TaiBwoWannai.TALK_TO)
+                client.chat("murcaily.repaired")
+                client.box("[game.no_space]")
+                client.closed()
+                assertEquals(0L, client.count(TaiBwoWannai.TRADING_STICKS))
+                assertEquals(4, client.favour())
+                client.command("empty")
+                client.await("room again") { if (client.count(MACHETE) == 0L) Unit else null }
+
                 client.npcOp(client.murcailyIndex(), TaiBwoWannai.TALK_TO)
                 client.chat("murcaily.repaired")
                 client.box("[tbw_villager.got_sticks sticks=4 favour=0]")

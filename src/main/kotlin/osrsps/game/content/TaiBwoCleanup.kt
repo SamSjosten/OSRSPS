@@ -95,25 +95,26 @@ object TaiBwoCleanup {
     /** The best thatch spar [player] carries, or null. */
     fun spar(player: Player): Spar? = Spar.entries.lastOrNull { player.inventory.count(it.obj) > 0 }
 
-    private class Hack(var start: Long)
+    /** A hack cycle's start and its length, fixed when it starts so a boost wearing off mid-cycle can't roll twice. */
+    private class Hack(var start: Long, var cycle: Int)
 
-    /** Each hacking player's cycle start. */
-    private val hacks = HashMap<Player, Hack>()
+    /** Each hacking player's cycle, by save key; dropped for players gone offline (see [register]). */
+    private val hacks = HashMap<String, Hack>()
 
     private suspend fun ScriptContext.hack(world: World, op: Op) {
         val loc = op.loc ?: return
         val jungle = jungle(loc.id) ?: return
         if (op.repeat && player.modalOpen) return stopHacking()
         val machete = checks(world, jungle) ?: return stopHacking()
-        if (!op.repeat || hacks[player] == null) {
-            hacks[player] = Hack(tick)
+        if (!op.repeat || hacks[player.saveKey] == null) {
+            hacks[player.saveKey] = Hack(tick, cycle(player.skills.currentLevel(Skill.WOODCUTTING)))
             player.anim(machete.hack)
             return world.repeatOp(player, op)
         }
-        val hack = hacks.getValue(player)
+        val hack = hacks.getValue(player.saveKey)
         if (!world.locs.exists(loc)) return stopHacking()
         val level = player.skills.currentLevel(Skill.WOODCUTTING)
-        val cycle = cycle(level)
+        val cycle = hack.cycle
         val elapsed = (tick - hack.start).toInt()
         var next = loc
         if (elapsed == cycle - ROLL_BEFORE_END) {
@@ -127,6 +128,7 @@ object TaiBwoCleanup {
             }
         } else if (elapsed >= cycle) {
             hack.start = tick
+            hack.cycle = cycle(level)
             player.anim(machete.hack)
         }
         world.repeatOp(player, if (next === loc) op else Op(OpTarget.LOC, next.id, op.option, loc = next, repeat = true))
@@ -155,7 +157,7 @@ object TaiBwoCleanup {
     }
 
     private fun ScriptContext.stopHacking() {
-        hacks.remove(player)
+        hacks.remove(player.saveKey)
         player.anim(-1)
     }
 
@@ -171,7 +173,7 @@ object TaiBwoCleanup {
         val next = world.locs.replace(loc, loc.id + 1) ?: return null
         world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, REGROW_TICKS)
         if (next.id == jungle.chopped) {
-            hacks.remove(player)
+            hacks.remove(player.saveKey)
             return null
         }
         return next
@@ -200,10 +202,16 @@ object TaiBwoCleanup {
         world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, DECAY_TICKS)
     }
 
+    private const val PRUNE_TICKS = 100
+
     /** The roll comes this many ticks before a cycle's end. */
     const val ROLL_BEFORE_END = 4
 
     fun register(world: World) {
+        // A hack left by walking off or logging out leaves its entry; it goes once the player is offline.
+        world.tickHooks += { tick ->
+            if (tick % PRUNE_TICKS == 0L && hacks.isNotEmpty()) hacks.keys.retainAll(world.onlinePlayers.mapTo(HashSet()) { it.saveKey })
+        }
         for (jungle in Jungle.entries) for (id in jungle.hackable) world.handlers.onLoc(id, HACK) { op -> hack(world, op) }
         for (fence in FENCES) {
             world.handlers.onLoc(fence, REPAIR) { op -> repair(world, op.loc!!, null) }
