@@ -46,6 +46,11 @@ class HeadlessCatsTest {
                 ObjType(Cats.BALL_OF_WOOL, "Ball of wool"),
             ),
             npcSpawns = listOf(NpcSpawn(rat, 3230, 3218, source = "test")),
+            // The rat's respawn as npc-combat.json has it, shorter than its death ticks.
+            npcCombat = osrsps.game.combat.NpcCombat(mapOf(RAT_NPC to osrsps.game.combat.NpcCombatDef(
+                4, 1, osrsps.game.combat.AttackType.STAB, 0, 0, osrsps.game.combat.NpcDefence(0, 0, 0, 0, 0, 0, 0),
+                osrsps.game.combat.NpcCombatAnims.NONE, respawnTicks = 2, source = "test",
+            ))),
             scenarios = Scenarios(listOf(Scenario.parse("bare", """{ "position": { "x": 3225, "z": 3218 } }"""))),
             cycleMillis = millis,
         )

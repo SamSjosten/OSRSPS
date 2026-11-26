@@ -652,7 +652,10 @@ class Cats(private val world: World) {
         world.npcScripts.later(deathTicks) {
             if (world.npcs[rat.index] !== rat) return@later
             world.removeNpc(rat)
-            if (rat.spawn.respawns) world.npcScripts.later(respawn - deathTicks) { world.spawnNpc(rat.spawn) }
+            if (!rat.spawn.respawns) return@later
+            // A rat's respawn (2 ticks) is shorter than its death, so the new one comes as the body goes.
+            val left = respawn - deathTicks
+            if (left > 0) world.npcScripts.later(left) { world.spawnNpc(rat.spawn) } else world.spawnNpc(rat.spawn)
         }
     }
 
