@@ -18,6 +18,8 @@
   {"step": "assertInventory", "itemId": 33118, "count": 0, "comment": "fed to him"},
   {"step": "npcOption", "npc": "Demonic Brutus", "option": "Attack", "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 40, "comment": "three butts, then a special of four bulls"},
+  {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus", "comment": "his first 0: his second phase, on 487 (step 7)"},
+  {"step": "waitTicks", "ticks": 3},
   {"step": "command", "text": "::kill Demonic Brutus", "expectMessage": "Killed Demonic Brutus"},
   {"step": "assertMessage", "contains": "demonic_brutus.kill_count", "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 4},
