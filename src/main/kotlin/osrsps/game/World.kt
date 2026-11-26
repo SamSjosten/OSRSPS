@@ -1073,6 +1073,7 @@ class World(
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
+    val workshop = osrsps.game.skill.construction.Workshop(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
@@ -1428,6 +1429,7 @@ class World(
         houses.register()
         furniture.register()
         kitchen.register()
+        workshop.register()
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
@@ -1760,6 +1762,7 @@ class World(
         groundObjs.process()
         agilityArena.process(tick)
         archiveRaids.settleDepartures()
+        houses.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
