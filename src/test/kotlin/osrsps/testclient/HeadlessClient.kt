@@ -551,6 +551,22 @@ class HeadlessClient private constructor(
     }
 
     /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on ground obj [id] at [x], [z], as
+     * OPOBJT: a spell picked in the spellbook (Telekinetic Grab) and clicked on the obj. Laid out as RSProt's 242
+     * OpObjTDecoder reads it.
+     */
+    fun objTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPOBJT) {
+            p2(obj and 0xFFFF)
+            p4Alt1((interfaceId shl 16) or componentId)
+            p2Alt2(z)
+            p2Alt1(sub and 0xFFFF)
+            p2Alt2(id)
+            p1Alt2(if (ctrl) 1 else 0)
+            p2Alt2(x)
+        }
+
+    /**
      * Op [op] (1-10) on component [componentId] of [interfaceId], or on its slot [sub], as IF_BUTTONX: an inventory
      * item's Wield is op 3 on its slot of inventory:items (149:0), with [obj] the item the slot shows.
      */

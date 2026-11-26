@@ -542,6 +542,9 @@ class World(
     /** Brutus's records across the server, his scoreboard's global column. */
     val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
 
+    /** Demonic Brutus's, the scoreboard's Read (Demonic). */
+    val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -849,8 +852,10 @@ class World(
         placeOf = ::deathPlace,
         fell = {
             archiveRaids.fell(it)
-            // Demonic Brutus's deaths aren't Brutus's: his scoreboard page comes with step 7.
-            if (brutusPens.runOf(it)?.demonic == false) osrsps.game.content.BrutusScoreboard.died(this, it)
+            brutusPens.runOf(it)?.let { run ->
+                osrsps.game.content.BrutusScoreboard.died(this, it, run.demonic)
+                if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
+            }
         },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
@@ -1156,6 +1161,9 @@ class World(
 
     /** Bones to Bananas and Bones to Peaches; see [osrsps.game.skill.magic.BonesToFruit]. */
     val bonesToFruit = osrsps.game.skill.magic.BonesToFruit(this, osrsps.game.skill.magic.BonesToFruit.load(objTypes))
+
+    /** Telekinetic Grab; see [osrsps.game.skill.magic.TelekineticGrab]. */
+    val telekineticGrab = osrsps.game.skill.magic.TelekineticGrab(this, osrsps.game.skill.magic.TelekineticGrab.load(objTypes), collision, movement)
 
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
@@ -2848,6 +2856,24 @@ class World(
      * The player used something on loc [id] whose south-west tile is [x], [z]: the item in slot [sub] of
      * [interfaceId]:[componentId], or a spell. Only inventory items are handled; spells on locs come later.
      */
+    /**
+     * The player used something on obj [id] on the ground at [x], [z]: a spell from the magic tab ([interfaceId]
+     * [Spells.SPELLBOOK]), of which only Telekinetic Grab does anything; an item used on it isn't handled yet.
+     */
+    fun onGroundObjTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
+        if (held(player)) return@act
+        trades.interrupt(player)
+        if (interfaceId != Spells.SPELLBOOK || !telekineticGrab.casts(componentId)) {
+            logger.info { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
+            follows.clickedElsewhere(player)
+            return@act
+        }
+        npcInteractions.leave(player)
+        scripts.interrupt(player)
+        telekineticGrab.click(player, id, x, z, ctrl)
+        follows.clickedElsewhere(player)
+    }
+
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
