@@ -58,8 +58,11 @@ object FurnitureBuilds {
      */
     data class Hotspot(val room: RoomType, val index: Int, val variant: String? = null)
 
-    /** What a piece of furniture (by its row) builds as, its XP, and on a [Hotspot.variant] what it builds as there. */
-    data class Build(val loc: Int, val xp: Int, val variants: Map<String, Int> = emptyMap()) {
+    /**
+     * What a piece of furniture (by its row) builds as, its XP (and any Farming XP: the garden's trees and plants), and
+     * on a [Hotspot.variant] what it builds as there.
+     */
+    data class Build(val loc: Int, val xp: Int, val variants: Map<String, Int> = emptyMap(), val farmingXp: Int = 0) {
         fun locFor(variant: String?): Int = variant?.let { variants[it] } ?: loc
     }
 
@@ -74,6 +77,7 @@ object FurnitureBuilds {
     private const val SCROLLS = "scrolls"
     private const val CROCKERY = "crockery"
     private const val STOOL = "stool"
+    private const val BIG = "big"
 
     /** The workshop's five tool spaces (`poh_workshop_3a` to `_3e`), in order. */
     private val TOOL_SPACES = listOf("a", "b", "c", "d", "e")
@@ -126,6 +130,15 @@ object FurnitureBuilds {
         15448 to Hotspot(RoomType.WORKSHOP, 3),
         15449 to Hotspot(RoomType.WORKSHOP, 3, STOOL),
         15450 to Hotspot(RoomType.WORKSHOP, 4),
+        // poh_crude_garden_1 (centrepiece), _2 (big tree), _3 (tree), _4 and _5 (big plants), _6 and _7 (small plants): the
+        // Rimmington style's. Left out: the tip jar space (poh_garden_8), whose jar needs platinum tokens and tipping.
+        House.CENTREPIECE_SPACE to Hotspot(RoomType.GARDEN, 0),
+        15362 to Hotspot(RoomType.GARDEN, 1, BIG),
+        15363 to Hotspot(RoomType.GARDEN, 2),
+        15364 to Hotspot(RoomType.GARDEN, 3),
+        15365 to Hotspot(RoomType.GARDEN, 4),
+        15366 to Hotspot(RoomType.GARDEN, 5),
+        15367 to Hotspot(RoomType.GARDEN, 6),
     )
 
     private fun rug(corner: Int, side: Int, middle: Int, xp: Int) = Build(middle, xp, mapOf(CORNER to corner, SIDE to side, MIDDLE to middle))
@@ -133,6 +146,11 @@ object FurnitureBuilds {
     private fun shelves(loc: Int, crockery: Int, xp: Int) = Build(loc, xp, mapOf(CROCKERY to crockery))
 
     private fun bookcase(loc: Int, scrolls: Int, xp: Int) = Build(loc, xp, mapOf(SCROLLS to scrolls))
+
+    /** A garden tree: on the tree space [loc], on the big tree space [big]; as much Farming XP as Construction (the Garden page). */
+    private fun tree(loc: Int, big: Int, xp: Int) = Build(loc, xp, mapOf(BIG to big), farmingXp = xp)
+
+    private fun plant(loc: Int, xp: Int) = Build(loc, xp, farmingXp = xp)
 
     private fun withStool(loc: Int, stool: Int, xp: Int) = Build(loc, xp, mapOf(STOOL to stool))
 
@@ -265,6 +283,27 @@ object FurnitureBuilds {
         5766 to Build(6803, 120),
         5767 to Build(6804, 240),
         5768 to Build(6805, 510),
+        // The garden (the Garden page's XP). The exit portal, decorative rock, pond and imp statue (poh_exit_portal,
+        // poh_crude_garden_centrepiece2 to 4). Left out: the dungeon entrance (5878, with the dungeon), the Greenman
+        // statue (6028, a loc per rotation), the Annihilation portal (9654, a Leagues unlock), and the event pumpkin and
+        // beehives (6023 to 6025) and the tip jar (5899).
+        5874 to Build(House.EXIT_PORTAL, 100),
+        5875 to Build(4526, 100),
+        5876 to Build(4527, 100),
+        5877 to Build(4528, 150),
+        // Dead, nice, oak, willow, maple, yew and magic trees (poh_small_tree1_5 to 7_5, and poh_big_tree1_4 to 7_4).
+        5880 to tree(4538, 4531, 31),
+        5881 to tree(4539, 4532, 44),
+        5882 to tree(4540, 4533, 70),
+        5883 to tree(4541, 4534, 100),
+        5884 to tree(5126, 4535, 122),
+        5885 to tree(5121, 4536, 141),
+        5886 to tree(5127, 4537, 223),
+        // The plants, from bagged plants 1 to 3 (poh_plantbig1a to 2c, poh_plantbsmall1a to 2c).
+        5887 to plant(5128, 31), 5888 to plant(5129, 70), 5889 to plant(5130, 100),
+        5890 to plant(5131, 31), 5891 to plant(5132, 70), 5892 to plant(5133, 100),
+        5893 to plant(5134, 31), 5894 to plant(5135, 70), 5895 to plant(5136, 100),
+        5896 to plant(5137, 31), 5897 to plant(5138, 70), 5898 to plant(5139, 100),
     )
 
     /**
@@ -299,7 +338,23 @@ object FurnitureBuilds {
         (RoomType.WORKSHOP to 2) to 5758..5762,
         (RoomType.WORKSHOP to 3) to 5763..5765,
         (RoomType.WORKSHOP to 4) to 5766..5768,
+        (RoomType.GARDEN to 0) to listOf(5874, 5875, 5876, 5877, 5878, 5879, 6028, 9654),
+        (RoomType.GARDEN to 1) to 5880..5886,
+        (RoomType.GARDEN to 2) to 5880..5886,
+        (RoomType.GARDEN to 3) to listOf(5887, 5888, 5889, 6023, 6024, 6025, 6028),
+        (RoomType.GARDEN to 4) to listOf(5890, 5891, 5892, 6023, 6024, 6025, 6028),
+        (RoomType.GARDEN to 5) to 5893..5895,
+        (RoomType.GARDEN to 6) to 5896..5898,
     )
+
+    /** The bagged trees and plants, planted with a watering can with water in it (the Garden page's footnotes; Codex on #979). */
+    val NEEDS_WATERING_CAN: Set<Int> = (5880..5898).toSet()
+
+    /** The garden's trees and plants, planted without a hammer and saw (the Garden page: those are for the rest). */
+    val PLANTED: Set<Int> = (5880..5898).toSet()
+
+    /** Watering cans with water, (1) to (8) (`watering_can_1` to `_8`), and Gricoller's can. */
+    val WATERING_CANS: List<Int> = (5333..5340).toList() + 13353
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
     fun buildsOn(hotspot: Int, loc: Int): Boolean {
@@ -376,6 +431,12 @@ object FurnitureBuilds {
  * bookcase and its scroll rack) and several tiles (curtains on each window): one build fills them all, each with its own
  * part, and one Remove clears them all ([FurnitureBuilds.siblings]). Left out for now: lighting a fireplace (the Wiki
  * gives no Firemaking XP for it) and the bookcase's Search (its book list).
+ *
+ * Step CON4 (the workshop): a piece whose row has `upgrade_source_relative` builds over the piece before it, by its
+ * Upgrade op ([FurnitureBuilds.UPGRADABLE]); a tool store racks its first spaces ([FurnitureBuilds.NONE] leaves the rest
+ * bare). The garden: trees and plants go in without a hammer and saw and give as much Farming XP as Construction, a
+ * bagged tree or plant needs a watering can with water, and the house's only exit portal can't be removed (the Garden and Exit
+ * portal pages). GUESSED: the can's water isn't used; planting plays the build animation.
  *
  * GUESSED: the materials text's layout (count and name, the obj types' names from the cache); the build taking 2
  * ticks; the remove prompt; removing with the same animation; the messages (held, no source yet). Left out: nail
@@ -462,7 +523,11 @@ class Furniture(private val world: World, private val houses: Houses, private va
         if (!placeStands(house, room, hotspot, shown, current, player)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < piece.level) return world.message(player, ConstructionLines.FURNITURE_LEVEL, "level" to piece.level)
         lacking(player, piece)?.let { (skill, level) -> return world.message(player, ConstructionLines.FURNITURE_SKILL_LEVEL, "skill" to skill.displayName, "level" to level) }
-        if (!hasTools(player)) return world.message(player, ConstructionLines.FURNITURE_TOOLS)
+        if (piece.row !in FurnitureBuilds.PLANTED && !hasTools(player)) return world.message(player, ConstructionLines.FURNITURE_TOOLS)
+        // GUESSED: the can's water isn't used up (the page says only that one with a dose is needed).
+        if (piece.row in FurnitureBuilds.NEEDS_WATERING_CAN && FurnitureBuilds.WATERING_CANS.none { player.inventory.count(it) > 0 }) {
+            return world.message(player, ConstructionLines.FURNITURE_WATERING_CAN)
+        }
         val nails = nailsFor(player, piece) ?: return world.message(player, ConstructionLines.FURNITURE_MATERIALS)
         player.anim(BUILD_ANIM)
         context.delay(BUILD_TICKS)
@@ -472,6 +537,7 @@ class Furniture(private val world: World, private val houses: Houses, private va
         for ((obj, count) in piece.materials) if (obj != ANY_NAILS) Ned.take(player.inventory, obj, count)
         for ((kind, count) in nails) Ned.take(player.inventory, kind, count)
         player.skills.addTenths(Skill.CONSTRUCTION, build.xp * 10)
+        if (build.farmingXp > 0) player.skills.addTenths(Skill.FARMING, build.farmingXp * 10)
         // Every hotspot of the same place in the room takes the piece: each rug tile its corner, side or middle, every
         // window its curtains.
         for (id in FurnitureBuilds.siblings(hotspot.id)) {
@@ -493,16 +559,22 @@ class Furniture(private val world: World, private val houses: Houses, private va
         val (house, room) = houses.buildingRoom(player, loc.x, loc.z) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         val hotspot = house.hotspots[Houses.slot(loc.x, loc.z, loc.layer)] ?: return
         if (room.built[hotspot.id] != loc.id) return
+        // A house needs an exit portal: the last one stays (the Exit portal page).
+        if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return world.message(player, ConstructionLines.REMOVE_ONLY_PORTAL)
         var pick = 0
         world.dialogues.start(context) {
             pick = choice(ConstructionLines.REMOVE_FURNITURE_YES, ConstructionLines.REMOVE_FURNITURE_NO, title = text(ConstructionLines.REMOVE_FURNITURE_TITLE))
         }
         if (pick != 1 || !houses.stillHere(house, player) || room.built[hotspot.id] != loc.id || !world.locs.exists(loc)) return
+        if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return
         player.anim(BUILD_ANIM)
         for (id in FurnitureBuilds.siblings(hotspot.id)) room.built.remove(id)
         redraw(house, room, hotspot.id)
         logger.info { "${player.username} removed furniture ${loc.id} from hotspot ${hotspot.id}" }
     }
+
+    /** How many exit portals [player]'s house has. */
+    private fun portals(player: Player): Int = player.house?.rooms?.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } } ?: 0
 
     /** Shows what is built now on every tile of [room] holding [hotspot] or one of its siblings, or the hotspot itself. */
     private fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
