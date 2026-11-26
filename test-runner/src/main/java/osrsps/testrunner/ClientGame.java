@@ -1556,6 +1556,24 @@ final class ClientGame implements Game
 		return -1;
 	}
 
+	/** The worn op (2 to 9) whose name, among the item's params 451 to 458, is [option]; -1 when none is. */
+	private int wornParamOp(int itemId, String option)
+	{
+		ItemComposition item = client.getItemDefinition(itemId);
+		for (int i = 0; item != null && i < 8; i++)
+		{
+			String name = item.getStringValue(FIRST_WORN_OP_PARAM + i);
+			if (name != null && Dialogue.clean(name).equalsIgnoreCase(option))
+			{
+				return i + 2;
+			}
+		}
+		return -1;
+	}
+
+	/** The item param naming its first worn option (op 2); params 451 to 458 name ops 2 to 9. */
+	private static final int FIRST_WORN_OP_PARAM = 451;
+
 	/** Ops 6 and up sort under the others in a component's menu, as RuneLite's menu entry swapper has them. */
 	private static MenuAction ccOp(int op)
 	{
@@ -1616,6 +1634,14 @@ final class ClientGame implements Game
 		// Op 1 is Remove and 10 Examine; the item's own worn options are ops 2 to 9 (its params 451 to 458), as
 		// RuneLite's menu entry swapper and our server have them, and the slot's actions say which is which.
 		int op = REMOVE.equalsIgnoreCase(option) ? 1 : isExamine(option) ? EXAMINE_OP : actionOp(slot.getActions(), option);
+		if (op < 0 && slot.getActions() == null)
+		{
+			// Seen on 217 (nightly 26 Nov 2026, runner 0.29.0): the slot's actions came back null with a ring of forging and
+			// an amulet of glory worn, though Remove (op 1, never looked up) works. Not known yet whether the real client
+			// shows these options there; the headless tests cover the server's side. Until that is known, the option is
+			// found in the item's own worn-op params, as the server reads them, so the script can go on.
+			op = wornParamOp(itemId, option);
+		}
 		if (op < 0)
 		{
 			return "the item in slot " + wearpos + " (" + itemId + ") has no option \"" + option + "\"; its options are "
