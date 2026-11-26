@@ -240,6 +240,17 @@ class HeadlessCatsTest {
                 client.await("the cat back") { cats.follower(cal)?.takeIf { it.type.id == CAT_NPC } }
                 assertEquals(CAT_OBJ, cal.vars[Cats.FOLLOWER_OBJ])
                 client.await("the kitten gone") { if (server.world.npcs.all.none { it.type.id == KITTEN_NPC }) Unit else null }
+
+                // A saved cat not out yet (as one waiting at login for room in the world) is still their follower:
+                // another dropped is refused, and the saved one is kept.
+                server.world.npcScripts.later(1) { cats.logout(cal) }
+                client.await("the cat out of the world") { if (cats.follower(cal) == null) Unit else null }
+                client.commandReply("item $KITTEN_OBJ 1") { it.contains("Pet kitten") }
+                client.drop(KITTEN_OBJ)
+                client.message(CatLines.ALREADY_FOLLOWER)
+                assertNull(cats.follower(cal))
+                assertEquals(CAT_OBJ, cal.vars[Cats.FOLLOWER_OBJ])
+                assertTrue(cats.followingCat(cal), "Gertrude counts it as owned")
             }
         }
     }

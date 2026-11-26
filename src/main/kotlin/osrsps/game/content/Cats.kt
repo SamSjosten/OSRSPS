@@ -175,8 +175,15 @@ class Cats(private val world: World) {
     /** What [player]'s follower is, or null with none out. */
     fun followerKind(player: Player): Kind? = out[player.saveKey]?.kind
 
-    /** Whether [player] has a kitten or cat (not overgrown) out, which Gertrude counts as owned. */
-    fun followingCat(player: Player): Boolean = followerKind(player)?.let { it.stage != Stage.OVERGROWN } ?: false
+    /**
+     * What [player]'s follower is: the one out, or one saved in `follower_obj` still waiting at login for room in the
+     * world, which counts as theirs too (Codex review on #980). Null with neither.
+     */
+    private fun heldFollower(player: Player): Kind? =
+        followerKind(player) ?: if (hasVarp(player, FOLLOWER_OBJ)) kindOfObj(player.vars[FOLLOWER_OBJ]) else null
+
+    /** Whether [player] has a kitten or cat (not overgrown) out, or waiting to come out, which Gertrude counts as owned. */
+    fun followingCat(player: Player): Boolean = heldFollower(player)?.let { it.stage != Stage.OVERGROWN } ?: false
 
     // ---- The vars -------------------------------------------------------------------------------------------------
 
@@ -246,7 +253,7 @@ class Cats(private val world: World) {
     fun drop(player: Player, slot: Int) {
         val held = player.inventory[slot] ?: return
         val kind = kindOfObj(held.id) ?: return
-        if (out.containsKey(player.saveKey)) {
+        if (heldFollower(player) != null) {
             player.message(world.textFor(player)[CatLines.ALREADY_FOLLOWER])
             return
         }
