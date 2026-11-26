@@ -59,4 +59,14 @@ class FurnitureBuildsTest {
         assertTrue(FurnitureBuilds.UPGRADABLE.all { it in FurnitureBuilds.BUILT_LOCS })
         assertTrue(Workshop.TOOLS.keys.all { it in FurnitureBuilds.BUILT_LOCS })
     }
+
+    @Test
+    fun `a garden tree builds as the big tree on the big tree space, and the trees and plants give Farming XP too`() {
+        val magic = FurnitureBuilds.BUILDS.getValue(5886)
+        assertEquals(listOf(5127, 4537), listOf(null, "big").map(magic::locFor))
+        assertTrue(FurnitureBuilds.buildsOn(15362, 4537) && FurnitureBuilds.buildsOn(15363, 5127))
+        assertEquals(223, magic.farmingXp)
+        assertTrue(FurnitureBuilds.PLANTED.all { FurnitureBuilds.BUILDS.getValue(it).farmingXp > 0 })
+        assertTrue(FurnitureBuilds.buildsOn(House.CENTREPIECE_SPACE, House.EXIT_PORTAL))
+    }
 }

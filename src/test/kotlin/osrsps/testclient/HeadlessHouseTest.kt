@@ -88,6 +88,8 @@ class HeadlessHouseTest {
         built(WOODEN_WORKBENCH, "Workbench"), built(STOOL, "Stool"),
         LocType(TOOLS_1, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(TOOLS_2, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        hotspot(TREE_SPACE, "Tree space"), hotspot(SMALL_PLANT_SPACE, "Small Plant space 1"),
+        built(DEAD_TREE, "Dead Tree"), built(PLANT, "Plant"),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
 
@@ -124,6 +126,9 @@ class HeadlessHouseTest {
         objs[BUCKET] = ObjType(BUCKET, "Bucket")
         objs[BUCKET_OF_WATER] = ObjType(BUCKET_OF_WATER, "Bucket of water")
         objs[CHISEL] = ObjType(CHISEL, "Chisel")
+        objs[BAGGED_DEAD_TREE] = ObjType(BAGGED_DEAD_TREE, "Bagged dead tree")
+        objs[BAGGED_PLANT_1] = ObjType(BAGGED_PLANT_1, "Bagged plant 1")
+        objs[WATERING_CAN_8] = ObjType(WATERING_CAN_8, "Watering can(8)")
         objs[KNIFE] = ObjType(KNIFE, "Knife")
         for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
@@ -146,6 +151,9 @@ class HeadlessHouseTest {
                 add(ZoneLoc(House.RIMMINGTON_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 1, PORTAL_X, PORTAL_Z, 0))
                 add(ZoneLoc(House.CENTREPIECE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, garden.templateX + 3, garden.templateZ + 3, 0))
                 doors(garden.templateX, garden.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                // A tree space and a small plant space, one tile each (the cache's tree space is 2 by 2).
+                add(ZoneLoc(TREE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, garden.templateX + 6, garden.templateZ + 6, 0))
+                add(ZoneLoc(SMALL_PLANT_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, garden.templateX + 1, garden.templateZ + 6, 0))
                 add(ZoneLoc(CHAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, parlour.templateX + 2, parlour.templateZ + 4, 0))
                 // A small rug: a corner, a side and the middle, one tile each (the cache's rug is bigger).
                 add(ZoneLoc(RUG_CORNER_SPACE, LocShape.GROUND_DECOR, 0, parlour.templateX + 1, parlour.templateZ + 1, 0))
@@ -185,6 +193,7 @@ class HeadlessHouseTest {
                     RoomType.KITCHEN.id to listOf(stoves, shelves, emptyList(), emptyList(), larders, sinks),
                     RoomType.DINING_ROOM.id to listOf(tables, emptyList(), emptyList(), emptyList(), emptyList(), decorations),
                     RoomType.WORKSHOP.id to listOf(workbenches, emptyList(), toolStores),
+                    RoomType.GARDEN.id to listOf(emptyList(), emptyList(), trees, emptyList(), emptyList(), smallPlants),
                 ),
             ),
         )
@@ -216,6 +225,10 @@ class HeadlessHouseTest {
     private val toolStores = (1..5).map { tier ->
         FurnitureOption(TOOL_STORE_1_ROW + tier - 1, "Tool store $tier", 8383 + tier, listOf(OAK_PLANK to 2), level = listOf(15, 25, 35, 44, 55)[tier - 1], upgradeFrom = 1)
     }
+
+    /** The tree space's and first small plant space's first choices (rows 5880 and 5893), as the cache has them. */
+    private val trees = listOf(FurnitureOption(DEAD_TREE_ROW, "Tree", 8173, listOf(BAGGED_DEAD_TREE to 1), level = 5))
+    private val smallPlants = listOf(FurnitureOption(PLANT_ROW, "Plant", 8180, listOf(BAGGED_PLANT_1 to 1), level = 1))
 
     /** The rug space's first choice (row 5524). */
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
@@ -895,7 +908,66 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a tree or plant needs a watering can but no hammer or saw, gives Farming XP too, and the only exit portal stays`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jade").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("jade")!!
+                client.command("setlevel construction 5")
+                client.command("item $BAGGED_DEAD_TREE 1")
+                client.command("item $BAGGED_PLANT_1 1")
+                client.await("the bags") { if (client.count(BAGGED_DEAD_TREE) == 1 && client.count(BAGGED_PLANT_1) == 1) Unit else null }
+                val xp = client.await("level 5") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 5 } }.xp
+                val farming = client.await("Farming") { client.stat(Skill.FARMING.id) }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val gx = instance.baseX + (House.STARTER_X shl 3)
+                val gz = instance.baseZ + (House.STARTER_Z shl 3)
+                fun menu(space: Int, x: Int, z: Int) {
+                    client.locOp(space, x, z, House.BUILD)
+                    client.await("the creation menu on $space") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                }
+
+                // A tree needs a watering can: refused, its bag kept.
+                menu(TREE_SPACE, gx + 6, gz + 6)
+                client.await("the tree refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_watering_can]" } }
+                assertEquals(1, client.count(BAGGED_DEAD_TREE))
+                client.command("item $WATERING_CAN_8 1")
+                client.await("the can") { if (client.count(WATERING_CAN_8) == 1) Unit else null }
+
+                // No hammer or saw: with the can, a tree goes in all the same, for as much Farming XP as Construction.
+                menu(TREE_SPACE, gx + 6, gz + 6)
+                client.await("the tree") { if (client.shown(DEAD_TREE, gx + 6, gz + 6)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 31 } }
+                client.await("its Farming XP") { client.stat(Skill.FARMING.id)?.takeIf { it.xp == farming + 31 } }
+
+                // A plant goes in with the same can, its water not used.
+                menu(SMALL_PLANT_SPACE, gx + 1, gz + 6)
+                client.await("the plant") { if (client.shown(PLANT, gx + 1, gz + 6)) Unit else null }
+                assertEquals(1, client.count(WATERING_CAN_8))
+
+                // The house's only exit portal can't be removed.
+                val portal = assertNotNull(server.world.locs.at(gx + 3, gz + 3, House.GROUND).firstOrNull { it.id == House.EXIT_PORTAL })
+                client.locOp(House.EXIT_PORTAL, portal.x, portal.z, Furniture.REMOVE)
+                client.await("the portal refusal") { client.messages().firstOrNull { it.text == "[construction.remove_only_portal]" } }
+                assertEquals(House.EXIT_PORTAL, player.house!!.rooms.first { it.type == RoomType.GARDEN }.built[House.CENTREPIECE_SPACE])
+            }
+        }
+    }
+
     private companion object {
+        const val TREE_SPACE = 15363
+        const val SMALL_PLANT_SPACE = 15366
+        const val DEAD_TREE_ROW = 5880
+        const val PLANT_ROW = 5893
+        const val DEAD_TREE = 4538
+        const val PLANT = 5134
+        const val BAGGED_DEAD_TREE = 8417
+        const val BAGGED_PLANT_1 = 8431
+        const val WATERING_CAN_8 = 5340
         const val WORKBENCH_SPACE = 15439
         const val WORKBENCH_STOOL_SPACE = 15440
         const val TOOL_SPACE_A = 15443
