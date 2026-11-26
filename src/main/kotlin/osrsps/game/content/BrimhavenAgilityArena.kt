@@ -597,8 +597,10 @@ fun registerBrimhavenAgilityArena(world: World) {
         world.stepHooks += arena::stepped
         world.agility.rigs[PLANK] = { player, loc -> arena.plankHolds(player, loc.x, loc.z) }
         world.handlers.onLoc(CLIMBING_ROPE, CLIMB) { op ->
+            // Only the pit's ropes (the 242 map has 25, all there): a copy of the type anywhere else does nothing.
+            val loc = op.loc ?: return@onLoc
+            if (loc.level != 0 || !inArena(loc.x, loc.z)) return@onLoc
             arriveDelay()
-            val loc = op.loc!!
             player.anim(Climbing.ANIM_REACH_FOR_LADDER)
             delay(1)
             world.teleport(player, loc.x, loc.z, ARENA_ARRIVAL.level)
