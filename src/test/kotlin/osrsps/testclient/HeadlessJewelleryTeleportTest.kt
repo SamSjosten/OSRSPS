@@ -11,9 +11,12 @@ import osrsps.game.EquipmentTab
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Spells
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.skill.magic.JewelleryTeleportData
 import osrsps.game.skill.magic.JewelleryTeleports
 import osrsps.game.skill.magic.TeleportObjs
@@ -41,6 +44,10 @@ class HeadlessJewelleryTeleportTest {
         return chain(GLORIES, "Amulet of glory", "amulet_of_glory", WearPos.NECK, glory) +
             chain(DUELINGS, "Ring of dueling", "ring_of_dueling", WearPos.RING, dueling) +
             chain(SKILLS_NECKLACES, "Skills necklace", "jewl_necklace_of_skills", WearPos.NECK, skills) +
+            chain(BURNINGS, "Burning amulet", "burning_amulet", WearPos.NECK, listOf("Chaos Temple", "Bandit Camp", "Lava Maze")) +
+            chain(PASSAGES, "Necklace of passage", "necklace_of_passage", WearPos.NECK, listOf("Wizards' Tower", "The Outpost", "Eagles' Eyrie", "Wyrmscraig")) +
+            chain(RETURNINGS, "Ring of returning", "ring_of_returning", WearPos.RING, listOf("Rub")) +
+            chain(DIGSITES, "Digsite pendant ", "necklace_of_digsite", WearPos.NECK, listOf("Digsite", "Fossil Island", "Lithkren Dungeon")) +
             listOf(
                 ObjType(GLORY, "Amulet of glory", wearpos1 = WearPos.NECK, iops = rub, params = worn(listOf("Rub")), internalName = "amulet_of_glory"),
                 ObjType(SKILLS, "Skills necklace", wearpos1 = WearPos.NECK, iops = rub, params = worn(listOf("Rub")), internalName = "jewl_necklace_of_skills"),
@@ -54,7 +61,10 @@ class HeadlessJewelleryTeleportTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(3100 shr 6, 3714 shr 6)
                 markLoaded(3100 shr 6, 3762 shr 6)
+                markLoaded(EdgevilleRespawn.X shr 6, EdgevilleRespawn.Z shr 6)
             }, random = osrsps.game.GameRandom(7), objTypes = objTypes,
+            // edgeville_spawn and edgeville_spawn_unlocked, on cws_var and cws_var_2, as the 242 cache has them.
+            varTypes = VarTypes(6_000, mapOf(EdgevilleRespawn.VARBIT_SPAWN to VarbitType(1045, 31, 31), EdgevilleRespawn.VARBIT_UNLOCKED to VarbitType(1046, 0, 0))),
             spells = Spells.load(objTypes, osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE), cycleMillis = millis,
         )
     }
@@ -99,7 +109,7 @@ class HeadlessJewelleryTeleportTest {
         val text = JewelleryTeleportData::class.java.getResource(JewelleryTeleportData.RESOURCE)!!.readText()
         val data = JewelleryTeleportData.parse(text, ObjTypes.of(*objs().toTypedArray()))
         val keys = data.jewellery.map { it.key }
-        assertEquals(listOf("glory", "dueling", "skills"), keys, "the others' items aren't in this cache")
+        assertEquals(listOf("glory", "dueling", "skills", "digsite", "passage", "burning", "returning"), keys, "the others' items aren't in this cache")
         val glory = data.jewellery.first()
         assertEquals(GLORY_1, glory.after(GLORY_2))
         assertEquals(GLORY, glory.after(GLORY_1))
@@ -207,6 +217,88 @@ class HeadlessJewelleryTeleportTest {
         }
     }
 
+    @Test
+    fun `the Farming Guild lands a player under 45 Farming outside its doors and one with 45 inside`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gwen").use { client ->
+                client.ready()
+                client.give(SKILLS_NECKLACES[4])
+                client.command("setlevel farming 44")
+                client.itemOp(SKILLS_NECKLACES[4], RUB)
+                client.menu("the first page", listOf("Fishing Guild", "Mining Guild", "Crafting Guild", "Cooking Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(5)
+                client.menu("the second page", listOf("Woodcutting Guild", "Farming Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(2)
+                client.landsWithin(1248, 3719, 0)
+                client.command("setlevel farming 45")
+                client.itemOp(SKILLS_1, RUB)
+                client.menu("the first page again", listOf("Fishing Guild", "Mining Guild", "Crafting Guild", "Cooking Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(5)
+                client.menu("the second page again", listOf("Woodcutting Guild", "Farming Guild", "[jewellery_teleport.more]"))
+                client.chooseOption(2)
+                client.landsWithin(1248, 3725, 0)
+                assertEquals(1, client.count(SKILLS))
+            }
+        }
+    }
+
+    @Test
+    fun `the burning amulet warns before the Wilderness, the necklace of passage crumbles away, the ring of returning goes straight to Lumbridge`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                client.give(BURNING_1)
+                client.give(PASSAGE_1)
+                client.give(RETURNING_2)
+                client.give(DIGSITE_2)
+                client.itemOp(BURNING_1, RUB)
+                client.menu("the amulet's places", listOf("Chaos Temple", "Bandit Camp", "Lava Maze", "[jewellery_teleport.nowhere]"))
+                client.chooseOption(2)
+                val warning = client.awaitDialogue("the warning") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals("[jewellery_teleport.wilderness_warning place=Bandit Camp]", warning.title)
+                client.chooseOption(2)
+                client.awaitTicks(4)
+                assertEquals(1, client.count(BURNING_1), "No keeps the charge")
+                client.itemOp(BURNING_1, RUB)
+                client.menu("the amulet's places again", listOf("Chaos Temple", "Bandit Camp", "Lava Maze", "[jewellery_teleport.nowhere]"))
+                client.chooseOption(1)
+                client.awaitDialogue("the warning again") { it is DialogueView.Menu && it.title.startsWith("[jewellery_teleport.wilderness_warning") }
+                client.chooseOption(1)
+                client.saw("the amulet crumbling", "[jewellery_teleport.crumbles item=burning amulet]")
+                client.landsWithin(3234, 3634, 0)
+                client.itemOp(PASSAGE_1, RUB)
+                client.menu("the necklace's places", listOf("Wizards' Tower", "The Outpost", "Eagles' Eyrie", "Wyrmscraig", "[jewellery_teleport.nowhere]"))
+                client.chooseOption(2)
+                client.saw("the necklace crumbling away", "[jewellery_teleport.crumbles_away item=necklace of passage]")
+                client.landsWithin(2430, 3349, 0)
+                client.itemOp(RETURNING_2, RUB)
+                client.saw("the ring's one use left", "[jewellery_teleport.one_use_left item=ring of returning]")
+                client.landsWithin(3221, 3219, 2)
+                assertEquals(1, client.count(RETURNING_1))
+                client.itemOp(DIGSITE_2, RUB)
+                client.menu("the pendant's places", listOf("Digsite", "Fossil Island", "Lithkren Dungeon", "[jewellery_teleport.nowhere]"))
+                client.chooseOption(1)
+                client.saw("the pendant's name in title case", "[jewellery_teleport.one_use_left item=Digsite Pendant]")
+                client.landsWithin(3341, 3445, 0)
+            }
+        }
+    }
+
+    @Test
+    fun `the ring of returning goes to Edgeville for a player who chose Krystilia's respawn`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("finn").use { client ->
+                client.ready()
+                client.commandReply("varbit ${EdgevilleRespawn.VARBIT_UNLOCKED} 1") { it.startsWith("Varbit") }
+                client.commandReply("varbit ${EdgevilleRespawn.VARBIT_SPAWN} 1") { it.startsWith("Varbit") }
+                client.give(RETURNING_2)
+                client.itemOp(RETURNING_2, RUB)
+                client.landsWithin(EdgevilleRespawn.X, EdgevilleRespawn.Z, 0)
+                assertEquals(1, client.count(RETURNING_1))
+            }
+        }
+    }
+
     companion object {
         const val BACKPACK = 93
         const val WORN = 94
@@ -228,5 +320,14 @@ class HeadlessJewelleryTeleportTest {
         const val SKILLS = 11113
         const val SKILLS_1 = 11111
         val SKILLS_NECKLACES = listOf(11968, 11970, 11105, 11107, 11109, SKILLS_1)
+        const val BURNING_1 = 21175
+        val BURNINGS = listOf(21166, 21169, 21171, 21173, BURNING_1)
+        const val PASSAGE_1 = 21155
+        val PASSAGES = listOf(21146, 21149, 21151, 21153, PASSAGE_1)
+        const val RETURNING_2 = 21136
+        const val RETURNING_1 = 21138
+        val RETURNINGS = listOf(21129, 21132, 21134, RETURNING_2, RETURNING_1)
+        const val DIGSITE_2 = 11191
+        val DIGSITES = listOf(11194, 11193, 11192, DIGSITE_2, 11190)
     }
 }

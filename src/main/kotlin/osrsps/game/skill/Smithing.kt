@@ -7,6 +7,7 @@ import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.content.VarrockArmour
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -129,17 +130,30 @@ class Smithing(private val world: World) {
 
     private fun hasOres(player: Player, bar: Bar): Boolean = bar.ores.all { (ore, count) -> player.inventory.count(ore) >= count }
 
-    private fun ScriptContext.smeltOne(bar: Bar) {
-        for ((ore, count) in bar.ores) removeObj(player, ore, count)
-        val text = world.textFor(player)
-        // The Wiki's Iron bar: half of all iron ore is too impure at a furnace, whatever the level.
-        if (bar === IRON && !world.random.chance(1, 2)) {
-            player.message(text[SmithingLines.IMPURE])
-            return
+    private fun ScriptContext.smeltOne(bar: Bar, furnace: ZoneLoc) {
+        val type = world.objTypes[bar.obj] ?: error("No obj type ${bar.obj} for a bar")
+        if (!smeltFrom(bar, type)) return
+        player.message(world.textFor(player)[SmithingLines.SMELTED, "bar" to bar.key])
+        // Varrock armour's second bar at the Edgeville furnace, from the ores for it ([VarrockArmour]): smelted as the
+        // first, so a second iron bar spends a ring of forging use, or may be impure without one (guessed).
+        if (hasOres(player, bar) && VarrockArmour.doubleBar(player, world.random, bar.level, furnace.x, furnace.z)) {
+            smeltFrom(bar, type)
         }
-        player.inventory.add(world.objTypes[bar.obj] ?: error("No obj type ${bar.obj} for a bar"), 1)
+    }
+
+    /** Takes [bar]'s ores and gives the bar with its XP; false when iron came out impure, the ore lost. */
+    private fun ScriptContext.smeltFrom(bar: Bar, type: osrsps.game.ObjType): Boolean {
+        for ((ore, count) in bar.ores) removeObj(player, ore, count)
+        // The Wiki's Iron bar: half of all iron ore is too impure at a furnace, whatever the level, but none with a ring of
+        // forging worn, which spends a use on each (Ring of forging).
+        val forged = bar === IRON && world.jewelleryEffects.use(player, world.jewelleryEffects.forging)
+        if (bar === IRON && !forged && !world.random.chance(1, 2)) {
+            player.message(world.textFor(player)[SmithingLines.IMPURE])
+            return false
+        }
+        player.inventory.add(type, 1)
         player.skills.addTenths(Skill.SMITHING, bar.smeltXpTenths)
-        player.message(text[SmithingLines.SMELTED, "bar" to bar.key])
+        return true
     }
 
     // Smithing.
@@ -247,7 +261,7 @@ class Smithing(private val world: World) {
         when (step) {
             ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
-                if (job.item == null) smeltOne(job.bar) else smithOne(job.bar, job.item)
+                if (job.item == null) smeltOne(job.bar, job.loc) else smithOne(job.bar, job.item)
                 job.left--
                 // The next one's animation comes with the clock starting again next tick.
                 if (job.left <= 0 || !canDoOne(job)) return finish(stopAnim = false)

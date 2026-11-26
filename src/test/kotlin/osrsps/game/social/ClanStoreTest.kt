@@ -118,4 +118,20 @@ class ClanStoreTest {
         store.flush()
         assertEquals(listOf("dave"), ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.banned.map { it.key })
     }
+
+    @Test
+    fun `a coffer change that can't be written leaves the coffer as it was`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        assertTrue(store.setCoffer(clan, 500))
+        // A folder where the temp file goes: the write fails.
+        val blocker = dir.resolve("${ClanStore.FILE_NAME}.tmp")
+        Files.createDirectories(blocker)
+        Files.writeString(blocker.resolve("in-the-way"), "x")
+        assertFalse(store.setCoffer(clan, 900))
+        assertEquals(500, clan.coffer)
+        blocker.toFile().deleteRecursively()
+        store.flush()
+        assertEquals(500, ClanStore(dir.resolve(ClanStore.FILE_NAME)).byId(clan.id)!!.coffer)
+    }
 }

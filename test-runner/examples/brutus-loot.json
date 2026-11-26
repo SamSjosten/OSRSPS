@@ -1,0 +1,25 @@
+{
+ "name": "Brutus step 3: his loot. A kill in the player's own field counts (brutus.kill_count, ::keys on) and drops the bull bones and a raw t-bone steak always, on his tile nearest the player; Bury on the bull bones where they lie gives 40 Prayer XP. The table, the drop tile and the steaks are in HeadlessBrutusLootTest, FoodsTest and CookingTest",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario brutus", "expectMessage": "Started scenario brutus.", "comment": "south of the pen's gate; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "locOption", "locId": 60763, "option": "Release", "x": 3262, "y": 3294},
+  {"step": "assertDialogue", "contains": "[brutus.release_yes]", "timeoutMs": 10000, "comment": "on an account that once picked don't-ask-again there is no menu: drop this step and the next"},
+  {"step": "chooseOption", "text": "[brutus.release_yes]"},
+  {"step": "waitTicks", "ticks": 5, "comment": "the field's region drawn"},
+  {"step": "npcOption", "npc": "Brutus", "option": "Attack", "timeoutMs": 10000},
+  {"step": "command", "text": "::kill Brutus", "expectMessage": "Killed Brutus"},
+  {"step": "assertMessage", "contains": "brutus.kill_count", "timeoutMs": 10000},
+  {"step": "assertGroundItem", "itemId": 33106, "timeoutMs": 10000, "comment": "a raw t-bone steak, always"},
+  {"step": "groundItemOption", "itemId": 33115, "op": 3, "option": "Bury", "timeoutMs": 10000, "comment": "bull bones: no Take, only Bury"},
+  {"step": "assertMessage", "contains": "bones.buried", "timeoutMs": 10000},
+  {"step": "locOption", "locId": 60765, "option": "Quick-escape"},
+  {"step": "assertLocation", "x": 3262, "y": 3293, "plane": 0, "timeoutMs": 20000},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

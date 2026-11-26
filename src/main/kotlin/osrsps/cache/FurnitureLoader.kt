@@ -24,6 +24,7 @@ object FurnitureLoader {
     private const val MATERIAL_COST = 2
     private const val LEVEL_REQUIREMENT = 3
     private const val HIDDEN_IN_BUILD_MENU = 5
+    private const val UPGRADE_SOURCE_RELATIVE = 6
 
     // poh_room's.
     private const val ROOM_TYPE = 3
@@ -61,6 +62,7 @@ object FurnitureLoader {
                 level = level,
                 otherLevels = levels.filter { (stat, _) -> stat != Skill.CONSTRUCTION.id },
                 hidden = (db.columns[HIDDEN_IN_BUILD_MENU]?.firstOrNull() as? Int ?: 0) != 0,
+                upgradeFrom = db.columns[UPGRADE_SOURCE_RELATIVE]?.firstOrNull() as? Int,
             )
         }
         val rooms = HashMap<Int, List<List<FurnitureOption>>>()

@@ -1,0 +1,22 @@
+{
+  "name": "Exploit review R56A-1: a steel dragon in Brimhaven Dungeon breathing dragonfire from out of its reach at a player in a corridor too narrow for it",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::item shortbow", "expectMessage": "Added 1 x Shortbow"},
+    {"step": "command", "text": "::item bronze arrow 20", "expectMessage": "Added 20 x Bronze arrow"},
+    {"step": "itemOption", "item": "Shortbow", "option": "Wield"},
+    {"step": "itemOption", "item": "Bronze arrow", "option": "Wield"},
+    {"step": "command", "text": "::tele 2711 9463 0", "expectMessage": "Teleported to 2711, 9463, 0", "comment": "the metal dragons' cavern, south of the three-wide corridor at 2708-2710, 9471-9472 (read off the real map's collision)"},
+    {"step": "npcOption", "npc": "Steel dragon", "option": "Attack", "timeoutMs": 20000},
+    {"step": "waitTicks", "ticks": 3, "comment": "a shot or two, so the dragon comes after the player"},
+    {"step": "walk", "x": 2709, "y": 9472, "comment": "into the corridor: a 4x4 dragon can't get past its 4-wide mouth at 9470, so the player is 2 tiles from it at best"},
+    {"step": "assertLocation", "x": 2709, "y": 9472, "plane": 0},
+    {"step": "assertMessage", "contains": "[dragonfire.", "timeoutMs": 120000, "comment": "a breath from range (8 tiles, GUESSED); before the fix it couldn't reach the player at all"},
+    {"step": "assertLocation", "x": 2709, "y": 9472, "plane": 0, "comment": "still in the corridor, out of its melee reach"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "away before ::god goes off"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

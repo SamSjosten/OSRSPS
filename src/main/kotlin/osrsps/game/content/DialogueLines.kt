@@ -46,9 +46,13 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
+import osrsps.game.skill.magic.BonesToFruitLines
 import osrsps.game.skill.magic.JewelleryEnchantLines
+import osrsps.game.skill.magic.JewelleryEffectLines
 import osrsps.game.skill.magic.JewelleryTeleportLines
 import osrsps.game.skill.magic.SuperheatLines
+import osrsps.game.skill.magic.TelekineticGrabLines
+import osrsps.game.skill.magic.TeleportLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
@@ -135,9 +139,16 @@ object DialogueLines {
         AlchemyLines,
         SuperheatLines,
         JewelleryEnchantLines,
+        JewelleryEffectLines,
+        BonesToFruitLines,
+        TelekineticGrabLines,
         JewelleryTeleportLines,
         BorkLines,
         BrutusLines,
+        CowbellLines,
+        BottomlessLines,
+        CowSlippersLines,
+        DemonicLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,
@@ -306,6 +317,10 @@ object DialogueLines {
         MartinLines,
         MatthiasLines,
         MikasiLines,
+        TwiggyLines,
+        ZaffBarrelLines,
+        TeleportLines,
+        ExplorersRingLines,
         HaystackLines,
         HeadChefLines,
         HerbloreLines,
@@ -363,6 +378,8 @@ object DialogueLines {
         SawmillLines,
         ClerkLines,
         ClanHallLines,
+        ClanCofferLines,
+        ClanPartyLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,
@@ -377,6 +394,11 @@ object DialogueLines {
         DigsiteSignLines,
         DigsiteDigLines,
         DigsiteCampLines,
+        LarxusLines,
+        LeonDCourLines,
+        ChampionsChestLines,
+        JunaLines,
+        TearsLines,
         ExamCentreLines,
         TerryLines,
         DigsiteDungeonLines,
@@ -398,6 +420,10 @@ object DialogueLines {
         DeadMansBartenderLines,
         AlfonseLines,
         SanibochLines,
+        IzzyLines,
+        JackieLines,
+        AgilityArenaLines,
+        CairnIsleLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
@@ -458,6 +484,7 @@ object DialogueLines {
         MuseumCaseLines,
         NaturalHistoryQuizLines,
         MuseumTimelineLines,
+        MuseumDisplayLines,
         MuseumCleaningLines,
         HooknosedJackLines,
         AnnaJonesLines,

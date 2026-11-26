@@ -2,7 +2,6 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
 import osrsps.game.InventoryTab
@@ -38,7 +37,8 @@ class HeadlessStrayDogBoneTest {
                 val npc = client.await("the dog") { client.npcs().firstOrNull { it.id == dog.id } }
                 client.npcTarget(npc.index, InventoryTab.INTERFACE, InventoryTab.ITEMS, sub = slot, obj = Varrock.BONES)
                 client.await("the diary task") { Unit.takeIf { client.messages().any { it.text.startsWith("[diary.task_done") } } }
-                assertEquals(1, client.inventory(Inventory.INV).count { it?.id == Varrock.BONES })
+                // The backpack's update can reach the client after the task message, so wait for it rather than read it once.
+                client.await("one bone left") { Unit.takeIf { client.inventory(Inventory.INV).count { it?.id == Varrock.BONES } == 1 } }
             }
         }
     }

@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.GameLines
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.instance.Instance
@@ -22,6 +23,7 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
     val DYING = line("dying", "Brutus's overhead as he dies (Transcript:Brutus, Upon death)")
     val GROWLS = line("growls", "Brutus's overhead as he readies his charge (Transcript:Brutus, When charging)")
     val SNORTS = line("snorts", "Brutus's overhead as he readies his stomps (Transcript:Brutus, When stomping)")
+    val KILL_COUNT = line("kill_count", "a kill of Brutus: the kill count (the boss kill-count message; words not recorded yet)", "count")
     val HUFF = line("huff", "Brutus's overhead as he comes for a player out of his reach (Transcript:Brutus, Switching into smart-pathing)")
 }
 
@@ -45,6 +47,11 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
  *   kill (the Wiki's respawn; npc-combat.json). This step gives him his basic attack only; his charge and stomp are
  *   the next step. As he dies he says his last words (Transcript:Brutus). Items used on him are refused with the Wiki's
  *   two messages (an empty bucket has its own).
+ * - **His loot** (step 3; the Wiki's Brutus, Drops, and Bull bones, read 2026-11-22): npc-drops.json's table, on his
+ *   tile nearest the player ("Brutus' drops appear on the his tile closest to the player"). A kill counts for the
+ *   player whose field it is, in the cache's `total_cowboss_kills` ([KILL_COUNT_VARP]), with the kill-count message,
+ *   and the collection log's Brutus page shows it. Bull bones can't be taken, only buried where they lie, for 40
+ *   Prayer XP (no confirmation yet, as giant bones). The steaks cook and eat in Cooking and food.json.
  *
  * GUESSED until recorded: where Release puts the player ([ENTRY], just south of the gate) and where Brutus stands
  * ([SPAWN]: in the field south of the pen, from the Wiki's safespot-cycle tiles near "his respawn point", 3261,3293,
@@ -56,8 +63,11 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
  */
 class BrutusPens(private val world: World) {
     /** One player's field: the instance, and who it was made for. */
-    class Run(val instance: Instance, val owner: String) {
+    class Run(val instance: Instance, val owner: String, val demonic: Boolean = false) {
         var boss: Npc? = null
+
+        /** The tick of the player's first attack on this Brutus, for the scoreboard's times; -1 before it. */
+        var fightStart = -1L
 
         fun inside(x: Int, z: Int) = Tile(instance.baseX + x - Brutus.FIELD_X, instance.baseZ + z - Brutus.FIELD_Z)
     }
@@ -74,6 +84,14 @@ class BrutusPens(private val world: World) {
     /** Release on the pen's gate: the menu unless the player said not to ask again, then into a field of their own. */
     suspend fun ScriptContext.release() {
         arriveDelay()
+        // With an abyssal potato, the offer to feed it to him first: fed, it's Demonic Brutus (step 6).
+        var demonic = false
+        if (player.inventory.count(DemonicBrutus.POTATO) > 0) {
+            var pick = 0
+            world.dialogues.start(this) { pick = choice(DemonicLines.FEED_YES, DemonicLines.FEED_NO, title = text(DemonicLines.FEED_TITLE)) }
+            demonic = pick == 1
+        }
+        if (demonic) return enter(demonic = true)
         val askable = player.vars.types.varbit(Brutus.DONT_ASK_VARBIT) != null
         if (!askable || player.vars.getVarbit(Brutus.DONT_ASK_VARBIT) == 0) {
             var pick = 0
@@ -83,22 +101,36 @@ class BrutusPens(private val world: World) {
             if (pick != 1 && pick != 2) return
             if (pick == 2 && askable) player.vars.setVarbit(Brutus.DONT_ASK_VARBIT, 1)
         }
+        enter(demonic = false)
+    }
+
+    private suspend fun ScriptContext.enter(demonic: Boolean) {
+        if (demonic && player.inventory.count(DemonicBrutus.POTATO) <= 0) return
         player.spotanim(Brutus.SPOTANIM_TELEPORT)
         delay(Brutus.TELEPORT_TICKS)
+        if (demonic) {
+            // Fed as he is released: the potato is gone before the fight begins, and kept when there's no field.
+            val slot = player.inventory.contents().firstOrNull { it.second.id == DemonicBrutus.POTATO }?.first ?: return
+            val run = open(player, demonic = true) ?: return world.message(player, BrutusLines.NO_ROOM)
+            player.inventory.remove(slot, 1)
+            val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)
+            world.teleport(player, to.x, to.z, 0)
+            return
+        }
         // Made only now, as the player goes in: an instance with nobody in it is ended at the end of the tick.
-        val run = open(player) ?: return world.message(player, BrutusLines.NO_ROOM)
+        val run = open(player, demonic) ?: return world.message(player, BrutusLines.NO_ROOM)
         val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)
         world.teleport(player, to.x, to.z, 0)
     }
 
     /** A new field for [player], the way out in place of the gate in and Brutus in it; null when the dynamic area has no room. */
-    fun open(player: Player): Run? {
+    fun open(player: Player, demonic: Boolean = false): Run? {
         // Ended fields are let go of here, as nothing else tells this when an instance ends.
         runs.values.removeAll { run -> world.instances.all.none { it === run.instance } }
         val instance = world.instances.create(
             Brutus.FIELD_X, Brutus.FIELD_Z, Brutus.FIELD_WIDTH_ZONES, Brutus.FIELD_HEIGHT_ZONES, Brutus.OUTSIDE.x, Brutus.OUTSIDE.z, 0,
         ) ?: return null
-        val run = Run(instance, player.saveKey)
+        val run = Run(instance, player.saveKey, demonic)
         runs[instance.id] = run
         for ((start, exit) in Brutus.GATE_SWAPS) {
             for (x in Brutus.GATE_X) {
@@ -107,10 +139,17 @@ class BrutusPens(private val world: World) {
                 world.locs.replace(loc, exit)
             }
         }
-        val type = world.npcTypes[Brutus.BOSS]
+        val type = world.npcTypes[if (demonic) DemonicBrutus.BOSS else Brutus.BOSS]
         if (type != null) {
             val at = run.inside(Brutus.SPAWN.x, Brutus.SPAWN.z)
-            run.boss = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = "Brutus's field"))
+            // Demonic Brutus is for the one fight the potato bought: he doesn't come back.
+            run.boss = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = "Brutus's field", respawns = !demonic))
+        }
+        // No room for him in the world's NPCs: no field either, so a fed potato is kept.
+        if (demonic && run.boss == null) {
+            runs.remove(instance.id)
+            world.endInstance(instance)
+            return null
         }
         return run
     }
@@ -141,7 +180,16 @@ object Brutus {
     const val GATE_Z = 3294
 
     /** The locs whose handlers work in the fields, the instances: the way out's leaves and the dairy cows. */
-    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT) + GroatsFarm.DAIRY_COWS
+    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT) + GroatsFarm.DAIRY_COWS +
+        // The scoreboard west of the pen is inside the copied field: Read works there too.
+        setOf(BrutusScoreboard.SCOREBOARD_MULTI, BrutusScoreboard.SCOREBOARD, BrutusScoreboard.SCOREBOARD_DEMONIC)
+
+    /**
+     * The tick [player] launched their attack on [boss] (as they swing, fire or cast, before it lands), or null when they
+     * haven't attacked this Brutus. Their later attacks move it on, so it is read every tick until noted.
+     */
+    fun firstAttack(player: Player, boss: Npc): Long? =
+        player.launchedAtNpcTick.takeIf { player.launchedAtNpc === boss && it >= boss.spawnTick }
 
     /** The cache's `cowboss_regular_dontaskagain`: Release goes straight in. */
     const val DONT_ASK_VARBIT = 20160
@@ -151,6 +199,19 @@ object Brutus {
     const val TELEPORT_TICKS = 2
 
     const val BUCKET = 1925
+
+    /** `bull_bones`: buried where they fall, never taken (OSRS Wiki, Bull bones), for 40 Prayer XP. */
+    const val BULL_BONES = 33115
+    const val BURY = 3
+    const val BULL_BONES_XP_TENTHS = 400
+
+    /** The cache's `total_cowboss_kills` and `total_cowboss_hardmode_kills`. */
+    const val KILL_COUNT_VARP = 5407
+    const val HARDMODE_KILL_COUNT_VARP = 5408
+
+    /** His tile nearest [x], [z], his south-west tile on [bossX], [bossZ]: where his drop goes (OSRS Wiki, Brutus, Trivia). */
+    fun nearestTile(bossX: Int, bossZ: Int, size: Int, x: Int, z: Int): Tile =
+        Tile(x.coerceIn(bossX, bossX + size - 1), z.coerceIn(bossZ, bossZ + size - 1))
 
     /** The field's map: four by six zones from here, the pen and the eastern field with Gillie's dairy cows. */
     const val FIELD_X = 3240
@@ -175,6 +236,36 @@ fun registerBrutus(world: World, pens: BrutusPens) {
         }
         world.handlers.onObjOnNpc(BOSS) { world.message(player, BrutusLines.NOT_WANTED) }
         world.handlers.onObjOnNpc(BOSS, BUCKET) { world.message(player, BrutusLines.NOT_THE_BUCKET) }
-        world.npcScripts.onDeath(listOf(BOSS)) { it.effects.say(world.dialogueText[BrutusLines.DYING]) }
+        world.npcScripts.onDeath(listOf(BOSS)) { boss ->
+            boss.effects.say(world.dialogueText[BrutusLines.DYING])
+            // Guessed: the kill counts for the player whose field it is (the Wiki doesn't say; the field is theirs alone).
+            val run = pens.runAt(boss.x, boss.z) ?: return@onDeath
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == run.owner && !it.loggedOut }
+            // A kill on the first attack dies before his fight's next tick could note it: the attack's tick is the start.
+            val start = run.fightStart.takeIf { it >= 0 } ?: player?.let { firstAttack(it, boss) }
+            val ticks = start?.let { world.tick - it }
+            run.fightStart = -1
+            if (player == null) return@onDeath
+            if (KILL_COUNT_VARP < player.vars.types.varpCount) {
+                player.vars[KILL_COUNT_VARP] = player.vars[KILL_COUNT_VARP] + 1
+                world.message(player, BrutusLines.KILL_COUNT, "count" to player.vars[KILL_COUNT_VARP])
+            }
+            BrutusScoreboard.killed(world, player, ticks)
+        }
+        // "Brutus' drops appear on the his tile closest to the player, rather than under his centre or south-west tile".
+        world.dropTiles[BOSS] = { boss, killer ->
+            if (killer == null) Tile(boss.x, boss.z) else nearestTile(boss.x, boss.z, boss.type.size, killer.x, killer.z)
+        }
+        // Bull bones: Bury on the floor, as giant bones (no confirmation yet), and no Take.
+        world.handlers.onGroundObj(BULL_BONES, BURY) { op ->
+            val obj = op.groundObj!!
+            world.message(player, BonesLines.DIG)
+            player.anim(Bones.ANIM_BURY)
+            player.waypoints.clear()
+            delay(1)
+            if (!world.groundObjs.remove(obj)) return@onGroundObj
+            player.skills.addTenths(Skill.PRAYER, BULL_BONES_XP_TENTHS)
+            world.message(player, BonesLines.BURIED)
+        }
     }
 }

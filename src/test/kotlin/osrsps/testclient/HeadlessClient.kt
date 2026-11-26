@@ -247,6 +247,18 @@ class HeadlessClient private constructor(
     }
 
     /**
+     * The last int value of clan var [id] (VARCLAN, as RSProt's VarClanEncoder writes it: the id in 2 bytes, then the
+     * value), or null when none came since the last VARCLAN_DISABLE.
+     */
+    fun varClan(id: Int): Int? = lock.withLock {
+        val last = packets.indexOfLast { it.prot == GameServerProt.VARCLAN && it.payload.size >= 6 && Unpooled.wrappedBuffer(it.payload).toJagByteBuf().g2() == id }
+        if (last < 0 || packets.subList(last, packets.size).any { it.prot == GameServerProt.VARCLAN_DISABLE }) return@withLock null
+        val buf = Unpooled.wrappedBuffer(packets[last].payload).toJagByteBuf()
+        buf.g2()
+        buf.g4()
+    }
+
+    /**
      * Like [lastStrings], for the last CLANSETTINGS_FULL or CLANCHANNEL_FULL of one clan type (its first byte: 0 the
      * player's clan, -1 the guest clan). A leave update has no strings, so it reads as an empty list.
      */
@@ -537,6 +549,22 @@ class HeadlessClient private constructor(
             else -> throw IllegalArgumentException("Obj ops are 1-5, not $op")
         }
     }
+
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on ground obj [id] at [x], [z], as
+     * OPOBJT: a spell picked in the spellbook (Telekinetic Grab) and clicked on the obj. Laid out as RSProt's 242
+     * OpObjTDecoder reads it.
+     */
+    fun objTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPOBJT) {
+            p2(obj and 0xFFFF)
+            p4Alt1((interfaceId shl 16) or componentId)
+            p2Alt2(z)
+            p2Alt1(sub and 0xFFFF)
+            p2Alt2(id)
+            p1Alt2(if (ctrl) 1 else 0)
+            p2Alt2(x)
+        }
 
     /**
      * Op [op] (1-10) on component [componentId] of [interfaceId], or on its slot [sub], as IF_BUTTONX: an inventory

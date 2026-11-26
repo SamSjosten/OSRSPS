@@ -10,7 +10,9 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.content.CowbellAmulet
 import osrsps.game.content.Crops
 import osrsps.game.content.DairyCowLines
 import osrsps.game.content.GroatsFarm
@@ -34,13 +36,14 @@ import osrsps.map.LocShape
  */
 class HeadlessMillTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(Crops.GRAIN + 1)
+        val objs = arrayOfNulls<ObjType>(maxOf(Crops.GRAIN, CowbellAmulet.EMPTY) + 1)
         fun obj(id: Int, name: String) = ObjType(id, name, iops = listOf(null, null, null, null, "Drop"))
         objs[Crops.GRAIN] = obj(Crops.GRAIN, "Grain")
         objs[MillLaneMill.POT] = obj(MillLaneMill.POT, "Pot")
         objs[MillLaneMill.POT_OF_FLOUR] = obj(MillLaneMill.POT_OF_FLOUR, "Pot of flour")
         objs[GroatsFarm.BUCKET] = obj(GroatsFarm.BUCKET, "Bucket")
         objs[GroatsFarm.BUCKET_OF_MILK] = obj(GroatsFarm.BUCKET_OF_MILK, "Bucket of milk")
+        objs[CowbellAmulet.EMPTY] = ObjType(CowbellAmulet.EMPTY, "Cowbell amulet", iops = listOf(null, "Wear", "Ring", "Charge", "Drop"), wearpos1 = WearPos.NECK)
         val locs = mapOf(
             WHEAT to LocType(WHEAT, "Wheat", ops = listOf(null, "Pick", null, null, null), collision = LocCollisionType(interactType = 0)),
             MillLaneMill.HOPPER to LocType(MillLaneMill.HOPPER, "Hopper", ops = listOf("Fill", null, null, null, null), collision = LocCollisionType(width = 2)),
@@ -178,11 +181,37 @@ class HeadlessMillTest {
         }
     }
 
+    @Test
+    fun `with a cowbell amulet worn, a dairy cow fills a bucket every six ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${CowbellAmulet.EMPTY}")
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, WEAR_BUTTON, client.slotOf(CowbellAmulet.EMPTY), CowbellAmulet.EMPTY)
+                client.await("the amulet on") { client.inventory(WORN).firstOrNull { it?.id == CowbellAmulet.EMPTY } }
+
+                client.command("item ${GroatsFarm.BUCKET} 4")
+                client.await("four buckets") { if (client.count(GroatsFarm.BUCKET) == 4) Unit else null }
+                client.locOp(COW, 3217, 3214, GroatsFarm.MILK)
+                val first = client.await("the first bucket of milk") { if (client.count(GroatsFarm.BUCKET_OF_MILK) == 1) client.ticksSeen else null }
+                val last = client.await("four buckets of milk", timeoutMillis = 20_000) {
+                    if (client.count(GroatsFarm.BUCKET_OF_MILK) == 4) client.ticksSeen else null
+                }
+                // Three more at 6 ticks each, where 8 without it would be 24.
+                assertTrue(last - first in 3 * CowbellAmulet.MILK_TICKS - 2..3 * CowbellAmulet.MILK_TICKS + 2, "${last - first} ticks for three more")
+            }
+        }
+    }
+
     private companion object {
         const val WHEAT = 15506
         const val COW = 60788
         const val VARP_FLOUR = 203
         const val VARP_SHOW_FLOUR = 695
         const val BACKPACK = 93
+        const val WORN = 94
+
+        /** Wear is iop2, which the inventory sends as button op 3. */
+        const val WEAR_BUTTON = 3
     }
 }

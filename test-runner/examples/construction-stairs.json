@@ -1,0 +1,342 @@
+{
+ "name": "Construction step CON5: a skill hall's oak staircase goes Up (Down waits for the dungeon), Climb-up builds a skill hall at its top for the hall's coins and the staircase's materials again, the stairs stay while they connect, the hall below holds up the one above, and Remove-room on the top puts the player back down (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 35",
+   "expectMessage": "35",
+   "comment": "the skill hall's 25 and the oak staircase's 27"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 30000",
+   "expectMessage": "30,000",
+   "comment": "a skill hall's 15,000, and the hall at the staircase's top"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 10",
+   "expectMessage": "Oak plank",
+   "comment": "the oak staircase's 10 oak planks"
+  },
+  {
+   "step": "command",
+   "text": "::item 2353 4",
+   "expectMessage": "Steel bar",
+   "comment": "and its 4 steel bars"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 17,
+   "comment": "the skill hall's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the first turn that puts a door on this doorway"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the redraw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15380,
+   "option": "Build",
+   "comment": "the hall's stair space (poh_hall1_1_stairs_up)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 6,
+   "comment": "slot 3, after the rug and the opulent rug: the oak staircase"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.stairs_down]",
+   "comment": "Down waits for the dungeon (CON10)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.stairs_down_later]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 15380,
+   "option": "Build"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 6
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.stairs_up]"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 23086,
+   "timeoutMs": 5000,
+   "comment": "level 35's 22,406 XP and the staircase's 680 (the Stair Space page)"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 1 (region",
+   "comment": "the ground floor, the house's level 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Oak plank",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 10",
+   "expectMessage": "Oak plank",
+   "comment": "the staircase's materials again, for its top"
+  },
+  {
+   "step": "command",
+   "text": "::item 2353 4",
+   "expectMessage": "Steel bar"
+  },
+  {
+   "step": "locOption",
+   "locId": 13497,
+   "option": "Climb-up",
+   "comment": "nothing above: the prompt for the room at the top"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.stairs_top_skill_hall]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the redraw and the climb"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 2 (region",
+   "comment": "upstairs, the house's level 2: poh_stairstop_3 on the player's own level: upstairs, in the hall at the staircase's top"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 23766,
+   "timeoutMs": 5000,
+   "comment": "the top's 680 too (GUESSED)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "comment": "15,000 for each hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 13498,
+   "option": "Remove"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.stairs_connected]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 13498,
+   "option": "Climb-down"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 1 (region",
+   "comment": "the ground floor, the house's level 1"
+  },
+  {
+   "step": "locOption",
+   "locId": 13497,
+   "option": "Remove-room"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.remove_supporting]",
+   "timeoutMs": 5000,
+   "comment": "the hall holds up the room above it"
+  },
+  {
+   "step": "locOption",
+   "locId": 13497,
+   "option": "Climb-up"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 2 (region",
+   "comment": "upstairs, the house's level 2"
+  },
+  {
+   "step": "locOption",
+   "locId": 13498,
+   "option": "Remove-room"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_yes]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the room goes, and the player down to the hall under it"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 1 (region",
+   "comment": "the ground floor, the house's level 1"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -99,6 +99,7 @@ class AgilityDataTest {
                 "shortcut_brimhaven_dungeon_stones_north" to (56 to 0),
                 "shortcut_brimhaven_dungeon_stones_south" to (56 to 0),
                 "shortcut_brimhaven_dungeon_vine" to (87 to 0),
+                "shortcut_cairn_isle_rocks" to (15 to 10),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -159,6 +160,57 @@ class AgilityDataTest {
         is AgilityMove.Slide -> last.to
         is AgilityMove.Walk -> AgilityTile(last.path.last().x, last.path.last().z, 0)
         else -> error("No tile in $last")
+    }
+
+    @Test
+    fun `the Agility Arena's obstacles have the Wiki's levels and XP, fall into the pit, and only the planks are rigged`() {
+        val arena = AgilityData.load().obstacles.filter { it.key.startsWith("arena_") }
+        assertEquals(
+            mapOf(
+                "arena_balancing_rope" to (1 to 100), "arena_log_balance" to (1 to 120), "arena_balancing_ledge" to (1 to 160),
+                "arena_monkey_bars" to (1 to 140), "arena_plank" to (1 to 60), "arena_hand_holds" to (20 to 220),
+                "arena_pillar" to (1 to 180), "arena_rope_swing" to (1 to 200), "arena_low_wall" to (1 to 80),
+            ),
+            arena.associate { it.key to (it.level to it.xpTenths) },
+        )
+        assertEquals(listOf("arena_plank"), arena.filter { it.rigged }.map { it.key })
+        for (obstacle in arena) {
+            // Every way across starts on a platform (level 3) and none fails at 99.
+            assertTrue(obstacle.routes.all { it.from.level == 3 }, obstacle.key)
+            assertTrue(obstacle.success == null || obstacle.success!!.second == 255, obstacle.key)
+            if (obstacle.key == "arena_low_wall") {
+                // A stumble back where they started, with no damage.
+                assertTrue(obstacle.damage.isEmpty())
+                assertTrue(obstacle.routes.all { route -> route.fail.all { it is AgilityMove.Anim } })
+                continue
+            }
+            assertEquals(2..2, obstacle.damage, obstacle.key)
+            assertEquals(5, obstacle.damageHpPercent, obstacle.key)
+            // A fall lands in the pit below the start.
+            for (route in obstacle.routes) assertEquals(AgilityTile(route.from.x, route.from.z, 0), landing(route.fail), obstacle.key)
+        }
+        // Each loc crossing lands on the start of the crossing back, so every one goes both ways.
+        for (obstacle in arena) {
+            val starts = obstacle.routes.map { it.from }.toSet()
+            for (route in obstacle.routes) {
+                val end = landing(route.moves).let { if (it.level == 0) it.copy(level = 3) else it }
+                assertTrue(end in starts, "${obstacle.key} from ${route.from}")
+            }
+        }
+        assertEquals(AgilityLines.BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL, arena.single { it.key == "arena_hand_holds" }.levelLine)
+    }
+
+    @Test
+    fun `a rigged obstacle needs fail moves and rolls no success pair`() {
+        val fail = """"routes": [{"from": [3200, 3200, 0], "moves": [], "fail": [{"type": "anim", "anim": 764, "ticks": 1}]}]"""
+        val rigged = """{"key": "a", "loc": 1, "option": "Walk", "level": 1, "xpTenths": 10, "rigged": true, $fail}"""
+        assertTrue(AgilityData.parse("""{"obstacles": [$rigged]}""").obstacles.single().rigged)
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${rigged.replace("\"rigged\": true", "\"rigged\": true, \"success\": [10, 20]")}]}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"rigged\": true")}]}""")
+        }
     }
 
     @Test

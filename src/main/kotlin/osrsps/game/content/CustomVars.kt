@@ -102,18 +102,49 @@ class CustomVars(
     /** The balloon log storage's magic logs ([LogStorage]). Live keeps this somewhere we haven't found; ours is guessed. */
     val logStorageMagicVarp: Int = firstVarp + 10
 
+    /**
+     * The Champions' Challenge duel the player has arranged with Larxus, its [ChampionsChallenge.Champion]'s ordinal plus
+     * one, 0 for none ([ChampionsChallenge]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val championsVarp: Int = firstVarp + 11
+
+    /**
+     * Brutus's scoreboard, the player's column: deaths in his fields, and the fastest kill in ticks (0 for none)
+     * ([BrutusScoreboard]). Live keeps these somewhere we haven't found; ours are guessed.
+     */
+    val brutusDeathsVarp: Int = firstVarp + 12
+    val brutusBestVarp: Int = firstVarp + 13
+
+    /**
+     * The player's last drink of the Tears of Guthix: the UTC day (days since 1970) in its low 16 bits and their quest
+     * points then above them, 0 before the first ([TearsOfGuthix]). Live keeps this somewhere we haven't found; ours is
+     * guessed.
+     */
+    val togVisitVarp: Int = firstVarp + 14
+
+    /** The player's total XP at their last drink of the Tears, in tens of XP ([TearsOfGuthix]); guessed as above. */
+    val togVisitXpVarp: Int = firstVarp + 15
+
+    /** The same as Brutus's for Demonic Brutus, the scoreboard's Read (Demonic). */
+    val brutusDemonicDeathsVarp: Int = firstVarp + 16
+    val brutusDemonicBestVarp: Int = firstVarp + 17
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE] and [LOG_STORAGE_MAGIC]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS] and [BRUTUS_DEMONIC_BEST]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
         LOG_STORAGE to logStorageVarp, LOG_STORAGE_MAGIC to logStorageMagicVarp,
+        CHAMPIONS to championsVarp,
+        BRUTUS_DEATHS to brutusDeathsVarp, BRUTUS_BEST to brutusBestVarp,
+        TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
+        BRUTUS_DEMONIC_DEATHS to brutusDemonicDeathsVarp, BRUTUS_DEMONIC_BEST to brutusDemonicBestVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -168,6 +199,19 @@ class CustomVars(
         /** The balloon log storage's varps' names. */
         const val LOG_STORAGE = "log_storage"
         const val LOG_STORAGE_MAGIC = "log_storage.magic"
+
+        /** The Champions' Challenge arrangement's varp's name. */
+        const val CHAMPIONS = "champions_challenge"
+
+        /** Brutus's scoreboard's varps' names: the player's deaths and fastest kill. */
+        const val BRUTUS_DEATHS = "brutus.deaths"
+        const val BRUTUS_BEST = "brutus.best_ticks"
+        const val BRUTUS_DEMONIC_DEATHS = "brutus.demonic_deaths"
+        const val BRUTUS_DEMONIC_BEST = "brutus.demonic_best_ticks"
+
+        /** The Tears of Guthix's last-visit varps' names. */
+        const val TOG_VISIT = "tears_of_guthix"
+        const val TOG_VISIT_XP = "tears_of_guthix.xp"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

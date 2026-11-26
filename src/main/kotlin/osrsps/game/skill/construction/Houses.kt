@@ -37,14 +37,31 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val REMOVE_NO = line("remove_no", "The prompt's option keeping the room (no source yet)")
     val ROOM_LEVEL = line("room_level", "Picking a room above the player's Construction level, {level} (no source yet)", "level")
     val ROOM_COINS = line("room_coins", "Picking a room without its {cost} coins in the backpack (no source yet)", "cost")
-    val ROOM_FLOOR = line("room_floor", "Picking a dungeon room for the ground floor (no source yet)")
+    val ROOM_FLOOR = line("room_floor", "Picking a room for a floor it can't go on: a dungeon room above ground, or a garden or other ground floor room upstairs (no source yet)")
+    val ROOM_NO_SUPPORT = line("room_no_support", "Adding a room upstairs with no room below it (the Player-owned house page: there must be one; no source for the words)")
+    val REMOVE_SUPPORTING = line("remove_supporting", "Removing a ground floor room with a room above it (the Player-owned house page: it can't be; no source for the words)")
+    val STAIRS_TITLE = line("stairs_title", "Building a staircase in a ground floor hall: the prompt asking which way it goes (the Hall pages: \"Up\" or \"Down\"; no source for the words)")
+    val STAIRS_UP = line("stairs_up", "The staircase prompt's option for a staircase going up (the Hall pages: \"Up\")")
+    val STAIRS_DOWN = line("stairs_down", "The staircase prompt's option for a staircase going down (the Hall pages: \"Down\")")
+    val STAIRS_DOWN_LATER = line("stairs_down_later", "Picking Down for a staircase before the dungeon is built here, step CON10 (ours)")
+    val STAIRS_TOP_TITLE = line("stairs_top_title", "Climb-up on a staircase with nothing above it, in building mode: the prompt asking which room to build at the top (the Hall pages: an interface asks; no source for the words)")
+    val STAIRS_TOP_SKILL_HALL = line("stairs_top_skill_hall", "The top room prompt's option building a skill hall (no source yet)")
+    val STAIRS_TOP_QUEST_HALL = line("stairs_top_quest_hall", "The top room prompt's option building a quest hall (no source yet)")
+    val STAIRS_TOP_CANCEL = line("stairs_top_cancel", "The top room prompt's option building nothing (no source yet)")
+    val STAIRS_NOTHING_ABOVE = line("stairs_nothing_above", "Climb-up on a staircase with nothing above it, out of building mode (no source yet)")
+    val STAIRS_BLOCKED = line("stairs_blocked", "Climb-up where the room above isn't a hall with the same staircase, facing the same way (no source yet)")
+    val STAIRS_NO_MATCH = line("stairs_no_match", "Building a staircase upstairs that isn't the one in the hall below, facing the same way (the Hall pages: the room above needs the same staircase; no source for the words)")
+    val STAIRS_CONNECTED = line("stairs_connected", "Remove on a staircase that leads to the other floor (ours: the room upstairs goes first; no source yet)")
     val ROOM_LIMIT = line("room_limit", "Adding a room with as many as the player's level allows, {max} (no source yet)", "max")
     val ROOM_TOO_FAR = line("room_too_far", "Adding a room that would make the house wider than the player's level allows, {size} by {size} (no source yet)", "size")
     val ROOM_OUTSIDE = line("room_outside", "Adding a room past the edge of the yard (no source yet)")
     val ROOM_NO_DOOR = line("room_no_door", "Adding a room that can't be turned to have a door facing this one (no source yet)")
-    val REMOVE_PORTAL = line("remove_portal", "Removing the room the exit portal is in (ours: no source yet)")
+    val REMOVE_PORTAL = line("remove_portal", "Removing the room the house's only exit portal is in (ours: no source yet)")
+    val REMOVE_ONLY_PORTAL = line("remove_only_portal", "Remove on the house's only exit portal (the Exit portal page: it can't be removed; no source for the words)")
+    val FURNITURE_WATERING_CAN = line("furniture_watering_can", "Planting a bagged tree or plant without a watering can with water in it (the Garden page: one is needed; no source for the words)")
     val FURNITURE_LEVEL = line("furniture_level", "Building furniture above the player's Construction level, {level} (no source yet)", "level")
     val FURNITURE_SKILL_LEVEL = line("furniture_skill_level", "Building furniture above another skill's level it needs, {skill} {level} (the barrels' Cooking; no source yet)", "skill", "level")
+    val FURNITURE_CREST = line("furniture_crest", "Building a wall decoration without a family crest (the Dining room page: they need one from Sir Renitee; no source for the words)")
     val TAKE_SUPPLIES = line("take_supplies", "The Make-X box's title on searching a larder or kitchen shelves (no source yet)")
     val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
     val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
@@ -167,7 +184,13 @@ object House {
  * below it. GUESSED: the ghost's menu (rotate either way, build, cancel) and the prompt's words and layout; rooms only
  * on the yard, the house's width measured over every room; the room holding the exit portal can't be removed (the
  * house would have nowhere to put its visitors); a ghost left by walking off stays until the next Build or the next
- * entry, unsaved. Floors come with step CON5, so dungeon rooms are refused for now.
+ * entry, unsaved.
+ *
+ * Step CON5: the upper floor is level 2 of the instance, each room there the same template a floor up (the cache's
+ * template area keeps a house style's rooms on one level). Only its rooms are drawn: an empty cell upstairs is open air.
+ * A room goes upstairs through a doorway there only over a room below, and a ground floor room under one can't be
+ * removed (the Wiki's Player-owned house); gardens and the other ground floor rooms stay downstairs, and a hall upstairs
+ * is the hall at a staircase's top ([Stairs]). Dungeon rooms wait for CON10.
  *
  * Entering puts the player beside the exit portal ([House.ARRIVE_DX]); its Enter, a logout inside and the end of the
  * instance put them outside the portal they came in by ([House.RIMMINGTON_OUTSIDE]). A house is built afresh each time
@@ -180,15 +203,19 @@ class Houses(private val world: World) {
      * there and not yet built, if any.
      */
     class Open(val owner: String, val instance: Instance, val buildingMode: Boolean) {
-        var ghost: Pair<Int, Int>? = null
+        var ghost: Cell? = null
 
         /** By tile and layer ([slot]), the hotspot the room's template put there, whatever is built over it now. */
         val hotspots = HashMap<Long, ZoneLoc>()
     }
 
+    /** A cell of the house's grid on one of its floors ([House.GROUND] or [House.UPPER]). */
+    data class Cell(val x: Int, val z: Int, val floor: Int)
+
     companion object {
-        /** A tile and layer as one key, for [Open.hotspots]. */
-        fun slot(x: Int, z: Int, layer: Int): Long = (x.toLong() shl 34) or (z.toLong() shl 2) or layer.toLong()
+        /** A tile, level and layer as one key, for [Open.hotspots]. */
+        fun slot(x: Int, z: Int, level: Int, layer: Int): Long =
+            (x.toLong() shl 36) or (z.toLong() shl 4) or (level.toLong() shl 2) or layer.toLong()
     }
 
     /** By owner, their house open now; by instance, the same houses, for looking one up by where a player is. */
@@ -266,6 +293,15 @@ class Houses(private val world: World) {
      */
     fun process() {
         forgetEnded()
+        settleDepartures()
+    }
+
+    /**
+     * Whoever has left a house since the last look is settled: also at the tick's start, before the players' input, so a
+     * house-only item can't be dropped outside on the first tick out and kept (exploit review R56B-1; as the Archive's
+     * supplies, R26A-1).
+     */
+    fun settleDepartures() {
         if (inside.isEmpty()) return
         val left = inside.filter { houseAt(it.x, it.z) == null }
         for (player in left) {
@@ -285,9 +321,13 @@ class Houses(private val world: World) {
         dropHouseOnly(player)
     }
 
-    /** What the kitchen gives that can't leave the house ([Kitchen.HOUSE_ONLY]) goes as its taker does (Codex review on #906). */
+    /**
+     * What the house gives that can't leave it ([HouseOnly.OBJS]: the kitchen's supplies, the combat room's practice kit)
+     * goes as its taker does, carried or worn (Codex review on #906).
+     */
     private fun dropHouseOnly(player: Player) {
-        for ((slot, obj) in player.inventory.contents()) if (obj.id in Kitchen.HOUSE_ONLY) player.inventory.remove(slot)
+        for ((slot, obj) in player.inventory.contents()) if (obj.id in HouseOnly.OBJS) player.inventory.remove(slot)
+        for ((slot, obj) in player.equipment.contents()) if (obj.id in HouseOnly.OBJS) player.equipment.remove(slot, obj.count)
     }
 
     /**
@@ -317,10 +357,14 @@ class Houses(private val world: World) {
                 } else if (x < yard && z < yard) {
                     parts += part(RoomType.YARD, x, z, 0)
                 }
+                // Upstairs only the rooms: an empty cell there is open air (step CON5).
+                state.room(x, z, House.UPPER)?.let { parts += part(it.type, x, z, it.rotation, House.UPPER) }
             }
         }
         val outside = outsideTile(state.location)
         val instance = world.instances.create(House.GRID, House.GRID, parts, outside.x, outside.z, 0) ?: return null
+        // Open air upstairs can't be walked into (Codex review on #990).
+        for (x in 0 until House.GRID) for (z in 0 until House.GRID) if (state.room(x, z, House.UPPER) == null) world.instances.clear(instance, x, z, House.UPPER)
         val house = Open(player.saveKey, instance, buildingMode)
         for (room in state.rooms) furnish(house, state, room)
         open[player.saveKey] = house
@@ -330,8 +374,8 @@ class Houses(private val world: World) {
         return house
     }
 
-    private fun part(type: RoomType, x: Int, z: Int, rotation: Int) =
-        InstancePart(type.templateX, type.templateZ, 0, 1, 1, x, z, House.GROUND, rotation)
+    private fun part(type: RoomType, x: Int, z: Int, rotation: Int, floor: Int = House.GROUND) =
+        InstancePart(type.templateX, type.templateZ, 0, 1, 1, x, z, floor, rotation)
 
     /** What [room]'s hotspots show in [instance]: what is built there, and out of building mode walls, doors or nothing. */
     private fun furnish(house: Open, state: HouseState, room: HouseRoom) {
@@ -341,9 +385,9 @@ class Houses(private val world: World) {
         val baseZ = instance.baseZ + (room.z shl 3)
         for (dx in 0 until 8) {
             for (dz in 0 until 8) {
-                for (loc in world.locs.at(baseX + dx, baseZ + dz, House.GROUND)) {
+                for (loc in world.locs.at(baseX + dx, baseZ + dz, room.floor)) {
                     if (world.locs.types[loc.id]?.ops?.getOrNull(House.BUILD - 1) != House.BUILD_OP) continue
-                    house.hotspots[slot(loc.x, loc.z, loc.layer)] = loc
+                    house.hotspots[slot(loc.x, loc.z, loc.level, loc.layer)] = loc
                     val built = room.built[loc.id]
                     val shows = when {
                         built != null -> loc.copy(id = built)
@@ -414,63 +458,75 @@ class Houses(private val world: World) {
         if (house == null || state == null || house.owner != player.saveKey || !house.buildingMode) return world.message(player, GameLines.NOTHING_INTERESTING)
         clearGhost(house, state)
         val instance = house.instance
-        val room = state.room((hotspot.x - instance.baseX) shr 3, (hotspot.z - instance.baseZ) shr 3) ?: return
+        val room = state.room((hotspot.x - instance.baseX) shr 3, (hotspot.z - instance.baseZ) shr 3, hotspot.level) ?: return
         val side = side(hotspot.x and 7, hotspot.z and 7) ?: return
         val (x, z) = beyond(room.x, room.z, side)
         val there = state.room(x, z, room.floor)
-        if (there != null) remove(context, house, state, there) else add(context, house, state, x, z, (side + 2) % 4)
+        if (there != null) remove(context, house, state, there) else add(context, house, state, Cell(x, z, room.floor), (side + 2) % 4)
     }
 
-    /** The add-room menu, then the picked room's ghost at cell [x], [z] with a door on side [facing], until it is built. */
-    private suspend fun add(context: ScriptContext, house: Open, state: HouseState, x: Int, z: Int, facing: Int) {
+    /**
+     * The add-room menu, then the picked room's ghost at [cell] with a door on side [facing], until it is built. Upstairs
+     * (step CON5) a room needs one below it (the Wiki's Player-owned house: "Players cannot have a room above ground
+     * level if there is no room below it"), and a hall there is the hall at the top of a staircase ([RoomType.upstairs]).
+     */
+    private suspend fun add(context: ScriptContext, house: Open, state: HouseState, cell: Cell, facing: Int) {
         val player = context.player
+        val (x, z, floor) = cell
         val level = player.skills.baseLevel(Skill.CONSTRUCTION)
         val yard = House.yardSize(level)
         if (x !in 0 until yard || z !in 0 until yard) return world.message(player, ConstructionLines.ROOM_OUTSIDE)
+        if (!supported(state, cell)) return world.message(player, ConstructionLines.ROOM_NO_SUPPORT)
         if (state.rooms.size >= House.maxRooms(level)) return world.message(player, ConstructionLines.ROOM_LIMIT, "max" to House.maxRooms(level))
         if (!fits(state, x, z, House.maxSize(level))) return world.message(player, ConstructionLines.ROOM_TOO_FAR, "size" to House.maxSize(level))
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, House.ADD_ROOM)
         world.interfaces.setEvents(player, House.ADD_ROOM, House.ADD_ROOM_LIST, House.ADD_ROOM_SLOTS.first, House.ADD_ROOM_SLOTS.last, Chatbox.EVENT_PAUSE_BUTTON)
         val picked = context.pauseButton(House.ADD_ROOM, House.ADD_ROOM_LIST, House.ADD_ROOM_SLOTS)
         world.interfaces.closeModals(player)
-        val type = RoomType.byId(picked)?.takeIf { it.listed } ?: return
-        if (!stillHere(house, player) || state.room(x, z) != null) return
+        val listed = RoomType.byId(picked)?.takeIf { it.listed } ?: return
+        val type = if (floor == House.UPPER) listed.upstairs else listed
+        if (!stillHere(house, player) || state.room(x, z, floor) != null || !supported(state, cell)) return
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < type.level) return world.message(player, ConstructionLines.ROOM_LEVEL, "level" to type.level)
         if (player.inventory.count(EstateAgent.COINS) < type.cost) return world.message(player, ConstructionLines.ROOM_COINS, "cost" to type.cost)
-        if (type.floors == RoomFloors.DUNGEON) return world.message(player, ConstructionLines.ROOM_FLOOR)
+        if (!type.goesOn(floor)) return world.message(player, ConstructionLines.ROOM_FLOOR)
         val turns = (0..3).filter { facing in sides(type, it) }
         if (turns.isEmpty()) return world.message(player, ConstructionLines.ROOM_NO_DOOR)
         var turn = 0
-        showGhost(house, state, type, x, z, turns[turn])
+        showGhost(house, state, type, cell, turns[turn])
         while (true) {
             var pick = 0
             world.dialogues.start(context) {
                 pick = choice(ConstructionLines.ROTATE_CLOCKWISE, ConstructionLines.ROTATE_ANTICLOCKWISE, ConstructionLines.BUILD_ROOM, ConstructionLines.CANCEL_ROOM)
             }
-            if (!stillHere(house, player) || house.ghost != (x to z)) return
+            if (!stillHere(house, player) || house.ghost != cell) return
             when (pick) {
                 1 -> turn = (turn + 1) % turns.size
                 2 -> turn = (turn + turns.size - 1) % turns.size
                 3 -> {
-                    // Checked again after the menu's waits: the coins may have gone since the room was picked.
-                    if (player.inventory.count(EstateAgent.COINS) < type.cost || state.room(x, z) != null) {
+                    // Checked again after the menu's waits: the coins may have gone since the room was picked, or the
+                    // room below it.
+                    if (state.room(x, z, floor) != null || !supported(state, cell)) return clearGhost(house, state)
+                    if (player.inventory.count(EstateAgent.COINS) < type.cost) {
                         clearGhost(house, state)
                         return world.message(player, ConstructionLines.ROOM_COINS, "cost" to type.cost)
                     }
                     Ned.take(player.inventory, EstateAgent.COINS, type.cost)
-                    state.rooms += HouseRoom(type, x, z, House.GROUND, turns[turn])
+                    state.rooms += HouseRoom(type, x, z, floor, turns[turn])
                     house.ghost = null
-                    logger.info { "${player.username} built a ${type.key} at $x, $z turned ${turns[turn]} for ${type.cost} coins" }
+                    logger.info { "${player.username} built a ${type.key} at $x, $z on floor $floor turned ${turns[turn]} for ${type.cost} coins" }
                     return
                 }
                 else -> return clearGhost(house, state)
             }
-            showGhost(house, state, type, x, z, turns[turn])
+            showGhost(house, state, type, cell, turns[turn])
             // GUESSED: the menu comes back a tick after the turned ghost is drawn, so the client sees it close and open.
             context.delay(1)
-            if (!stillHere(house, player) || house.ghost != (x to z)) return
+            if (!stillHere(house, player) || house.ghost != cell) return
         }
     }
+
+    /** Whether a room at [cell] would stand on something: anywhere on the ground floor, upstairs over a room. */
+    private fun supported(state: HouseState, cell: Cell): Boolean = cell.floor != House.UPPER || state.room(cell.x, cell.z) != null
 
     /** Whether a room at cell [x], [z] keeps [state]'s house within [size] rooms across both ways. */
     private fun fits(state: HouseState, x: Int, z: Int, size: Int): Boolean {
@@ -479,29 +535,42 @@ class Houses(private val world: World) {
         return xs.max() - xs.min() < size && zs.max() - zs.min() < size
     }
 
-    /** The prompt to remove [room], and its removal: the yard's grass back in its cell. */
-    private suspend fun remove(context: ScriptContext, house: Open, state: HouseState, room: HouseRoom) {
+    /**
+     * The prompt to remove [room], and its removal: the yard's grass back in its cell, or open air upstairs. Not a ground
+     * floor room under one upstairs (the Wiki's Player-owned house: "You cannot remove a room on the ground floor that is
+     * supporting another room on the 1st floor").
+     */
+    internal suspend fun remove(context: ScriptContext, house: Open, state: HouseState, room: HouseRoom) {
         val player = context.player
-        if (House.EXIT_PORTAL in room.built.values) return world.message(player, ConstructionLines.REMOVE_PORTAL)
+        // Not the room with the house's only exit portal: a house needs one (the Garden page).
+        if (House.EXIT_PORTAL in room.built.values && state.rooms.all { it === room || House.EXIT_PORTAL !in it.built.values }) {
+            return world.message(player, ConstructionLines.REMOVE_PORTAL)
+        }
+        if (supports(state, room)) return world.message(player, ConstructionLines.REMOVE_SUPPORTING)
         var pick = 0
         world.dialogues.start(context) {
             pick = choice(ConstructionLines.REMOVE_YES, ConstructionLines.REMOVE_NO, title = text(ConstructionLines.REMOVE_TITLE))
         }
-        if (pick != 1 || !stillHere(house, player) || state.room(room.x, room.z, room.floor) !== room) return
+        if (pick != 1 || !stillHere(house, player) || state.room(room.x, room.z, room.floor) !== room || supports(state, room)) return
         state.rooms.remove(room)
-        lay(house, state, RoomType.YARD, room.x, room.z, 0)
-        logger.info { "${player.username} removed the ${room.type.key} at ${room.x}, ${room.z}" }
+        val cell = Cell(room.x, room.z, room.floor)
+        lay(house, state, if (room.floor == House.GROUND) RoomType.YARD else null, cell, 0)
+        if (room.floor == House.UPPER) Stairs.strand(world, house, state, cell)
+        logger.info { "${player.username} removed the ${room.type.key} at ${room.x}, ${room.z} on floor ${room.floor}" }
     }
 
+    /** Whether [room] holds up a room upstairs. */
+    private fun supports(state: HouseState, room: HouseRoom): Boolean = room.floor == House.GROUND && state.room(room.x, room.z, House.UPPER) != null
+
     /**
-     * In [player]'s own house in building mode, the house and the room built at tile [x], [z]; null anywhere else, or
-     * where no room is built (the yard, or a ghost).
+     * In [player]'s own house in building mode, the house and the room built at tile [x], [z] on [level]; null anywhere
+     * else, or where no room is built (the yard, open air upstairs, or a ghost).
      */
-    internal fun buildingRoom(player: Player, x: Int, z: Int): Pair<Open, HouseRoom>? {
+    internal fun buildingRoom(player: Player, x: Int, z: Int, level: Int): Pair<Open, HouseRoom>? {
         val house = houseAt(x, z) ?: return null
         val state = player.house ?: return null
         if (house.owner != player.saveKey || !house.buildingMode) return null
-        val room = state.room((x - house.instance.baseX) shr 3, (z - house.instance.baseZ) shr 3) ?: return null
+        val room = state.room((x - house.instance.baseX) shr 3, (z - house.instance.baseZ) shr 3, level) ?: return null
         return house to room
     }
 
@@ -509,31 +578,40 @@ class Houses(private val world: World) {
     internal fun stillHere(house: Open, player: Player): Boolean =
         world.instances.all.any { it === house.instance } && house.instance.contains(player.x, player.z) && player.house != null
 
-    /** A [type] room's ghost at cell [x], [z] turned [rotation], as building mode shows a room, in place of what was there. */
-    private fun showGhost(house: Open, state: HouseState, type: RoomType, x: Int, z: Int, rotation: Int) {
-        house.ghost = x to z
-        lay(house, state, type, x, z, rotation)
-    }
-
-    /** Takes away [house]'s ghost, if it has one that wasn't built, putting the yard back. */
-    private fun clearGhost(house: Open, state: HouseState) {
-        val (x, z) = house.ghost ?: return
-        house.ghost = null
-        if (state.room(x, z) == null) lay(house, state, RoomType.YARD, x, z, 0)
+    /** A [type] room's ghost at [cell] turned [rotation], as building mode shows a room, in place of what was there. */
+    private fun showGhost(house: Open, state: HouseState, type: RoomType, cell: Cell, rotation: Int) {
+        house.ghost = cell
+        lay(house, state, type, cell, rotation)
     }
 
     /**
-     * Lays a [type] room turned [rotation] over cell [x], [z] of [house]'s ground floor, in building mode's look, and
-     * redraws the house for whoever is in it: the cell's loc changes go with what was there.
+     * Takes away [house]'s ghost, if it has one that wasn't built, putting the yard (or open air upstairs) back. Anyone who
+     * walked into an upstairs ghost goes to the floor below, as when a room upstairs is removed.
      */
-    private fun lay(house: Open, state: HouseState, type: RoomType, x: Int, z: Int, rotation: Int) {
+    private fun clearGhost(house: Open, state: HouseState) {
+        val cell = house.ghost ?: return
+        house.ghost = null
+        if (state.room(cell.x, cell.z, cell.floor) != null) return
+        lay(house, state, if (cell.floor == House.GROUND) RoomType.YARD else null, cell, 0)
+        if (cell.floor == House.UPPER) Stairs.strand(world, house, state, cell)
+    }
+
+    /**
+     * Lays a [type] room turned [rotation] over [cell] of [house], in building mode's look, or empties the cell for a null
+     * [type], and redraws the house for whoever is in it: the cell's loc changes go with what was there.
+     */
+    internal fun lay(house: Open, state: HouseState, type: RoomType?, cell: Cell, rotation: Int) {
         val instance = house.instance
-        val baseX = instance.baseX + (x shl 3)
-        val baseZ = instance.baseZ + (z shl 3)
-        world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7)
-        house.hotspots.values.removeAll { it.x in baseX..baseX + 7 && it.z in baseZ..baseZ + 7 }
-        world.instances.replace(instance, part(type, x, z, rotation))
-        if (type != RoomType.YARD) furnish(house, state, HouseRoom(type, x, z, House.GROUND, rotation))
+        val baseX = instance.baseX + (cell.x shl 3)
+        val baseZ = instance.baseZ + (cell.z shl 3)
+        world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7, cell.floor)
+        house.hotspots.values.removeAll { it.level == cell.floor && it.x in baseX..baseX + 7 && it.z in baseZ..baseZ + 7 }
+        if (type == null) {
+            world.instances.clear(instance, cell.x, cell.z, cell.floor)
+        } else {
+            world.instances.replace(instance, part(type, cell.x, cell.z, rotation, cell.floor))
+            if (type != RoomType.YARD) furnish(house, state, state.room(cell.x, cell.z, cell.floor) ?: HouseRoom(type, cell.x, cell.z, cell.floor, rotation))
+        }
         world.redrawInstance(instance)
     }
 

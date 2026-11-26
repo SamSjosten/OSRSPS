@@ -63,6 +63,8 @@ object BrutusFight {
     const val STOMPS_MIN = 1
     const val STOMPS_MAX = 3
     const val OUT_OF_REACH_TICKS = 15
+    // Guessed: how far from the player he may land when there is no room beside them.
+    const val NEAR_TILES = 3
     // Guessed: held two ticks with the player one tile off before the safespot stomp.
     const val STUCK_TICKS = 2
     const val FADE_OUT_TICKS = 3
@@ -87,6 +89,8 @@ object BrutusFight {
         /** Each special so far, for tests. */
         val specials = ArrayList<Special>()
         var huffs = 0
+        /** Stomps on a player he couldn't land beside after a *huff*. */
+        var farStomps = 0
         var safespotStomps = 0
         /** Ticks he has stood where he stood, out of reach; where he stood the tick before. */
         var stuck = 0
@@ -117,6 +121,14 @@ object BrutusFight {
 
     private fun EncounterContext.tick() {
         val fight = fight(boss)
+        // Guessed: the scoreboard's time starts with the player's first attack (the Wiki's best of 0:01.20, two ticks,
+        // rules out his spawn).
+        world.brutusPens.runAt(boss.x, boss.z)?.let { run ->
+            if (run.fightStart < 0) {
+                val owner = world.onlinePlayers.firstOrNull { it.saveKey == run.owner && !it.loggedOut }
+                owner?.let { Brutus.firstAttack(it, boss) }?.let { run.fightStart = it }
+            }
+        }
         if (fight.basicsLeft < 0) fight.basicsLeft = roll(BASICS_MIN, BASICS_MAX)
         if (world.tick < fight.busyUntil) {
             // The 15 ticks out of reach run on through a special too, so running off while he stomps doesn't put off
@@ -282,12 +294,54 @@ object BrutusFight {
         log("huffs at ${target.username}")
         after(FADE_OUT_TICKS) {
             if (boss.dead || target.dead || players.none { it === target }) return@after
-            val at = landing(target) ?: return@after log("finds no room beside ${target.username}")
-            world.npcs.teleport(boss, at.x, at.z)
-            boss.effects.anim(ANIM_FADE_IN)
-            boss.face(target)
-            log("lands at ${at.x},${at.z}")
+            // Guessed: with no room beside the player (a tile hemmed in by fences or troughs), he lands as near as he
+            // can, and if he still can't reach them he stomps them where they stand, so no tile keeps a player out of
+            // his reach for good (exploit review round 56, R56A-2).
+            val at = landing(target) ?: nearby(target)
+            if (at != null) {
+                world.npcs.teleport(boss, at.x, at.z)
+                boss.effects.anim(ANIM_FADE_IN)
+                boss.face(target)
+                log("lands at ${at.x},${at.z}")
+            } else {
+                log("finds no room beside ${target.username}")
+            }
+            if (!world.meleeCombat.reaches(boss, target)) farStomp(fight, target)
         }
+    }
+
+    /** Where he lands with no room beside [target]: a tile he can stand on, his body within [NEAR_TILES] of them. */
+    private fun EncounterContext.nearby(target: Player): Tile? {
+        val size = boss.type.size
+        val candidates = ArrayList<Tile>()
+        for (x in target.x - size - NEAR_TILES + 1..target.x + NEAR_TILES) {
+            for (z in target.z - size - NEAR_TILES + 1..target.z + NEAR_TILES) {
+                val inside = target.x in x until x + size && target.z in z until z + size
+                if (!inside && world.npcs.canStand(boss, x, z)) candidates += Tile(x, z)
+            }
+        }
+        return candidates.minWithOrNull(compareBy<Tile> { gap(it, target) }.thenBy { abs(it.x - boss.x) + abs(it.z - boss.z) })
+    }
+
+    /** Tiles between his body with its south-west tile on [at] and [target]: 0 beside them. */
+    private fun EncounterContext.gap(at: Tile, target: Player): Int {
+        val size = boss.type.size
+        val dx = maxOf(at.x - target.x, target.x - (at.x + size - 1), 0)
+        val dz = maxOf(at.z - target.z, target.z - (at.z + size - 1), 0)
+        return maxOf(dx, dz) - 1
+    }
+
+    /** Out of reach after a *huff*: one stomp that lands on [target] where they stand, a special's damage. */
+    private fun EncounterContext.farStomp(fight: Fight, target: Player) {
+        boss.effects.say(world.dialogueText[BrutusLines.SNORTS])
+        boss.effects.anim(ANIM_STOMP)
+        world.zones.mapAnim(target.x, target.z, target.level, SPOT_STOMP[0])
+        val range = specialDamage(target)
+        hit(target, roll(range.first, range.last))
+        fight.farStomps++
+        fight.busyUntil = maxOf(fight.busyUntil, world.tick + STOMP_TICKS)
+        boss.nextAttackTick = world.tick + STOMP_TICKS + ATTACK_SPEED
+        log("stomps ${target.username} from afar")
     }
 
     /** Where he lands beside [target]: a tile he can stand on and reach them from, the nearest to him. */

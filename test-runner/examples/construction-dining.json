@@ -1,0 +1,314 @@
+{
+ "name": "Construction step CON4c: in building mode, a dining room added off the garden takes a wood dining table, a wooden bench and a rope bell-pull for the Wiki's XP, and Remove takes the bench away so another can go up (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 9",
+   "expectMessage": "9",
+   "comment": "the wooden larder's level (the kitchen needs 5); ::reset puts the level back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 26",
+   "expectMessage": "26",
+   "comment": "the dining room needs 10, the rope bell-pull 26"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 5000",
+   "expectMessage": "5,000",
+   "comment": "the dining room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 11,
+   "comment": "the dining room's button: its op sends the dining room's type"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.rotate_clockwise]",
+   "comment": "the ghost first faces one door north, onto the garden; clockwise turns it the other way that still does"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the redraw"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 5,000 for the dining room"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 8",
+   "expectMessage": "Plank",
+   "comment": "4 for the wood dining table, 4 for the wooden bench"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 8",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 1",
+   "expectMessage": "Oak plank",
+   "comment": "the rope bell-pull: an oak plank and a rope"
+  },
+  {
+   "step": "command",
+   "text": "::item 954 1",
+   "expectMessage": "Rope"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15298,
+   "option": "Build",
+   "comment": "the table space (poh_dining_room_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000,
+   "comment": "poh_furniture_creation"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the wood dining table"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 8855,
+   "timeoutMs": 5000,
+   "comment": "level 26's 8,740 XP and the table's 115"
+  },
+  {
+   "step": "locOption",
+   "locId": 15299,
+   "option": "Build",
+   "comment": "a bench space (poh_dining_room_2)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the wooden bench"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 8970,
+   "timeoutMs": 5000,
+   "comment": "the bench's 115"
+  },
+  {
+   "step": "locOption",
+   "locId": 15304,
+   "option": "Build",
+   "comment": "the bell-pull space (poh_dining_room_7)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the rope bell-pull"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 9034,
+   "timeoutMs": 5000,
+   "comment": "the bell-pull's 64"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Plank",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 13300,
+   "option": "Remove",
+   "comment": "the bench"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 4",
+   "expectMessage": "Plank",
+   "comment": "another wooden bench, on the space the Remove gave back"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 4",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "locOption",
+   "locId": 15299,
+   "option": "Build",
+   "comment": "the bench space again"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 9149,
+   "timeoutMs": 5000,
+   "comment": "another 115: Remove gives no XP back or away"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

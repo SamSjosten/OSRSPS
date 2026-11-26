@@ -35,6 +35,7 @@ object OmnishopLoader {
     private const val STOCK_MULTIPLIER = 11
     private const val STOCK_BUYABLE = 18
     private const val STOCK_VIEW_ONLY = 21
+    private const val STOCK_NOTED = 20
 
     private const val CURRENCY_OBJ = 0
     private const val CURRENCY_SINGULAR = 1
@@ -53,6 +54,8 @@ object OmnishopLoader {
                 obj = it.int(STOCK_OBJ) ?: -1,
                 // (currency, amount) pairs; the first is the price.
                 cost = (it.columns[STOCK_COST]?.getOrNull(1) as? Int) ?: 0,
+                currency = (it.columns[STOCK_COST]?.getOrNull(0) as? Int)?.let(currencyTypes::get),
+                noted = (it.int(STOCK_NOTED) ?: 0) != 0,
                 buyable = (it.int(STOCK_BUYABLE) ?: 1) != 0,
                 viewOnly = (it.int(STOCK_VIEW_ONLY) ?: 0) != 0,
                 multiplier = it.int(STOCK_MULTIPLIER) ?: 1,

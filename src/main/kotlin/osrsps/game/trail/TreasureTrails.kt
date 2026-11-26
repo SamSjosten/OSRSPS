@@ -196,15 +196,23 @@ class TreasureTrails(private val world: World, val data: TrailData) {
 
     private fun Inventory.hasClue(tier: TrailTier) = contents().any { (_, obj) -> obj.count > 0 && tierOf(obj.id) == tier }
 
-    /** Whether [player] holds a clue scroll of [tier] in the backpack or the bank. */
-    fun holdsClue(player: Player, tier: TrailTier): Boolean = player.inventory.hasClue(tier) || player.bank.hasClue(tier)
+    /**
+     * The player's containers a clue scroll or scroll box can wait in: the backpack, the bank, their gravestone and the
+     * raid's unclaimed loot (exploit review R55B-2 and R55B-3: a grave filled by dying again and again, or a raid chest left
+     * unclaimed, held boxes the cap didn't count).
+     */
+    private fun stores(player: Player): List<Inventory> =
+        listOfNotNull(player.inventory, player.bank, world.deaths.graveOf(player)?.items, player.archiveChest)
+
+    /** Whether [player] holds a clue scroll of [tier] in the backpack, the bank, their grave or unclaimed raid loot. */
+    fun holdsClue(player: Player, tier: TrailTier): Boolean = stores(player).any { it.hasClue(tier) }
 
     /** How many scroll boxes and clue scrolls of [tier] [player] may hold together: [BOX_CAP], and one per scroll case opened. */
     fun cap(player: Player, tier: TrailTier): Int = BOX_CAP + SCROLL_CASES.getValue(tier).count { it in player.trails.cases }
 
     /** Scroll boxes and clue scrolls of [tier] the player holds, against [cap]. */
     fun held(player: Player, tier: TrailTier): Long =
-        player.inventory.count(tier.scrollBox) + player.bank.count(tier.scrollBox) + if (holdsClue(player, tier)) 1 else 0
+        stores(player).sumOf { it.count(tier.scrollBox) } + if (holdsClue(player, tier)) 1 else 0
 
     /**
      * What a monster's drop of clue scroll [obj] becomes for [killer]: its tier's scroll box, or null when the killer
@@ -242,10 +250,21 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             context.delay(1)
             player.anim(GroundObjs.ANIM_PICKUP_TABLE)
         }
+        takeChecked(player, obj)
+    }
+
+    /**
+     * [take]'s checks and the taking, with no walk or wait: for Telekinetic Grab's arrival too (Codex review on #982:
+     * a grabbed clue keeps the one-a-tier rule and a grabbed box the cap).
+     */
+    fun takeChecked(player: Player, obj: osrsps.game.zone.ZoneObj) {
         val box = TrailTier.entries.firstOrNull { it.scrollBox == obj.id }
         if (box == null) {
             val tier = tierOf(obj.id)
             if (tier != null && holdsClue(player, tier)) return world.message(player, TrailLines.ALREADY_CLUE)
+            // A dropped clue taken back past the cap (boxes gained while it lay there) stays where it is, with the
+            // suspicion line (exploit review R55B-4; guessed: the Wiki names only the one-clue rule for scrolls).
+            if (tier != null && held(player, tier) >= cap(player, tier)) return world.message(player, TrailLines.suspicion(tier))
             world.groundObjs.take(player, obj)
             return
         }

@@ -39,6 +39,7 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
     val FINISH_TASKS = line("finish_tasks", "how to claim: her answer")
     val ANOTHER_RING = line("another_ring", "first menu, option 1 once a ring is earned and the highest earned isn't carried, worn or banked: which the player then says")
     val ANOTHER_RING_GIVEN = line("another_ring_given", "after another ring: the box beside the ring")
+    val NO_SPACE = line("no_space", "a claim without two free inventory spaces, or another ring without one (guessed: Toby's has words, hers none yet)")
     val CLAIM_EASY = line("claim_easy", "a claim: the player has done every easy task (\"Achievement Diary\" capitalised)")
     val CLAIM_MEDIUM = line("claim_medium", "a claim: every medium task (\"achievement diary\" in lower case, as for hard and elite)")
     val CLAIM_HARD = line("claim_hard", "a claim: every hard task")
@@ -62,8 +63,10 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
  * order. She says nothing before the first menu. Guessed: every chathead expression; that a claim runs as soon as
  * Talk-to is clicked, in place of her silence, and her first menu follows; that a tier whose earlier tiers aren't all
  * done can't be claimed and says nothing (the Wiki has no words for it); that "Can I have another ring?" shows once a
- * ring is earned and the highest tier earned isn't carried, worn or banked, and gives that tier; that a full inventory doesn't
- * stop a claim (the ring and lamp land on the floor; Toby's transcript checks for space, hers doesn't); and that the
+ * ring is earned and the highest tier earned isn't carried, worn, banked, dropped and still on the ground, or in a grave,
+ * and gives that tier; that a claim wants two free spaces and a replacement one, as Toby's transcript has it for a claim
+ * (hers doesn't say; nothing lands on the floor: exploit review R55A-1 and R55A-2), said with [MikasiLines.NO_SPACE]
+ * (unsourced: its words wait for a recording); and that the
  * diary menu comes back after "what is the diary". Goodbye brings her first menu back, as the Wiki's transcript has
  * it after "See you later." (from either menu), so the talk ends only when the player walks away.
  */
@@ -74,15 +77,18 @@ object Mikasi {
     private val AREA = DiaryArea.LUMBRIDGE
 
     internal suspend fun Dialogue.talk(diaries: Diaries) = with(MikasiLines) {
-        claim(diaries)
+        if (!claim(diaries)) return@with
         while (true) {
             val another = diaries.highestClaimed(player, AREA) != null && !diaries.ownsReward(player, AREA)
             val options = listOfNotNull(ANOTHER_RING.takeIf { another }, WHO_ARE_YOU, MY_DIARY, FAREWELL)
             when (options[choice(*options.toTypedArray()) - 1]) {
                 ANOTHER_RING -> {
                     chatPlayer(ChatAnim.QUIZ, ANOTHER_RING)
-                    diaries.replace(player, AREA)
-                    objbox(AREA.rewards[diaries.highestClaimed(player, AREA)!!.ordinal], ANOTHER_RING_GIVEN)
+                    if (diaries.replace(player, AREA)) {
+                        objbox(AREA.rewards[diaries.highestClaimed(player, AREA)!!.ordinal], ANOTHER_RING_GIVEN)
+                    } else {
+                        chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+                    }
                 }
                 WHO_ARE_YOU -> {
                     chatPlayer(ChatAnim.QUIZ, WHO_ARE_YOU)
@@ -99,9 +105,12 @@ object Mikasi {
         }
     }
 
-    /** The lowest tier ready to claim, if its earlier tiers are done: the ring and lamp, and her words for them. */
-    private suspend fun Dialogue.claim(diaries: Diaries) = with(MikasiLines) {
-        val tier = diaries.claimable(player, AREA)?.takeIf { diaries.previousDone(player, AREA, it) } ?: return@with
+    /**
+     * The lowest tier ready to claim, if its earlier tiers are done: the ring and lamp, and her words for them; false when
+     * the pack has no room for both, which ends the talk as Toby's does.
+     */
+    private suspend fun Dialogue.claim(diaries: Diaries): Boolean = with(MikasiLines) {
+        val tier = diaries.claimable(player, AREA)?.takeIf { diaries.previousDone(player, AREA, it) } ?: return@with true
         chatPlayer(ChatAnim.HAPPY, listOf(CLAIM_EASY, CLAIM_MEDIUM, CLAIM_HARD, CLAIM_ELITE)[tier.ordinal])
         if (tier == DiaryTier.ELITE) {
             chatNpc(ChatAnim.HAPPY, ELITE_DONE)
@@ -109,10 +118,14 @@ object Mikasi {
             chatNpc(ChatAnim.NEUTRAL, WANT_REWARD)
             chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
         }
-        diaries.claim(player, AREA, tier)
+        if (!diaries.claim(player, AREA, tier)) {
+            chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+            return@with false
+        }
         chatNpc(ChatAnim.HAPPY, listOf(RING_EASY, RING_MEDIUM, RING_HARD, RING_ELITE)[tier.ordinal])
         chatPlayer(ChatAnim.HAPPY, WOW_THANKS)
         if (tier == DiaryTier.EASY) chatNpc(ChatAnim.NEUTRAL, LOSE_RING)
+        true
     }
 
     /** The diary menu; true to go back to the first menu (after "how to claim" or goodbye), false when the talk has ended. */
