@@ -6,6 +6,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.shop.ShopScreen
+import osrsps.game.social.ClanStore
 
 /** The clan coffer's lines (guessed: the Wiki gives none). */
 object ClanCofferLines : Lines("clan_coffer", "Clan Coffer") {
@@ -67,11 +68,16 @@ class ClanCoffer(private val world: World) {
     /** The tick of each player's last coffer transfer, by save key: one per [COOLDOWN_TICKS] (Codex on PR 954). */
     private val lastTransfer = HashMap<String, Long>()
 
-    /** Whether [player] may move coins now; marks the tick when so. */
-    private fun ready(player: Player): Boolean {
+    /** The tick of each clan's last coffer transfer, by clan id: one per tick, whoever moves them (exploit review R58C-3). */
+    private val lastClanTransfer = HashMap<Long, Long>()
+
+    /** Whether [player] may move [clan]'s coins now; marks the tick when so. */
+    private fun ready(player: Player, clan: ClanStore.Clan): Boolean {
         val last = lastTransfer[player.saveKey]
         if (last != null && world.tick - last < COOLDOWN_TICKS) return false
+        if (lastClanTransfer[clan.id] == world.tick) return false
         lastTransfer[player.saveKey] = world.tick
+        lastClanTransfer[clan.id] = world.tick
         return true
     }
 
@@ -91,10 +97,10 @@ class ClanCoffer(private val world: World) {
         val count = minOf(if (button == ALL) clan.coffer else wanted, clan.coffer, room)
         if (count <= 0 || !hasSlot) return world.message(player, ClanCofferLines.NO_ROOM)
         val type = world.objTypes[COINS] ?: return
-        if (!ready(player)) return
+        if (!ready(player, clan)) return
         // The coffer's side is written first, then the player's: a stop between the two loses the coins rather than
-        // making them twice (Codex on PR 954).
-        world.clans.changeCoffer(clan, -count, player)
+        // making them twice (Codex on PR 954). A coffer that can't be written gives nothing (exploit review R58C-2).
+        if (!world.clans.changeCoffer(clan, -count, player)) return
         val added = player.inventory.add(type, count)
         if (added < count) world.clans.changeCoffer(clan, count - added, player)
         world.save(player)
@@ -114,7 +120,8 @@ class ClanCoffer(private val world: World) {
         if (held <= 0) return world.message(player, ClanCofferLines.NO_COINS)
         val space = LIMIT - clan.coffer
         if (space <= 0) return world.message(player, ClanCofferLines.FULL, "limit" to LIMIT)
-        if (!ready(player)) return
+        val type = world.objTypes[COINS] ?: return
+        if (!ready(player, clan)) return
         var left = minOf(if (button == ALL) held else wanted, held, space)
         val count = left
         for ((slot, obj) in player.inventory.contents()) {
@@ -122,9 +129,13 @@ class ClanCoffer(private val world: World) {
             if (obj.id == COINS) left -= player.inventory.remove(slot, left)
         }
         // The player's side is written first, then the coffer's: a stop between the two loses the coins rather than
-        // making them twice (Codex on PR 954).
-        world.save(player)
-        world.clans.changeCoffer(clan, count - left, player)
+        // making them twice (Codex on PR 954). When the player's save can't be written the coins go back and the coffer
+        // isn't credited (exploit review R58C-1); when the coffer can't be, they go back too.
+        val moved = count - left
+        if (!world.save(player) || !world.clans.changeCoffer(clan, moved, player)) {
+            player.inventory.add(type, moved)
+            world.save(player)
+        }
     }
 
     companion object {
