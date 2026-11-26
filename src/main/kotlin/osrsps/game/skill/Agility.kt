@@ -513,6 +513,10 @@ class Agility(private val world: World, val data: AgilityData) {
     private fun ScriptContext.here() = Triple(player.x, player.z, player.level)
 
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
+        // The move before may have started a sequence the client holds the player still for until it ends (the
+        // hand holds' grab, 1117, has a last frame of 20000 cycles and no movement precedence), so the steps would
+        // never show: it's stopped, and the stance below animates the walk.
+        player.anim(-1)
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
         try {
             val steps = steps(Tile(player.x, player.z), move.path)
