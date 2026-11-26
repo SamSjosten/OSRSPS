@@ -73,7 +73,7 @@ in the code. Current RuneLite connects unchanged.
 | | |
 |---|---|
 | **Built in full** | Attack, Strength, Defence, Hitpoints, Ranged, Prayer, Mining, Smithing, Fishing, Cooking, Woodcutting, Firemaking, Fletching, Crafting, Herblore, Thieving, Runecraft, Farming |
-| **Built in part** | Magic (no Alchemy or Superheat Item yet), Agility (the Draynor, Al Kharid, Varrock and Gnome Stronghold courses), Slayer (no Task Storage, ring teleports or boss tasks), Hunter (no birdhouses, herbiboar, Hunter Guild or Puro-Puro), Construction (houses only) |
+| **Built in part** | Magic (no Lunar or Arceuus spells, Teleport to House or Tele Other yet), Agility (the Draynor, Al Kharid, Varrock and Gnome Stronghold courses), Slayer (no Task Storage, ring teleports or boss tasks), Hunter (no birdhouses, herbiboar, Hunter Guild or Puro-Puro), Construction (houses only) |
 
 A skill built in full trains 1 to 99 by live's main methods; spots outside the built regions are reached with `::tele`
 until their region is built. Minigames and other regions' extras (Wintertodt, Tempoross, Guardians of the Rift and so
