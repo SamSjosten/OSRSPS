@@ -52,6 +52,7 @@ class Churn(private val world: World) {
         var picked = 0 to 1
         world.dialogues.start(this) { picked = makeX(MakeLines.TITLE, BUCKET_RECIPES.map { it.product }, have) }
         val recipe = BUCKET_RECIPES.getOrNull(picked.first) ?: return
+        if (!BottomlessMilkBucket.held(player)) return
         world.interfaces.closeChatModal(player)
         world.scripts.clearQueue(player, Making.QUEUE)
         player.interaction = null
@@ -64,7 +65,7 @@ class Churn(private val world: World) {
     private fun ScriptContext.churnOne(recipe: MakeRecipe, left: Int) {
         if (!levelled(recipe, tell = false)) return
         val type = world.objTypes[recipe.product] ?: return
-        if (BottomlessMilkBucket.type(player) != BottomlessMilkBucket.REGULAR) return
+        if (BottomlessMilkBucket.type(player) != BottomlessMilkBucket.REGULAR || !BottomlessMilkBucket.held(player)) return
         if (player.inventory.add(type, 1) < 1) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return

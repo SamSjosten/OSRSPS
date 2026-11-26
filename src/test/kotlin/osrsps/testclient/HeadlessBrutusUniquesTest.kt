@@ -12,6 +12,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.BottomlessLines
 import osrsps.game.content.BottomlessMilkBucket
+import osrsps.game.content.CowbellAmulet
 import osrsps.game.content.CowSlippers
 import osrsps.game.content.CowSlippersLines
 import osrsps.game.content.GroatsFarm
@@ -44,6 +45,7 @@ class HeadlessBrutusUniquesTest {
             ObjType(BottomlessMilkBucket.HANGOVER_CURE, "Hangover cure"),
             ObjType(BottomlessMilkBucket.CHOCOLATE_DUST, "Chocolate dust"),
             ObjType(Churn.CREAM, "Pot of cream"),
+            ObjType(CowbellAmulet.EMPTY, "Cowbell amulet", iops = listOf(null, "Wear", "Ring", "Charge", "Drop"), wearpos1 = 2),
             ObjType(Churn.BUTTER, "Pat of butter"),
             ObjType(Churn.CHEESE, "Cheese"),
             *CowSlippers.ALL.map { ObjType(it, "Cow slippers", iops = listOf(null, "Wear", "Swap", null, "Drop"), wearpos1 = 10) }.toTypedArray(),
@@ -175,6 +177,17 @@ class HeadlessBrutusUniquesTest {
                 assertEquals(BottomlessMilkBucket.MILK_TICKS.toLong(), second - first)
                 assertEquals(1, client.count(GroatsFarm.BUCKET), "the empty bucket left alone")
                 client.await("a third") { if (BottomlessMilkBucket.uses(bob) >= 3) Unit else null }
+
+                // With a cowbell amulet worn, a use every 6 ticks. Wearing it stops the milking, so milk again.
+                client.give(CowbellAmulet.EMPTY)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 3, client.inventory(93).indexOfFirst { it?.id == CowbellAmulet.EMPTY }, CowbellAmulet.EMPTY)
+                client.await("the amulet on") { client.inventory(94).firstOrNull { it?.id == CowbellAmulet.EMPTY } }
+                client.awaitTicks(1)
+                val worn = BottomlessMilkBucket.uses(bob)
+                client.locOp(COW, COW_X, COW_Z, GroatsFarm.MILK)
+                val third = client.await("a use worn") { if (BottomlessMilkBucket.uses(bob) == worn + 1) server.world.tick else null }
+                val fourth = client.await("another worn") { if (BottomlessMilkBucket.uses(bob) == worn + 2) server.world.tick else null }
+                assertEquals(CowbellAmulet.MILK_TICKS.toLong(), fourth - third)
 
                 // Off to the churn, which takes the milk for cream.
                 client.tele(CHURN_X - 1, CHURN_Z)

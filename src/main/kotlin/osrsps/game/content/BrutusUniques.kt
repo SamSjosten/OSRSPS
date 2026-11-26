@@ -64,6 +64,7 @@ object BottomlessMilkBucket {
 
     const val MAX_USES = 10_000
     const val MILK_TICKS = 7
+    // Guessed: the uses belong to the player, not to each bucket, so two buckets share them.
     const val USES = "bottomless_milk"
     const val TYPE = "bottomless_milk_type"
 
@@ -147,11 +148,13 @@ object BottomlessMilkBucket {
         // The type rechecked: the bucket may have been filled with something else while the question was open.
         val now = type(player)
         if (now != null && now != type) return
+        // And the bucket itself, which may have been dropped.
+        if (!held(player)) return
         var filled = 0
         for ((slot, item) in player.inventory.contents()) {
             if (filled >= amount) break
             if (item.id != type.obj) continue
-            player.inventory[slot] = InvObj(BUCKET, 1)
+            player.inventory[slot] = InvObj(BUCKET, 1) // Guessed: each filled bucket gives an empty one back.
             filled++
         }
         val total = uses(player) + filled
@@ -177,7 +180,7 @@ object BottomlessMilkBucket {
             mesbox(BottomlessLines.EMPTY_WARNING)
             yes = choice(BottomlessLines.EMPTY_YES, BottomlessLines.EMPTY_NO, title = text(BottomlessLines.EMPTY_PROCEED)) == 1
         }
-        if (!yes) return
+        if (!yes || !held(player)) return
         set(player, null, 0)
         world.message(player, BottomlessLines.EMPTIED)
     }
@@ -185,7 +188,7 @@ object BottomlessMilkBucket {
     /** Chocolate dust on a bucket of regular milk: a chocolatey milk where the dust was, for a use. */
     fun chocolate(world: World, player: Player) {
         if (type(player) != REGULAR) return world.message(player, BottomlessLines.NOT_MILK)
-        // Unnoted dust doesn't stack, so its slot takes the milk.
+        // Guessed: the chocolatey milk goes where the dust was (unnoted dust doesn't stack), and its messages are ours.
         val slot = player.inventory.contents().firstOrNull { it.second.id == CHOCOLATE_DUST }?.first ?: return
         player.inventory[slot] = InvObj(CHOCOLATEY_MILK, 1)
         set(player, REGULAR, uses(player) - 1)
@@ -218,10 +221,11 @@ object CowSlippersLines : Lines("cow_slippers", "Transcript:Cow slippers") {
 object CowSlippers {
     const val PLAIN = 33093
     const val RARE = 33098
+    // Guessed: the order, each to the next and the third back to the first.
     val STYLES = listOf(PLAIN, 33096, 33097)
     val ALL = STYLES + RARE
     const val SWAP = 3
-    const val RARE_CHANCE = 100
+    const val RARE_CHANCE = 100 // Guessed: the Wiki says only "a small chance".
 
     suspend fun ScriptContext.swap(world: World, from: Int) {
         val slot = player.inventory.contents().firstOrNull { it.second.id == from }?.first ?: return
@@ -232,7 +236,7 @@ object CowSlippers {
         }
         val to = when {
             from != RARE && world.random.chance(1, RARE_CHANCE) -> RARE
-            from == RARE -> PLAIN
+            from == RARE -> PLAIN // Guessed: the rare style swaps back to the first.
             else -> STYLES[(STYLES.indexOf(from) + 1) % STYLES.size]
         }
         player.inventory[slot] = InvObj(to, 1)
