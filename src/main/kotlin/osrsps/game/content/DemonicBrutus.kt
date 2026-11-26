@@ -164,7 +164,8 @@ object DemonicBrutus {
                     "one", cycle = listOf(CycleStep(1) { tick() }),
                     onStart = {
                         boss.unleashed = true
-                        // His 0 is the second phase's start, not his death.
+                        // His 0 is the second phase's start, not his death (Wiki); his heal to 487 is the Wiki's too.
+                        // Guessed: he's held at 0 for the tick the phase ends on, and healed as phase two starts the next tick.
                         boss.holdsAtZero = true
                     },
                     endsWhen = { boss.hitpoints <= 0 },
