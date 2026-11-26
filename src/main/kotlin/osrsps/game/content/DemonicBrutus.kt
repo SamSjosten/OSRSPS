@@ -119,6 +119,7 @@ object DemonicBrutus {
     const val ANIM_FADE_IN = 13793
     const val ANIM_GHOST_FADE_IN = 13794
     val SPOT_STOMP = BrutusFight.SPOT_STOMP
+    const val OUT_OF_REACH_TICKS = BrutusFight.OUT_OF_REACH_TICKS
 
     /** The sides a charger comes from, clockwise from the west; the corners a slam comes from, clockwise from the south-west. */
     val SIDES = listOf(-1 to 0, 0 to 1, 1 to 0, 0 to -1)
@@ -140,6 +141,9 @@ object DemonicBrutus {
         val bulls = ArrayList<Bull>()
         /** Whether he has said his "Moo", as he first takes the player on. */
         var mooed = false
+
+        /** Ticks in a row he hasn't reached his target (exploit review R60A-1). */
+        var outOfReach = 0
         val specials = ArrayList<Special>()
         var phaseTwo = false
         /** Each orb as it landed, for tests: its style and the damage. */
@@ -232,8 +236,17 @@ object DemonicBrutus {
         }
         if (!world.meleeCombat.reaches(boss, target)) {
             world.npcs.follow(boss, target)
-            return
+            // A special needs no reach, as each bull appears beside the player, so out of reach for as long as
+            // Brutus waits before he charges through brings the next one on (exploit review R60A-1: no safespot).
+            // Guessed: live's rule unknown; Brutus's 15 ticks borrowed, counted once the player has attacked him (not
+            // while he first walks over to them).
+            val attacked = (world.brutusPens.runAt(boss.x, boss.z)?.fightStart ?: -1L) >= 0
+            if (attacked) fight.outOfReach++
+            if (fight.outOfReach < OUT_OF_REACH_TICKS || world.tick < boss.nextAttackTick) return
+            log("out of reach ${fight.outOfReach} ticks")
+            return startSpecial(fight, target)
         }
+        fight.outOfReach = 0
         world.npcs.stopFollowing(boss)
         if (world.tick < boss.nextAttackTick) return
         if (fight.basicsLeft > 0) {
@@ -242,6 +255,12 @@ object DemonicBrutus {
             log("butts ${target.username}")
             return
         }
+        startSpecial(fight, target)
+    }
+
+    /** His next special, Charge or Slam in turn, and the butts before the one after. */
+    private fun EncounterContext.startSpecial(fight: Fight, target: Player) {
+        fight.outOfReach = 0
         if (fight.start < 0) fight.start = if (roll(0, 1) == 0) 0 else 3
         val pick = when (fight.last) {
             null -> if (roll(0, 1) == 0) Special.CHARGE else Special.SLAM
@@ -297,13 +316,17 @@ object DemonicBrutus {
     /** One bull, the real one when [ghost] is null: it appears, and [window] ticks later its charge or slam lands. */
     private fun EncounterContext.bull(fight: Fight, target: Player, special: Special, index: Int, window: Int, ghost: osrsps.game.NpcType?) {
         if (target.dead) return
+        // The real bull is kept in his field: past its edge the map isn't copied, and he'd be stuck where a kill counts
+        // for nothing (exploit review R60A-2). Guessed: live's field may not let a bull start so near its edge at all.
+        val field = if (ghost == null) world.brutusPens.runAt(target.x, target.z) else null
+        fun kept(tile: Tile) = field?.let { fieldTile(it, tile, boss.type.size) } ?: tile
         val (at, tiles, end) = when (special) {
             Special.CHARGE -> {
-                val (from, to) = chargeFrom(target.x, target.z, SIDES[index])
+                val (from, to) = chargeFrom(target.x, target.z, SIDES[index]).let { (a, b) -> kept(a) to kept(b) }
                 Triple(from, chargeTiles(from, to), to)
             }
             Special.SLAM -> {
-                val from = slamFrom(target.x, target.z, CORNERS[index])
+                val from = kept(slamFrom(target.x, target.z, CORNERS[index]))
                 Triple(from, slamTiles(from, CORNERS[index]), from)
             }
         }
@@ -331,6 +354,14 @@ object DemonicBrutus {
             if (end != at) world.npcs.teleport(npc, end.x, end.z)
         }
         if (npc != null && npc !== boss) after(window + 1) { world.removeNpc(npc) }
+    }
+
+    /** [at] moved the least it takes for a [size] footprint there to lie within [run]'s copy of the field. */
+    fun fieldTile(run: BrutusPens.Run, at: Tile, size: Int): Tile {
+        val low = run.inside(Brutus.FIELD_X, Brutus.FIELD_Z)
+        val highX = low.x + (Brutus.FIELD_WIDTH_ZONES shl 3) - size
+        val highZ = low.z + (Brutus.FIELD_HEIGHT_ZONES shl 3) - size
+        return Tile(at.x.coerceIn(low.x, highX), at.z.coerceIn(low.z, highZ))
     }
 
     /** An orb of [style] lands on [target]: 18 to 20 unless they pray against it. */
@@ -382,7 +413,10 @@ fun registerDemonicBrutus(world: World, pens: BrutusPens) {
         world.npcScripts.onTick(listOf(BOSS)) { npc ->
             if (npc.dead || world.encounters.all.any { it.boss === npc && !it.ended }) return@onTick
             val run = pens.runAt(npc.x, npc.z) ?: return@onTick
-            world.encounters.start(def, npc, { x, z -> pens.runAt(x, z) === run })
+            // His fight ends with his field, and takes him with it, wherever he stands (exploit review R60A-2).
+            world.encounters.start(def, npc, { x, z -> pens.runAt(x, z) === run }, calledOff = {
+                if (world.instances.all.none { it === run.instance }) "field gone" else null
+            })
         }
         world.npcScripts.onDeath(listOf(BOSS)) { boss ->
             boss.effects.say(world.dialogueText[DemonicLines.DYING])

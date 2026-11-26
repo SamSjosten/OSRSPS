@@ -2442,6 +2442,8 @@ class World(
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
         clans.flush()
+        brutusRecords.flush()
+        brutusDemonicRecords.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 

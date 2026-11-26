@@ -31,6 +31,7 @@ import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
+import osrsps.map.Tile
 
 /**
  * Brutus step 6 through the headless client: the abyssal potato plucked and eaten, fed to Brutus on release for a field
@@ -184,6 +185,49 @@ class HeadlessDemonicBrutusTest {
                 assertEquals(0, alice.vars[Brutus.KILL_COUNT_VARP], "not Brutus's count")
                 client.awaitTicks(50)
                 assertTrue(server.world.npcs.all.none { !it.dead && it.type.id == DemonicBrutus.BOSS && run.instance.contains(it.x, it.z) }, "no respawn")
+            }
+        }
+    }
+
+    @Test
+    fun `out of his reach for 15 ticks he comes on with a special anyway, so there's no safespot`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                val run = client.feedIn(server, "dave", 3262, 3270)
+                val boss = run.boss!!
+                val fight = DemonicBrutus.fight(boss)
+                val encounter = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }
+                // Counted only once she has attacked him (her auto-retaliate does, after his first butt).
+                client.await("she's attacked him", timeoutMillis = 30_000) { run.fightStart.takeIf { it >= 0 } }
+                // Held where he is, with her well off: he can't reach her, and no butts count down.
+                server.world.npcs.freeze(boss, 200)
+                val off = Tile(boss.x + 6, boss.z)
+                client.command("tele ${off.x} ${off.z} 0")
+                client.await("away from him") { client.position?.takeIf { it == Coord(off.x, off.z, 0) } }
+                client.await("out of reach", timeoutMillis = 30_000) { encounter.lines.firstOrNull { it.contains("out of reach") } }
+                client.await("a special", timeoutMillis = 10_000) { fight.specials.firstOrNull() }
+                assertEquals(DemonicBrutus.BASICS, fight.basicsLeft, "the butts before the next start again")
+            }
+        }
+    }
+
+    @Test
+    fun `his bulls stay in his field, and his fight ends with the field, taking him wherever he stands`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                val run = client.feedIn(server, "erin", 3262, 3270)
+                val boss = run.boss!!
+                val low = run.inside(Brutus.FIELD_X, Brutus.FIELD_Z)
+                // A slam from the south-west of a player on the field's south-west corner would stand him off it.
+                assertEquals(low, DemonicBrutus.fieldTile(run, DemonicBrutus.slamFrom(low.x, low.z, DemonicBrutus.CORNERS[0]), 3))
+                val highX = low.x + Brutus.FIELD_WIDTH_ZONES * 8 - 3
+                assertEquals(Tile(highX, low.z + 5), DemonicBrutus.fieldTile(run, Tile(highX + 4, low.z + 5), 3))
+                val encounter = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }
+                // Stood off the field anyway (as a bull could before), then the field ends.
+                server.world.npcs.teleport(boss, run.instance.maxX + 10, run.instance.baseZ)
+                server.world.endInstance(run.instance)
+                client.await("his fight called off") { if (encounter.ended) Unit else null }
+                client.await("him gone") { if (server.world.npcs[boss.index] !== boss) Unit else null }
             }
         }
     }

@@ -22,4 +22,13 @@ class BottomlessMilkBucketTest {
         assertEquals(BottomlessMilkBucket.EMPTY, alice.inventory[0]?.id)
         assertEquals(BottomlessMilkBucket.EMPTY, alice.bank[0]?.id)
     }
+
+    @Test
+    fun `without the bank to close the gap a banked empty bucket still turns filled`() {
+        val alice = Player(1, "alice", 3222, 3218, 0)
+        alice.bank[0] = InvObj(BottomlessMilkBucket.FILLED, 1)
+        alice.bank[1] = InvObj(BottomlessMilkBucket.EMPTY, 1)
+        BottomlessMilkBucket.set(alice, BottomlessMilkBucket.TYPES[0], 3)
+        assertEquals(listOf(BottomlessMilkBucket.FILLED, BottomlessMilkBucket.FILLED), listOf(alice.bank[0]?.id, alice.bank[1]?.id))
+    }
 }
