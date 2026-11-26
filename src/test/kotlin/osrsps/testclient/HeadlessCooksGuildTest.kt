@@ -172,16 +172,17 @@ class HeadlessCooksGuildTest {
     }
 
     @Test
-    fun `the north-east room's door opens for the hard Varrock Diary, not the medium`(@TempDir dir: Path) {
+    fun `the north-east room's door opens for the hard Varrock Diary with the tiers below it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3143, 3452, 0)
+                client.commandReply("diary complete varrock hard all") { "task(s) done" in it }
                 client.commandReply("diary complete varrock medium all") { "task(s) done" in it }
                 client.locOp(CooksGuild.NORTH_DOOR, 3144, 3452, 1)
                 client.seen("[cooks_guild.bank_door]")
                 assertEquals(Coord(3143, 3452, 0), client.position)
-                client.commandReply("diary complete varrock hard all") { "task(s) done" in it }
+                client.commandReply("diary complete varrock easy all") { "task(s) done" in it }
                 client.locOp(CooksGuild.NORTH_DOOR, 3144, 3452, 1)
                 client.await("in the room") { client.position?.takeIf { it == Coord(3144, 3452, 0) } }
             }

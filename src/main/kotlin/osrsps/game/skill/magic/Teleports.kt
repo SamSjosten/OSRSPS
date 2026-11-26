@@ -236,7 +236,7 @@ class Teleports(private val world: World, private val data: TeleportData) {
         }
     }
 
-    private fun geUnlocked(player: Player) = world.diaries.tierDone(player, DiaryArea.VARROCK, DiaryTier.MEDIUM)
+    private fun geUnlocked(player: Player) = world.diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.MEDIUM)
 
     private suspend fun ScriptContext.cast(spell: TeleportSpell, landing: Landing = spell.landing) {
         // Only the standard book's teleports are built; their buttons are the standard book's own.

@@ -87,7 +87,13 @@ class DiariesTest {
         assertEquals(DiaryTier.EASY, diaries.highestDone(player, DiaryArea.VARROCK))
         assertEquals(14, SkullSceptre.maxCharges(diaries, player))
         DiaryArea.VARROCK.tasks(DiaryTier.ELITE).forEach { player.mark(it) }
-        assertEquals(DiaryTier.ELITE, diaries.highestDone(player, DiaryArea.VARROCK), "elite with medium and hard undone still counts")
+        assertEquals(DiaryTier.EASY, diaries.highestDone(player, DiaryArea.VARROCK), "elite with medium and hard undone doesn't count")
+        assertEquals(14, SkullSceptre.maxCharges(diaries, player))
+        assertTrue(!diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.ELITE))
+        DiaryArea.VARROCK.tasks(DiaryTier.MEDIUM).forEach { player.mark(it) }
+        DiaryArea.VARROCK.tasks(DiaryTier.HARD).forEach { player.mark(it) }
+        assertEquals(DiaryTier.ELITE, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertTrue(diaries.perkEarned(player, DiaryArea.VARROCK, DiaryTier.ELITE))
         assertEquals(26, SkullSceptre.maxCharges(diaries, player))
         assertEquals(4, SkullSceptre.varrockTiers(diaries, player))
         assertEquals(4, SkullSceptre.COMPONENTS[SkullSceptre.SCEPTRE])

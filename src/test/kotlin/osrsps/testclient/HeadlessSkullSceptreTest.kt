@@ -297,7 +297,7 @@ class HeadlessSkullSceptreTest {
                 client.useOn(SkullSceptre.RIGHT_SKULL_HALF, SkullSceptre.IMBUED)
                 client.awaitMessage("no tier: 3") { it == "[skull_sceptre.charged charges=3]" }
 
-                client.commandReply("diary complete varrock elite all") { "task(s) done" in it }
+                for (tier in listOf("easy", "medium", "hard", "elite")) client.commandReply("diary complete varrock $tier all") { "task(s) done" in it }
                 client.command("item ${SkullSceptre.RIGHT_SKULL_HALF}")
                 client.await("another right half") { client.carried(SkullSceptre.RIGHT_SKULL_HALF).takeIf { it == 1 } }
                 client.useOn(SkullSceptre.RIGHT_SKULL_HALF, SkullSceptre.IMBUED)

@@ -141,6 +141,7 @@ object DialogueLines {
         JewelleryTeleportLines,
         BorkLines,
         BrutusLines,
+        CowbellLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,

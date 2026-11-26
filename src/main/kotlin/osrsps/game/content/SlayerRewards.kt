@@ -200,7 +200,8 @@ class SlayerRewards(private val world: World) {
         val task = slayer.task(player) ?: return player.message(text[SlayerRewardsLines.NO_TASK])
         if (task.id in UNBLOCKABLE) return player.message(text[SlayerRewardsLines.CANT_BLOCK])
         if (slayer.blocked(player, master, task.id)) return player.message(text[SlayerRewardsLines.ALREADY_BLOCKED])
-        val slot = slayer.blockSlots(player).firstOrNull { slayer.blockedIn(player, master, it) == 0 }
+        // Only a slot whose varbit the cache has: points are never spent on a block that can't be written.
+        val slot = slayer.blockSlots(player).firstOrNull { world.varTypes.varbit(slayer.blockVarbit(master, it)) != null && slayer.blockedIn(player, master, it) == 0 }
             ?: return player.message(text[SlayerRewardsLines.NO_BLOCK_SLOT])
         if (!pay(player, master.blockCost)) return
         slayer.setBlocked(player, master, slot, task.id)
