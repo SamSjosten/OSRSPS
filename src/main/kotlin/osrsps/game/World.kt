@@ -1366,6 +1366,7 @@ class World(
         osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerBrutusScoreboard(this)
+        osrsps.game.content.registerCowbellAmulet(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }

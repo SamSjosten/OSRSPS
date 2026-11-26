@@ -138,7 +138,7 @@ class MeleeCombat(
      */
     enum class Rescue { NONE, HEALED, ESCAPED }
 
-    private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
+    private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, var respawnTick: Long)
 
     /**
      * After each player's melee swing on an NPC lands, hit or 0, killing blow too ([land]): the Fight Cave's Tz-Kek
@@ -1358,6 +1358,16 @@ class MeleeCombat(
     /** Forgets the deaths of NPCs in, or from, the tiles where [inside] holds (an instance ending): none comes back there. */
     fun forgetArea(inside: (Int, Int) -> Boolean) {
         dying.removeIf { inside(it.npc.x, it.npc.z) || inside(it.npc.spawn.x, it.npc.spawn.z) }
+    }
+
+    /**
+     * Brings back, on [tick] (never before its body goes), the dead NPC of type [type] whose spawn [inside] holds:
+     * the cowbell amulet's Ring, which can make the wait longer as well as shorter. False when none is waiting.
+     */
+    fun respawnOn(type: Int, tick: Long, inside: (Int, Int) -> Boolean): Boolean {
+        val entry = dying.firstOrNull { it.npc.spawn.respawns && it.npc.spawn.type.id == type && inside(it.npc.spawn.x, it.npc.spawn.z) } ?: return false
+        entry.respawnTick = maxOf(tick, entry.removeTick)
+        return true
     }
 
     fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =
