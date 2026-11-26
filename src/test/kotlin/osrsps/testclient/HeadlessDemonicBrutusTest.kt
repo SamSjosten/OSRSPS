@@ -220,6 +220,8 @@ class HeadlessDemonicBrutusTest {
                 val low = run.inside(Brutus.FIELD_X, Brutus.FIELD_Z)
                 // A slam from the south-west of a player on the field's south-west corner would stand him off it.
                 assertEquals(low, DemonicBrutus.fieldTile(run, DemonicBrutus.slamFrom(low.x, low.z, DemonicBrutus.CORNERS[0]), 3))
+                // He stands on the field, but the slam is still aimed from where he'd have been: it lands on her.
+                assertTrue(low in DemonicBrutus.slamTiles(DemonicBrutus.slamFrom(low.x, low.z, DemonicBrutus.CORNERS[0]), DemonicBrutus.CORNERS[0]))
                 val highX = low.x + Brutus.FIELD_WIDTH_ZONES * 8 - 3
                 assertEquals(Tile(highX, low.z + 5), DemonicBrutus.fieldTile(run, Tile(highX + 4, low.z + 5), 3))
                 val encounter = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }

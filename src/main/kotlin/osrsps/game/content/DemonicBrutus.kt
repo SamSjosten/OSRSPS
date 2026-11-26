@@ -316,20 +316,23 @@ object DemonicBrutus {
     /** One bull, the real one when [ghost] is null: it appears, and [window] ticks later its charge or slam lands. */
     private fun EncounterContext.bull(fight: Fight, target: Player, special: Special, index: Int, window: Int, ghost: osrsps.game.NpcType?) {
         if (target.dead) return
-        // The real bull is kept in his field: past its edge the map isn't copied, and he'd be stuck where a kill counts
-        // for nothing (exploit review R60A-2). Guessed: live's field may not let a bull start so near its edge at all.
-        val field = if (ghost == null) world.brutusPens.runAt(target.x, target.z) else null
-        fun kept(tile: Tile) = field?.let { fieldTile(it, tile, boss.type.size) } ?: tile
-        val (at, tiles, end) = when (special) {
+        val (aimedAt, tiles, aimedEnd) = when (special) {
             Special.CHARGE -> {
-                val (from, to) = chargeFrom(target.x, target.z, SIDES[index]).let { (a, b) -> kept(a) to kept(b) }
+                val (from, to) = chargeFrom(target.x, target.z, SIDES[index])
                 Triple(from, chargeTiles(from, to), to)
             }
             Special.SLAM -> {
-                val from = kept(slamFrom(target.x, target.z, CORNERS[index]))
+                val from = slamFrom(target.x, target.z, CORNERS[index])
                 Triple(from, slamTiles(from, CORNERS[index]), from)
             }
         }
+        // The real bull is kept in his field: past its edge the map isn't copied, and he'd be stuck where a kill counts
+        // for nothing (exploit review R60A-2). Only where he stands moves; the tiles he hits stay aimed at the player.
+        // Guessed: live's field may not let a bull start so near its edge at all.
+        val field = if (ghost == null) world.brutusPens.runAt(target.x, target.z) else null
+        fun kept(tile: Tile) = field?.let { fieldTile(it, tile, boss.type.size) } ?: tile
+        val at = kept(aimedAt)
+        val end = kept(aimedEnd)
         val npc = if (ghost == null) {
             world.npcs.teleport(boss, at.x, at.z)
             boss.effects.anim(ANIM_FADE_IN)
