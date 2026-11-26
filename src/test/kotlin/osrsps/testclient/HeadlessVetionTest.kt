@@ -121,6 +121,21 @@ class HeadlessVetionTest {
     }
 
     @Test
+    fun `Check-Fee says paid when his discounts leave nothing to pay`(@TempDir dir: Path) {
+        server(dir, seed = 1, spawn = false).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.command("varbit ${WildernessLairFee.VARBIT_DISCOUNT} 5")
+                client.await("five discounts") { Unit.takeIf { WildernessLairFee.fee(eve) == 0 } }
+                client.tele(3220, 3788, 0)
+                client.locOp(Vetion.ENTRANCE, 3221, 3787, Vetion.CHECK_FEE)
+                client.seen("[${WildernessLairLines.FEE_PAID.key}]")
+            }
+        }
+    }
+
+    @Test
     fun `his lightning hurts, his hounds keep him from harm, and at 0 he comes back enraged`(@TempDir dir: Path) {
         server(dir, seed = 4).use { server ->
             server.login("bo").use { client ->
