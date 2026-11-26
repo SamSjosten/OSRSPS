@@ -9,11 +9,13 @@ import osrsps.game.content.ClanHall
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.social.ClanStore
 import osrsps.game.social.Clans
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -107,6 +109,26 @@ class HeadlessClanCofferTest {
                     alice.await("refused after the amount") { alice.messages().count { it.text == "[clan_coffer.no_withdraw]" }.takeIf { it > refusals } }
                     assertEquals(1000, server.world.clans.clanNamed("Odins Gate")!!.coffer)
                     assertEquals(4000, alice.coins())
+
+                    // The clan file can't be written (a folder where its temp file goes): a withdrawal gives nothing, and a
+                    // deposit's coins come back, the coffer untouched both ways (exploit review R58C-1, R58C-2).
+                    val clan = server.world.clans.clanNamed("Odins Gate")!!
+                    clan.settings[Clans.VAR_COFFER_WITHDRAW] = Clans.RANK_FOUNDER
+                    val blocker = dir.resolve("data").resolve("${ClanStore.FILE_NAME}.tmp")
+                    Files.createDirectories(blocker)
+                    Files.writeString(blocker.resolve("in-the-way"), "x")
+                    alice.awaitTicks(ClanCoffer.COOLDOWN_TICKS.toInt())
+                    alice.ifButton(ClanCoffer.MAIN, 8, 1)
+                    alice.awaitTicks(ClanCoffer.COOLDOWN_TICKS.toInt() + 1)
+                    alice.ifButton(ClanCoffer.SIDE, 6, 1)
+                    alice.awaitTicks(ClanCoffer.COOLDOWN_TICKS.toInt() + 1)
+                    assertEquals(1000, clan.coffer)
+                    assertEquals(4000, alice.coins())
+                    assertEquals(1000, alice.varClan(Clans.VARCLAN_COFFER))
+                    blocker.toFile().deleteRecursively()
+                    alice.ifButton(ClanCoffer.MAIN, 8, 1)
+                    alice.await("written again") { alice.varClan(Clans.VARCLAN_COFFER)?.takeIf { it == 0 } }
+                    assertEquals(0, ClanStore(dir.resolve("data").resolve(ClanStore.FILE_NAME)).byId(clan.id)!!.coffer)
                 }
             }
         }
