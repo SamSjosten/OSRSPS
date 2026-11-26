@@ -109,9 +109,13 @@ class Foods(
         val before = player.hitpoints
         player.hitpoints = healed(player, food)
         food.boostSkill?.let { skill ->
-            // Guessed: as a potion's boost, never lowering a higher one, nor stacking on itself.
-            val boosted = player.skills.baseLevel(skill) + food.boost
-            if (player.skills.currentLevel(skill) < boosted) player.skills.setCurrentLevel(skill, boosted)
+            // Guessed: as a potion's boost (Potions.apply): the current level plus the boost, capped at the base level plus
+            // the boost, never lowering a higher one. The Wiki gives only "+2 Strength", so a drained level comes up by 2
+            // and is not restored to base (exploit review R58A-2).
+            val base = player.skills.baseLevel(skill)
+            val current = player.skills.currentLevel(skill)
+            val boosted = minOf(base + food.boost, current + food.boost)
+            if (boosted > current) player.skills.setCurrentLevel(skill, boosted)
         }
         val text = words(player)
         message(player, text[food.message, "food" to food.name])
