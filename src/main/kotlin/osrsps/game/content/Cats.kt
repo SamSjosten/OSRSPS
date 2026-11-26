@@ -320,14 +320,19 @@ class Cats(private val world: World) {
             if (obj > 0 && obj in CAT_OBJS) setFollowerVarps(player, null, -1)
             return
         }
-        respawnAtLogin(player, kind, 1)
+        respawnAtLogin(player, 1)
     }
 
-    /** The follower back beside [player] in [ticks]; with no room in the world yet it tries again, the cat kept saved. */
-    private fun respawnAtLogin(player: Player, kind: Kind, ticks: Int) {
+    /**
+     * The follower back beside [player] in [ticks]; with no room in the world yet it tries again, the cat kept saved.
+     * Each try spawns what `follower_obj` holds then, so one put back by `::reset` meanwhile isn't brought out twice
+     * (Codex review on #980).
+     */
+    private fun respawnAtLogin(player: Player, ticks: Int) {
         world.npcScripts.later(ticks) {
             if (player.loggedOut || out.containsKey(player.saveKey)) return@later
-            if (spawn(player, kind) == null) respawnAtLogin(player, kind, LOGIN_RETRY_TICKS)
+            val kind = kindOfObj(player.vars[FOLLOWER_OBJ]) ?: return@later
+            if (spawn(player, kind) == null) respawnAtLogin(player, LOGIN_RETRY_TICKS)
         }
     }
 
