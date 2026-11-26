@@ -2868,7 +2868,8 @@ class World(
         if (held(player)) return@act
         trades.interrupt(player)
         if (interfaceId != Spells.SPELLBOOK || !telekineticGrab.casts(componentId)) {
-            logger.info { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
+            // Debug, not info: a client can send these as fast as it likes (exploit review R61A-6).
+            logger.debug { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
             follows.clickedElsewhere(player)
             return@act
         }
