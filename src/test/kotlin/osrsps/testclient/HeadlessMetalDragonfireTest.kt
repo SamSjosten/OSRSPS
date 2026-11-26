@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -38,6 +39,7 @@ class HeadlessMetalDragonfireTest {
 
     // As HeadlessRangedTest has them, shaped like the cache's.
     private val shortbow = ObjType(SHORTBOW, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
+    private val longbow = ObjType(LONGBOW, "Longbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 6), internalName = "longbow", category = 64)
     private val arrows = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -57,7 +59,7 @@ class HeadlessMetalDragonfireTest {
             for (x in 3228..3237) for (z in 3214..3223) add(x, z, 0, CollisionFlag.FLOOR)
         }
         val objs = arrayOfNulls<ObjType>(BRONZE_ARROW + 1)
-        for (type in listOf(shortbow, arrows)) objs[type.id] = type
+        for (type in listOf(shortbow, longbow, arrows)) objs[type.id] = type
         val objTypes = ObjTypes(objs)
         World(
             crcs, map, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
@@ -94,9 +96,34 @@ class HeadlessMetalDragonfireTest {
         }
     }
 
+    @Test
+    fun `a steel dragon breathes at a longbow shooting it from 10 tiles off, past its spawn's melee aggression range, and doesn't retreat`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.command("tele 3220 3218 0")
+                client.await("at 3220, 3218") { client.position?.takeIf { it.x == 3220 && it.z == 3218 } }
+                val npc = client.await("the dragon in view") { client.npcs().firstOrNull { it.id == STEEL_DRAGON } }
+                client.command("item $LONGBOW")
+                client.itemOp(LONGBOW, WIELD)
+                client.command("item $BRONZE_ARROW $ARROWS")
+                client.itemOp(BRONZE_ARROW, WIELD)
+                client.await("the arrows worn") { client.inventory(WORN).getOrNull(WearPos.AMMO)?.takeIf { it.id == BRONZE_ARROW } }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.npcOp(npc.index, 2)
+                // Exploit review R58A-1: 10 tiles is past a range of 8, and past its spawn's 7 plus melee's 1.
+                client.awaitMessage("a breath from 10 tiles", timeoutMillis = 60_000) { it == "[dragonfire.burnt]" || it == "[dragonfire.resisted]" }
+                assertEquals(3220, client.position!!.x, "shot from where the player stood")
+                assertEquals(null, server.world.npcs.all.first { it.type.id == STEEL_DRAGON }.retreatingFrom, "it fights back rather than retreating")
+            }
+        }
+    }
+
     private companion object {
         const val STEEL_DRAGON = 274
         const val SHORTBOW = 841
+        const val LONGBOW = 839
         const val BRONZE_ARROW = 882
         const val ARROWS = 1000
         const val BACKPACK = 93
