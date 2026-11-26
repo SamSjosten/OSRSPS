@@ -203,6 +203,7 @@ import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
+import osrsps.game.content.registerCairnIsle
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -1365,6 +1366,7 @@ class World(
         registerBrimhavenTown(this)
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
+        registerCairnIsle(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)

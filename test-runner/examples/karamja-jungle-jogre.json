@@ -1,0 +1,18 @@
+{
+  "name": "Karamja step K4.1: a jungle jogre south of the Kharazi edge examined (::keys on), fought under ::god, killed with ::kill and its jogre bones on the floor",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 2899 2945 0", "expectMessage": "Teleported to 2899, 2945, 0", "comment": "between the two jogres at 2896,2945 and 2903,2945"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npcId": 2094, "option": "Examine", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[examine.npc_2094]"},
+    {"step": "npcOption", "npcId": 2094, "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Jogre", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Jogre #"},
+    {"step": "assertGroundItem", "item": "Jogre bones", "timeoutMs": 15000},
+    {"step": "command", "text": "::god", "comment": "off again"}
+  ]
+}
