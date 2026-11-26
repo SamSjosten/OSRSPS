@@ -99,6 +99,7 @@ class AgilityDataTest {
                 "shortcut_brimhaven_dungeon_stones_north" to (56 to 0),
                 "shortcut_brimhaven_dungeon_stones_south" to (56 to 0),
                 "shortcut_brimhaven_dungeon_vine" to (87 to 0),
+                "shortcut_cairn_isle_rocks" to (15 to 10),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->

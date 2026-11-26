@@ -421,6 +421,7 @@ object DialogueLines {
         IzzyLines,
         JackieLines,
         AgilityArenaLines,
+        CairnIsleLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
