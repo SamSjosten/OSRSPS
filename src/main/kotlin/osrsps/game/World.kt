@@ -145,6 +145,7 @@ import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
+import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -202,6 +203,7 @@ import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
+import osrsps.game.content.registerCairnIsle
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -535,6 +537,7 @@ class World(
     val brutusPens = osrsps.game.content.BrutusPens(this)
     /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
     val championsChallenge = ChampionsChallenge(this)
+    val tearsOfGuthix = osrsps.game.content.TearsOfGuthix(this)
 
     /** Brutus's records across the server, his scoreboard's global column. */
     val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
@@ -846,7 +849,8 @@ class World(
         placeOf = ::deathPlace,
         fell = {
             archiveRaids.fell(it)
-            if (brutusPens.runOf(it) != null) osrsps.game.content.BrutusScoreboard.died(this, it)
+            // Demonic Brutus's deaths aren't Brutus's: his scoreboard page comes with step 7.
+            if (brutusPens.runOf(it)?.demonic == false) osrsps.game.content.BrutusScoreboard.died(this, it)
         },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
@@ -1310,6 +1314,7 @@ class World(
         registerDigsiteCamp(this)
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
+        registerTearsOfGuthix(this, tearsOfGuthix)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1361,6 +1366,7 @@ class World(
         registerBrimhavenTown(this)
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
+        registerCairnIsle(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1375,6 +1381,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerDemonicBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerBrutusScoreboard(this)
         osrsps.game.content.registerCowbellAmulet(this)
@@ -2572,6 +2579,7 @@ class World(
         fightCaves.login(player)
         collectionLog.login(player)
         inferno.login(player)
+        tearsOfGuthix.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)

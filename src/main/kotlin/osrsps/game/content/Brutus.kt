@@ -63,7 +63,7 @@ object BrutusLines : Lines("brutus", "Brutus's pen") {
  */
 class BrutusPens(private val world: World) {
     /** One player's field: the instance, and who it was made for. */
-    class Run(val instance: Instance, val owner: String) {
+    class Run(val instance: Instance, val owner: String, val demonic: Boolean = false) {
         var boss: Npc? = null
 
         /** The tick of the player's first attack on this Brutus, for the scoreboard's times; -1 before it. */
@@ -84,6 +84,14 @@ class BrutusPens(private val world: World) {
     /** Release on the pen's gate: the menu unless the player said not to ask again, then into a field of their own. */
     suspend fun ScriptContext.release() {
         arriveDelay()
+        // With an abyssal potato, the offer to feed it to him first: fed, it's Demonic Brutus (step 6).
+        var demonic = false
+        if (player.inventory.count(DemonicBrutus.POTATO) > 0) {
+            var pick = 0
+            world.dialogues.start(this) { pick = choice(DemonicLines.FEED_YES, DemonicLines.FEED_NO, title = text(DemonicLines.FEED_TITLE)) }
+            demonic = pick == 1
+        }
+        if (demonic) return enter(demonic = true)
         val askable = player.vars.types.varbit(Brutus.DONT_ASK_VARBIT) != null
         if (!askable || player.vars.getVarbit(Brutus.DONT_ASK_VARBIT) == 0) {
             var pick = 0
@@ -93,22 +101,36 @@ class BrutusPens(private val world: World) {
             if (pick != 1 && pick != 2) return
             if (pick == 2 && askable) player.vars.setVarbit(Brutus.DONT_ASK_VARBIT, 1)
         }
+        enter(demonic = false)
+    }
+
+    private suspend fun ScriptContext.enter(demonic: Boolean) {
+        if (demonic && player.inventory.count(DemonicBrutus.POTATO) <= 0) return
         player.spotanim(Brutus.SPOTANIM_TELEPORT)
         delay(Brutus.TELEPORT_TICKS)
+        if (demonic) {
+            // Fed as he is released: the potato is gone before the fight begins, and kept when there's no field.
+            val slot = player.inventory.contents().firstOrNull { it.second.id == DemonicBrutus.POTATO }?.first ?: return
+            val run = open(player, demonic = true) ?: return world.message(player, BrutusLines.NO_ROOM)
+            player.inventory.remove(slot, 1)
+            val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)
+            world.teleport(player, to.x, to.z, 0)
+            return
+        }
         // Made only now, as the player goes in: an instance with nobody in it is ended at the end of the tick.
-        val run = open(player) ?: return world.message(player, BrutusLines.NO_ROOM)
+        val run = open(player, demonic) ?: return world.message(player, BrutusLines.NO_ROOM)
         val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)
         world.teleport(player, to.x, to.z, 0)
     }
 
     /** A new field for [player], the way out in place of the gate in and Brutus in it; null when the dynamic area has no room. */
-    fun open(player: Player): Run? {
+    fun open(player: Player, demonic: Boolean = false): Run? {
         // Ended fields are let go of here, as nothing else tells this when an instance ends.
         runs.values.removeAll { run -> world.instances.all.none { it === run.instance } }
         val instance = world.instances.create(
             Brutus.FIELD_X, Brutus.FIELD_Z, Brutus.FIELD_WIDTH_ZONES, Brutus.FIELD_HEIGHT_ZONES, Brutus.OUTSIDE.x, Brutus.OUTSIDE.z, 0,
         ) ?: return null
-        val run = Run(instance, player.saveKey)
+        val run = Run(instance, player.saveKey, demonic)
         runs[instance.id] = run
         for ((start, exit) in Brutus.GATE_SWAPS) {
             for (x in Brutus.GATE_X) {
@@ -117,10 +139,17 @@ class BrutusPens(private val world: World) {
                 world.locs.replace(loc, exit)
             }
         }
-        val type = world.npcTypes[Brutus.BOSS]
+        val type = world.npcTypes[if (demonic) DemonicBrutus.BOSS else Brutus.BOSS]
         if (type != null) {
             val at = run.inside(Brutus.SPAWN.x, Brutus.SPAWN.z)
-            run.boss = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = "Brutus's field"))
+            // Demonic Brutus is for the one fight the potato bought: he doesn't come back.
+            run.boss = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = "Brutus's field", respawns = !demonic))
+        }
+        // No room for him in the world's NPCs: no field either, so a fed potato is kept.
+        if (demonic && run.boss == null) {
+            runs.remove(instance.id)
+            world.endInstance(instance)
+            return null
         }
         return run
     }

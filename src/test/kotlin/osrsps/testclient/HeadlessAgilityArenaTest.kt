@@ -7,6 +7,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.prot.GameServerProt
 import org.junit.jupiter.api.io.TempDir
+import osrsps.cache.DbRow
+import osrsps.cache.OmnishopLoader
 import osrsps.game.Inventory
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -19,6 +21,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.ShopScreen
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -50,6 +53,26 @@ class HeadlessAgilityArenaTest {
         ObjType(BrimhavenAgilityArena.AGILITY_CAPE, "Agility cape"),
         ObjType(BrimhavenAgilityArena.AGILITY_CAPE_TRIMMED, "Agility cape(t)"),
         ObjType(BrimhavenAgilityArena.AGILITY_HOOD, "Agility hood"),
+        ObjType(TOADFLAX, "Toadflax", certlink = TOADFLAX + 1),
+        ObjType(TOADFLAX + 1, "Toadflax", stackable = true, certlink = TOADFLAX),
+        ObjType(PIRATES_HOOK, "Pirate's hook"),
+        ObjType(BrimhavenAgilityArena.STORE_XP, "Agility"),
+        ObjType(BrimhavenAgilityArena.STORE_GRACEFUL_RECOLOUR, "Graceful outfit"),
+    )
+
+    /** The Agility Arena Store's db rows as the 242 cache has them (rows 583, 3538-3543, currencies 620 and 3531), the snapdragon and amylase left out. */
+    private val omnishops = OmnishopLoader.build(
+        shops = mapOf(BrimhavenAgilityArena.STORE to DbRow(OmnishopLoader.SHOP_TABLE, mapOf(0 to listOf("Agility Arena Store"), 5 to listOf(3538, 3539, 3541, 3542)))),
+        stock = mapOf(
+            3538 to DbRow(OmnishopLoader.STOCK_TABLE, mapOf(0 to listOf(BrimhavenAgilityArena.STORE_XP), 7 to listOf(TICKETS, 1), 11 to listOf(0), 19 to listOf(0))),
+            3539 to DbRow(OmnishopLoader.STOCK_TABLE, mapOf(0 to listOf(TOADFLAX), 7 to listOf(VOUCHERS, 3), 19 to listOf(0), 20 to listOf(1))),
+            3541 to DbRow(OmnishopLoader.STOCK_TABLE, mapOf(0 to listOf(BrimhavenAgilityArena.STORE_GRACEFUL_RECOLOUR), 7 to listOf(VOUCHERS, 250, 3532, 1), 19 to listOf(0))),
+            3542 to DbRow(OmnishopLoader.STOCK_TABLE, mapOf(0 to listOf(PIRATES_HOOK), 7 to listOf(VOUCHERS, 800), 19 to listOf(0))),
+        ),
+        currencies = mapOf(
+            TICKETS to DbRow(OmnishopLoader.CURRENCY_TABLE, mapOf(0 to listOf(BrimhavenAgilityArena.TICKET), 1 to listOf("Agility Arena Ticket"), 2 to listOf("Agility Arena Tickets"))),
+            VOUCHERS to DbRow(OmnishopLoader.CURRENCY_TABLE, mapOf(0 to listOf(BrimhavenAgilityArena.VOUCHER), 1 to listOf("Brimhaven Voucher"), 2 to listOf("Brimhaven Vouchers"))),
+        ),
     )
 
     /** The hut's ladder, the ladder up, and every dispenser, as the 242 map has them. */
@@ -71,6 +94,7 @@ class HeadlessAgilityArenaTest {
             },
             objTypes = ObjTypes.of(*objs.toTypedArray()), npcTypes = NpcTypes.of(izzy, parrot, jackie, *jackieShown.toTypedArray()),
             npcSpawns = listOf(NpcSpawn(izzy, 2807, 3190, wander = 0, source = "test"), NpcSpawn(jackie, 2811, 3190, wander = 0, source = "test")),
+            omnishops = omnishops,
             locTypes = LocTypes(locs.map { it.id }.distinct().associateWith { LocType(it, "Loc", listOf("Op", null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0)) }),
             staticLocs = StaticLocs().apply { locs.forEach(::add) },
             cycleMillis = millis,
@@ -561,12 +585,58 @@ class HeadlessAgilityArenaTest {
         }
     }
 
+    @Test
+    fun `Pirate Jackie's store trades tickets for 345 XP each and vouchers for items, noted herbs among them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.ready()
+                client.command("item ${BrimhavenAgilityArena.TICKET} 3")
+                client.command("item ${BrimhavenAgilityArena.VOUCHER} 10")
+                client.await("the tickets and vouchers") { if (client.held(BrimhavenAgilityArena.VOUCHER) == 10L && client.held(BrimhavenAgilityArena.TICKET) == 3L) Unit else null }
+                client.tele(2810, 3192)
+                val jackieIndex = client.await("Jackie in view") { client.npcs().firstOrNull { it.id == BrimhavenAgilityArena.JACKIE } }.index
+                client.npcOp(jackieIndex, BrimhavenAgilityArena.TRADE)
+                val player = server.world.playerNamed("eve")!!
+                client.await("the store") { server.world.omnishopScreen.shopOf(player)?.takeIf { it.row == BrimhavenAgilityArena.STORE } }
+
+                val before = client.stat(AGILITY)!!.xp
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, 0)
+                assertEquals(before + 345, client.await("345 XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 345 } }.xp)
+                client.await("a ticket gone") { if (client.held(BrimhavenAgilityArena.TICKET) == 2L) Unit else null }
+
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, OmnishopScreen.ENTRY_COMPONENTS)
+                client.await("a noted toadflax") { if (client.held(TOADFLAX + 1) == 1L) Unit else null }
+                assertEquals(7L, client.held(BrimhavenAgilityArena.VOUCHER))
+                assertEquals(0L, client.held(TOADFLAX))
+
+                // The recolour isn't built: nothing goes. The hook wants 800 vouchers.
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, 2 * OmnishopScreen.ENTRY_COMPONENTS)
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, 3 * OmnishopScreen.ENTRY_COMPONENTS)
+                client.message("[shop.not_enough_currency currency=Brimhaven Vouchers]")
+                assertEquals(7L, client.held(BrimhavenAgilityArena.VOUCHER))
+                assertEquals(0L, client.held(PIRATES_HOOK))
+
+                // A full stack of noted toadflax: no room, and the vouchers stay.
+                client.command("item ${TOADFLAX + 1} ${Int.MAX_VALUE - 1}")
+                client.await("a full stack") { if (client.held(TOADFLAX + 1) == Int.MAX_VALUE.toLong()) Unit else null }
+                client.ifButton(OmnishopScreen.MAIN, OmnishopScreen.LIST, 2, OmnishopScreen.ENTRY_COMPONENTS)
+                client.message("[shop.not_enough_space]")
+                assertEquals(7L, client.held(BrimhavenAgilityArena.VOUCHER))
+                assertEquals(Int.MAX_VALUE.toLong(), client.held(TOADFLAX + 1))
+            }
+        }
+    }
+
     private fun endAt(z: Int) = PLANKS.getValue(z).last().first
 
     private companion object {
         const val AGILITY = 16
         const val HITPOINTS = 3
         const val MONKEY_BARS = 3564
+        const val TOADFLAX = 2998
+        const val PIRATES_HOOK = 2997
+        const val TICKETS = 620
+        const val VOUCHERS = 3531
 
         /** The western planks by row, west to east: loc id and angle, as the 242 map has them. */
         val PLANKS = mapOf(
