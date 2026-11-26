@@ -56,6 +56,9 @@ object FreakyForesterLines : Lines("freaky_forester", "Transcript:Freaky Foreste
 object FreakyForester : RandomEvent("freaky_forester", 6748) {
     const val FOREST_FORESTER = 372
     const val RAW_PHEASANT = 11704
+
+    /** A raw pheasant stays in the forest whichever way the player leaves (exploit review round 51, A-1). */
+    override val placeItems = setOf(RAW_PHEASANT)
     const val PORTAL = 20843
     const val USE = 1
     const val KILL = 2

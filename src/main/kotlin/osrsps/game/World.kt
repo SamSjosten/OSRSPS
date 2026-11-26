@@ -2269,10 +2269,13 @@ class World(
         // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
         val leaving = if (houses.houseAt(player.x, player.z) == null) inventory
         else inventory.filterValues { it.id !in osrsps.game.skill.construction.Kitchen.HOUSE_ONLY }
+        // A random event's place sends them back by the way back's own rule (R51 C-4).
+        val (x, z, level) = randomEvents.areas.awayOf(player)?.let { randomEvents.areas.backOf(it) }
+            ?: Triple(instance?.exitX ?: SPAWN_X, instance?.exitZ ?: SPAWN_Z, instance?.exitLevel ?: SPAWN_LEVEL)
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
             player, randomEvents.areas.withoutPlaceItems(player, leaving), bank,
-            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            x = x, z = z, level = level,
             held = held,
         )
     }
