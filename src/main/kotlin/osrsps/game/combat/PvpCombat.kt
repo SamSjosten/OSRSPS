@@ -120,6 +120,32 @@ class PvpCombat(
 
     private val hits = ArrayList<Hit>()
 
+    /**
+     * Set by content: whether [Player] stands in a fighting arena outside the Wilderness, a house's fighting ring
+     * ([osrsps.game.skill.construction.CombatRoom]): Attack shows on other players there, an attack gives no skull, and
+     * the arena's own rules ([arenaRefusal]) take the Wilderness's ([PvpRules]) place.
+     */
+    var inArena: (Player) -> Boolean = { false }
+
+    /**
+     * Set by content: the lines refusing [Player]'s attack on another [Player] from an arena ([inArena]), empty when its
+     * rules allow it. The [Boolean] is whether the attack is a cast from the spellbook.
+     */
+    var arenaRefusal: (Player, Player, Boolean) -> List<Line> = { _, _, _ -> emptyList() }
+
+    /** The lines refusing [attacker]'s attack on [target]: an arena's ([arenaRefusal]) from one, else the Wilderness's. */
+    private fun refusal(attacker: Player, target: Player, spell: Boolean = false): List<Line> =
+        if (inArena(attacker)) arenaRefusal(attacker, target, spell) else PvpRules.refusal(attacker, target)
+
+    /** Whether the skull prevention setting refuses the attack: never in an arena, which gives no skull. */
+    private fun skullPrevented(attacker: Player, target: Player, tick: Long): Boolean =
+        !inArena(attacker) && Skulls.prevented(attacker, target, tick)
+
+    /** [attacker]'s attack on [target] skulls as [Skulls] says, except in an arena. GUESSED: the Wiki says nothing of skulls there. */
+    private fun skull(attacker: Player, target: Player, tick: Long) {
+        if (!inArena(attacker)) Skulls.attacked(attacker, target, tick)
+    }
+
     /** The hits [land] is landing now, so [dropIncoming] reaches those not landed yet. */
     private var landingNow: List<Hit> = emptyList()
 
@@ -152,10 +178,10 @@ class PvpCombat(
     }
 
     private fun start(attacker: Player, target: Player, spell: CombatSpell?): List<Line> {
-        val refusal = PvpRules.refusal(attacker, target)
+        val refusal = refusal(attacker, target, spell != null)
         if (refusal.isNotEmpty()) return refusal
         singleWayRefusal(attacker, target, currentTick())?.let { return listOf(it) }
-        if (Skulls.prevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
+        if (skullPrevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
         if (mode(attacker, spell) == null) {
             cantFight(attacker)
             return emptyList()
@@ -188,7 +214,7 @@ class PvpCombat(
     internal fun tryInteract(player: Player, fight: PvpInteraction): Boolean {
         val target = fight.target
         if (!inWorld(target) || target.dead || target.hitpoints <= 0 || target.level != player.level) return true
-        val refusal = PvpRules.refusal(player, target)
+        val refusal = refusal(player, target, fight.spell != null)
         if (refusal.isNotEmpty()) {
             for (line in refusal) message(player, words(player)[line])
             return true
@@ -199,7 +225,7 @@ class PvpCombat(
             return true
         }
         // A skull can run out on the way.
-        if (Skulls.prevented(player, target, currentTick())) {
+        if (skullPrevented(player, target, currentTick())) {
             message(player, words(player)[PvpLines.SKULL_PREVENTED])
             return true
         }
@@ -305,7 +331,7 @@ class PvpCombat(
 
     /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other, and a skull if unprovoked. */
     private fun fought(attacker: Player, target: Player, tick: Long) {
-        Skulls.attacked(attacker, target, tick)
+        skull(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
         attacker.pjAfterKill = false
@@ -396,7 +422,7 @@ class PvpCombat(
                 other.pjUntil = tick + PJ_TICKS
                 other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
-                Skulls.attacked(player, other, tick)
+                skull(player, other, tick)
             }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
@@ -437,8 +463,8 @@ class PvpCombat(
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null &&
-                    !Skulls.prevented(player, it, tick)
+                    refusal(player, it, spell = true).isEmpty() && singleWayRefusal(player, it, tick) == null &&
+                    !skullPrevented(player, it, tick)
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)
@@ -619,8 +645,8 @@ class PvpCombat(
      */
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
-        if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        if (singleWayRefusal(player, attacker, tick) != null || Skulls.prevented(player, attacker, tick)) return
+        if (!inWorld(attacker) || attacker.dead || refusal(player, attacker).isNotEmpty()) return
+        if (singleWayRefusal(player, attacker, tick) != null || skullPrevented(player, attacker, tick)) return
         val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
         player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)

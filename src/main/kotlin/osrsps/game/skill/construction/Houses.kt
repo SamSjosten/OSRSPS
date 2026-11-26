@@ -63,6 +63,9 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val FURNITURE_SKILL_LEVEL = line("furniture_skill_level", "Building furniture above another skill's level it needs, {skill} {level} (the barrels' Cooking; no source yet)", "skill", "level")
     val FURNITURE_CREST = line("furniture_crest", "Building a wall decoration without a family crest (the Dining room page: they need one from Sir Renitee; no source for the words)")
     val TAKE_SUPPLIES = line("take_supplies", "The Make-X box's title on searching a larder or kitchen shelves (no source yet)")
+    val ARENA_NOT_SAME = line("arena_not_same", "Attack on a player who isn't in the same fighting ring of the combat room (ours; no source yet)")
+    val ARENA_KIT = line("arena_kit", "Attack in the boxing or fencing ring wearing what it doesn't allow: armour, jewellery, or a weapon in the boxing ring (the ring pages: not allowed; no source for the words)")
+    val ARENA_STYLE = line("arena_style", "Attack in a fighting ring with a style it doesn't allow: ranged or magic in the boxing or fencing ring, melee from a ranging pedestal (the ring pages; no source for the words)")
     val DUMMY_DETACH_FIRST = line("dummy_detach_first", "Upgrade or Remove on an attached combat dummy (the Undead combat dummy page: the sandbag must be detached first; no source for the words)")
     val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
     val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
@@ -341,6 +344,8 @@ class Houses(private val world: World) {
      */
     fun deathPlace(player: Player): DeathPlace? {
         val house = houseAt(player.x, player.z) ?: return null
+        // A death in a fighting ring stays in the room (Construction CON6c).
+        world.combatRoom.arenaDeathTile(player)?.let { return DeathPlace(keepItems = true, it.x, it.z, player.level, it.x, it.z, player.level, safe = true) }
         val outside = outside(house.instance)
         return DeathPlace(keepItems = true, outside.x, outside.z, 0, outside.x, outside.z, 0, safe = true)
     }
