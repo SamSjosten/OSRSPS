@@ -96,7 +96,8 @@ class HeadlessRoguesCastleChestTest {
                 client.locOp(chest.id, CHEST_X, CHEST_Z, ThievingLocks.OP_SECOND)
                 client.await("the treasure") { Unit.takeIf { client.seen("[thieving_lock.treasure]") == 1 } }
                 assertEquals(7017, ruth.skills.tenths(Skill.THIEVING) - before)
-                val loot = client.inventory(BACKPACK).filterNotNull()
+                // The backpack's update can reach the client after the message, so wait for it rather than read it now.
+                val loot = client.await("the loot in the backpack") { client.inventory(BACKPACK).filterNotNull().takeIf { it.isNotEmpty() } }
                 assertTrue(loot.isNotEmpty() && loot.all { it.id in TABLE_ITEMS }, "a roll of the table: $loot")
                 client.await("the chest open") { Unit.takeIf { client.locAt(CHEST_X, CHEST_Z) == ThievingLocks.CHEST_ROGUES_OPEN } }
                 val npc = server.world.npcs.all.first { it.type.id == ThievingLocks.ROGUE }
