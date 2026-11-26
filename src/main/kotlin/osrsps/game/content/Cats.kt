@@ -619,7 +619,9 @@ class Cats(private val world: World) {
         // Free of the player's interaction and of following, so it walks to the rat while the player waits.
         world.npcs.release(cat)
         world.npcs.stopFollowing(cat)
-        mine.chasingUntil = world.tick + CHASE_TICKS
+        // Through the NPC phase of the tick the chase ends on too: the op runs after that tick's NPC moves, so a
+        // follow then would undo the last step before the catch is judged (Codex review on #980).
+        mine.chasingUntil = world.tick + CHASE_TICKS + 1
         cat.destination = osrsps.map.Tile(rat.x, rat.z)
         cat.effects.say(text[CatLines.POUNCE])
         context.delay(CHASE_TICKS)
@@ -783,9 +785,12 @@ class Cats(private val world: World) {
 
         fun kindOfObj(obj: Int): Kind? = KINDS.firstOrNull { it.obj == obj }
 
-        /** Fish a kitten eats (Wiki, Kitten): every raw or cooked fish but the eels it refuses and Barbarian fishing's. */
+        /**
+         * Fish a kitten eats (Wiki, Kitten): every raw or cooked fish but the eels it refuses and Barbarian fishing's.
+         * The cooked karambwan is the one cooked fish whose name says so.
+         */
         private val FISH = Regex(
-            "^(Raw )?(shrimps|anchovies|sardine|herring|mackerel|trout|cod|pike|salmon|tuna|rainbow fish|lobster|bass|swordfish|" +
+            "^(Raw |Cooked )?(shrimps|anchovies|sardine|herring|mackerel|trout|cod|pike|salmon|tuna|rainbow fish|lobster|bass|swordfish|" +
                 "monkfish|karambwanji|karambwan|shark|sea turtle|manta ray|anglerfish|dark crab|lava eel|cave eel|" +
                 "poison karambwan|frog spawn)$",
             RegexOption.IGNORE_CASE,

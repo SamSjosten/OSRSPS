@@ -20,7 +20,7 @@ class CatsTest {
 
     @Test
     fun `a kitten eats raw and cooked fish, but not a raw cave eel`() {
-        for (name in listOf("Raw sardine", "Sardine", "Raw karambwanji", "Shark", "Poison karambwan", "Cave eel")) assertTrue(Cats.isFish(name), name)
+        for (name in listOf("Raw sardine", "Sardine", "Raw karambwanji", "Shark", "Poison karambwan", "Cooked karambwan", "Raw karambwan", "Cave eel")) assertTrue(Cats.isFish(name), name)
         for (name in listOf("Raw cave eel", "Raw slimy eel", "Bread", "Fish offcuts")) assertFalse(Cats.isFish(name), name)
     }
 
