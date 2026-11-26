@@ -125,7 +125,7 @@ fun registerGroatsFarm(world: World) {
 
 private suspend fun ScriptContext.milk(world: World, cow: ZoneLoc) {
     arriveDelay()
-    if (player.inventory.count(GroatsFarm.BUCKET) == 0L) {
+    if (player.inventory.count(GroatsFarm.BUCKET) == 0L && !BottomlessMilkBucket.milkable(player)) {
         if (cow.x to cow.z in GroatsFarm.GILLIES_COWS) {
             val gillie = world.npcTypes[GroatsFarm.GILLIE] ?: return
             world.dialogues.start(this) { with(GroatsFarm) { noBucket(gillie) } }
@@ -139,6 +139,15 @@ private suspend fun ScriptContext.milk(world: World, cow: ZoneLoc) {
 
 /** One bucket filled, and the next queued: a weak queue, so walking off or clicking anything else stops it. */
 private fun ScriptContext.milkOnce(world: World) {
+    // Guessed: the bottomless milk bucket before any empty bucket, a use with no message, on until it's full.
+    if (BottomlessMilkBucket.milkable(player)) {
+        if (!BottomlessMilkBucket.milked(world, player)) return
+        player.anim(GroatsFarm.ANIM_MILK)
+        // The Wiki's 7 ticks a use, 6 with the cowbell amulet.
+        val ticks = if (CowbellAmulet.worn(player)) CowbellAmulet.MILK_TICKS else BottomlessMilkBucket.MILK_TICKS
+        if (BottomlessMilkBucket.uses(player) < BottomlessMilkBucket.MAX_USES) queue(MILK_QUEUE, QueueType.WEAK, ticks) { milkOnce(world) }
+        return
+    }
     val slot = player.inventory.contents().firstOrNull { it.second.id == GroatsFarm.BUCKET }?.first ?: return
     player.inventory[slot] = InvObj(GroatsFarm.BUCKET_OF_MILK, 1)
     world.message(player, DairyCowLines.MILKED)

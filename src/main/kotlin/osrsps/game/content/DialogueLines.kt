@@ -144,6 +144,8 @@ object DialogueLines {
         BorkLines,
         BrutusLines,
         CowbellLines,
+        BottomlessLines,
+        CowSlippersLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,
