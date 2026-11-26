@@ -262,14 +262,16 @@ object DemonicBrutus {
         world.message(player, DemonicLines.HARVEST)
     }
 
-    /** Eat on the potato: +1 Strength, never lowering a higher boost. */
+    /** Eat on the potato: +1 Strength as a potion boosts (current + 1, capped at base + 1), never lowering a higher boost. */
     fun eat(world: World, player: Player, slot: Int) {
         if (player.dead || player.inventory[slot]?.id != POTATO || world.tick < player.foodDelayUntil) return
         player.foodDelayUntil = world.tick + EAT_DELAY
         player.inventory[slot] = null
         player.anim(Foods.EAT_ANIM)
-        val boosted = player.skills.baseLevel(Skill.STRENGTH) + 1
-        if (player.skills.currentLevel(Skill.STRENGTH) < boosted) player.skills.setCurrentLevel(Skill.STRENGTH, boosted)
+        // Guessed: the potion rule, as the cooked t-bone steak's (exploit review R58A-2), so it can't undo a drain.
+        val current = player.skills.currentLevel(Skill.STRENGTH)
+        val boosted = minOf(player.skills.baseLevel(Skill.STRENGTH) + 1, current + 1)
+        if (boosted > current) player.skills.setCurrentLevel(Skill.STRENGTH, boosted)
         world.message(player, DemonicLines.EAT)
     }
 }

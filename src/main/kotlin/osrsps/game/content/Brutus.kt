@@ -105,13 +105,18 @@ class BrutusPens(private val world: World) {
     }
 
     private suspend fun ScriptContext.enter(demonic: Boolean) {
-        if (demonic) {
-            // Fed as he is released: the potato is gone before the fight begins.
-            val slot = player.inventory.contents().firstOrNull { it.second.id == DemonicBrutus.POTATO }?.first ?: return
-            player.inventory.remove(slot, 1)
-        }
+        if (demonic && player.inventory.count(DemonicBrutus.POTATO) <= 0) return
         player.spotanim(Brutus.SPOTANIM_TELEPORT)
         delay(Brutus.TELEPORT_TICKS)
+        if (demonic) {
+            // Fed as he is released: the potato is gone before the fight begins, and kept when there's no field.
+            val slot = player.inventory.contents().firstOrNull { it.second.id == DemonicBrutus.POTATO }?.first ?: return
+            val run = open(player, demonic = true) ?: return world.message(player, BrutusLines.NO_ROOM)
+            player.inventory.remove(slot, 1)
+            val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)
+            world.teleport(player, to.x, to.z, 0)
+            return
+        }
         // Made only now, as the player goes in: an instance with nobody in it is ended at the end of the tick.
         val run = open(player, demonic) ?: return world.message(player, BrutusLines.NO_ROOM)
         val to = run.inside(Brutus.ENTRY.x, Brutus.ENTRY.z)

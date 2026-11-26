@@ -117,6 +117,15 @@ class HeadlessDemonicBrutusTest {
                 assertEquals(alice.skills.baseLevel(Skill.STRENGTH) + 1, alice.skills.currentLevel(Skill.STRENGTH))
                 client.await("eaten") { if (client.count(DemonicBrutus.POTATO) == 0L) Unit else null }
 
+                // A drained Strength comes up by 1, not back to its level (as a potion, exploit review R58A-2).
+                client.commandReply("setlevel strength 60") { it.contains("set to level 60") }
+                client.commandReply("boost strength 30") { it == "Strength is now 30/60" }
+                client.command("item ${DemonicBrutus.POTATO}")
+                client.awaitTicks(4)
+                val again = client.await("a second potato") { client.inventory(93).indexOfFirst { it?.id == DemonicBrutus.POTATO }.takeIf { it >= 0 } }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 2, again, DemonicBrutus.POTATO)
+                client.await("Strength 31") { if (alice.skills.currentLevel(Skill.STRENGTH) == 31) Unit else null }
+
                 val run = client.feedIn(server, "alice", 3262, 3270)
                 val boss = run.boss!!
                 client.await("his Moo") { if (DemonicBrutus.fight(boss).mooed) Unit else null }
