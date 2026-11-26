@@ -146,6 +146,7 @@ object DialogueLines {
         CowbellLines,
         BottomlessLines,
         CowSlippersLines,
+        DemonicLines,
         DagonhaiLines,
         DiaryLines,
         DiaryLumbridgeLines,
