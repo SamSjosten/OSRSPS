@@ -742,6 +742,7 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
