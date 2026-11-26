@@ -394,6 +394,8 @@ object DialogueLines {
         LarxusLines,
         LeonDCourLines,
         ChampionsChestLines,
+        JunaLines,
+        TearsLines,
         ExamCentreLines,
         TerryLines,
         DigsiteDungeonLines,

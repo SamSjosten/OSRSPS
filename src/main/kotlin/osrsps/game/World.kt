@@ -145,6 +145,7 @@ import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
+import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -535,6 +536,7 @@ class World(
     val brutusPens = osrsps.game.content.BrutusPens(this)
     /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
     val championsChallenge = ChampionsChallenge(this)
+    val tearsOfGuthix = osrsps.game.content.TearsOfGuthix(this)
 
     /** Brutus's records across the server, his scoreboard's global column. */
     val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
@@ -1310,6 +1312,7 @@ class World(
         registerDigsiteCamp(this)
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
+        registerTearsOfGuthix(this, tearsOfGuthix)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -2572,6 +2575,7 @@ class World(
         fightCaves.login(player)
         collectionLog.login(player)
         inferno.login(player)
+        tearsOfGuthix.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
