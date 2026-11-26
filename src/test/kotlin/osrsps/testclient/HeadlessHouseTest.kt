@@ -18,6 +18,7 @@ import osrsps.game.PlayerSave
 import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
@@ -25,14 +26,18 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Cooking
+import osrsps.game.skill.construction.CombatRoom
 import osrsps.game.skill.construction.EstateAgent
 import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.FurnitureBuilds
 import osrsps.game.skill.construction.FurnitureData
 import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.Kitchen
+import osrsps.game.skill.construction.Houses
 import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
+import osrsps.game.skill.construction.Stairs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -90,7 +95,17 @@ class HeadlessHouseTest {
         LocType(TOOLS_2, "Tools", ops = listOf("Search", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         hotspot(TREE_SPACE, "Tree space"), hotspot(SMALL_PLANT_SPACE, "Small Plant space 1"),
         built(DEAD_TREE, "Dead Tree"), built(PLANT, "Plant"),
+        hotspot(STAIR_SPACE, "Stair Space", 2), hotspot(STAIR_TOP_SPACE, "Stair Space", 2),
+        LocType(OAK_STAIRS, "Staircase", ops = listOf("Climb-up", null, null, "Remove-room", "Remove"), collision = LocCollisionType(width = 2, length = 2)),
+        LocType(OAK_STAIRS_TOP, "Staircase", ops = listOf("Climb-down", null, null, "Remove-room", "Remove"), collision = LocCollisionType(width = 2, length = 2)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
+        hotspot(RING_WALL_SPACE, "Combat ring space"), hotspot(RING_FLOOR_SPACE, "Combat ring space"), hotspot(STORAGE_SPACE, "Storage space"),
+        LocType(BOXING_ROPE, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        built(BOXING_MAT, "Boxing mat"),
+        hotspot(RING_CORNER_SPACE, "Combat ring space"), hotspot(PEDESTAL_WALL_SPACE, "Combat ring space"),
+        LocType(BOXING_CORNER, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BARRIER, "Magic barrier", ops = listOf("Walk-through", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -130,12 +145,18 @@ class HeadlessHouseTest {
         objs[BAGGED_PLANT_1] = ObjType(BAGGED_PLANT_1, "Bagged plant 1")
         objs[WATERING_CAN_8] = ObjType(WATERING_CAN_8, "Watering can(8)")
         objs[KNIFE] = ObjType(KNIFE, "Knife")
+        for (gloves in listOf(CombatRoom.RED_GLOVES, CombatRoom.BLUE_GLOVES)) {
+            objs[gloves] = ObjType(gloves, "Boxing gloves", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, wearpos3 = WearPos.HANDS)
+        }
         for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
         val kitchen = RoomType.KITCHEN
         val dining = RoomType.DINING_ROOM
         val workshop = RoomType.WORKSHOP
+        val hall = RoomType.SKILL_HALL
+        val hallTop = RoomType.SKILL_HALL_STAIRS
+        val combat = RoomType.COMBAT_ROOM
         World(
             crcs,
             CollisionMap().apply {
@@ -183,6 +204,20 @@ class HeadlessHouseTest {
                 for ((i, space) in listOf(TOOL_SPACE_A, TOOL_SPACE_B, TOOL_SPACE_C).withIndex()) {
                     add(ZoneLoc(space, LocShape.CENTREPIECE_STRAIGHT, 0, workshop.templateX + 1, workshop.templateZ + 2 + i, 0))
                 }
+                // A skill hall's stair space, 2 by 2 at 3,3 as the cache has it, and the same hall at a staircase's top.
+                add(ZoneLoc(STAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hall.templateX + 3, hall.templateZ + 3, 0))
+                add(ZoneLoc(STAIR_TOP_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hallTop.templateX + 3, hallTop.templateZ + 3, 0))
+                doors(hall.templateX, hall.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                doors(hallTop.templateX, hallTop.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                // A combat room's ring cut down to one rope, on the east side of 2,3, and the mat's middle inside it at 3,3
+                // (the cache's is 6 by 6 round a 4 by 4 mat), and its storage space.
+                add(ZoneLoc(RING_WALL_SPACE, LocShape.WALL_STRAIGHT, 2, combat.templateX + 2, combat.templateZ + 3, 0))
+                add(ZoneLoc(RING_FLOOR_SPACE, LocShape.GROUND_DECOR, 0, combat.templateX + 3, combat.templateZ + 3, 0))
+                // A corner post at the north-east corner of 2,1 (across to 3,2), and a pedestal's wall on the west side of 5,5.
+                add(ZoneLoc(RING_CORNER_SPACE, LocShape.WALL_SQUARE_CORNER, 1, combat.templateX + 2, combat.templateZ + 1, 0))
+                add(ZoneLoc(PEDESTAL_WALL_SPACE, LocShape.WALL_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 5, 0))
+                add(ZoneLoc(STORAGE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 6, 0))
+                doors(combat.templateX, combat.templateZ, listOf(0, 2, 3)).forEach(::add)
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
             varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
@@ -194,6 +229,8 @@ class HeadlessHouseTest {
                     RoomType.DINING_ROOM.id to listOf(tables, emptyList(), emptyList(), emptyList(), emptyList(), decorations),
                     RoomType.WORKSHOP.id to listOf(workbenches, emptyList(), toolStores),
                     RoomType.GARDEN.id to listOf(emptyList(), emptyList(), trees, emptyList(), emptyList(), smallPlants),
+                    RoomType.SKILL_HALL.id to listOf(staircases),
+                    RoomType.COMBAT_ROOM.id to listOf(rings, emptyList(), emptyList(), racks),
                 ),
             ),
         )
@@ -230,7 +267,15 @@ class HeadlessHouseTest {
     private val trees = listOf(FurnitureOption(DEAD_TREE_ROW, "Tree", 8173, listOf(BAGGED_DEAD_TREE to 1), level = 5))
     private val smallPlants = listOf(FurnitureOption(PLANT_ROW, "Plant", 8180, listOf(BAGGED_PLANT_1 to 1), level = 1))
 
+    /**
+     * The skill hall's stair space's first staircase (row 5644) at the Stair Space page's level; half its materials (10 oak
+     * planks and 4 steel bars), so twice them fit in a backpack.
+     */
+    private val staircases = listOf(FurnitureOption(OAK_STAIRCASE_ROW, "Oak staircase", 8249, listOf(OAK_PLANK to 5, STEEL_BAR to 2), level = 27))
+
     /** The rug space's first choice (row 5524). */
+    private val rings = listOf(FurnitureOption(BOXING_RING_ROW, "Boxing ring", 8023, listOf(OAK_PLANK to 6, BOLT_OF_CLOTH to 4), level = 32))
+    private val racks = listOf(FurnitureOption(GLOVE_RACK_ROW, "Glove rack", 8028, listOf(OAK_PLANK to 2), level = 34))
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
 
     /** The other parlour places' first choices (rows 5529, 5532 and 5535), with the Wiki's materials and levels. */
@@ -289,7 +334,7 @@ class HeadlessHouseTest {
         return await("the house") { position?.takeIf { it.x >= 6400 && it.level == House.GROUND } }
     }
 
-    private fun HeadlessClient.shown(id: Int, x: Int, z: Int) = locChanges().any { it.id == id && it.coord == Coord(x, z, House.GROUND) }
+    private fun HeadlessClient.shown(id: Int, x: Int, z: Int, level: Int = House.GROUND) = locChanges().any { it.id == id && it.coord == Coord(x, z, level) }
 
     @Test
     fun `the estate agent sells the starter house, and the portal takes its owner in and out of it`(@TempDir dir: Path) {
@@ -958,7 +1003,220 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a staircase goes up from a hall, builds a hall at its top, and the upper floor keeps to the Wiki's rules`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kira").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("kira")!!
+                val hx = House.STARTER_X + 1
+                val hz = House.STARTER_Z
+                player.house!!.rooms += HouseRoom(RoomType.SKILL_HALL, hx, hz)
+                client.command("setlevel construction 40")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 10")
+                client.command("item $STEEL_BAR 4")
+                client.command("item ${EstateAgent.COINS} 15000")
+                client.await("the materials") { if (client.count(OAK_PLANK) == 10 && client.count(STEEL_BAR) == 4 && client.count(EstateAgent.COINS) == 15000) Unit else null }
+                val xp = client.await("level 40") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 40 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val sx = instance.baseX + (hx shl 3) + 3
+                val sz = instance.baseZ + (hz shl 3) + 3
+                fun build() {
+                    client.locOp(STAIR_SPACE, sx, sz, House.BUILD)
+                    client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                    client.menu("construction.stairs_up", "construction.stairs_down")
+                }
+
+                // Down waits for the dungeon; Up builds the staircase's foot.
+                build()
+                client.chooseOption(2)
+                client.await("the refusal for Down") { client.messages().firstOrNull { it.text == "[construction.stairs_down_later]" } }
+                assertEquals(10, client.count(OAK_PLANK))
+                build()
+                client.chooseOption(1)
+                client.await("the staircase") { if (client.shown(OAK_STAIRS, sx, sz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 680 } }
+                assertEquals(5, client.count(OAK_PLANK))
+
+                // Climb-up with nothing above: the top room's prompt; a skill hall goes up with the staircase's top, for the
+                // hall's coins and the staircase's materials again, and the player with it.
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.menu("construction.stairs_top_skill_hall", "construction.stairs_top_quest_hall", "construction.stairs_top_cancel")
+                client.chooseOption(1)
+                client.await("upstairs") { client.position?.takeIf { it.level == House.UPPER } }
+                val top = assertNotNull(player.house!!.room(hx, hz, House.UPPER))
+                assertEquals(RoomType.SKILL_HALL_STAIRS, top.type)
+                assertEquals(mapOf(STAIR_TOP_SPACE to OAK_STAIRS_TOP), top.built)
+                client.await("the top's XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 1360 } }
+                assertEquals(0, client.count(OAK_PLANK))
+                assertEquals(0, client.count(EstateAgent.COINS))
+                assertEquals(OAK_STAIRS_TOP, server.world.locs.at(sx, sz, House.UPPER).firstOrNull { it.id == OAK_STAIRS_TOP }?.id)
+
+                // A staircase to the other floor stays; a room upstairs needs one under it.
+                client.locOp(OAK_STAIRS_TOP, sx, sz, Furniture.REMOVE)
+                client.await("the top's refusal") { client.messages().firstOrNull { it.text == "[construction.stairs_connected]" } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, instance.baseX + (hx shl 3) + 7, instance.baseZ + (hz shl 3) + 3, House.BUILD)
+                client.await("the refusal for no support") { client.messages().firstOrNull { it.text == "[construction.room_no_support]" } }
+
+                // Down again; the hall under the room upstairs can't be removed, nor its staircase.
+                client.locOp(OAK_STAIRS_TOP, sx, sz, 1)
+                client.await("downstairs") { client.position?.takeIf { it.level == House.GROUND } }
+                client.locOp(OAK_STAIRS, sx, sz, Stairs.REMOVE_ROOM)
+                client.await("the hall's refusal") { client.messages().firstOrNull { it.text == "[construction.remove_supporting]" } }
+                client.locOp(OAK_STAIRS, sx, sz, Furniture.REMOVE)
+                client.await("the foot's refusal") { client.messages().count { it.text == "[construction.stairs_connected]" }.takeIf { it == 2 } }
+
+                // Both floors are saved.
+                val read = assertNotNull(PlayerSave.fromJson(server.world.snapshot(player).toJson("kira")).house)
+                assertEquals(RoomType.SKILL_HALL_STAIRS, read.room(hx, hz, House.UPPER)?.type)
+                assertEquals(mapOf(STAIR_SPACE to OAK_STAIRS), assertNotNull(read.room(hx, hz)).built.toMap())
+
+                // Up, and Remove-room on the top: the room goes and the player with it to the floor below.
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.await("upstairs again") { client.position?.takeIf { it.level == House.UPPER } }
+
+                // A parlour's ghost upstairs, over a room below, walked into and left: the next Build takes it away and
+                // whoever stands in it goes to the floor below.
+                player.house!!.rooms += HouseRoom(RoomType.PARLOUR, hx + 1, hz)
+                client.command("item ${EstateAgent.COINS} ${RoomType.PARLOUR.cost}")
+                client.await("the parlour's coins") { if (client.count(EstateAgent.COINS) == RoomType.PARLOUR.cost) Unit else null }
+                val doorX = instance.baseX + (hx shl 3) + 7
+                val doorZ = instance.baseZ + (hz shl 3) + 3
+                client.locOp(House.DOOR_HOTSPOT_LEFT, doorX, doorZ, House.BUILD)
+                client.await("the add-room menu upstairs") { if (House.ADD_ROOM in client.openInterfaces()) Unit else null }
+                client.resumePause(House.ADD_ROOM, House.ADD_ROOM_LIST, RoomType.PARLOUR.id)
+                client.menu("construction.rotate_clockwise", "construction.rotate_anticlockwise", "construction.build_room", "construction.cancel_room")
+                assertEquals(Houses.Cell(hx + 1, hz, House.UPPER), server.world.houses.houseAt(doorX, doorZ)?.ghost)
+                client.command("tele ${doorX + 4} $doorZ ${House.UPPER}")
+                client.await("in the ghost") { client.position?.takeIf { it.x == doorX + 4 && it.level == House.UPPER } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, doorX, doorZ, House.BUILD)
+                client.await("down from the ghost") { client.position?.takeIf { it.level == House.GROUND } }
+                assertNull(player.house!!.room(hx + 1, hz, House.UPPER))
+                client.locOp(OAK_STAIRS, sx, sz, 1)
+                client.await("upstairs a third time") { client.position?.takeIf { it.level == House.UPPER } }
+                client.locOp(OAK_STAIRS_TOP, sx, sz, Stairs.REMOVE_ROOM)
+                client.menu("construction.remove_yes", "construction.remove_no")
+                client.chooseOption(1)
+                client.await("back down") { client.position?.takeIf { it.level == House.GROUND } }
+                assertNull(player.house!!.room(hx, hz, House.UPPER))
+            }
+        }
+    }
+
+    @Test
+    fun `a boxing ring is built over its whole space, its rope climbed both ways, and the rack's gloves stay in the house`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lena").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("lena")!!
+                player.house!!.rooms += HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 34")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 8")
+                client.command("item $BOLT_OF_CLOTH 4")
+                client.await("the materials") { if (client.count(OAK_PLANK) == 8 && client.count(BOLT_OF_CLOTH) == 4) Unit else null }
+                val xp = client.await("level 34") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 34 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                fun build(id: Int, x: Int, z: Int) {
+                    client.locOp(id, x, z, House.BUILD)
+                    client.await("the creation menu on $id") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                }
+
+                // Built from the rope's space, the ring puts its rope there and its mat on the floor inside.
+                build(RING_WALL_SPACE, cx + 2, cz + 3)
+                client.await("the rope") { if (client.shown(BOXING_ROPE, cx + 2, cz + 3)) Unit else null }
+                client.await("the mat") { if (client.shown(BOXING_MAT, cx + 3, cz + 3)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 420 } }
+                build(STORAGE_SPACE, cx + 5, cz + 6)
+                client.await("the glove rack") { if (client.shown(GLOVE_RACK, cx + 5, cz + 6)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 540 } }
+                assertEquals(listOf(0, 0), listOf(client.count(OAK_PLANK), client.count(BOLT_OF_CLOTH)))
+                val room = player.house!!.room(House.STARTER_X + 1, House.STARTER_Z + 1)!!
+                // Every tile kind of the ring space takes its part, the pedestals' and the beam's own walls none.
+                assertEquals(listOf(BOXING_ROPE, BOXING_MAT, GLOVE_RACK), listOf(RING_WALL_SPACE, RING_FLOOR_SPACE, STORAGE_SPACE).map { room.built[it] })
+                assertEquals(BOXING_BLUE_CORNER, room.built[RING_BLUE_CORNER_SPACE])
+                assertTrue(PEDESTAL_WALL_SPACE !in room.built)
+
+                // The rack's Search: the red gloves, worn.
+                client.locOp(GLOVE_RACK, cx + 5, cz + 6, Kitchen.SEARCH)
+                client.await("the rack's box") { if (Chatbox.SKILLMULTI in client.openInterfaces()) Unit else null }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                val slot = client.await("the red gloves") { client.inventory(Inventory.INV).indexOfFirst { it?.id == CombatRoom.RED_GLOVES }.takeIf { it >= 0 } }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, WEAR_OP, slot, CombatRoom.RED_GLOVES)
+                client.await("the gloves worn") { client.inventory(Inventory.WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == CombatRoom.RED_GLOVES } }
+
+                // Over the rope into the ring and back out, from whichever side.
+                client.command("tele ${cx + 2} ${cz + 3} ${House.GROUND}")
+                client.await("beside the rope") { client.position?.takeIf { it == Coord(cx + 2, cz + 3, House.GROUND) } }
+                client.locOp(BOXING_ROPE, cx + 2, cz + 3, CombatRoom.CROSS)
+                client.await("in the ring") { client.position?.takeIf { it == Coord(cx + 3, cz + 3, House.GROUND) } }
+                client.locOp(BOXING_ROPE, cx + 2, cz + 3, CombatRoom.CROSS)
+                client.await("out of the ring") { client.position?.takeIf { it == Coord(cx + 2, cz + 3, House.GROUND) } }
+                // A corner post too, from its own tile and back from the diagonal one (Codex review on #991).
+                client.await("the corner post") { if (client.shown(BOXING_CORNER, cx + 2, cz + 1)) Unit else null }
+                client.command("tele ${cx + 2} ${cz + 1} ${House.GROUND}")
+                client.await("at the corner") { client.position?.takeIf { it == Coord(cx + 2, cz + 1, House.GROUND) } }
+                client.locOp(BOXING_CORNER, cx + 2, cz + 1, CombatRoom.CROSS)
+                client.await("in at the corner") { client.position?.takeIf { it == Coord(cx + 3, cz + 2, House.GROUND) } }
+                client.locOp(BOXING_CORNER, cx + 2, cz + 1, CombatRoom.CROSS)
+                client.await("out at the corner") { client.position?.takeIf { it == Coord(cx + 2, cz + 1, House.GROUND) } }
+                // And stays out: a walk round to the post's own tile would climb straight back in.
+                client.awaitTicks(CombatRoom.CROSS_TICKS + 3)
+                assertEquals(Coord(cx + 2, cz + 1, House.GROUND), client.position)
+
+                // A save from inside leaves the worn gloves behind; leaving takes them.
+                assertTrue(server.world.snapshot(player).equipment.values.none { it.id == CombatRoom.RED_GLOVES })
+                client.tele(OUTSIDE.x, OUTSIDE.z)
+                client.await("the gloves gone") { if (client.inventory(Inventory.WORN).none { it?.id == CombatRoom.RED_GLOVES }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `the ranging pedestals' magic barrier is walked through both ways`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("mira").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("mira")!!
+                // A combat room with the ranging pedestals already in it: its barriers on the "ranging" walls.
+                val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                val pedestals = FurnitureBuilds.BUILDS.getValue(PEDESTALS_ROW)
+                for (id in FurnitureBuilds.siblings(PEDESTAL_WALL_SPACE)) {
+                    val loc = pedestals.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                    if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                }
+                player.house!!.rooms += room
+                val at = client.goIn(House.HOME)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                client.await("the barrier") { if (client.shown(BARRIER, cx + 5, cz + 5)) Unit else null }
+                client.command("tele ${cx + 4} ${cz + 5} ${House.GROUND}")
+                client.await("beside the barrier") { client.position?.takeIf { it == Coord(cx + 4, cz + 5, House.GROUND) } }
+                client.locOp(BARRIER, cx + 5, cz + 5, CombatRoom.CROSS)
+                client.await("through it") { client.position?.takeIf { it == Coord(cx + 5, cz + 5, House.GROUND) } }
+                client.locOp(BARRIER, cx + 5, cz + 5, CombatRoom.CROSS)
+                client.await("back through it") { client.position?.takeIf { it == Coord(cx + 4, cz + 5, House.GROUND) } }
+            }
+        }
+    }
+
     private companion object {
+        const val STAIR_SPACE = 15380
+        const val STAIR_TOP_SPACE = 15381
+        const val OAK_STAIRCASE_ROW = 5644
+        const val OAK_STAIRS = 13497
+        const val OAK_STAIRS_TOP = 13498
         const val TREE_SPACE = 15363
         const val SMALL_PLANT_SPACE = 15366
         const val DEAD_TREE_ROW = 5880
@@ -1035,6 +1293,22 @@ class HeadlessHouseTest {
         const val WOODEN_SHELVES = 13545
         const val WOODEN_CROCKERY = 13552
         const val PUMP = 13559
+        const val WEAR_OP = 3
+        const val RING_WALL_SPACE = 15277
+        const val RING_FLOOR_SPACE = 15292
+        const val RING_BLUE_CORNER_SPACE = 15278
+        const val PEDESTAL_WALL_SPACE = 15283
+        const val BOXING_BLUE_CORNER = 13132
+        const val RING_CORNER_SPACE = 15279
+        const val BOXING_CORNER = 13130
+        const val BARRIER = 13145
+        const val STORAGE_SPACE = 15296
+        const val BOXING_RING_ROW = 5633
+        const val PEDESTALS_ROW = 5636
+        const val GLOVE_RACK_ROW = 5638
+        const val BOXING_ROPE = 13129
+        const val BOXING_MAT = 13127
+        const val GLOVE_RACK = 13381
         const val STEEL_BAR = 2353
         const val KETTLE = 7688
         const val CLAY_TEAPOT = 7702
