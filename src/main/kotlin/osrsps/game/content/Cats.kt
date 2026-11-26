@@ -647,6 +647,12 @@ class Cats(private val world: World) {
         val def = world.combat.npcCombat[rat.type]
         if (def != null && def.anims.death >= 0) rat.effects.anim(def.anims.death)
         rat.dead = true
+        // Its fight and its walk end with it, as a combat death's do, so the body doesn't follow anyone.
+        rat.target = null
+        rat.retreatingFrom = null
+        world.npcs.stopFollowing(rat)
+        world.npcs.stopFollowingNpc(rat)
+        rat.destination = null
         val deathTicks = maxOf(def?.deathTicks ?: 1, 1)
         val respawn = maxOf(def?.respawnTicks ?: RAT_RESPAWN_TICKS, deathTicks)
         world.npcScripts.later(deathTicks) {
