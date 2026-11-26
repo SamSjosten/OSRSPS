@@ -1,0 +1,6 @@
+{
+  "about": "Callisto's Den (Wilderness step W4.12): Callisto. mejrs's NPCList_OSRS has him at 3290,3847 on the surface, from before the 2023 rework moved him into his den, so his tile is GUESSED: in front of the den's way out, as Artio spawns in hers (the den is map square 52_161). His wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "callisto", "x": 3357, "z": 10322, "wander": 5, "source": "Callisto, Callisto's Den. GUESSED: in front of the way out; wander guessed"}
+  ]
+}

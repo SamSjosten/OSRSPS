@@ -230,6 +230,9 @@ object PrisonPete : RandomEvent("prison_pete", 6754) {
         val (_, prison) = prisonOf(world, player) ?: return
         val pete = prison.pete ?: return
         if (prison.free) return world.dialogues.start(this, pete) { chatNpc(ChatAnim.HAPPY, PrisonPeteLines.COME_ON) }
+        // Exploit review R51 C-2: a held key was popped for the old target, so a new pull would let it
+        // be matched against a different shape. Inferred: Pete wants the key brought first, as on pop.
+        if (player.inventory.count(KEY) > 0) return world.dialogues.start(this, pete) { chatNpc(ChatAnim.ANGRY, PrisonPeteLines.BRING_THAT_KEY) }
         player.anim(WildernessLevers.PULL_ANIM)
         val animal = Animal.entries[world.random.nextInt(Animal.entries.size)]
         prison.target = animal

@@ -6,7 +6,7 @@
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
 
-    {"step": "command", "text": "::tele 3020 3755 0", "expectMessage": "Teleported to 3020, 3755, 0", "comment": "beside a chaos dwarf's spawn (3021, 3755)"},
+    {"step": "command", "text": "::tele 3253 3781 0", "expectMessage": "Teleported to 3253, 3781, 0", "comment": "beside the chaos dwarf spawn at 3253, 3782, the furthest from the others: by 3021, 3755 four of them wander close enough that the death animation step watched another dwarf (nightly Nov 18 and 22)"},
     {"step": "npcOption", "npc": "Chaos dwarf", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Chaos dwarf", "timeoutMs": 20000},
     {"step": "command", "text": "::drops", "expectMessage": "Chaos dwarf always drops: Bones"},

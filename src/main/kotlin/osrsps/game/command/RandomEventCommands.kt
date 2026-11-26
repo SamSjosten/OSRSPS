@@ -7,11 +7,12 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * `::randomevent`, for testing random events ([osrsps.game.content.randomevents.RandomEvents]); live has nothing
- * like it. Alone it says whether events are on and when the next is due.
+ * like it. Alone it says whether events are on and when the next is due; `end` lets the player out of an event that
+ * holds them on the real map (the Pillory), back where they came from with nothing, for scripts that look and leave.
  */
 fun CommandRegistry.registerRandomEventCommands(world: World) {
     val events = world.randomEvents
-    val usage = "::randomevent [list|now|on|off|<event> [npc]]"
+    val usage = "::randomevent [list|now|on|off|end|<event> [npc]]"
 
     register("randomevent", usage) {
         val arg = args.firstOrNull()?.lowercase()
@@ -26,6 +27,11 @@ fun CommandRegistry.registerRandomEventCommands(world: World) {
             arg == "now" -> {
                 events.makeDue(player)
                 reply("Random event due now")
+            }
+            arg == "end" -> {
+                val ended = events.events.firstOrNull { it.end(world, player) } ?: fail("No random event holds you")
+                logger.info { "${player.username} ended random event ${ended.key}" }
+                reply("Ended random event ${ended.key}")
             }
             arg == "off" || arg == "on" -> {
                 events.setOff(player, arg == "off")

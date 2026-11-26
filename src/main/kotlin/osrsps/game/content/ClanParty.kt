@@ -26,6 +26,7 @@ object ClanPartyLines : Lines("clan_party", "Clan hall party chest") {
     val CHEST_FULL = line("chest_full", "Confirm with no room left in the 216-slot chest (guessed)")
     val EMPTY = line("empty", "Pull with nothing in the chest (guessed)")
     val NO_COINS = line("no_coins", "Pull without the coins it costs in the inventory (guessed)", "cost")
+    val NO_ROOM = line("no_room", "Pull with no free tile in the hall for a balloon; no coins are taken (guessed)")
     val DROP_ON = line("drop_on", "Pull while the balloons of the last pull are still falling (guessed)")
     val PULLED = line("pulled", "the lever pulled: the clan hall is told (guessed)", "name")
     val MAY_DEPOSIT = line("may_deposit", "Check-permissions: may deposit (guessed)")
@@ -74,6 +75,9 @@ class ClanParty(private val world: World) {
     private class Party(val instance: Instance) {
         val chest = Inventory(CHEST_INV, CHEST_SIZE)
         val balloons = ArrayList<ZoneLoc>()
+
+        /** The tick of this chest's last confirm: one a tick, whoever confirms (exploit review R59C-1). */
+        var lastConfirm = -1L
     }
 
     private val parties = HashMap<Long, Party>()
@@ -175,7 +179,9 @@ class ClanParty(private val world: World) {
             interfaceId == SIDE && component == SIDE_ITEMS -> clickItem(player, player.inventory, player.priceChecker, sub, op, obj, offering = true)
             interfaceId == MAIN && component == OFFER_ITEMS -> clickItem(player, player.priceChecker, player.inventory, sub, op, obj, offering = false)
             interfaceId == MAIN && component == CHEST_ITEMS && op == EXAMINE -> {
-                val party = partyHere(player)?.second ?: return true
+                // The chest of the hall the player is in, without partyHere's walk over every player (exploit review R59C-2).
+                val instance = world.instances.at(player.x, player.z) ?: return true
+                val party = parties.values.firstOrNull { it.instance === instance } ?: return true
                 val item = party.chest[sub.coerceIn(0, CHEST_SIZE - 1)] ?: return true
                 world.objTypes[item.id]?.let { world.inventoryTab.examine(player, it, item.count) }
             }
@@ -235,9 +241,14 @@ class ClanParty(private val world: World) {
         if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
         if (player.priceChecker.contents().isEmpty()) return
         // Each confirm writes the donor's save, so they're spaced out: a client can't stall the tick with saves.
+        // One confirm per chest a tick as well, and the map keeps only the confirms still cooling down (exploit review
+        // R59C-1).
         val last = lastConfirm[player.saveKey]
         if (last != null && world.tick - last < CONFIRM_TICKS) return
+        if (party.lastConfirm == world.tick) return
+        lastConfirm.entries.removeIf { world.tick - it.value >= CONFIRM_TICKS }
         lastConfirm[player.saveKey] = world.tick
+        party.lastConfirm = world.tick
         var full = false
         val moved = ArrayList<Pair<osrsps.game.ObjType, Int>>()
         for ((slot, obj) in player.priceChecker.contents()) {
@@ -284,11 +295,6 @@ class ClanParty(private val world: World) {
         val filled = party.chest.contents().size
         if (filled == 0) return world.message(player, ClanPartyLines.EMPTY)
         if (player.inventory.count(COINS) < COST) return world.message(player, ClanPartyLines.NO_COINS, "cost" to COST)
-        var owed = COST
-        for ((slot, obj) in player.inventory.contents()) {
-            if (owed == 0) break
-            if (obj.id == COINS) owed -= player.inventory.remove(slot, owed)
-        }
         val instance = party.instance
         val tiles = ArrayList<Pair<Int, Int>>()
         for (x in DROP_AREA.first.first..DROP_AREA.second.first) {
@@ -297,6 +303,13 @@ class ClanParty(private val world: World) {
                 val wz = instance.baseZ + z - ClanHall.TEMPLATE_Z
                 if (world.canStand(wx, wz, 0) && world.locs.at(wx, wz, 0).none { it.layer == GROUND_LAYER }) tiles += wx to wz
             }
+        }
+        // The free tiles are counted before the coins are taken, so a hall with none costs nothing (exploit review R59C-4).
+        if (tiles.isEmpty()) return world.message(player, ClanPartyLines.NO_ROOM)
+        var owed = COST
+        for ((slot, obj) in player.inventory.contents()) {
+            if (owed == 0) break
+            if (obj.id == COINS) owed -= player.inventory.remove(slot, owed)
         }
         val count = minOf(balloonCount(filled), tiles.size)
         for (i in 0 until count) {
@@ -316,13 +329,17 @@ class ClanParty(private val world: World) {
         if (!world.locs.exists(loc)) return
         val found = partyHere(player)
         val party = found?.second?.takeIf { it.balloons.contains(loc) }
+        // A party balloon is burst only by those the balloons permission allows, so others can't end a drop (exploit
+        // review R59C-3; guessed: live's refusal isn't known).
+        if (party != null && !world.clans.mayParty(player, found.first, Clans.VAR_PARTY_BALLOONS)) {
+            return world.message(player, ClanPartyLines.MAY_NOT_BALLOONS)
+        }
         val pop = POPS[BALLOONS.indexOf(loc.id).coerceAtLeast(0)]
         // The pop shows for a moment, then the tile is empty: not the balloon again (Codex on PR 959).
         world.locs.remove(loc)
         world.locs.add(loc.copy(id = pop), revertAfter = POP_TICKS)
         if (party == null) return
         party.balloons.removeIf { it == loc || !world.locs.exists(it) }
-        if (!world.clans.mayParty(player, found.first, Clans.VAR_PARTY_BALLOONS)) return
         val filled = party.chest.contents()
         if (filled.isEmpty()) return
         // This balloon counts among those still up.
