@@ -40,7 +40,8 @@ class HeadlessCatsTest {
             npcTypes = NpcTypes.of(kitten, cat, rat),
             objTypes = ObjTypes.of(
                 ObjType(KITTEN_OBJ, "Pet kitten"), ObjType(CAT_OBJ, "Pet cat"),
-                ObjType(SARDINE, "Raw sardine"), ObjType(Cats.BALL_OF_WOOL, "Ball of wool"),
+                ObjType(SARDINE, "Raw sardine", certlink = NOTED_SARDINE), ObjType(NOTED_SARDINE, "Raw sardine", stackable = true, certlink = SARDINE, certtemplate = 799),
+                ObjType(Cats.BALL_OF_WOOL, "Ball of wool"),
             ),
             npcSpawns = listOf(NpcSpawn(rat, 3230, 3218, source = "test")),
             cycleMillis = millis,
@@ -96,6 +97,14 @@ class HeadlessCatsTest {
                 client.await("the sardine eaten") { if (client.count(SARDINE) == 0) Unit else null }
                 assertTrue(cats.hungerLeft(alice) > Cats.HUNGER_TICKS - 10)
 
+                // A banknote of a fish is no food: it stays, and the kitten's hunger runs on.
+                client.commandReply("item $NOTED_SARDINE 1") { it.contains("Raw sardine") }
+                val before = cats.hungerLeft(alice)
+                client.npcTarget(index, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(NOTED_SARDINE), NOTED_SARDINE)
+                client.awaitTicks(3)
+                assertEquals(1L, client.count(NOTED_SARDINE).toLong(), "the note kept")
+                assertTrue(cats.hungerLeft(alice) < before, "not fed")
+
                 // Lonely two ticks on; a stroke from Interact holds it off 18 minutes.
                 client.command("varp ${CustomVars.CAT_CARE} ${(1 shl 30) or Cats.HUNGER_TICKS or ((Cats.ATTENTION_AT + 2) shl 12)}")
                 client.message(CatLines.ATTENTION, red = true)
@@ -104,6 +113,22 @@ class HeadlessCatsTest {
                 client.chooseOption(1)
                 client.message(CatLines.STROKED)
                 assertTrue(cats.attentionLeft(alice) > Cats.STROKE_TICKS - 10)
+                assertTrue(cats.attentionLeft(alice) <= Cats.STROKE_TICKS, "a first stroke is the 18 minutes")
+                repeat(3) {
+                    client.awaitDialogue("the stroke's talk") { it is DialogueView.Chat }
+                    client.continueDialogue()
+                }
+
+                // Stroked again while the first holds, after its talk ran the timer down: the 25 minutes.
+                client.npcOp(index, Cats.INTERACT)
+                client.awaitDialogue("the interact menu again") { it is DialogueView.Menu && it.options.size == 4 }
+                client.chooseOption(1)
+                client.await("the second stroke") { Unit.takeIf { cats.attentionLeft(alice) > Cats.STROKE_TICKS } }
+                assertTrue(cats.attentionLeft(alice) > Cats.ATTENTION_TICKS - 10)
+                repeat(3) {
+                    client.awaitDialogue("the second stroke's talk") { it is DialogueView.Chat }
+                    client.continueDialogue()
+                }
 
                 // Pick-up puts it back; dropped again, it is the same kitten.
                 client.command("empty")
@@ -187,5 +212,6 @@ class HeadlessCatsTest {
         const val CAT_NPC = 1619
         const val RAT_NPC = 2854
         const val SARDINE = 327
+        const val NOTED_SARDINE = 328
     }
 }

@@ -162,7 +162,10 @@ class Cats(private val world: World) {
     }
 
     /** One player's follower out in the world, and the ticks towards its next growth cycle this session. */
-    private class Out(val npc: Npc, var kind: Kind, var growthTicks: Int = 0)
+    private class Out(val npc: Npc, var kind: Kind, var growthTicks: Int = 0) {
+        /** The tick a Chase vermin run ends; until then the cat goes for the rat and doesn't follow. */
+        var chasingUntil: Long = 0
+    }
 
     private val out = HashMap<String, Out>()
 
@@ -212,9 +215,15 @@ class Cats(private val world: World) {
         return (packed and 0xFFF) to ((packed ushr 12) and 0x3FFF)
     }
 
-    private fun setCare(player: Player, hunger: Int, attention: Int) {
+    private fun setCare(player: Player, hunger: Int, attention: Int, stroked: Boolean = strokeHolds(player)) {
         val varp = careVarp(player) ?: return
-        player.vars[varp] = CARED or hunger.coerceIn(0, 0xFFF) or (attention.coerceIn(0, 0x3FFF) shl 12)
+        player.vars[varp] = CARED or (if (stroked) STROKED else 0) or hunger.coerceIn(0, 0xFFF) or (attention.coerceIn(0, 0x3FFF) shl 12)
+    }
+
+    /** Whether a stroke still holds off the kitten's loneliness: set by a stroke, gone once its warning comes. */
+    private fun strokeHolds(player: Player): Boolean {
+        val varp = careVarp(player) ?: return false
+        return player.vars[varp] and STROKED != 0
     }
 
     /** A new cat: no growth, no care yet. The rats caught stay, as the Wiki has the medal count cats a player has owned. */
@@ -304,9 +313,14 @@ class Cats(private val world: World) {
             if (obj > 0 && obj in CAT_OBJS) setFollowerVarps(player, null, -1)
             return
         }
-        world.npcScripts.later(1) {
+        respawnAtLogin(player, kind, 1)
+    }
+
+    /** The follower back beside [player] in [ticks]; with no room in the world yet it tries again, the cat kept saved. */
+    private fun respawnAtLogin(player: Player, kind: Kind, ticks: Int) {
+        world.npcScripts.later(ticks) {
             if (player.loggedOut || out.containsKey(player.saveKey)) return@later
-            if (spawn(player, kind) == null) setFollowerVarps(player, null, -1)
+            if (spawn(player, kind) == null) respawnAtLogin(player, kind, LOGIN_RETRY_TICKS)
         }
     }
 
@@ -328,10 +342,14 @@ class Cats(private val world: World) {
             }
             if (npc.level != player.level || maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)) > CATCH_UP) {
                 despawn(player)
-                spawn(player, mine.kind, mine.growthTicks)
+                spawn(player, mine.kind, mine.growthTicks) ?: return@later
+                // The tick still counts for the cat put back beside them.
+                val moved = out[key] ?: return@later
+                if (moved.kind.stage == Stage.KITTEN && !tend(player, moved)) return@later
+                grow(player, moved)
                 return@later
             }
-            if (npc.following !== player) world.npcs.follow(npc, player)
+            if (world.tick >= mine.chasingUntil && npc.following !== player) world.npcs.follow(npc, player)
             if (mine.kind.stage == Stage.KITTEN && !tend(player, mine)) return@later
             grow(player, mine)
             watch(key, npc)
@@ -348,7 +366,7 @@ class Cats(private val world: World) {
         val (hunger, attention) = care(player) ?: (HUNGER_TICKS to ATTENTION_TICKS)
         val h = hunger - 1
         val a = attention - 1
-        setCare(player, h, a)
+        setCare(player, h, a, strokeHolds(player) && a > ATTENTION_AT)
         val text = world.textFor(player)
         when (h) {
             HUNGRY_AT -> warn(player, null, CatLines.THINK_HUNGRY, CatLines.HUNGRY)
@@ -525,7 +543,8 @@ class Cats(private val world: World) {
                 player.message(text[CatLines.STROKED])
                 val (hunger, attention) = care(player) ?: (HUNGER_TICKS to ATTENTION_TICKS)
                 // A second stroke while the first's holds is the 25 minutes of a fresh start (Wiki: "stroked more than once").
-                setCare(player, hunger, maxOf(attention, if (attention >= STROKE_TICKS) ATTENTION_TICKS else STROKE_TICKS))
+                val again = strokeHolds(player)
+                setCare(player, hunger, maxOf(attention, if (again) ATTENTION_TICKS else STROKE_TICKS), stroked = true)
                 chatPlayer(ChatAnim.HAPPY, CatLines.KITTEN_STROKE[0])
                 chatNpc(ChatAnim.HAPPY, CatLines.KITTEN_STROKE[1])
                 chatPlayer(ChatAnim.HAPPY, CatLines.KITTEN_STROKE[2])
@@ -582,13 +601,19 @@ class Cats(private val world: World) {
             return
         }
         player.effects.say(text[CatLines.GO_ON])
+        // Free of the player's interaction and of following, so it walks to the rat while the player waits.
+        world.npcs.release(cat)
         world.npcs.stopFollowing(cat)
+        mine.chasingUntil = world.tick + CHASE_TICKS
         cat.destination = osrsps.map.Tile(rat.x, rat.z)
         cat.effects.say(text[CatLines.POUNCE])
         context.delay(CHASE_TICKS)
         if (out[player.saveKey] !== mine) return
+        mine.chasingUntil = 0
         world.npcs.follow(cat, player)
-        if (rat.dead || rat.hidden || world.npcs[rat.index] !== rat) {
+        // Only a rat the cat got beside: one behind a wall or too far to reach in the chase gets away.
+        val reached = cat.level == rat.level && maxOf(kotlin.math.abs(rat.x - cat.x), kotlin.math.abs(rat.z - cat.z)) <= 1
+        if (!reached || rat.dead || rat.hidden || world.npcs[rat.index] !== rat) {
             player.message(text[CatLines.GOT_AWAY])
             return
         }
@@ -619,9 +644,10 @@ class Cats(private val world: World) {
     suspend fun ScriptContext.useOn(npc: Npc, obj: Int, slot: Int) {
         val mine = mine(npc) ?: return
         val text = world.textFor(player)
-        val name = world.objTypes[obj]?.name ?: return
+        val type = world.objTypes[obj] ?: return
         val milk = obj == BUCKET_OF_MILK
-        val food = milk || isFish(name)
+        // A banknote carries its item's name, but is no food.
+        val food = milk || (!type.isCert && isFish(type.name))
         if (mine.kind.stage != Stage.KITTEN) {
             if (food || obj == BALL_OF_WOOL) world.dialogues.start(this, npc) { chatPlayer(ChatAnim.NEUTRAL, CatLines.DONT_FEED) }
             else player.message(text[GameLines.NOTHING_INTERESTING])
@@ -697,6 +723,9 @@ class Cats(private val world: World) {
         /** Guessed: how far a cat looks for a rat, how long the chase takes, and a rat's respawn with no combat data. */
         const val VERMIN_RANGE = 8
         const val CHASE_TICKS = 3
+
+        /** Guessed: how soon a follower with no room in the world at login tries again. */
+        const val LOGIN_RETRY_TICKS = 10
         const val RAT_RESPAWN_TICKS = 10
 
         /** Guessed: a follower further than this from its player, or on another level, is put back beside them. */
@@ -713,6 +742,7 @@ class Cats(private val world: World) {
 
         /** Set in the care varp once a kitten has been out. */
         private const val CARED = 1 shl 30
+        private const val STROKED = 1 shl 29
 
         val KINDS: List<Kind> = Colour.entries.flatMap { colour -> Stage.entries.map { Kind(colour, it) } }
         val CAT_OBJS: Set<Int> = KINDS.map { it.obj }.toSet()
