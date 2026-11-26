@@ -101,7 +101,11 @@ object SolztunLines : Lines("solztun", "Transcript:Solztun") {
  *   imbued when it is next used. The imbued sceptre is charged with
  *   bone fragments (25139, one charge each) or a sceptre piece (3 charges, the left skull half 5); a chisel breaks a
  *   piece into that many fragments, a strange skull into 8, a runed sceptre 6 and a whole sceptre that isn't imbued
- *   14 (the Wiki's Bone fragments). The Varrock Diary's extra charges wait for the diary.
+ *   14 (the Wiki's Bone fragments).
+ * - The Varrock Diary (the Wiki's Varrock Diary rewards): each tier done holds 4 more charges (14, 18, 22, 26) and gives
+ *   1 more fragment for each of the four pieces a chiselled item is made of (1 to 4 per piece). Guessed: the highest
+ *   tier whose tasks are all done counts, whether or not its reward was claimed; the extra holds for a new sceptre's
+ *   charges too.
  * - Solztun's "Who are you?" tells his story the first time and a shorter one after (varbit `sos_brother_found`,
  *   which Litara will read); `sos_sceptre_imbued` is set by his imbue.
  */
@@ -192,7 +196,17 @@ object SkullSceptre {
     fun normalize(player: Player): Boolean = imbueUnlocked(player).also { if (it) imbue(player) }
 
     /** What a charge of [type] adds to an imbued sceptre holding [have]: the room left, at most [per] each of [count]. */
-    fun chargesAdded(have: Int, per: Int, count: Int): Int = minOf(count.toLong() * per, (MAX_CHARGES - have).toLong()).toInt().coerceAtLeast(0)
+    fun chargesAdded(have: Int, per: Int, count: Int, max: Int = MAX_CHARGES): Int =
+        minOf(count.toLong() * per, (max - have).toLong()).toInt().coerceAtLeast(0)
+
+    /** How many pieces each chiselled item is made of, for the Varrock Diary's extra fragments. */
+    val COMPONENTS = PIECE_CHARGES.mapValues { 1 } + mapOf(STRANGE_SKULL to 2, RUNED_SCEPTRE to 2, SCEPTRE to 4)
+
+    /** The Varrock Diary tiers done, 0 to 4: the highest tier whose tasks are all done. */
+    fun varrockTiers(diaries: Diaries, player: Player): Int = (diaries.highestDone(player, DiaryArea.VARROCK)?.ordinal ?: -1) + 1
+
+    /** The most charges the player's sceptre holds: 10, and 4 more for each Varrock Diary tier done. */
+    fun maxCharges(diaries: Diaries, player: Player): Int = MAX_CHARGES + 4 * varrockTiers(diaries, player)
 }
 
 fun registerSkullSceptre(world: World) {
@@ -219,8 +233,9 @@ fun registerSkullSceptre(world: World) {
                 if (player.inventory[slot]?.id != piece) return@onObjOnObj
                 val type = world.objTypes[BONE_FRAGMENTS] ?: return@onObjOnObj
                 player.inventory.remove(slot, 1)
-                world.groundObjs.give(player, type, fragments)
-                world.message(player, SkullSceptreLines.CHISELLED, "fragments" to fragments)
+                val total = fragments + COMPONENTS.getValue(piece) * varrockTiers(world.diaries, player)
+                world.groundObjs.give(player, type, total)
+                world.message(player, SkullSceptreLines.CHISELLED, "fragments" to total)
             }
         }
         world.handlers.onNpc(SOLZTUN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { solztun(world, sceptreUsed = false) } }
@@ -256,7 +271,7 @@ private suspend fun ScriptContext.join(world: World, op: Op, a: Int, b: Int, mad
         SkullSceptre.STRANGE_SKULL -> world.message(player, SkullSceptreLines.JOIN_SKULL)
         SkullSceptre.RUNED_SCEPTRE -> world.message(player, SkullSceptreLines.JOIN_SCEPTRE)
         else -> {
-            if (first) player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
+            if (first) player.charges[SkullSceptre.CHARGES] = SkullSceptre.maxCharges(world.diaries, player)
             world.message(player, SkullSceptreLines.JOIN_WHOLE)
         }
     }
@@ -289,7 +304,7 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
         // The next sceptre that isn't imbued starts full when one crumbles (the Wiki), carried, worn or banked; an
         // imbued one alone keeps its 0.
         val another = listOf(player.inventory.count(SkullSceptre.SCEPTRE), player.equipment.count(SkullSceptre.SCEPTRE), player.bank.count(SkullSceptre.SCEPTRE)).any { it > 0 }
-        if (another) player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
+        if (another) player.charges[SkullSceptre.CHARGES] = SkullSceptre.maxCharges(world.diaries, player)
     }
     // The worn Invoke comes without the inventory's closing of modals: close them, or a bank open here would stay
     // usable at the Stronghold (Codex on #476).
@@ -304,12 +319,15 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
     world.diaries.complete(player, DiaryTask.VARROCK_HARD_5)
 }
 
-/** Fragments or a piece used on the imbued sceptre: charges up to [SkullSceptre.MAX_CHARGES], the rest kept. */
-private fun ScriptContext.charge(world: World, op: Op, piece: Int, per: Int) {
+/** Fragments or a piece used on the imbued sceptre: charges up to [SkullSceptre.maxCharges], the rest kept. */
+private fun ScriptContext.charge(world: World, op: Op, piece: Int, basePer: Int) {
     val slot = if (op.obj == piece) op.objSlot else op.sub
     val held = player.inventory[slot]?.takeIf { it.id == piece } ?: return
     val have = player.charges[SkullSceptre.CHARGES]
-    val added = SkullSceptre.chargesAdded(have, per, held.count)
+    // A piece gives what chiselling it would (the Wiki's Skull sceptre, recharge table): 1 more for each Varrock tier
+    // done; a bone fragment stays 1.
+    val per = if (piece == SkullSceptre.BONE_FRAGMENTS) basePer else basePer + SkullSceptre.COMPONENTS.getValue(piece) * SkullSceptre.varrockTiers(world.diaries, player)
+    val added = SkullSceptre.chargesAdded(have, per, held.count, SkullSceptre.maxCharges(world.diaries, player))
     // A piece gives all its charges or none: it isn't split. Fragments go one charge each.
     val used = if (per == 1) added else if (added >= per) 1 else 0
     if (used <= 0) return world.message(player, SkullSceptreLines.FULL)

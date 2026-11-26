@@ -58,7 +58,7 @@ class HeadlessSkullSceptreTest {
             npcSpawns = listOf(NpcSpawn(solztun, 2338, 5213, source = "test")),
             varTypes = VarTypes(
                 6_000,
-                mapOf(
+                osrsps.game.content.DIARY_VARBITS + mapOf(
                     SkullSceptre.VARBIT_IMBUED to VarbitType(VARP_SCEPTRE, 0, 0),
                     SkullSceptre.VARBIT_BROTHER_FOUND to VarbitType(VARP_SCEPTRE, 1, 1),
                 ),
@@ -282,6 +282,31 @@ class HeadlessSkullSceptreTest {
                 client.continueDialogue()
                 client.await("both imbued") { client.carried(SkullSceptre.IMBUED).takeIf { it == 2 } }
                 assertEquals(0, client.carried(SkullSceptre.SCEPTRE))
+            }
+        }
+    }
+
+    @Test
+    fun `a piece used on the imbued sceptre gives what chiselling it would, more with each Varrock tier, a fragment still one`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${SkullSceptre.IMBUED}")
+                client.command("item ${SkullSceptre.RIGHT_SKULL_HALF}")
+                client.await("the right half") { client.carried(SkullSceptre.RIGHT_SKULL_HALF).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.RIGHT_SKULL_HALF, SkullSceptre.IMBUED)
+                client.awaitMessage("no tier: 3") { it == "[skull_sceptre.charged charges=3]" }
+
+                client.commandReply("diary complete varrock elite all") { "task(s) done" in it }
+                client.command("item ${SkullSceptre.RIGHT_SKULL_HALF}")
+                client.await("another right half") { client.carried(SkullSceptre.RIGHT_SKULL_HALF).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.RIGHT_SKULL_HALF, SkullSceptre.IMBUED)
+                // The Wiki's recharge table: a right skull half is 7 with the elite tier done.
+                client.awaitMessage("elite: 3 + 7") { it == "[skull_sceptre.charged charges=10]" }
+                client.command("item ${SkullSceptre.BONE_FRAGMENTS} 1")
+                client.await("a fragment") { client.carried(SkullSceptre.BONE_FRAGMENTS).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.BONE_FRAGMENTS, SkullSceptre.IMBUED)
+                client.awaitMessage("a fragment's 1") { it == "[skull_sceptre.charged charges=11]" }
             }
         }
     }

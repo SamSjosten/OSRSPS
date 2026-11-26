@@ -112,6 +112,7 @@ import osrsps.game.content.DialogueLines
 import osrsps.game.content.Diaries
 import osrsps.game.content.Examines
 import osrsps.game.content.ExplorersRing
+import osrsps.game.content.ZaffBarrel
 import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
@@ -1177,6 +1178,7 @@ class World(
     /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
     /** The achievement diaries; see [Diaries]. */
     val diaries = Diaries(this, scrollFont)
+    private val zaffBarrel = ZaffBarrel(this)
 
     val lodestones = LodestoneNetwork(
         customVars,
@@ -1324,6 +1326,7 @@ class World(
         registerSkullSceptre(this)
         registerTwiggy(this)
         ExplorersRing(this).register()
+        zaffBarrel.register()
         registerHaystacks(this)
         registerLodestones(this)
         registerKaramjaShips(this)
@@ -2538,6 +2541,7 @@ class World(
         quests.completeAll(player.vars)
         Kudos.login(player)
         diaries.login(player)
+        zaffBarrel.login(player)
         lodestones.login(player)
         fightCaves.login(player)
         collectionLog.login(player)

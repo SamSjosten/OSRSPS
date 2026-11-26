@@ -1,0 +1,139 @@
+{
+ "name": "Achievement diaries: the medium Varrock Diary's Grand Exchange teleport and Zaff's 30 daily battlestaves (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::diary complete varrock medium all",
+   "expectMessage": "task(s) done in varrock",
+   "comment": "medium alone: the Grand Exchange option and 30 staves"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 99"
+  },
+  {
+   "step": "command",
+   "text": "::item 563 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 556 3"
+  },
+  {
+   "step": "command",
+   "text": "::item 554 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 210000"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 218,
+   "component": 26,
+   "op": 2,
+   "comment": "magic_spellbook:varrock_teleport, op2 Grand Exchange"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 714,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "lands 3 ticks after the cast, round 3165, 3479; then a new region"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3202 3436 0",
+   "expectMessage": "Teleported to 3202, 3436, 0",
+   "comment": "beside Zaff's barrel at 3201, 3437"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Barrel",
+   "option": "Claim-staves",
+   "x": 3201,
+   "y": 3437
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[zaff_barrel.buy count=30 total=210,000]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[zaff_barrel.yes]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertInventory",
+   "item": "Battlestaff",
+   "count": 30
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4539,
+   "value": 1,
+   "comment": "zaff_last_claimed: the barrel shows empty"
+  },
+  {
+   "step": "command",
+   "text": "::diary reset varrock",
+   "expectMessage": "Reset varrock"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off"
+  }
+ ]
+}

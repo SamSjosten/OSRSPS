@@ -230,6 +230,9 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
     fun tierDone(player: Player, area: DiaryArea, tier: DiaryTier): Boolean = area.tasks(tier).all { done(player, it) }
 
+    /** The highest tier of [area] whose tasks are all done, or null: what the rewards that grow by tier go by. */
+    fun highestDone(player: Player, area: DiaryArea): DiaryTier? = DiaryTier.entries.lastOrNull { tierDone(player, area, it) }
+
     /**
      * Marks [task] done, with its message and, if it was the tier's last, the tier's. False when it was done already, so
      * content can call this on every completion of the action.

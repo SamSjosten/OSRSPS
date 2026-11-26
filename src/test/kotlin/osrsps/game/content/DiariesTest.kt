@@ -79,6 +79,22 @@ class DiariesTest {
     }
 
     @Test
+    fun `the highest tier done, and the skull sceptre's charges and fragments that grow with Varrock's`() {
+        val player = player()
+        assertEquals(null, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertEquals(SkullSceptre.MAX_CHARGES, SkullSceptre.maxCharges(diaries, player))
+        DiaryArea.VARROCK.tasks(DiaryTier.EASY).forEach { player.mark(it) }
+        assertEquals(DiaryTier.EASY, diaries.highestDone(player, DiaryArea.VARROCK))
+        assertEquals(14, SkullSceptre.maxCharges(diaries, player))
+        DiaryArea.VARROCK.tasks(DiaryTier.ELITE).forEach { player.mark(it) }
+        assertEquals(DiaryTier.ELITE, diaries.highestDone(player, DiaryArea.VARROCK), "elite with medium and hard undone still counts")
+        assertEquals(26, SkullSceptre.maxCharges(diaries, player))
+        assertEquals(4, SkullSceptre.varrockTiers(diaries, player))
+        assertEquals(4, SkullSceptre.COMPONENTS[SkullSceptre.SCEPTRE])
+        assertEquals(1, SkullSceptre.COMPONENTS[SkullSceptre.LEFT_SKULL_HALF])
+    }
+
+    @Test
     fun `a done task's bit sets, the count and the started flag, and the last of a tier its flag`() {
         val player = player()
         player.mark(DiaryTask.LUMBRIDGE_EASY_5)
