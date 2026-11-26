@@ -61,13 +61,29 @@ class HeadlessCairnIsleTest {
                 client.command("setlevel agility 99")
                 client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
                 val xp = client.stat(AGILITY)!!.xp
-                client.locOp(ROCKS, 2794, 2979, 1)
-                client.await("on the promontory") { client.position?.takeIf { it == Coord(2791, 2979, 0) } }
+                // 254/256 at 99 (the Wiki's Jagex chart): a fall is tried again.
+                climb(client, 2794, Coord(2791, 2979, 0))
                 client.await("1 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 1 } }
-                client.locOp(ROCKS, 2792, 2979, 1)
-                client.await("back down") { client.position?.takeIf { it == Coord(2795, 2979, 0) } }
+                climb(client, 2792, Coord(2795, 2979, 0))
             }
         }
+    }
+
+    private fun climb(client: HeadlessClient, x: Int, to: Coord) {
+        for (attempt in 1..5) {
+            val from = client.messages().size
+            client.locOp(ROCKS, x, 2979, 1)
+            val fell = client.await("across or a fall") {
+                when {
+                    client.position == to -> false
+                    client.messages().drop(from).any { it.text == "[agility.cairn_rocks_fall]" } -> true
+                    else -> null
+                }
+            }
+            if (!fell) return
+            client.awaitTicks(2)
+        }
+        throw AssertionError("five falls in a row at 99")
     }
 
     @Test
@@ -130,9 +146,11 @@ class HeadlessCairnIsleTest {
                     client.commandReply("setlevel hitpoints 99") { true }
                     client.commandReply("hit 87 me") { it.startsWith("Hit yourself") }
                     client.tele(CairnIsle.EAST_END + 1, CairnIsle.Z)
+                    // Only this crossing's messages: an earlier one's balance stays in the history.
+                    val from = client.messages().size
                     client.walk(CairnIsle.EAST_END - 1, CairnIsle.Z)
                     val text = client.await("across or saved") {
-                        client.messages().lastOrNull { it.text == "[cairn_isle.balance]" || it.text == "[jewellery_effect.ring_of_life]" }?.text
+                        client.messages().drop(from).firstOrNull { it.text == "[cairn_isle.balance]" || it.text == "[jewellery_effect.ring_of_life]" }?.text
                     }
                     if (text == "[cairn_isle.balance]") continue
                     val lumbridge = client.await("in Lumbridge") { client.position?.takeIf { it.x in 3219..3223 && it.z in 3217..3221 } }

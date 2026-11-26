@@ -1151,12 +1151,12 @@ class NpcDropsTest {
     }
 
     @Test
-    fun `the jungle's jogres drop jogre bones always, out of 129, often a bronze spear or trading sticks, and their champion scroll 1 in 5000`() {
+    fun `the jungle's jogres drop jogre bones always, out of 129, often a bronze spear or trading sticks, a medium clue 1 in 129 and their champion scroll 1 in 5000`() {
         val types = NpcTypes.of(NpcType(2094, "Jogre", internalName = "jogre"))
         val def = NpcDrops.load(types, objTypes)[types.find("jogre")!!]!!
         assertEquals(listOf("Jogre bones"), def.always.map { it.type.name })
         assertEquals(129, def.table!!.slots)
-        assertEquals(listOf("Jogre champion scroll" to 5000), def.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (medium)" to 129, "Jogre champion scroll" to 5000), def.tertiary.map { it.item.type.name to it.denominator })
         val random = GameRandom(41)
         var sticks = 0
         repeat(KILLS) { if (def.roll(random).any { it.type.name == "Trading sticks" && it.count == 22 }) sticks++ }
