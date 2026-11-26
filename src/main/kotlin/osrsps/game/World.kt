@@ -1174,6 +1174,9 @@ class World(
     /** Telekinetic Grab; see [osrsps.game.skill.magic.TelekineticGrab]. */
     val telekineticGrab = osrsps.game.skill.magic.TelekineticGrab(this, osrsps.game.skill.magic.TelekineticGrab.load(objTypes), collision, movement)
 
+    /** Charge Water, Earth, Fire and Air Orb; see [osrsps.game.skill.magic.ChargeOrbs]. */
+    val chargeOrbs = osrsps.game.skill.magic.ChargeOrbs(this, osrsps.game.skill.magic.ChargeOrbs.load(objTypes))
+
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
 
@@ -1454,6 +1457,7 @@ class World(
         alchemy.register()
         superheat.register()
         bonesToFruit.register()
+        chargeOrbs.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
         jewelleryEffects.register()
@@ -2880,7 +2884,8 @@ class World(
         if (held(player)) return@act
         trades.interrupt(player)
         if (interfaceId != Spells.SPELLBOOK || !telekineticGrab.casts(componentId)) {
-            logger.info { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
+            // Debug, not info: a client can send these as fast as it likes (exploit review R61A-6).
+            logger.debug { "${player.username} used $interfaceId:$componentId sub $sub ($obj) on ground obj $id (not handled)" }
             follows.clickedElsewhere(player)
             return@act
         }
@@ -2893,6 +2898,12 @@ class World(
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
+        if (interfaceId == Spells.SPELLBOOK) {
+            npcInteractions.leave(player)
+            locInteractions.castOn(player, id, x, z, interfaceId, componentId, ctrl)
+            follows.clickedElsewhere(player)
+            return@act
+        }
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
