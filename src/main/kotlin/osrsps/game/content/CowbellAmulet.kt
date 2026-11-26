@@ -78,6 +78,12 @@ object CowbellAmulet {
 
     fun anywhere(player: Player) = AMULETS.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0 }
 
+    /**
+     * Whether [player] still has an amulet: held, worn, banked, or dropped (by them, or for them on a full backpack) and
+     * still on the ground. Gillie's next is only for one that's gone (exploit review R60A-3: no endless alch stock).
+     */
+    fun owned(world: World, player: Player) = anywhere(player) || AMULETS.any { world.groundObjs.hasDropped(player, it) }
+
     private fun s(count: Int) = if (count == 1) "" else "s"
 
     /** Turns one amulet in the backpack (or worn) of id [from] into [to]. */
@@ -176,7 +182,7 @@ object CowbellAmulet {
             chatPlayer(ChatAnim.SAD, CowbellLines.LOST)
             chatNpc(ChatAnim.HAPPY, CowbellLines.ANOTHER)
             val type = world.objTypes[EMPTY]
-            if (type != null && !anywhere(player)) {
+            if (type != null && !owned(world, player)) {
                 world.groundObjs.give(player, type, 1)
                 // Guessed: the lost amulet's charges went with it, so the new one starts empty.
                 player.charges[CHARGES] = 0
