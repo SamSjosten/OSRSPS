@@ -72,7 +72,8 @@
     "The poll booths (2026-11-19): every colour's shown types and multilocs under 26492, from the Poll booth page.",
     "The clan coffer (2026-11-19): clan_hall_storage (41626), from the Clan Coffer page.",
     "Locs: Karamja (step K3.4b): the Brimhaven Agility Arena's obstacles and the pit's climbing ropes (the 242 cache, 2026-11-19).",
-    "Achievement diaries step 8 (2026-11-19): Twiggy O'Korn and her squirrel, npc-spawns/diaries.json, from each page."
+    "Achievement diaries step 8 (2026-11-19): Twiggy O'Korn and her squirrel, npc-spawns/diaries.json, from each page.",
+    "Locs: Karamja (step K3.4b): the Brimhaven Agility Arena's obstacles and the pit's climbing ropes, and (step K3.4d) its floor traps and blades (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -1674,6 +1675,9 @@
     {"loc": 3564, "name": "Monkey bars"},
     {"loc": 3565, "name": "Low wall"},
     {"loc": 3566, "name": "Rope swing"},
+    {"loc": 3567, "name": "Blade"},
+    {"loc": 3568, "name": "Blade"},
+    {"loc": 3569, "name": "Blade"},
     {"loc": 3570, "name": "Plank"},
     {"loc": 3571, "name": "Plank"},
     {"loc": 3572, "name": "Plank"},
@@ -1682,9 +1686,12 @@
     {"loc": 3576, "name": "Plank"},
     {"loc": 3578, "name": "Pillar"},
     {"loc": 3579, "name": "Pillar"},
+    {"loc": 3580, "name": "Spinning blades"},
     {"loc": 3581, "name": "Ticket Dispenser"},
+    {"loc": 3582, "name": "Floor spikes"},
     {"loc": 3583, "name": "Hand holds"},
     {"loc": 3584, "name": "Hand holds"},
+    {"loc": 3585, "name": "Pressure pad"},
     {"loc": 3608, "name": "Ticket Dispenser"},
     {"loc": 3610, "name": "Climbing rope"},
     {"loc": 3617, "name": "Ladder"},

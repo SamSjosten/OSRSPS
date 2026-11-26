@@ -3,12 +3,19 @@ package osrsps.game.content
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.client.HintArrow
 import osrsps.game.Player
+import osrsps.game.PlayerEffects
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.HitsplatType
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.ScriptContext
 import osrsps.game.shop.ShopScreen
+import osrsps.game.skill.Agility
+import osrsps.game.skill.SuccessRoll
+import osrsps.map.Tile
+import kotlin.math.sign
 
 private val logger = KotlinLogging.logger {}
 
@@ -83,7 +90,8 @@ object JackieLines : Lines("pirate_jackie", "Transcript:Pirate Jackie the Fruit"
 }
 
 /** The arena's messages, the Wiki's Ticket dispenser page (read 2026-11-18). */
-object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser") {
+object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser; Spinning blades (Brimhaven Agility Arena)") {
+    val SPINNING_BLADES = line("spinning_blades", "the spinning blades hitting the player (the Wiki's Spinning blades page)")
     val TICKET = line("ticket", "a tag of the arrowed dispenser: a ticket and a voucher")
     val ONE_AT_A_TIME = line("one_at_a_time", "the arrowed dispenser again before the arrow moves")
     val NOT_ARROWED = line("not_arrowed", "a dispenser without the arrow")
@@ -105,13 +113,18 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser") {
  *   (3610) climb back up to the same tile on the platforms. **The planks** are rigged: of each set of three, the smooth
  *   one holds and the broken ones break under anyone below 99 Agility (the Wiki's Plank page), and the smooth one moves
  *   with the arrow, the planks' middle pieces laid to match ([AgilityArena.plankHolds]).
+ * - **The floor traps** (step K3.4d): walking onto the floor spikes (3582, level 20, 24 XP, safe from 50 Agility),
+ *   a pressure pad (3585, level 20, 26 XP, none for a third in a row within 8 ticks) or the spinning blades (3580,
+ *   level 40, 28 XP, the Wiki's 153/256 to 255/256) jumps it ([AgilityArena.stepped]); a failure deals HP * 5 / 100 + 2.
  *
  * Inferred: the arrow is the client's tile hint arrow; the ladders' landing tiles are the sides the other ladder faces, and their climbs the usual ladder anims and wait;
  * his Pay option takes the fee with the Wiki's message and no talk, and refuses with his talk's line; "initial" in the
  * transcript is back to the menu. Guessed: the hint arrow's height; that the arrow only draws its next dispenser once
  * someone is in the arena to see it; that a ticket and voucher with no room drop at the player's feet; the parrot's chathead (the
  * Eadgar parrot, 4768) and the chathead faces. Guessed: the smooth plank drawn afresh each time the arrow moves
- * (the Wiki: every minute), the climbing ropes' anim and wait. Left out: a broken plank's extra tick at 99; the floor traps (step K3.4c); the Agility Arena Store behind
+ * (the Wiki: every minute), the climbing ropes' anim and wait. Guessed: the traps' anims and jump, the spikes' and pads' success pairs, a failure putting the player back where
+ * they came from, and a trap below its level always failed. Left out: the blades (3567-3569, timed) and the darts
+ * (their Agility drain); a broken plank's extra tick at 99; the Agility Arena Store behind
  * Jackie's trade-in and her Trade option (step K3.4c); the diary talk and the elite diary's double tickets (no diaries
  * yet); the "Tagged a Ticket!" jingle (its id isn't known here); the minute's wait to re-enter after logging out; the
  * Brimhaven Agility worlds' first-tag shout; the clue step.
@@ -184,6 +197,32 @@ object BrimhavenAgilityArena {
     val PLANK_MIDDLES = 3573..3576
     const val PLANK_BROKEN = 3576
 
+    /**
+     * The floor traps (step K3.4d) by kind, as the 242 map has them on the platforms (level 3): two tiles each for the
+     * floor spikes (3582) and pressure pads (3585), one for the spinning blades (3580). Walking onto one jumps it.
+     * [ticks] is a crossing from the step onto it to the landing, the Wiki's obstacle table: 4 for the spikes and pads,
+     * 5 for the blades. Below [level] a jump always fails (guessed: the Wiki gives the level, not what happens under it).
+     */
+    enum class Trap(val level: Int, val xpTenths: Int, val success: Pair<Int, Int>?, val ticks: Int, val anim: Int, val failAnim: Int, val tiles: List<Pair<Int, Int>>) {
+        // Never fails from 50 Agility (the Wiki); the pair below that is guessed.
+        FLOOR_SPIKES(20, 240, 150 to 255, 4, 1603, 1113, listOf(2761 to 9573, 2761 to 9574, 2772 to 9551, 2772 to 9552, 2799 to 9568, 2800 to 9568)),
+        // Guessed pair.
+        PRESSURE_PAD(20, 260, 150 to 255, 4, 1115, 1113, listOf(2772 to 9584, 2772 to 9585, 2799 to 9557, 2800 to 9557, 2799 to 9579, 2800 to 9579)),
+        // The Wiki's success chart, 153/256 at 40 to 255/256 at 99, as SuccessRoll's low/high: (1 + 85) at 1 Agility,
+        // (1 + 254) at 99, which gives 1 + round((85 * 59 + 254 * 39) / 98) = 153 at 40.
+        SPINNING_BLADES(40, 280, 85 to 254, 5, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
+    }
+
+    /** The floor spikes never fail from this level. */
+    const val SPIKES_SAFE_LEVEL = 50
+
+    /** Two pressure pads in a row, and the next gives no XP for 8 ticks (the Wiki, 17 July 2024). */
+    const val PAD_STREAK = 2
+    const val PAD_COOLDOWN_TICKS = 8
+
+    /** The trap at [x], [z] on the platforms, or null. */
+    fun trapAt(x: Int, z: Int): Trap? = Trap.entries.firstOrNull { (x to z) in it.tiles }
+
     /** Agility XP in tenths for a tag at [level]: 30 for every 10 levels, at most 300. */
     fun tagTenths(level: Int): Int = minOf(level, 100) / 10 * 300
 
@@ -254,6 +293,81 @@ class AgilityArena(private val world: World) {
             }
         }
         if (shown.size > players.size) shown.keys.retainAll(players.mapTo(HashSet()) { it.saveKey })
+    }
+
+    /** [tenthsAfter]: the player's Agility XP (tenths) after the streak's last pad, so XP from anything else ends it. */
+    private class PadStreak(var count: Int, var lastTick: Long, var tenthsAfter: Int = -1)
+
+    private val pads = HashMap<String, PadStreak>()
+
+    /**
+     * A player's movement in the arena, [trail] being the tiles they stood on this tick: onto a floor trap (either step
+     * of a run, in the way that step went), the player jumps it, landing on the far side. A failure deals the arena's
+     * HP * 5 / 100 + 2 and puts them back on the tile before the trap.
+     */
+    fun stepped(player: Player, trail: List<Tile>) {
+        if (player.level != 3 || player.scripts.delayed) return
+        for (i in 1 until trail.size) {
+            val to = trail[i]
+            if (!BrimhavenAgilityArena.inArena(to.x, to.z)) continue
+            val trap = BrimhavenAgilityArena.trapAt(to.x, to.z) ?: continue
+            val dx = (to.x - trail[i - 1].x).sign
+            val dz = (to.z - trail[i - 1].z).sign
+            if (dx == 0 && dz == 0) continue
+            var end = to.x to to.z
+            while (BrimhavenAgilityArena.trapAt(end.first + dx, end.second + dz) == trap) end = end.first + dx to end.second + dz
+            val landing = end.first + dx to end.second + dz
+            val before = to.x - dx to to.z - dz
+            world.scripts.start(player) { jump(this, trap, landing, before) }
+            return
+        }
+    }
+
+    private suspend fun jump(context: ScriptContext, trap: BrimhavenAgilityArena.Trap, landing: Pair<Int, Int>, before: Pair<Int, Int>) = with(context) {
+        player.waypoints.clear()
+        player.forcedSteps.clear()
+        val level = player.skills.currentLevel(Skill.AGILITY)
+        val success = when {
+            level < trap.level -> false
+            trap == BrimhavenAgilityArena.Trap.FLOOR_SPIKES && level >= BrimhavenAgilityArena.SPIKES_SAFE_LEVEL -> true
+            else -> trap.success?.let { (low, high) -> SuccessRoll.roll(world.random, low, high, level) } ?: true
+        }
+        if (!success) {
+            player.anim(trap.failAnim)
+            val damage = player.skills.currentLevel(Skill.HITPOINTS) * 5 / 100 + 2
+            world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+            if (trap == BrimhavenAgilityArena.Trap.SPINNING_BLADES) player.message(world.textFor(player)[AgilityArenaLines.SPINNING_BLADES])
+            // A hit that kills leaves the player to the death script, not put back by this one.
+            if (player.dead) return@with
+            delay(1)
+            world.teleport(player, before.first, before.second, player.level)
+            return@with
+        }
+        val angle = Agility.angle(landing.first - player.x, landing.second - player.z)
+        // The slide lasts until the landing teleport, so the client doesn't walk back to the trap tile once it ends.
+        player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, landing.first, landing.second, 0, (trap.ticks - 1) * CYCLES_PER_TICK, angle))
+        player.anim(trap.anim)
+        // The step onto the trap was the crossing's first tick.
+        delay(trap.ticks - 1)
+        world.teleport(player, landing.first, landing.second, player.level)
+        if (trap == BrimhavenAgilityArena.Trap.PRESSURE_PAD && !padPays(player)) return@with
+        player.skills.addTenths(Skill.AGILITY, trap.xpTenths)
+        if (trap == BrimhavenAgilityArena.Trap.PRESSURE_PAD) pads[player.saveKey]?.tenthsAfter = player.skills.tenths(Skill.AGILITY)
+    }
+
+    /**
+     * Whether a pressure pad crossed now gives its XP: not a third in a row within 8 ticks of the second. Another
+     * obstacle or trap crossed in between (Agility XP gained since the last pad) starts the streak again.
+     */
+    private fun padPays(player: Player): Boolean {
+        val streak = pads.getOrPut(player.saveKey) { PadStreak(0, Long.MIN_VALUE / 2) }
+        if (player.skills.tenths(Skill.AGILITY) != streak.tenthsAfter) streak.count = 0
+        val now = world.tick
+        if (streak.count >= BrimhavenAgilityArena.PAD_STREAK && now - streak.lastTick < BrimhavenAgilityArena.PAD_COOLDOWN_TICKS) return false
+        if (streak.count >= BrimhavenAgilityArena.PAD_STREAK) streak.count = 0
+        streak.count++
+        streak.lastTick = now
+        return true
     }
 
     /**
@@ -457,6 +571,9 @@ internal object AgilityArenaTalk {
     }
 }
 
+/** Client cycles (20 ms) in a 600 ms tick. */
+private const val CYCLES_PER_TICK = 30
+
 fun registerBrimhavenAgilityArena(world: World) {
     val arena = world.agilityArena
     val give: (Player, Int) -> Unit = { player, obj ->
@@ -495,10 +612,15 @@ fun registerBrimhavenAgilityArena(world: World) {
             delay(1)
             world.teleport(player, HUT.x, HUT.z, HUT.level)
         }
+        world.stepHooks += arena::stepped
+        // A run stops on a trap, so the jump starts from it and not from the tile past it.
+        world.stepStops += { player -> player.level == 3 && !player.scripts.delayed && BrimhavenAgilityArena.inArena(player.x, player.z) && BrimhavenAgilityArena.trapAt(player.x, player.z) != null }
         world.agility.rigs[PLANK] = { player, loc -> arena.plankHolds(player, loc.x, loc.z) }
         world.handlers.onLoc(CLIMBING_ROPE, CLIMB) { op ->
+            // Only the pit's ropes (the 242 map has 25, all there): a copy of the type anywhere else does nothing.
+            val loc = op.loc ?: return@onLoc
+            if (loc.level != 0 || !inArena(loc.x, loc.z)) return@onLoc
             arriveDelay()
-            val loc = op.loc!!
             player.anim(Climbing.ANIM_REACH_FOR_LADDER)
             delay(1)
             world.teleport(player, loc.x, loc.z, ARENA_ARRIVAL.level)
