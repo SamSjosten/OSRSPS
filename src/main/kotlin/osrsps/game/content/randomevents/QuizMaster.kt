@@ -149,6 +149,8 @@ object QuizMaster : RandomEvent("quiz_master", 6755) {
         val away = events.areas.takeAway(player, this@QuizMaster, FROM_X, FROM_Z, WIDTH_ZONES, HEIGHT_ZONES, CHAIR, LEVEL) ?: return true
         val show = Show(spawnHost(world, away))
         away.state = show
+        // Seated facing the host, whichever way they turned to the invitation (the teleport clears facing; Codex on #995).
+        show.host?.let { world.npcInteractions.face(player, it) }
         player.anim(SIT)
         ask(world, player)
         watch(world, player, away, show)

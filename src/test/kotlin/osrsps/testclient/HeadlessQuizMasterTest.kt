@@ -97,6 +97,8 @@ class HeadlessQuizMasterTest {
             server.login("alice").use { client ->
                 client.ready()
                 client.intoStudio("alice")
+                // Seated facing the host, though they turned to the invitation beside them (Codex on #995).
+                assertEquals(QuizMaster.HOST, server.world.onlinePlayers.single().facingNpc?.type?.id, "facing the Quiz Master")
                 var seen = 0
                 // One right, then a wrong one: the count starts again.
                 client.pick(client.question(seen++))
