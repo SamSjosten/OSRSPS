@@ -1,0 +1,278 @@
+{
+ "name": "Construction step CON6b: in building mode, a combat room added off the garden takes a combat dummy (660 XP); Attach puts the dummy NPC up, every punch at it is the max hit (11 with 99 Strength) for no XP, Remove waits for Detach, and Detach brings the loc back to attach again (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 48",
+   "expectMessage": "48",
+   "comment": "the combat room needs 32, the combat dummy 48"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 25000",
+   "expectMessage": "25,000",
+   "comment": "the combat room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 50,
+   "comment": "the combat room's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 25,000 for the combat room"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 5",
+   "expectMessage": "Teak plank",
+   "comment": "the combat dummy's materials (the cache's furniture row 5641)"
+  },
+  {
+   "step": "command",
+   "text": "::item 8790 4",
+   "expectMessage": "Bolt of cloth"
+  },
+  {
+   "step": "command",
+   "text": "::item 1783 5",
+   "expectMessage": "Bucket of sand"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 29335,
+   "option": "Build",
+   "comment": "the combat dummy space (poh_combat_dummy_space)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the combat dummy"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 83674,
+   "timeoutMs": 5000,
+   "comment": "level 48's 83,014 XP and the dummy's 660"
+  },
+  {
+   "step": "locOption",
+   "locId": 29336,
+   "option": "Attach",
+   "comment": "the sandbag goes on: the dummy NPC stands in the loc's place"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::setlevel attack 1",
+   "expectMessage": "1"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel strength 99",
+   "expectMessage": "99",
+   "comment": "unarmed and accurate, a max hit of 11"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Combat dummy",
+   "option": "Attack"
+  },
+  {
+   "step": "assertHitsplat",
+   "npc": "Combat dummy",
+   "amount": 11,
+   "timeoutMs": 10000,
+   "comment": "always the max hit (the Combat dummy page)"
+  },
+  {
+   "step": "assertHitsplat",
+   "npc": "Combat dummy",
+   "amount": 11,
+   "timeoutMs": 10000,
+   "comment": "and again"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Attack",
+   "level": 1,
+   "xp": 0,
+   "comment": "no XP for hitting it"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Combat dummy",
+   "option": "Remove",
+   "comment": "the sandbag comes off first"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.dummy_detach_first]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Combat dummy",
+   "option": "Detach"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 29336,
+   "option": "Attach",
+   "comment": "the loc is back, and attaches again"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Combat dummy",
+   "option": "Detach"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

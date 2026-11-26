@@ -328,7 +328,9 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun helm(player: Player, npc: Npc): SlayerHelm {
         val head = player.equipment[WearPos.HEAD]?.id ?: return SlayerHelm.NONE
         val helm = helms.getOrPut(head) { helmOf(world.objTypes[head]?.name) }
-        return if (helm != SlayerHelm.NONE && onTask(player, npc)) helm else SlayerHelm.NONE
+        // The undead combat dummies count as any task (Construction CON6b).
+        val task = onTask(player, npc) || npc.type.id in osrsps.game.skill.construction.CombatRoom.ANY_TASK
+        return if (helm != SlayerHelm.NONE && task) helm else SlayerHelm.NONE
     }
 
     /** Slayer XP in tenths for a kill of [npc]: its hitpoints, with its XP bonus. */

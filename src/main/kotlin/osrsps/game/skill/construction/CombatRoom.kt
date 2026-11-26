@@ -1,10 +1,17 @@
 package osrsps.game.skill.construction
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Player
 import osrsps.game.PlayerEffects
 import osrsps.game.World
+import osrsps.game.combat.SureHit
+import osrsps.game.npc.Direction
+import osrsps.game.npc.MoveRestrict
+import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.WearPos
 import osrsps.game.content.arriveDelay
+import osrsps.game.content.message
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.Agility
 import osrsps.game.zone.ZoneLoc
@@ -27,8 +34,16 @@ import kotlin.math.max
  *   one with those gloves worn (the cache's names). GUESSED: the crossing takes [CROSS_TICKS]; the barrier has no
  *   animation.
  *
- * Next (CON6b, CON6c): the combat dummy's Attach and Attack, and fighting in the rings, the pedestals and on the beam.
- * Left out: the ornate dummy's Swap (its other kinds).
+ * Step CON6b, the combat dummies (the Combat dummy, Undead combat dummy and Ornate undead combat dummy pages, read
+ * 2026-11-26): Attach puts the sandbag on, and the attached dummy ([DUMMIES]) is attacked like any monster, but "The
+ * player will always hit their max hit when attacking the dummy, but no experience will be granted for hitting it. Any
+ * ammunition fired at it will always be lost" ([osrsps.game.combat.Combat.dummy]). It never fights back or goes down
+ * (INFERRED: it is whole again after each hit). Detach takes it off; Upgrade and Remove wait for that. The undead ones
+ * count as any Slayer task for a black mask or Slayer helmet ([ANY_TASK]). Anyone in the house can attach, attack and
+ * detach one (INFERRED). Left out: what being undead or demonic does (no salve amulet or demonbane in the game yet).
+ *
+ * Next (CON6c): fighting in the rings, the pedestals and on the beam. Left out: the ornate dummy's Swap (its other
+ * kinds).
  */
 class CombatRoom(private val world: World, private val houses: Houses) {
     fun register() {
@@ -38,6 +53,20 @@ class CombatRoom(private val world: World, private val houses: Houses) {
                 takeSupplies(world, houses, this, op.loc ?: return@onLoc, kit)
             }
         }
+        for ((loc, npc) in DUMMIES) {
+            world.handlers.onLoc(loc, ATTACH) { op ->
+                arriveDelay()
+                attach(this, op.loc ?: return@onLoc, npc)
+            }
+            world.handlers.onNpc(npc, DETACH) { op -> detach(op.npc ?: return@onNpc) }
+            // The sandbag comes off before the dummy is upgraded or removed (the Undead combat dummy page: "the sandbag
+            // must be detached before upgrading"; INFERRED for Remove).
+            for (option in listOf(NPC_UPGRADE, NPC_REMOVE)) world.handlers.onNpc(npc, option) { world.message(player, ConstructionLines.DUMMY_DETACH_FIRST) }
+        }
+        val dummyNpcs = DUMMIES.values.toSet()
+        world.combat.dummy = { npc -> npc.type.id in dummyNpcs }
+        val sureHit = world.combat.sureHit
+        world.combat.sureHit = { player, npc, type -> if (npc.type.id in dummyNpcs) SureHit.MAX else sureHit(player, npc, type) }
         for (loc in ROPES + BARRIERS) {
             world.handlers.onLoc(loc, CROSS) { op ->
                 arriveDelay()
@@ -70,9 +99,67 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         world.teleport(player, to.first, to.second, loc.level)
     }
 
+    /**
+     * Attach on a combat dummy [loc]: the sandbag goes on, the dummy [npc] standing in its place to be attacked until
+     * someone detaches it or the room or house goes. GUESSED: the loc gives way to the NPC (the NPC's model has the
+     * dummy's frame and, for the undead ones, the same mask as the loc), and it faces the way the loc does.
+     */
+    private fun attach(context: ScriptContext, loc: ZoneLoc, npc: Int) {
+        val house = houses.houseAt(loc.x, loc.z) ?: return
+        val slot = Houses.slot(loc.x, loc.z, loc.level, loc.layer)
+        if (slot in house.dummies || world.locs[loc.x, loc.z, loc.level, loc.layer] != loc) return
+        val type = world.npcTypes[npc] ?: return
+        val spawned = world.spawnNpc(NpcSpawn(type, loc.x, loc.z, loc.level, facing(loc.angle), restrict = MoveRestrict.NOMOVE, source = "house combat dummy", respawns = false)) ?: return
+        world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, null)
+        house.dummies[slot] = Attached(spawned, loc)
+        logger.info { "${context.player.username} attached a combat dummy (${type.name}) in ${house.owner}'s house" }
+    }
+
+    /** Detach on an attached combat dummy [npc]: it goes, and the dummy's loc is back. */
+    private fun detach(npc: Npc) {
+        val house = houses.houseAt(npc.x, npc.z) ?: return
+        val (slot, attached) = house.dummies.entries.firstOrNull { it.value.npc === npc }?.toPair() ?: return
+        house.dummies.remove(slot)
+        world.removeNpc(npc)
+        val loc = attached.loc
+        world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
+    }
+
     private fun distance(player: Player, tile: Pair<Int, Int>) = max(abs(player.x - tile.first), abs(player.z - tile.second))
 
+    /** A combat dummy attached: the [npc] standing in for its [loc] ([Houses.Open.dummies]). */
+    class Attached(val npc: Npc, val loc: ZoneLoc)
+
     companion object {
+        private val logger = KotlinLogging.logger {}
+
+        /** The dummies' Attach (op 1), and the attached dummy's Detach, Upgrade and Remove (ops 3 to 5). */
+        const val ATTACH = 1
+        const val DETACH = 3
+        const val NPC_UPGRADE = 4
+        const val NPC_REMOVE = 5
+
+        /**
+         * Each combat dummy loc that can be built, with the NPC it is attached (the cache's poh_combat_dummy,
+         * _undeadslayer and _upgraded_1_undead, and their _npc).
+         */
+        val DUMMIES: Map<Int, Int> = mapOf(29336 to 2668, 29337 to 7413, 9355 to 10507)
+
+        /**
+         * The attached dummies that count as any Slayer task: the undead and ornate undead ones (the Undead combat
+         * dummy page: "acts as an undead creature, a demonic creature, and a Slayer task"; its examine, "functions as any
+         * slayer task"). INFERRED: whatever task the player has, or none.
+         */
+        val ANY_TASK: Set<Int> = setOf(7413, 10507)
+
+        /** Which way an NPC standing in for a loc turned [angle] faces: 0 west, 1 north, 2 east, 3 south (GUESSED). */
+        private fun facing(angle: Int): Direction = when (angle and 3) {
+            0 -> Direction.WEST
+            1 -> Direction.NORTH
+            2 -> Direction.EAST
+            else -> Direction.SOUTH
+        }
+
         /** The racks' Search and the ropes' Climb-over and the barriers' Walk-through: op 1. */
         const val CROSS = 1
 
