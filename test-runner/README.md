@@ -818,6 +818,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   player to a corner of the maze (look at the cube walls and the chests), the timer window shows the reward left (look
   that it drops about a point every three seconds), and a teleport out closes it. The chests, the shrine, its rewards and
   running out of time are the headless test's part.
+- `random-events-pillory.json`: random events step 15 (with `::keys on`): the Pillory Guard's arrest puts the player in
+  a cage (look that it is one of the three towns' pillories) with the lock window open (look at the lock, the swinging
+  keys and the small locks, and whether the lock's shape matches a key: the model pairing is a guess), one key tried,
+  and `::randomevent end` lets them out with nothing. Solving it, the rewards and logging out in a cage are the
+  headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

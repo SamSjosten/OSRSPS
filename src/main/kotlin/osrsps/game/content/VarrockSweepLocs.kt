@@ -23,7 +23,8 @@ object PilloryLines : Lines("pillory", "Pillory") {
  *   cabinets down there are the town's, already searchable.
  * - **`fairy_crate` and `fairy_crate_2`** (12105, 12104) in the south-west houses: Search finds nothing, with the
  *   crates' usual message (guessed: the Wiki has no page for them).
- * - **The pillory**: Unlock on the cage (20873) says the Wiki's line; Buy on the rotten tomato crate (20885) opens
+ * - **The pillory**: Unlock on the cage (20873) says the Wiki's line (the Pillory random event,
+ *   [osrsps.game.content.randomevents.Pillory], owns that handler, as its prisoner's Unlock opens the lock window); Buy on the rotten tomato crate (20885) opens
  *   the Pelters' Veg Stall (`pillory_rottenfruitshop`, shops.json), the Wiki's Rotten tomato page's Varrock stall.
  *
  * Left out: the Dragon Slayer II door (32464, quest-only), the open manhole to the Rat Pits (10321, not built), the
@@ -60,7 +61,6 @@ fun registerVarrockSweepLocs(world: World) {
             climbBetween(world, loc, Tile(loc.x, loc.z), Tile(loc.x, loc.z - Climbing.DUNGEON_OFFSET), Climbing.ANIM_REACH_FOR_LADDER)
         }
         for (crate in FAIRY_CRATES) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)
-        registerSearch(world, PILLORY_CAGE, 1, PilloryLines.UNLOCK)
         world.handlers.onLoc(TOMATO_CRATE, 1) { world.shopTypes[PELTERS_STALL]?.let { world.shopScreen.open(player, it) } }
     }
 }
