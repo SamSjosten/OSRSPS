@@ -12,6 +12,8 @@ repositories {
 			includeGroupByRegex("net\\.runelite.*")
 		}
 	}
+	// Maven Central's mirror first, as the server's build has it: Central itself answers CI's runners with 429s.
+	maven { url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
 	mavenCentral()
 }
 
