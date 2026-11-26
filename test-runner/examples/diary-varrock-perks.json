@@ -28,9 +28,14 @@
   },
   {
    "step": "command",
+   "text": "::diary complete varrock easy all",
+   "expectMessage": "task(s) done in varrock"
+  },
+  {
+   "step": "command",
    "text": "::diary complete varrock medium all",
    "expectMessage": "task(s) done in varrock",
-   "comment": "medium alone: the Grand Exchange option and 30 staves"
+   "comment": "easy and medium: the Grand Exchange option and 30 staves"
   },
   {
    "step": "command",

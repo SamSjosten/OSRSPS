@@ -230,8 +230,14 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
     fun tierDone(player: Player, area: DiaryArea, tier: DiaryTier): Boolean = area.tasks(tier).all { done(player, it) }
 
-    /** The highest tier of [area] whose tasks are all done, or null: what the rewards that grow by tier go by. */
-    fun highestDone(player: Player, area: DiaryArea): DiaryTier? = DiaryTier.entries.lastOrNull { tierDone(player, area, it) }
+    /**
+     * Whether [tier] of [area] and every tier below it are done: what a perk of that tier goes by, as live's perks need the
+     * tier's reward, which needs the tiers below it claimed first.
+     */
+    fun perkEarned(player: Player, area: DiaryArea, tier: DiaryTier): Boolean = DiaryTier.entries.take(tier.ordinal + 1).all { tierDone(player, area, it) }
+
+    /** The highest tier of [area] done with every tier below it, or null: what the rewards that grow by tier go by. */
+    fun highestDone(player: Player, area: DiaryArea): DiaryTier? = DiaryTier.entries.takeWhile { tierDone(player, area, it) }.lastOrNull()
 
     /**
      * Marks [task] done, with its message and, if it was the tier's last, the tier's. False when it was done already, so

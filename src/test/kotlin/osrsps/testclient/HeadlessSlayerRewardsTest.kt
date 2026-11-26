@@ -201,7 +201,7 @@ class HeadlessSlayerRewardsTest {
     }
 
     @Test
-    fun `with no quest points only the Lumbridge & Draynor elite tier opens a block slot, the seventh`(@TempDir dir: Path) {
+    fun `with no quest points only the Lumbridge & Draynor elite tier, with the tiers below it, opens a block slot, the seventh`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->
                 client.commandReply("setlevel all 40") { it.startsWith("Every skill") }
@@ -213,13 +213,14 @@ class HeadlessSlayerRewardsTest {
                 assertEquals(200, client.points())
 
                 client.closeModal()
-                client.commandReply("diary complete lumbridge hard all") { "task(s) done" in it }
+                // The elite tier's tasks without the medium tier's: no slot yet.
+                for (tier in listOf("easy", "hard", "elite")) client.commandReply("diary complete lumbridge $tier all") { "task(s) done" in it }
                 client.open()
                 client.confirm(SlayerRewards.BLOCK)
                 client.awaitMessage("[slayer_rewards.no_block_slot] again") { _ -> client.messages().count { it.text == "[slayer_rewards.no_block_slot]" } == 2 }
 
                 client.closeModal()
-                client.commandReply("diary complete lumbridge elite all") { "task(s) done" in it }
+                client.commandReply("diary complete lumbridge medium all") { "task(s) done" in it }
                 client.open()
                 client.confirm(SlayerRewards.BLOCK)
                 client.awaitVarp(4842, "rats in Vannaka's diary block slot") { (it shr 16) and 0xFF == 3 }
