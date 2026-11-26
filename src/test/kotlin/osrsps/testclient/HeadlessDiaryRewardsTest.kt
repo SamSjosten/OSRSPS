@@ -285,7 +285,40 @@ class HeadlessDiaryRewardsTest {
         }
     }
 
+    @Test
+    fun `a reward in a STASH unit isn't lost, and once taken out of it and gone another is given`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                val armour = DiaryArea.VARROCK.rewards[0]
+                client.done("diary complete varrock easy all")
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.claim_easy]", "[toby.well_done]", "[toby.yes_please]", "[toby.armour_easy]", "[toby.wow_thanks]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                client.awaitCount(armour, 1)
+                client.closeModal()
+
+                // Stashed (as StashUnits keeps a filled unit's items): still owned, so no other (exploit review R57C-1).
+                client.command("empty")
+                client.awaitCount(armour, 0)
+                dave.trails.stashes[STASH_UNIT] = listOf(armour)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.hello]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                client.closeModal()
+
+                dave.trails.stashes.remove(STASH_UNIT)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.hello]")
+                client.menu("[toby.another_platebody]", "[toby.who]", "[toby.question]", "[toby.bye]")
+            }
+        }
+    }
+
     private companion object {
+        /** Any STASH unit's loc id: ownsReward looks through them all. */
+        const val STASH_UNIT = 28_983
         const val ACHIEVEMENT_DIARY_REWARDS = 1190
         const val LOBSTER = 379
         const val ACHIEVEMENT_DIARY_REWARDS2 = 1191

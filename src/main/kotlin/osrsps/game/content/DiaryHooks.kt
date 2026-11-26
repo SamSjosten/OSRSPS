@@ -9,8 +9,10 @@ import osrsps.game.skill.LightSources
  * rest are guessed, as noted.
  */
 class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: Int, private val maxZ: Int, private val level: Int? = null) {
-    fun has(player: Player): Boolean =
-        player.x in minX..maxX && player.z in minZ..maxZ && (level == null || player.level == level)
+    fun has(player: Player): Boolean = hasTile(player.x, player.z) && (level == null || player.level == level)
+
+    /** Whether tile [x], [z] is in the box, on any level. */
+    fun hasTile(x: Int, z: Int): Boolean = x in minX..maxX && z in minZ..maxZ
 
     companion object {
         /**
@@ -49,6 +51,24 @@ class DiaryZone(private val minX: Int, private val minZ: Int, private val maxX: 
 
         /** Guessed: round Quest Helper's altar at 3377,3285, in the Emir's Arena's prayer room. */
         val EMIRS_ARENA_ALTAR = DiaryZone(3370, 3278, 3384, 3292, 0)
+
+        /** The top of Varrock's church: Quest Helper's church4 zone, level 3 (Codex on #952). */
+        val VARROCK_CHURCH = DiaryZone(3249, 3469, 3262, 3489, 3)
+
+        /** Guessed: round the palace's tree patch at 3229,3459. */
+        val VARROCK_PALACE_TREE_PATCH = DiaryZone(3225, 3455, 3235, 3465, 0)
+
+        /** Guessed: the palace's first floor, where its altar is. */
+        val VARROCK_PALACE_ALTAR = DiaryZone(3199, 3466, 3227, 3501, 1)
+
+        /** Guessed: the West Bank's building, inside its walls. */
+        val VARROCK_WEST_BANK = DiaryZone(3179, 3432, 3194, 3447, 0)
+
+        /** Guessed: the Cooks' Guild north of its front door at 3143,3443, every floor. */
+        val COOKS_GUILD = DiaryZone(3138, 3444, 3148, 3453)
+
+        /** Guessed: Varrock inside its walls, from the West Bank to the East Bank's east wall and the palace's north wall. */
+        val VARROCK = DiaryZone(3175, 3375, 3290, 3510)
     }
 }
 
@@ -85,16 +105,32 @@ internal object DiaryHooks {
         Made(RAW_TROUT, DiaryTask.VARROCK_EASY_13, DiaryZone.BARBARIAN_VILLAGE),
         // "Make 20 Mahogany Planks in one go": at any sawmill.
         Made(MAHOGANY_PLANK, DiaryTask.VARROCK_MEDIUM_10, min = 20),
+        // Yew roots dug from the stump: two at once.
+        Made(YEW_ROOTS, DiaryTask.VARROCK_HARD_8, DiaryZone.VARROCK_PALACE_TREE_PATCH, min = 2),
+        Made(SUPER_COMBAT, DiaryTask.VARROCK_ELITE_1, DiaryZone.VARROCK_WEST_BANK),
+        Made(SUMMER_PIE, DiaryTask.VARROCK_ELITE_3, DiaryZone.COOKS_GUILD),
+        // "Smith and fletch ten rune darts within Varrock": a set of ten at once, once ten tips were smithed in Varrock
+        // (the stage, in Diaries).
+        Made(RUNE_DART, DiaryTask.VARROCK_ELITE_4, DiaryZone.VARROCK, min = 10),
+        Made(EARTH_RUNE, DiaryTask.VARROCK_ELITE_5, min = 100),
     )
 
     /** Pray-at with Smite on, by the altar's place. */
-    val SMITE_ALTARS = listOf(DiaryZone.EMIRS_ARENA_ALTAR to DiaryTask.LUMBRIDGE_HARD_10)
+    val SMITE_ALTARS = listOf(
+        DiaryZone.EMIRS_ARENA_ALTAR to DiaryTask.LUMBRIDGE_HARD_10,
+        DiaryZone.VARROCK_PALACE_ALTAR to DiaryTask.VARROCK_HARD_9,
+    )
 
     /**
      * Logs lit. Inferred: "Chop and burn some oak logs in Lumbridge" counts when they're burned there, whoever chopped
      * them (the Wiki gives no more).
      */
-    val BURNED = listOf(Made(OAK_LOGS, DiaryTask.LUMBRIDGE_EASY_7, DiaryZone.LUMBRIDGE))
+    val BURNED = listOf(
+        Made(OAK_LOGS, DiaryTask.LUMBRIDGE_EASY_7, DiaryZone.LUMBRIDGE),
+        // "Chop some yew logs in Varrock and burn them at the top of the Varrock church": once a yew was chopped in Varrock
+        // (the stage, in Diaries).
+        Made(YEW_LOGS, DiaryTask.VARROCK_HARD_6, DiaryZone.VARROCK_CHURCH),
+    )
 
     val KILLED = listOf(
         ByName("Zombie", DiaryTask.LUMBRIDGE_EASY_8, DiaryZone.DRAYNOR_SEWERS),
@@ -129,11 +165,24 @@ internal object DiaryHooks {
     const val PLANK = 960
     const val MAHOGANY_PLANK = 8782
     const val BOWL = 1923
+    const val YEW_LOGS = 1515
+    const val YEW_ROOTS = 6049
+    const val SUPER_COMBAT = 12695
+    const val SUMMER_PIE = 7218
+    const val RUNE_DART = 811
+    const val RUNE_DART_TIP = 824
+    const val SPOTTIER_CAPE = 10071
+
+    /** The museum's full kudos, which Orlando Smith's task asks for. */
+    const val ORLANDO_KUDOS = 153
 
     /** `fai_varrock_dead_tree`, the Lumber Yard's dying trees, and the tea stall loc. */
     const val DYING_TREE = 3648
     const val TEA_STALL = 635
 
     const val VARROCK_FENCE = "shortcut_varrock_fence"
+
+    /** The level 51 pipe in the Edgeville Dungeon (the Misthalin fixes thread's key; the level 60 south pipe isn't it). */
+    const val EDGEVILLE_PIPE = "shortcut_edgeville_dungeon_pipe"
     const val THESSALIA_SHOP = "thessalias_fine_clothes"
 }

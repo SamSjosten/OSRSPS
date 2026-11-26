@@ -111,6 +111,8 @@ import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Diaries
 import osrsps.game.content.Examines
+import osrsps.game.content.ExplorersRing
+import osrsps.game.content.ZaffBarrel
 import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
@@ -210,6 +212,7 @@ import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
 import osrsps.game.content.registerSkullSceptre
+import osrsps.game.content.registerTwiggy
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
@@ -533,6 +536,9 @@ class World(
     /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
     val championsChallenge = ChampionsChallenge(this)
 
+    /** Brutus's records across the server, his scoreboard's global column. */
+    val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -706,7 +712,7 @@ class World(
         words = ::textFor,
     )
 
-    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
+    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor, worn = { player, obj -> diaries.worn(player, obj) })
 
     private val interactions = Interactions(words = ::textFor)
 
@@ -781,6 +787,8 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
+        hurtAlive = { jewelleryEffects.hurt(it) },
+        dropPvpHits = { pvpCombat.dropIncoming(it) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -836,7 +844,10 @@ class World(
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
-        fell = { archiveRaids.fell(it) },
+        fell = {
+            archiveRaids.fell(it)
+            if (brutusPens.runOf(it) != null) osrsps.game.content.BrutusScoreboard.died(this, it)
+        },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
@@ -1065,6 +1076,7 @@ class World(
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
+    val clanParty = osrsps.game.content.ClanParty(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1127,8 +1139,14 @@ class World(
     /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
     val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
 
+    /** Bones to Bananas and Bones to Peaches; see [osrsps.game.skill.magic.BonesToFruit]. */
+    val bonesToFruit = osrsps.game.skill.magic.BonesToFruit(this, osrsps.game.skill.magic.BonesToFruit.load(objTypes))
+
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
+
+    /** The phoenix necklace, necklace of faith and ring of life; see [osrsps.game.skill.magic.JewelleryEffects]. */
+    val jewelleryEffects = osrsps.game.skill.magic.JewelleryEffects(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -1169,6 +1187,7 @@ class World(
     /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
     /** The achievement diaries; see [Diaries]. */
     val diaries = Diaries(this, scrollFont)
+    private val zaffBarrel = ZaffBarrel(this)
 
     val lodestones = LodestoneNetwork(
         customVars,
@@ -1314,6 +1333,9 @@ class World(
         registerWildernessLevers(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
+        registerTwiggy(this)
+        ExplorersRing(this).register()
+        zaffBarrel.register()
         registerHaystacks(this)
         registerLodestones(this)
         registerKaramjaShips(this)
@@ -1343,6 +1365,8 @@ class World(
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
+        osrsps.game.content.registerBrutusScoreboard(this)
+        osrsps.game.content.registerCowbellAmulet(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1391,8 +1415,10 @@ class World(
         boltEnchant.register()
         alchemy.register()
         superheat.register()
+        bonesToFruit.register()
         jewelleryEnchant.register()
         jewelleryTeleports.register()
+        jewelleryEffects.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1404,6 +1430,7 @@ class World(
         kitchen.register()
         clanHall.register()
         clanCoffer.register()
+        clanParty.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -2526,6 +2553,7 @@ class World(
         quests.completeAll(player.vars)
         Kudos.login(player)
         diaries.login(player)
+        zaffBarrel.login(player)
         lodestones.login(player)
         fightCaves.login(player)
         collectionLog.login(player)
@@ -2989,6 +3017,7 @@ class World(
         if (omnishopScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (clanParty.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act

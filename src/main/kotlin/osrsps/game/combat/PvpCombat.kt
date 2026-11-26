@@ -111,15 +111,30 @@ class PvpCombat(
         val hit: Boolean = true,
         val landed: () -> Unit = {},
         val level: Int = target.level,
-    )
+    ) {
+        /** A phoenix necklace's heal before it landed ([dropIncoming]): it lands nowhere, [landed] aside. */
+        var cancelled = false
+    }
 
     private val hits = ArrayList<Hit>()
+
+    /** The hits [land] is landing now, so [dropIncoming] reaches those not landed yet. */
+    private var landingNow: List<Hit> = emptyList()
+
+    /**
+     * A phoenix necklace healed [player]: the attacks on their way to them land nowhere (OSRS Wiki, Phoenix necklace),
+     * those queued and those left in the batch landing now (Codex review on #956).
+     */
+    fun dropIncoming(player: Player) {
+        for (hit in hits) if (hit.target === player) hit.cancelled = true
+        for (hit in landingNow) if (hit.target === player) hit.cancelled = true
+    }
 
     /** Hits made and not landed yet, for tests. */
     val hitsLanding: Int get() = hits.size
 
     /** Whether a hit is on its way to [player]: they are in combat as if hit already, so can't log out from under it. */
-    fun incoming(player: Player): Boolean = hits.any { it.target === player }
+    fun incoming(player: Player): Boolean = hits.any { it.target === player && !it.cancelled }
 
     /**
      * [attacker] used Attack on [target]. Refused with the rules' lines ([PvpRules.refusal]), returned so the caller can
@@ -294,7 +309,7 @@ class PvpCombat(
     private fun late(target: Player, tick: Long): Int = if (target.pvpTick == tick) 1 else 0
 
     /** What [target] has left after the hits on their way to them. */
-    private fun left(target: Player): Int = (target.hitpoints - hits.sumOf { if (it.target === target) it.damage else 0 }).coerceAtLeast(0)
+    private fun left(target: Player): Int = (target.hitpoints - hits.sumOf { if (it.target === target && !it.cancelled) it.damage else 0 }).coerceAtLeast(0)
 
     /** [rolled] of [type] through [target]'s protection prayer and capped at what they have [left]. */
     private fun dealt(target: Player, type: AttackType, rolled: Int): Int =
@@ -428,15 +443,28 @@ class PvpCombat(
         val landing = hits.filter { it.target === player && tick >= it.landTick }
         if (landing.isEmpty()) return
         hits.removeAll(landing.toSet())
+        landingNow = landing
+        try {
+            landBatch(player, landing, tick)
+        } finally {
+            landingNow = emptyList()
+        }
+    }
+
+    private fun landBatch(player: Player, landing: List<Hit>, tick: Long) {
         for (hit in landing) {
             hit.landed()
+            if (hit.cancelled) continue
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
                 dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
+                val (fromX, fromZ, fromLevel) = Triple(player.x, player.z, player.level)
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
+                // A ring of life took them away: out of the fight, no hitting back or freeze (Codex review on #956).
+                if (player.x != fromX || player.z != fromZ || player.level != fromLevel) continue
                 // A kill starts the killer's timer (OSRS Wiki, PJ timer: 12 seconds).
                 if (player.dead || player.hitpoints <= 0) {
                     hit.attacker.pjOpponent = player

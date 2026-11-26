@@ -32,7 +32,7 @@ class HeadlessTunnelOfChaosTest {
         World(
             crcs,
             CollisionMap().apply {
-                for ((x, z) in listOf(3222 to 3218, 3283 to 3468, 3179 to 5191, 3152 to 5233, 2270 to 4836)) markLoaded(x shr 6, z shr 6)
+                for ((x, z) in listOf(3222 to 3218, 3283 to 3468, 3179 to 5191, 3152 to 5233, 2270 to 4836, 3987 to 4940)) markLoaded(x shr 6, z shr 6)
             },
             objTypes = ObjTypes.of(ObjType(TunnelOfChaos.CHAOS_TALISMAN, "Chaos talisman")),
             locTypes = LocTypes(
@@ -46,6 +46,8 @@ class HeadlessTunnelOfChaosTest {
                 add(ZoneLoc(TunnelOfChaos.STAIRS, LocShape.CENTREPIECE_STRAIGHT, 0, 3179, 5189, 0))
                 add(ZoneLoc(TunnelOfChaos.PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, 3152, 5233, 0))
                 add(ZoneLoc(TunnelOfChaos.MAZE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, 2270, 4836, 1))
+                // The cache's second copy of the statue, far from Varrock.
+                add(ZoneLoc(TunnelOfChaos.STATUE, LocShape.CENTREPIECE_STRAIGHT, 0, 3987, 4940, 0))
             },
             // surok_tunnelcheck and surok_portal on surok_main, as the 242 cache has them.
             varTypes = VarTypes(6_000, mapOf(TunnelOfChaos.VARBIT_TUNNEL_OPEN to VarbitType(992, 8, 8), TunnelOfChaos.VARBIT_MAZE_PORTAL to VarbitType(992, 15, 15))),
@@ -87,6 +89,22 @@ class HeadlessTunnelOfChaosTest {
                 client.awaitTicks(3)
                 client.locOp(TunnelOfChaos.MAZE_PORTAL, 2270, 4836, TunnelOfChaos.OP)
                 client.at(TunnelOfChaos.PORTAL_LANDING.x, TunnelOfChaos.PORTAL_LANDING.z)
+            }
+        }
+    }
+
+    @Test
+    fun `the statue's other copy in the cache goes nowhere`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.await("the statue open") { if (client.varp(992) and (1 shl 8) != 0) Unit else null }
+                client.command("tele 3987 4938")
+                client.at(3987, 4938)
+                client.awaitTicks(3)
+                client.locOp(TunnelOfChaos.STATUE, 3987, 4940, TunnelOfChaos.OP)
+                client.awaitTicks(8)
+                assertEquals(Coord(3987, 4939), client.position, "walked up to the statue and stayed there")
             }
         }
     }

@@ -3,11 +3,15 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.InvObj
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.content.VarrockArmour
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -24,7 +28,8 @@ import osrsps.map.LocShape
  */
 class HeadlessQuarryTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(PIECES.keys.max() + 1)
+        val objs = arrayOfNulls<ObjType>(maxOf(PIECES.keys.max(), VarrockArmour.PIECES.max()) + 1)
+        for (armour in VarrockArmour.PIECES) objs[armour] = ObjType(armour, "Varrock armour")
         objs[RUNE_PICKAXE] = ObjType(RUNE_PICKAXE, "Rune pickaxe")
         for ((obj, name) in PIECES) objs[obj] = ObjType(obj, name)
         val mine = listOf("Mine", null, null, "hidden", null)
@@ -120,7 +125,52 @@ class HeadlessQuarryTest {
         }
     }
 
+    /** Mines granite [swings] times, each after the rock is back, and gives how many swings gave two pieces. */
+    private fun HeadlessClient.graniteSwings(swings: Int): Int {
+        tele(GRANITE_X - 1, GRANITE_Z)
+        var doubles = 0
+        repeat(swings) {
+            await("the granite", timeoutMillis = 10_000) { if (locAt(GRANITE_X, GRANITE_Z).let { it == null || it == GRANITE }) Unit else null }
+            val before = pieces().size
+            val xp = stat(MINING)!!.xp
+            locOp(GRANITE, GRANITE_X, GRANITE_Z, 1)
+            await("the empty rock", timeoutMillis = 10_000) { if (locAt(GRANITE_X, GRANITE_Z) == Mining.ROCKS2) Unit else null }
+            val got = pieces().drop(before)
+            assertTrue(got.size in 1..2, "${got.size} pieces from one swing")
+            // Two of the same size, with its XP for each.
+            if (got.size == 2) {
+                doubles++
+                assertEquals(got[0].id, got[1].id)
+            }
+            val tenths = Mining.ROCKS.getValue(GRANITE).type.sizes.first { it.obj == got[0].id }.xpTenths * got.size
+            assertEquals(xp + tenths / 10, await("granite XP") { stat(MINING)?.takeIf { it.xp >= xp + tenths / 10 } }.xp)
+            if (pieces().size > 24) {
+                command("empty")
+                await("an empty backpack") { if (pieces().isEmpty()) Unit else null }
+                command("item $RUNE_PICKAXE")
+            }
+        }
+        return doubles
+    }
+
+    @Test
+    fun `Varrock armour 2 mines a second piece of granite now and then, armour 1 never`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.miner(99)
+                val dave = server.world.playerNamed("dave")!!
+                dave.equipment[WearPos.BODY] = InvObj(VarrockArmour.PIECES[1], 1)
+                val doubles = client.graniteSwings(SWINGS)
+                assertTrue(doubles in 1 until SWINGS, "$doubles doubles in $SWINGS swings on armour 2")
+                // The near miss: armour 1, which the Wiki leaves out of the quarry.
+                dave.equipment[WearPos.BODY] = InvObj(VarrockArmour.PIECES[0], 1)
+                assertEquals(0, client.graniteSwings(SWINGS), "armour 1")
+            }
+        }
+    }
+
     private companion object {
+        const val SWINGS = 30
         /** enakh_granite_rocks and enakh_sandstone_rocks in the Desert Quarry (OSRS Wiki, Granite rocks, Sandstone rocks). */
         const val GRANITE = 11387
         const val GRANITE_X = 3172

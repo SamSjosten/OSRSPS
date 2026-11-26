@@ -179,6 +179,21 @@ class HeadlessChampionsChallengeTest {
                 client.locOp(chest.id, chest.x, chest.z, ChampionsChallenge.CHEST_OP)
                 client.objbox()
                 assertEquals(1, client.count(ChampionsChallenge.LAMP))
+                // Nor while it is banked (exploit review R58B-4).
+                server.onTick {
+                    alice.inventory.remove(alice.inventory.contents().first { (_, obj) -> obj.id == ChampionsChallenge.LAMP }.first, 1)
+                    alice.bank.add(server.world.objTypes[ChampionsChallenge.LAMP]!!, 1)
+                }
+                client.await("the lamp banked") { if (client.count(ChampionsChallenge.LAMP) == 0) Unit else null }
+                client.locOp(chest.id, chest.x, chest.z, ChampionsChallenge.CHEST_OP)
+                client.objbox()
+                server.onTick { }
+                assertEquals(0, client.count(ChampionsChallenge.LAMP), "no second lamp while one is banked")
+                server.onTick {
+                    alice.bank.remove(alice.bank.contents().first { (_, obj) -> obj.id == ChampionsChallenge.LAMP }.first, 1)
+                    alice.inventory.add(server.world.objTypes[ChampionsChallenge.LAMP]!!, 1)
+                }
+                client.await("the lamp back") { if (client.count(ChampionsChallenge.LAMP) == 1) Unit else null }
 
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, RUB_BUTTON_OP, client.slotOf(ChampionsChallenge.LAMP), ChampionsChallenge.LAMP)
                 client.objbox(closes = false)
@@ -203,6 +218,12 @@ class HeadlessChampionsChallengeTest {
         val result = CompletableFuture<T>()
         world.npcScripts.later(1) { result.complete(block()) }
         return result.get(10, TimeUnit.SECONDS)
+    }
+
+    /** [alice]'s duel is over within a few game ticks. */
+    private fun assertDuelEnds(server: TestServer, alice: osrsps.game.Player, why: String) {
+        val over = (1..END_TICKS).any { server.onTick { server.world.championsChallenge.fightOf(alice) == null } }
+        assertTrue(over, "the duel ends: $why")
     }
 
     @Test
@@ -235,19 +256,34 @@ class HeadlessChampionsChallengeTest {
                 assertNull(server.onTick { world.combat.barred(alice, giantChampion) }, "a melee style is allowed")
                 assertEquals(LarxusLines.ONLY_MELEE, server.onTick { world.combat.barred(alice, giantChampion, type = AttackType.MAGIC) })
 
-                // Gear put on in the arena is held to the duel's rule at every attack, not only at the statue.
+                // Gear put on in the arena is held to the duel's rule at every attack, and the duel ends the tick
+                // after it is worn (exploit review R58B-1), Larxus's line saying why.
                 val demon = server.onTick { challenge.start(alice, Champion.LESSER_DEMON)!! }
                 assertNull(server.onTick { world.combat.barred(alice, demon) }, "nothing worn")
-                server.onTick {
+                val worn = server.onTick {
                     alice.inventory.add(helm, 1)
                     world.equipment.wear(alice, alice.inventory.contents().first { (_, obj) -> obj.id == HELM }.first)
+                    world.combat.barred(alice, demon)
                 }
-                assertEquals(LarxusLines.NO_WEAPONS_ARMOUR, server.onTick { world.combat.barred(alice, demon) })
+                assertEquals(LarxusLines.NO_WEAPONS_ARMOUR, worn)
+                assertDuelEnds(server, alice, "armour worn in the lesser demon's duel")
+                client.await("Larxus's line") { client.messages().firstOrNull { it.text == DialogueText.NONE[LarxusLines.NO_WEAPONS_ARMOUR] } }
                 server.onTick { alice.equipment.clear() }
+
+                // Anything picked up or handed over in the ghoul's duel ends it too (exploit review R58B-2).
                 val ghoulChampion = server.onTick { challenge.start(alice, Champion.GHOUL)!! }
                 assertNull(server.onTick { world.combat.barred(alice, ghoulChampion) }, "nothing carried")
                 server.onTick { alice.inventory.add(shield, 1) }
-                assertEquals(LarxusLines.WEAPONS_ONLY, server.onTick { world.combat.barred(alice, ghoulChampion) })
+                assertDuelEnds(server, alice, "a shield carried in the ghoul's duel")
+                server.onTick { alice.inventory.clear() }
+
+                // Stepping out of the arena, past the portcullis, ends the duel (exploit review R58B-3).
+                assertNotNull(server.onTick { challenge.start(alice, Champion.GIANT) })
+                client.command("tele ${ChampionsChallenge.GATE.x} ${ChampionsChallenge.GATE.z} 0")
+                client.awaitAt(ChampionsChallenge.GATE.x, ChampionsChallenge.GATE.z)
+                assertDuelEnds(server, alice, "the player outside the arena")
+                client.command("tele ${ChampionsChallenge.ARENA.x} ${ChampionsChallenge.ARENA.z} 0")
+                client.awaitAt(ChampionsChallenge.ARENA.x, ChampionsChallenge.ARENA.z)
 
                 // A death in the arena leaves the grave beside the guild's trapdoor upstairs (Codex review on #948).
                 server.onTick { repeat(4) { alice.inventory.add(shield, 1) } }
@@ -262,6 +298,7 @@ class HeadlessChampionsChallengeTest {
 
     private companion object {
         const val GRAVE_TICKS = 20
+        const val END_TICKS = 3
         const val HELM = 1153
         const val SHIELD = 1171
         const val BACKPACK = 93

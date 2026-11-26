@@ -4,7 +4,9 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried, and no fight going on; ::reset at the end puts the account back"},
-  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::tele 3217 3219 0", "expectMessage": "Teleported to 3217, 3219, 0"},
+  {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man", "comment": "a man who stays on 3217, 3219 (wander 0): a wandering one led the player off and the walk-off tile out of view (nightly 25 Nov 2026)"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0", "comment": "beside him, so Attack picks him"},
   {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
   {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off"},
   {"step": "npcOption", "npc": "Man", "option": "Attack"},

@@ -9,6 +9,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.hunter.HunterShops
@@ -28,7 +29,7 @@ class HeadlessHunterShopsTest {
         objs[BOX_TRAP_PACK] = ObjType(BOX_TRAP_PACK, "Box trap pack", stackable = false, tradeable = false, iops = listOf("Open", null, null, null, "Drop"))
         objs[BOX_TRAP] = ObjType(BOX_TRAP, "Box trap", stackable = true, tradeable = true)
         for (piece in HunterShops.PIECES) {
-            objs[piece.item] = ObjType(piece.item, "Piece ${piece.item}", stackable = false, tradeable = true)
+            objs[piece.item] = ObjType(piece.item, "Piece ${piece.item}", stackable = false, tradeable = true, iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.CAPE)
             for (fur in piece.furs) objs[fur] = ObjType(fur, "Fur $fur", stackable = false, tradeable = true)
         }
         World(
@@ -84,6 +85,48 @@ class HeadlessHunterShopsTest {
     }
 
     @Test
+    fun `a spottier cape worn before it's bought does no diary task, nor a bought spotted cape, and a bought spottier cape worn does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hs").use { client ->
+                client.await("the login rebuild") { client.position }
+                fun diaryDone() = client.messages().any { it.text.startsWith("[diary.task_done") }
+                fun wear(id: Int) {
+                    client.ifButton(osrsps.game.InventoryTab.INTERFACE, osrsps.game.InventoryTab.ITEMS, WEAR_BUTTON_OP, client.slotOf(id), id)
+                    client.await("the cape worn") { client.inventory(WORN).getOrNull(WearPos.CAPE)?.takeIf { it.id == id } }
+                }
+                fun buy(id: Int, fur: Int, fee: Int) {
+                    client.command("empty")
+                    client.command("item ${HunterShops.COINS} $fee")
+                    client.command("item $fur 2")
+                    client.await("the furs") { if (client.count(fur) == 2 && client.count(HunterShops.COINS) == fee) Unit else null }
+                    client.npcOp(client.await("Asyff") { client.npcs().firstOrNull { it.id == asyff.id } }.index, HunterShops.FUR_CLOTHING)
+                    client.await("the panel") { if (HunterShops.PANEL in server.world.playerNamed("hs")!!.modals.values) Unit else null }
+                    val cape = HunterShops.PIECES.first { it.item == id }
+                    assertEquals(fee, cape.fee)
+                    client.ifButton(HunterShops.PANEL, HunterShops.PANEL_ITEMS, HunterShops.BUY, HunterShops.PIECES.indexOf(cape), cape.item)
+                    client.await("the cape") { if (client.count(id) == 1) Unit else null }
+                    client.closeModal()
+                }
+                // One from anywhere but Asyff (::item here) does nothing.
+                client.command("item $SPOTTIER_CAPE 1")
+                wear(SPOTTIER_CAPE)
+                assertEquals(false, diaryDone())
+                // The cheaper spotted cape, bought and worn, isn't the spottier one (Codex on #952).
+                buy(SPOTTED_CAPE, SPOTTED_FUR, 400)
+                wear(SPOTTED_CAPE)
+                client.awaitTicks(2)
+                assertEquals(false, diaryDone(), "a spotted cape")
+                assertEquals(0, client.messages().count { it.text.startsWith("[diary.stage") }, "no stage for a spotted cape")
+                buy(SPOTTIER_CAPE, DASHING_FUR, 800)
+                client.seen("[diary.stage stage=1]")
+                assertEquals(false, diaryDone(), "bought, not yet worn")
+                wear(SPOTTIER_CAPE)
+                client.await("the diary task") { Unit.takeIf { diaryDone() } }
+            }
+        }
+    }
+
+    @Test
     fun `a pack whose 100 would pass the stack's limit stays shut`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hs").use { client ->
@@ -108,6 +151,14 @@ class HeadlessHunterShopsTest {
         const val TATTY_LARUPIA = 10093
         const val LARUPIA_TOP = 10043
         const val LARUPIA_HAT = 10045
+        const val SPOTTED_CAPE = 10069
+        const val SPOTTIER_CAPE = 10071
+        const val SPOTTED_FUR = 10125
+        const val DASHING_FUR = 10127
+        const val WORN = 94
+
+        /** iop2 (Wear) is button op 3. */
+        const val WEAR_BUTTON_OP = 3
 
         /** iop1 (Open) is button op 2 (see InventoryTab.click). */
         const val OPEN_BUTTON_OP = 2

@@ -9,6 +9,7 @@ import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
+import osrsps.game.content.DiaryHooks
 import osrsps.game.content.message
 
 /** One of Asyff's fur clothing pieces: [fee] coins and [count] of the first of [furs] the player has, in that order. */
@@ -95,6 +96,7 @@ class HunterShops(private val world: World) {
             if (inv[slot] == null && freed < 0) freed = slot
         }
         if (freed >= 0) inv[freed] = InvObj(piece.item, 1) else world.groundObjs.give(player, type, 1)
+        if (piece.item == DiaryHooks.SPOTTIER_CAPE) world.diaries.boughtSpottierCape(player)
         return true
     }
 

@@ -50,7 +50,7 @@ object DairyCowLines : Lines("dairy_cow", "Dairy cow") {
  * a message, again every eight ticks while buckets are left, until the player does something else. With no
  * bucket, a dairy cow in Gillie's pen gets her talk about it and any other dairy cow a message. Guessed: Gillie's
  * chathead expressions outside RSMod's no-bucket talk. Left out: Steal-cowbell (Thieving, and Cold War's cowbells) and
- * Gillie's talk about a lost cowbell amulet, both Cold War's.
+ * Gillie's talk about a lost cowbell amulet, both Cold War's. Her cowbell amulet (The Ides of Milk) is [CowbellAmulet].
  */
 object GroatsFarm {
     const val GILLIE = 4628
@@ -112,6 +112,8 @@ object GroatsFarm {
 /** Gillie's Talk-to, and Milk and items used on the dairy cows. */
 fun registerGroatsFarm(world: World) {
     world.handlers.onNpc(GroatsFarm.GILLIE, GroatsFarm.TALK_TO) { op ->
+        // The Ides of Milk counts as done: a player without a cowbell amulet gets one (Transcript:Gillie Groats).
+        if (!CowbellAmulet.anywhere(player)) return@onNpc with(CowbellAmulet) { another(world, op.npc!!) }
         world.dialogues.start(this, op.npc) { with(GroatsFarm) { gillie() } }
     }
     for (cow in GroatsFarm.DAIRY_COWS) {
@@ -141,7 +143,9 @@ private fun ScriptContext.milkOnce(world: World) {
     player.inventory[slot] = InvObj(GroatsFarm.BUCKET_OF_MILK, 1)
     world.message(player, DairyCowLines.MILKED)
     player.anim(GroatsFarm.ANIM_MILK)
-    queue(MILK_QUEUE, QueueType.WEAK, GroatsFarm.MILK_TICKS) { milkOnce(world) }
+    // Faster with a cowbell amulet worn.
+    val ticks = if (CowbellAmulet.worn(player)) CowbellAmulet.MILK_TICKS else GroatsFarm.MILK_TICKS
+    queue(MILK_QUEUE, QueueType.WEAK, ticks) { milkOnce(world) }
 }
 
 private const val MILK_QUEUE = "milk_cow"
