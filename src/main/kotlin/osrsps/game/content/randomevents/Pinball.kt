@@ -102,7 +102,6 @@ object Pinball : RandomEvent("pinball", 6744) {
         var score = 0
         var current = 0
         var next = 0
-        var done = false
         var over = false
         var trolls: List<Npc> = emptyList()
         val complete get() = score >= TO_WIN
