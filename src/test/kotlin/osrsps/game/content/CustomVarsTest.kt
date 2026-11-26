@@ -105,7 +105,7 @@ class CustomVarsTest {
         assertEquals("lodestones", named.varpName(5996))
         assertNull(named.varpName(5995))
         assertEquals(5996, named.cacheVarpCount)
-        assertEquals(6010, named.varpCount)
+        assertEquals(6012, named.varpCount)
         assertEquals(5996, build2746.cacheVarpCount, "a cache's own types: every varp is its")
         assertFailsWith<IllegalArgumentException>("a name used twice") { named.with(emptyMap(), mapOf("lodestones" to 5998)) }
         assertFailsWith<IllegalArgumentException>("a named varp among the cache's") { VarTypes(6_000, emptyMap(), 0, mapOf("x" to 5)) }
