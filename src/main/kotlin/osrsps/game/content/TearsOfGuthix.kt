@@ -14,6 +14,7 @@ import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 
@@ -107,7 +108,10 @@ class TearsOfGuthix(private val world: World) {
     private var running = false
 
     /** A player's game: the ticks left and the tears in the bowl, shown in varbits 5099 and 455. */
-    private class Game(var ticksLeft: Int, var tears: Int = 0)
+    private class Game(var ticksLeft: Int, var tears: Int = 0) {
+        /** The tick the player last collected at a wall, for clearing [VARBIT_COLLECTING] once they stop. */
+        var collectedAt: Long = -1
+    }
 
     /** The players in the game, by save key. */
     private val playing = HashMap<String, Game>()
@@ -116,6 +120,9 @@ class TearsOfGuthix(private val world: World) {
     fun tears(player: Player): Int = playing[player.saveKey]?.tears ?: 0
 
     fun isPlaying(player: Player): Boolean = player.saveKey in playing
+
+    /** Whether [player] is collecting at a wall: they collected this tick or the last. */
+    fun isCollecting(player: Player): Boolean = (playing[player.saveKey]?.collectedAt ?: -1) >= 0
 
     /** What the wall at [index] runs now: true blue, false green, null none. */
     fun streamAt(index: Int): Boolean? = streams.firstOrNull { it.wall == index }?.blue
@@ -278,6 +285,10 @@ class TearsOfGuthix(private val world: World) {
             if (game.ticksLeft <= 1) return@later finish(player, game)
             game.ticksLeft--
             player.vars.setVarbitIfKnown(VARBIT_COUNTDOWN, game.ticksLeft)
+            if (game.collectedAt >= 0 && world.tick - game.collectedAt > 1) {
+                game.collectedAt = -1
+                player.vars.setVarbitIfKnown(VARBIT_COLLECTING, 0)
+            }
             watch(key)
         }
     }
@@ -304,28 +315,33 @@ class TearsOfGuthix(private val world: World) {
         recordVisit(player)
     }
 
-    /** Collect-from on the weeping wall at [wall]: a tear a tick, or one lost, while the player stays at it. */
-    suspend fun ScriptContext.collect(wall: ZoneLoc) {
+    /**
+     * Collect-from on a weeping wall: a tear a tick, or one lost, while the player stays at it. The op runs again each
+     * tick ([World.repeatOp], as a gathering action does) rather than holding the player in a delay, so a walk or a click
+     * on another wall ends it and the player can follow the blue streams.
+     */
+    suspend fun ScriptContext.collect(op: Op) {
+        val wall = op.loc ?: return
         val index = WALLS.indexOfFirst { it.first == wall.x && it.second == wall.z }
         if (index < 0) return
         if (!isPlaying(player)) return world.message(player, TearsLines.NOT_PLAYING)
-        arriveDelay()
-        player.vars.setVarbitIfKnown(VARBIT_COLLECTING, 1)
-        try {
-            while (isPlaying(player)) {
-                player.anim(ANIM_COLLECT)
-                delay(1)
-                val game = playing[player.saveKey] ?: break
-                when (streamAt(index)) {
-                    true -> game.tears = (game.tears + 1).coerceAtMost(MAX_TEARS)
-                    false -> game.tears = (game.tears - 1).coerceAtLeast(0)
-                    null -> {}
-                }
-                player.vars.setVarbitIfKnown(VARBIT_TEARS, game.tears)
+        if (op.repeat) {
+            val game = playing[player.saveKey] ?: return
+            when (streamAt(index)) {
+                true -> game.tears = (game.tears + 1).coerceAtMost(MAX_TEARS)
+                false -> game.tears = (game.tears - 1).coerceAtLeast(0)
+                null -> {}
             }
-        } finally {
-            player.vars.setVarbitIfKnown(VARBIT_COLLECTING, 0)
+            player.vars.setVarbitIfKnown(VARBIT_TEARS, game.tears)
+        } else {
+            arriveDelay()
+            if (!isPlaying(player)) return
         }
+        val game = playing[player.saveKey] ?: return
+        game.collectedAt = world.tick
+        player.vars.setVarbitIfKnown(VARBIT_COLLECTING, 1)
+        player.anim(ANIM_COLLECT)
+        world.repeatOp(player, op.copy(repeat = true))
     }
 
     // ---- The streams ------------------------------------------------------------------------------------------------
@@ -466,7 +482,7 @@ class TearsOfGuthix(private val world: World) {
 fun registerTearsOfGuthix(world: World, tears: TearsOfGuthix) = with(tears) {
     world.handlers.onLoc(TearsOfGuthix.JUNA, TearsOfGuthix.TALK_TO) { talk() }
     world.handlers.onLoc(TearsOfGuthix.JUNA, TearsOfGuthix.STORY) { story() }
-    world.handlers.onLoc(TearsOfGuthix.WALL, TearsOfGuthix.COLLECT) { op -> collect(op.loc!!) }
+    world.handlers.onLoc(TearsOfGuthix.WALL, TearsOfGuthix.COLLECT) { op -> collect(op) }
     world.handlers.onLoc(TearsOfGuthix.ROCKS_UP, TearsOfGuthix.CLIMB) { op -> climb(op.loc!!, up = true) }
     world.handlers.onLoc(TearsOfGuthix.ROCKS_DOWN, TearsOfGuthix.CLIMB) { op -> climb(op.loc!!, up = false) }
     for (rocks in TearsOfGuthix.MAGICAL_ROCKS) {

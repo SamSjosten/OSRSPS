@@ -167,6 +167,36 @@ class HeadlessTearsOfGuthixTest {
     }
 
     @Test
+    fun `a walk ends collecting at a wall, the bowl kept`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val tog = server.world.tearsOfGuthix
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                client.commandReply("varp ${Quests.VARP_QUEST_POINTS} 500") { it.contains("500") }
+                client.command("varbit ${TearsOfGuthix.VARBIT_JUNA} 2")
+                client.tele(3251, 9516, 2)
+                client.locOp(juna.id, juna.x, juna.z, TearsOfGuthix.STORY)
+                client.box(JunaLines.STORIES)
+                client.box(JunaLines.ENTERTAINED)
+                client.box(JunaLines.COLLECT)
+                client.awaitAt(TearsOfGuthix.START.x, TearsOfGuthix.START.z, 2)
+
+                val (x, z) = TearsOfGuthix.WALLS.first()
+                client.locOp(TearsOfGuthix.WALL, x, z, TearsOfGuthix.COLLECT)
+                client.await("collecting") { Unit.takeIf { tog.isCollecting(dave) } }
+                client.walk(TearsOfGuthix.START.x, TearsOfGuthix.START.z)
+                client.awaitAt(TearsOfGuthix.START.x, TearsOfGuthix.START.z, 2)
+                client.await("collecting over") { Unit.takeIf { !tog.isCollecting(dave) } }
+                val tears = tog.tears(dave)
+                client.awaitTicks(3)
+                assertEquals(tears, tog.tears(dave), "no tears from a wall left behind")
+                assertTrue(tog.isPlaying(dave))
+            }
+        }
+    }
+
+    @Test
     fun `a player who logged out in the walls' room is put back by Juna, the game lost`(@TempDir dir: Path) {
         server(dir).use { server ->
             val tog = server.world.tearsOfGuthix
@@ -181,8 +211,14 @@ class HeadlessTearsOfGuthixTest {
                 client.box(JunaLines.COLLECT)
                 client.awaitAt(TearsOfGuthix.START.x, TearsOfGuthix.START.z, 2)
             }
-            val deadline = System.currentTimeMillis() + 10_000
-            while (server.world.playerNamed("bob") != null && System.currentTimeMillis() < deadline) Thread.sleep(20)
+            // The grace after a dropped connection is counted in game ticks: step them with another player.
+            server.login("carol").use { carol ->
+                carol.await("the login rebuild") { carol.position }
+                carol.commandReply("pause") { it.startsWith("Paused after tick") }
+                carol.stepTicks(World.LINGER_TICKS.toInt() + 5)
+                assertEquals(null, server.world.playerNamed("bob"), "bob's grace over")
+                carol.commandReply("resume") { it.startsWith("Resumed") }
+            }
             server.login("bob").use { client ->
                 client.awaitAt(TearsOfGuthix.END.x, TearsOfGuthix.END.z, 2)
                 val bob = server.world.playerNamed("bob")!!
