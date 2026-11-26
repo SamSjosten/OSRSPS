@@ -53,7 +53,12 @@ class BonesToFruit(private val world: World, private val spells: List<FruitSpell
         val casting = world.itemSpells
         if (!casting.hasLevel(player, spell)) return
         val text = world.textFor(player)
-        val slots = (0 until player.inventory.capacity).filter { player.inventory[it]?.id in BONES }
+        // A stack would go whole for one fruit, so a stackable listed bone is left alone. Live's bones are all single
+        // items; 25422 and 30973 aren't checked against this world's cache, so the guard holds either way (exploit review R60C-4).
+        val slots = (0 until player.inventory.capacity).filter { slot ->
+            val obj = player.inventory[slot]
+            obj != null && obj.id in BONES && obj.count == 1 && world.objTypes[obj.id]?.stackable == false
+        }
         if (slots.isEmpty()) {
             val otherBones = (0 until player.inventory.capacity).any { slot -> player.inventory[slot]?.let { isBones(it.id) } == true }
             player.message(text[if (otherBones) BonesToFruitLines.UNSUITABLE else BonesToFruitLines.NO_BONES])
