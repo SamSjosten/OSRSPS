@@ -2,6 +2,7 @@ package osrsps.game.skill.magic
 
 import osrsps.game.FountainOfRune
 import osrsps.game.GameLines
+import osrsps.game.GroundObjs
 import osrsps.game.Interaction
 import osrsps.game.Movement
 import osrsps.game.ObjTypes
@@ -10,6 +11,8 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.Spellbook
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
 import osrsps.game.script.QueueType
 import osrsps.game.zone.Projectile
 import osrsps.game.zone.ZoneObj
@@ -68,8 +71,12 @@ class TelekineticGrab(
             if (collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0) RouteTarget.tile(x, z)
             else RouteTarget.loc(x, z, osrsps.map.LocShape.GROUND_DECOR, 0, 1, 1, 0)
 
+        // An item under the player is in range too; combat's check refuses a target on the same tile (Codex review on #982).
         fun inRange(player: Player): Boolean =
-            player.level == level && LineOfSight.inRange(collision, level, player.x, player.z, 1, x, z, 1, 1, RANGE)
+            player.level == level && ((player.x == x && player.z == z) || LineOfSight.inRange(collision, level, player.x, player.z, 1, x, z, 1, 1, RANGE))
+
+        /** Waiting out the 3 ticks in range keeps the click (Codex review on #982), rather than "I can't reach that!". */
+        override fun holding(player: Player): Boolean = inRange(player) && (nextCast[player] ?: 0L) > world.tick
 
         override fun tryInteract(player: Player): Boolean {
             if (player.level != level) return true
@@ -88,6 +95,13 @@ class TelekineticGrab(
         if (!casting.hasLevel(player, spell)) return
         val type = world.objTypes[obj.id] ?: return
         val text = world.textFor(player)
+        // An item whose Take is content's own (a quest piece, giant bones that don't fit) isn't grabbed: nothing
+        // interesting happens, nothing spent (guessed, as the Wiki's other ungrabbable items). Clues and scroll boxes go
+        // through the trails' own checks on arrival.
+        if (!isTrailPickup(obj.id) && world.handlers.find(Op(OpTarget.GROUND_OBJ, obj.id, GroundObjs.TAKE_OPTION)) != null) {
+            player.message(text[GameLines.NOTHING_INTERESTING])
+            return
+        }
         if (!world.groundObjs.fits(player.inventory, type, obj.count)) {
             player.message(text[GameLines.NO_SPACE])
             return
@@ -106,7 +120,9 @@ class TelekineticGrab(
                 sourceIndex = -(player.index + 1),
             ),
         )
-        world.scripts.queue(player, QUEUE, QueueType.SOFT, ARRIVAL) { land(player, obj) }
+        // A queue first counts down in the next tick's script phase, before this tick's movement phase that casts, so
+        // ARRIVAL - 1 lands it ARRIVAL ticks on (Codex review on #982).
+        world.scripts.queue(player, QUEUE, QueueType.SOFT, ARRIVAL - 1) { land(player, obj) }
     }
 
     /** The graphic reaches [obj]: it comes to the player if it is still there and they are near enough. */
@@ -116,8 +132,13 @@ class TelekineticGrab(
             player.message(world.textFor(player)[TelekineticGrabLines.FIZZLES])
             return
         }
-        world.groundObjs.take(player, obj)
+        if (isTrailPickup(obj.id)) world.trails.takeChecked(player, obj) else world.groundObjs.take(player, obj)
     }
+
+    /** A clue scroll or scroll box, whose pickup has the trails' own rules. */
+    private fun isTrailPickup(id: Int): Boolean =
+        world.trails.tierOf(id) != null || osrsps.game.trail.TrailTier.entries.any { it.scrollBox == id || it.sharedClue == id } ||
+            id in world.trails.data.byItem
 
     companion object {
         /** Tiles the spell reaches (Wiki). */

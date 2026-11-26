@@ -129,6 +129,25 @@ class HeadlessTelekineticGrabTest {
         }
     }
 
+    @Test
+    fun `an item under the player is grabbed, and a second cast inside the 3 ticks waits for them (Codex review on #982)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready(33)
+                client.give(TeleportObjs.LAW, 2)
+                client.give(TeleportObjs.AIR, 2)
+                client.drop(LOGS, 1, 3226, 3218, 3222, 3218)
+                client.drop(COINS, 50, 3222, 3218, 3222, 3218)
+                client.grab(COINS, 3222, 3218)
+                client.await("the coins underfoot") { if (client.count(COINS) == 50) Unit else null }
+                client.grab(LOGS, 3226, 3218)
+                client.await("the logs, cast once the 3 ticks were up") { if (client.count(LOGS) == 1) Unit else null }
+                assertEquals(0, client.count(TeleportObjs.LAW), "two casts")
+                assertTrue(client.messages().none { it.text == "[game.cant_reach]" }, "no I can't reach that")
+            }
+        }
+    }
+
     companion object {
         const val BACKPACK = 93
         const val MAGIC = 6
