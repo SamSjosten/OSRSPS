@@ -76,6 +76,7 @@ class ClanCoffer(private val world: World) {
         val last = lastTransfer[player.saveKey]
         if (last != null && world.tick - last < COOLDOWN_TICKS) return false
         if (lastClanTransfer[clan.id] == world.tick) return false
+        if (!world.clans.takeDurableWrite(world.tick)) return false
         // Only the transfers still cooling down are kept (exploit review R59C-1, the same growth as the party chest's).
         lastTransfer.entries.removeIf { world.tick - it.value >= COOLDOWN_TICKS }
         lastClanTransfer.entries.removeIf { it.value != world.tick }
