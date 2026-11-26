@@ -321,9 +321,13 @@ class Houses(private val world: World) {
         dropHouseOnly(player)
     }
 
-    /** What the kitchen gives that can't leave the house ([Kitchen.HOUSE_ONLY]) goes as its taker does (Codex review on #906). */
+    /**
+     * What the house gives that can't leave it ([HouseOnly.OBJS]: the kitchen's supplies, the combat room's practice kit)
+     * goes as its taker does, carried or worn (Codex review on #906).
+     */
     private fun dropHouseOnly(player: Player) {
-        for ((slot, obj) in player.inventory.contents()) if (obj.id in Kitchen.HOUSE_ONLY) player.inventory.remove(slot)
+        for ((slot, obj) in player.inventory.contents()) if (obj.id in HouseOnly.OBJS) player.inventory.remove(slot)
+        for ((slot, obj) in player.equipment.contents()) if (obj.id in HouseOnly.OBJS) player.equipment.remove(slot, obj.count)
     }
 
     /**

@@ -17,11 +17,10 @@ class FurnitureBuildsTest {
     }
 
     @Test
-    fun `each room's places are numbered from 0 with no gaps, and built locs never double as hotspots`() {
-        for ((room, spots) in FurnitureBuilds.HOTSPOTS.values.groupBy { it.room }) {
-            val indices = spots.map { it.index }.toSortedSet()
-            assertEquals((0 until indices.size).toSet(), indices, "the ${room.key}'s places")
-        }
+    fun `each hotspot's place lists its pieces and each listed place has a hotspot, and built locs never double as hotspots`() {
+        // Places keep the cache's numbering, which can skip one (the combat room has nothing at places 1 and 2).
+        val places = FurnitureBuilds.HOTSPOTS.values.map { it.room to it.index }.toSet()
+        assertEquals(FurnitureBuilds.PLACES.keys, places)
         assertTrue(FurnitureBuilds.BUILT_LOCS.none { it in FurnitureBuilds.HOTSPOTS.keys })
     }
 
@@ -84,5 +83,23 @@ class FurnitureBuildsTest {
         assertEquals(5525, FurnitureBuilds.builtRow(mapOf(15377 to 6764, 15378 to 6763, 15379 to 6762), 15380, RoomType.SKILL_HALL))
         assertTrue(!FurnitureBuilds.buildsOn(15380, 6764))
         assertTrue(FurnitureBuilds.STAIRCASES.all { it in FurnitureBuilds.PLACES.getValue(RoomType.QUEST_HALL to 0) })
+    }
+
+    @Test
+    fun `each combat ring space piece reads back as itself, and the racks, ropes and barriers are built locs`() {
+        val space = (15277..15295).toSet()
+        assertEquals(space, FurnitureBuilds.siblings(15292))
+        for (row in 5633..5637) {
+            val build = FurnitureBuilds.BUILDS.getValue(row)
+            val built = space.associateWith { build.locFor(FurnitureBuilds.HOTSPOTS.getValue(it).variant) }.filterValues { it != FurnitureBuilds.NONE }
+            assertEquals(row, FurnitureBuilds.builtRow(built, 15277), "row $row")
+            assertTrue(FurnitureBuilds.buildsAt(15292, row), "row $row")
+        }
+        // The pedestals leave the middle bare; the beam leaves the pedestals' walls bare but for the one it shares.
+        assertEquals(FurnitureBuilds.NONE, FurnitureBuilds.BUILDS.getValue(5636).locFor("floor_middle"))
+        assertEquals(FurnitureBuilds.NONE, FurnitureBuilds.BUILDS.getValue(5637).locFor("pedestal_wall"))
+        assertTrue(CombatRoom.RACKS.keys.all { it in FurnitureBuilds.BUILT_LOCS })
+        assertTrue((CombatRoom.ROPES + 13145).all { it in FurnitureBuilds.BUILT_LOCS })
+        assertTrue(29336 in FurnitureBuilds.UPGRADABLE && 29337 in FurnitureBuilds.UPGRADABLE)
     }
 }

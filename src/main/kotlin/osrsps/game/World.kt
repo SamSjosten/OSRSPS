@@ -1093,6 +1093,8 @@ class World(
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
+    /** The combat room's racks and ropes; see [osrsps.game.skill.construction.CombatRoom]. */
+    val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
@@ -1458,6 +1460,7 @@ class World(
         furniture.register()
         kitchen.register()
         workshop.register()
+        combatRoom.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
@@ -2268,11 +2271,13 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
-        val leaving = if (houses.houseAt(player.x, player.z) == null) inventory
-        else inventory.filterValues { it.id !in osrsps.game.skill.construction.Kitchen.HOUSE_ONLY }
+        val inHouse = houses.houseAt(player.x, player.z) != null
+        val leaving = if (!inHouse) inventory else inventory.filterValues { it.id !in osrsps.game.skill.construction.HouseOnly.OBJS }
+        // Its combat room's practice kit stays too when worn (step CON6a).
+        val worn = player.equipment.contents().toMap().let { if (!inHouse) it else it.filterValues { obj -> obj.id !in osrsps.game.skill.construction.HouseOnly.OBJS } }
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
-            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank,
+            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank, equipment = worn,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
             held = held,
         )
