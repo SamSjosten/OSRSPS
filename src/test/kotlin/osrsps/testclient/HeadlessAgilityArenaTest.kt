@@ -12,6 +12,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.loc.LocType
@@ -386,6 +387,176 @@ class HeadlessAgilityArenaTest {
                 val took = server.world.tick - started
                 // The first tile is taken as the walk starts, so 6 more tiles across the rest of the 13 ticks.
                 assertTrue(took in 10..13, "the bars took $took ticks after the first tile")
+            }
+        }
+    }
+
+    @Test
+    fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("fay").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2772, 9553, 3)
+                var xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9548)
+                client.await("over the spikes") { client.position?.takeIf { it == Coord(2772, 9550, 3) } }
+                assertEquals(xp + 24, client.await("24 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 24 } }.xp)
+
+                client.tele(2772, 9586, 3)
+                xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9580)
+                client.await("over the pad south") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("26 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 26 } }
+                client.walk(2772, 9590)
+                client.await("over the pad north") { client.position?.takeIf { it == Coord(2772, 9586, 3) } }
+                client.await("52 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 52 } }
+                client.walk(2772, 9580)
+                client.await("over the pad again") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.awaitTicks(2)
+                assertEquals(xp + 52, client.stat(AGILITY)!!.xp, "the third pad in a row within 8 ticks")
+            }
+        }
+    }
+
+    @Test
+    fun `a failed jump over the spinning blades hurts, says so and puts the player back, and the spikes never fail from 50`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("gus").use { client ->
+                client.ready()
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                // Below 40 the blades always fail.
+                client.tele(2782, 9575, 3)
+                client.walk(2782, 9570)
+                client.await("hit below 40") { client.stat(HITPOINTS)?.takeIf { it.level < 99 } }
+                client.await("put back below 40") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                client.awaitTicks(2)
+                // Level 40: the Wiki's 153/256, so about two times in five a failure.
+                client.command("setlevel agility 40")
+                client.await("level 40") { client.stat(AGILITY)?.takeIf { it.level == 40 } }
+                var failed = false
+                for (attempt in 1..30) {
+                    client.commandReply("setlevel hitpoints 99") { true }
+                    client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                    client.tele(2782, 9575, 3)
+                    client.walk(2782, 9570)
+                    // Across, or hit: 2782,9574 is also the walk's first tile, so the hit tells a failure apart.
+                    val hit = client.await("over or hit") {
+                        when {
+                            (client.stat(HITPOINTS)?.level ?: 99) < 99 -> true
+                            client.position == Coord(2782, 9572, 3) -> false
+                            else -> null
+                        }
+                    }
+                    if (hit) {
+                        // 99 * 5 / 100 + 2.
+                        client.await("a 6 hit") { client.stat(HITPOINTS)?.takeIf { it.level == 93 } }
+                        client.message("[agility_arena.spinning_blades]")
+                        client.await("put back") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                        client.awaitTicks(2)
+                        assertEquals(Coord(2782, 9574, 3), client.position, "back on the tile before the blades")
+                        failed = true
+                        break
+                    }
+                    client.awaitTicks(1)
+                }
+                assertTrue(failed, "no failed jump in 30 at level 40")
+
+                client.command("setlevel agility 50")
+                client.await("level 50") { client.stat(AGILITY)?.takeIf { it.level == 50 } }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                repeat(6) {
+                    client.tele(2772, 9553, 3)
+                    client.walk(2772, 9548)
+                    val over = client.await("over the spikes") { client.position?.takeIf { it == Coord(2772, 9550, 3) } }
+                    assertEquals(Coord(2772, 9550, 3), over)
+                }
+                assertEquals(99, client.stat(HITPOINTS)!!.level, "the spikes at 50")
+            }
+        }
+    }
+
+    @Test
+    fun `a crossing takes the Wiki's ticks, 4 over the spikes and 5 over the blades, and a run stops on the trap`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("tia").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                val player = server.world.playerNamed("tia")!!
+                // The blades from the tile beside them, running: the run's first step is onto the trap.
+                val crossings = listOf(
+                    Crossing(Coord(2772, 9553, 3), Coord(2772, 9552, 3), Coord(2772, 9550, 3), 4, run = false),
+                    Crossing(Coord(2782, 9574, 3), Coord(2782, 9573, 3), Coord(2782, 9572, 3), 5, run = true),
+                )
+                for (crossing in crossings) {
+                    // The blades still fail 1 time in 256 at 99: a failure (the hit) is tried again.
+                    var took = -1
+                    for (attempt in 1..5) {
+                        client.commandReply("setlevel hitpoints 99") { true }
+                        client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                        client.tele(crossing.from.x, crossing.from.z, 3)
+                        client.awaitTicks(2)
+                        player.runEnabled = crossing.run
+                        // Paused and stepped a tick at a time, so the count is game ticks, not test-thread time.
+                        client.commandReply("pause") { it.contains("aused after tick") }
+                        client.walk(crossing.landing.x, crossing.landing.z)
+                        var steppedOn = -1
+                        var landed = -1
+                        for (tick in 1..12) {
+                            client.stepTicks(1)
+                            if (player.skills.currentLevel(Skill.HITPOINTS) < 99) break
+                            val at = Coord(player.x, player.z, player.level)
+                            if (steppedOn < 0 && at != crossing.from) {
+                                assertEquals(crossing.trap, at, "the first step ends on the trap, a run too")
+                                steppedOn = tick
+                            }
+                            if (at == crossing.landing) {
+                                landed = tick
+                                break
+                            }
+                        }
+                        client.commandReply("resume") { it.startsWith("Resumed") }
+                        if (landed < 0) continue
+                        took = landed - steppedOn
+                        break
+                    }
+                    assertEquals(crossing.ticks - 1, took, "ticks from the step onto the trap to the landing at ${crossing.landing}")
+                }
+            }
+        }
+    }
+
+    private data class Crossing(val from: Coord, val trap: Coord, val landing: Coord, val ticks: Int, val run: Boolean)
+
+    @Test
+    fun `Agility XP from something else between pads starts the pad streak again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("pip").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2772, 9586, 3)
+                val xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9583)
+                client.await("over the pad south") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("26 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 26 } }
+                // Another obstacle's XP in between.
+                client.command("addxp agility 10")
+                client.await("10 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 36 } }
+                client.walk(2772, 9586)
+                client.await("over the pad north") { client.position?.takeIf { it == Coord(2772, 9586, 3) } }
+                client.await("62 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 62 } }
+                client.walk(2772, 9583)
+                client.await("over the pad again") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("88 XP: only the second pad of the new streak") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 88 } }
             }
         }
     }

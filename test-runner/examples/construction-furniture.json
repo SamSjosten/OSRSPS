@@ -362,6 +362,20 @@
    "timeoutMs": 10000
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1, the crude wooden chair, with no planks left: picking closes the menu (its init took the chat's keys, so ::reset can't be typed over it) and is refused"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.furniture_materials]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
    "step": "command",
    "text": "::reset",
    "expectMessage": "Back to how you were"

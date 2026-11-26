@@ -1,0 +1,298 @@
+{
+ "name": "Construction step CON4d: in building mode, a workshop added off the garden takes tool store 1 and, by its rack's Upgrade, tool store 2 (each 120 XP), whose racks' Search gives their tools, and a wooden workbench for the Wiki's 143 XP (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 25",
+   "expectMessage": "25",
+   "comment": "the workshop needs 15, tool store 2 25"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 10000",
+   "expectMessage": "10,000",
+   "comment": "the workshop's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 23,
+   "comment": "the workshop's button: its op sends the workshop's type"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 10,000 for the workshop"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 4",
+   "expectMessage": "Oak plank",
+   "comment": "2 for tool store 1, 2 for tool store 2"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "command",
+   "text": "::item 960 5",
+   "expectMessage": "Plank",
+   "comment": "the wooden workbench"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 5",
+   "expectMessage": "Steel nails"
+  },
+  {
+   "step": "locOption",
+   "locId": 15443,
+   "option": "Build",
+   "comment": "the first tool space (poh_workshop_3a)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: tool store 1, the only piece an empty tool space offers"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 7962,
+   "timeoutMs": 5000,
+   "comment": "level 25's 7,842 XP and the store's 120"
+  },
+  {
+   "step": "locOption",
+   "locId": 6786,
+   "option": "Search",
+   "comment": "the rack (poh_tools1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 5000,
+   "comment": "the Make-X box of the store's tools"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 17,
+   "comment": "the chisel, third in the box"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chisel",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 6786,
+   "option": "Upgrade",
+   "comment": "the rack's Upgrade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: tool store 2, the only piece that upgrades the first"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 8082,
+   "timeoutMs": 5000,
+   "comment": "tool store 2's 120"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Oak plank",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 6787,
+   "option": "Search",
+   "comment": "the second rack (poh_tools2), on the second space"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 16,
+   "comment": "the knife"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Knife",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 15439,
+   "option": "Build",
+   "comment": "the workbench space (poh_workshop_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the wooden workbench"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 8225,
+   "timeoutMs": 5000,
+   "comment": "the workbench's 143"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Plank",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
