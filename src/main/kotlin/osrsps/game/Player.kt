@@ -146,6 +146,12 @@ class Player(
     var lastStepFrom: Tile? = null
 
     /**
+     * The tiles the player stood on in this tick's movement: where they started, then each tile stepped onto (two for a
+     * run, which can turn between its steps). Empty when they didn't move. Set by [Movement.process].
+     */
+    val stepTrail = ArrayList<Tile>(3)
+
+    /**
      * The last tick the player took a step on, -1 before their first. A ladder walked to waits a tick when the player
      * arrived on this one; see [osrsps.game.content.arriveDelay].
      */

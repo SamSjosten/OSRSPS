@@ -145,6 +145,7 @@ import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
+import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -535,6 +536,7 @@ class World(
     val brutusPens = osrsps.game.content.BrutusPens(this)
     /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
     val championsChallenge = ChampionsChallenge(this)
+    val tearsOfGuthix = osrsps.game.content.TearsOfGuthix(this)
 
     /** Brutus's records across the server, his scoreboard's global column. */
     val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
@@ -1031,6 +1033,16 @@ class World(
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
     /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
+    /**
+     * Called after a player moves in the movement phase, with the tiles they stood on this tick ([Player.stepTrail]:
+     * the start, then each tile stepped onto), for what a tile does when walked onto (the Agility Arena's floor traps).
+     * Not after a teleport.
+     */
+    val stepHooks = ArrayList<(Player, List<Tile>) -> Unit>()
+
+    /** Tiles a running player stops on after one step; see [Movement.stopChecks]. */
+    val stepStops: MutableList<(Player) -> Boolean> get() = movement.stopChecks
+
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
@@ -1073,6 +1085,7 @@ class World(
     /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
+    val workshop = osrsps.game.skill.construction.Workshop(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
@@ -1299,6 +1312,7 @@ class World(
         registerDigsiteCamp(this)
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
+        registerTearsOfGuthix(this, tearsOfGuthix)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1367,6 +1381,7 @@ class World(
         osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerBrutusScoreboard(this)
         osrsps.game.content.registerCowbellAmulet(this)
+        osrsps.game.content.registerBrutusUniques(this)
         osrsps.game.content.registerScurriusFight(this)
         osrsps.game.content.registerRatBoneWeapons(this)
         npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
@@ -1428,6 +1443,7 @@ class World(
         houses.register()
         furniture.register()
         kitchen.register()
+        workshop.register()
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
@@ -1760,6 +1776,7 @@ class World(
         groundObjs.process()
         agilityArena.process(tick)
         archiveRaids.settleDepartures()
+        houses.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
@@ -2558,6 +2575,7 @@ class World(
         fightCaves.login(player)
         collectionLog.login(player)
         inferno.login(player)
+        tearsOfGuthix.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -3537,6 +3555,7 @@ class World(
     private fun move(player: Player) {
         val result = movement.process(player)
         if (result != MoveResult.NONE) player.lastMoveTick = tick
+        if (result != MoveResult.NONE && !player.teleported) for (hook in stepHooks) hook(player, player.stepTrail)
         val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
         val speed = when (result) {
             MoveResult.NONE -> null

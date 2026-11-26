@@ -21,7 +21,6 @@ object SwampCavesLines : Lines("swamp_caves", "Lumbridge Swamp Caves") {
     val INSECTS_SWARM = line("insects_swarm", "after 30 ticks in the dark with no light, as the bites start (the Wiki's Darkness page)")
     val GAS_FLARE = line("gas_flare", "walking into the gas with a naked flame (the Wiki's Light sources page)", "item")
     val GAS_EXPLODE = line("gas_explode", "the gas exploding, 7 ticks after the flare")
-    val CHASM_CLOSED = line("chasm_closed", "Enter on the tunnel to the Chasm of Tears, which belongs to piece 8 (our own line)")
 }
 
 /**
@@ -40,7 +39,7 @@ object SwampCavesLines : Lines("swamp_caves", "Lumbridge Swamp Caves") {
  *   player is still in the gas with one, it explodes for a quarter of their Hitpoints level and puts the naked flames
  *   out.
  * - The stepping stones (5948, 5949) are Agility shortcuts in skills/agility.json; a fall puts the lights out.
- * - The tunnel to the Chasm of Tears (6659) refuses: the Chasm is piece 8's.
+ * - The tunnel to the Chasm of Tears (6659) is [TearsOfGuthix]'s.
  *
  * Sources: the OSRS Wiki's Lumbridge Swamp Caves, Darkness, Light sources (the 25% gas damage, the flare and the 7 ticks;
  * the caves page's older "12 damage" is not used), Dark hole and Warning sign pages (read 2026-11-09); ids, the varbit
@@ -54,7 +53,6 @@ object LumbridgeSwampCaves {
     const val DARK_HOLE = 5947
     const val CLIMBING_ROPE = 5946
     const val WARNING_SIGN = 15566
-    const val CHASM_TUNNEL = 6659
     const val ROPE = 954
 
     const val CLIMB_DOWN = 1
@@ -216,10 +214,6 @@ fun registerLumbridgeSwampCaves(world: World) {
         world.handlers.onLoc(WARNING_SIGN, READ) {
             arriveDelay()
             world.dialogues.start(this) { mesbox(SwampCavesLines.SIGN) }
-        }
-        world.handlers.onLoc(CHASM_TUNNEL, ENTER) {
-            arriveDelay()
-            world.message(player, SwampCavesLines.CHASM_CLOSED)
         }
     }
 }

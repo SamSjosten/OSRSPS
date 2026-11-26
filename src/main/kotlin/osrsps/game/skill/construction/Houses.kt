@@ -267,6 +267,15 @@ class Houses(private val world: World) {
      */
     fun process() {
         forgetEnded()
+        settleDepartures()
+    }
+
+    /**
+     * Whoever has left a house since the last look is settled: also at the tick's start, before the players' input, so a
+     * house-only item can't be dropped outside on the first tick out and kept (exploit review R56B-1; as the Archive's
+     * supplies, R26A-1).
+     */
+    fun settleDepartures() {
         if (inside.isEmpty()) return
         val left = inside.filter { houseAt(it.x, it.z) == null }
         for (player in left) {

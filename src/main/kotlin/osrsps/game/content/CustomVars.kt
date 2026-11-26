@@ -115,20 +115,31 @@ class CustomVars(
     val brutusDeathsVarp: Int = firstVarp + 12
     val brutusBestVarp: Int = firstVarp + 13
 
+    /**
+     * The player's last drink of the Tears of Guthix: the UTC day (days since 1970) in its low 16 bits and their quest
+     * points then above them, 0 before the first ([TearsOfGuthix]). Live keeps this somewhere we haven't found; ours is
+     * guessed.
+     */
+    val togVisitVarp: Int = firstVarp + 14
+
+    /** The player's total XP at their last drink of the Tears, in tens of XP ([TearsOfGuthix]); guessed as above. */
+    val togVisitXpVarp: Int = firstVarp + 15
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS] and [BRUTUS_BEST]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT] and [TOG_VISIT_XP]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
         LOG_STORAGE to logStorageVarp, LOG_STORAGE_MAGIC to logStorageMagicVarp,
         CHAMPIONS to championsVarp,
         BRUTUS_DEATHS to brutusDeathsVarp, BRUTUS_BEST to brutusBestVarp,
+        TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -190,6 +201,10 @@ class CustomVars(
         /** Brutus's scoreboard's varps' names: the player's deaths and fastest kill. */
         const val BRUTUS_DEATHS = "brutus.deaths"
         const val BRUTUS_BEST = "brutus.best_ticks"
+
+        /** The Tears of Guthix's last-visit varps' names. */
+        const val TOG_VISIT = "tears_of_guthix"
+        const val TOG_VISIT_XP = "tears_of_guthix.xp"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

@@ -31,18 +31,7 @@ class Kitchen(private val world: World, private val houses: Houses) {
         }
     }
 
-    private suspend fun search(context: ScriptContext, loc: ZoneLoc, supplies: List<Int>) {
-        val player = context.player
-        if (houses.houseAt(loc.x, loc.z) == null) return world.message(player, GameLines.NOTHING_INTERESTING)
-        if (player.inventory.freeSlots == 0) return world.message(player, GameLines.NO_SPACE)
-        var pick: Pair<Int, Int>? = null
-        world.dialogues.start(context) { pick = makeX(ConstructionLines.TAKE_SUPPLIES, supplies, player.inventory.freeSlots, 1) }
-        val (index, quantity) = pick ?: return
-        if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
-        val type = world.objTypes[supplies.getOrNull(index) ?: return] ?: return
-        val added = player.inventory.add(type, minOf(quantity, player.inventory.freeSlots).coerceAtLeast(1))
-        if (added == 0) world.message(player, GameLines.NO_SPACE)
-    }
+    private suspend fun search(context: ScriptContext, loc: ZoneLoc, supplies: List<Int>) = takeSupplies(world, houses, context, loc, supplies)
 
     companion object {
         /** The larders' and shelves' Search. */
@@ -100,6 +89,24 @@ class Kitchen(private val world: World, private val houses: Houses) {
             }
         }
     }
+}
+
+/**
+ * Search on a house's store of free things ([loc]: a larder, shelves or a tool store): one of [supplies], picked in the
+ * Make-X box, as many as the backpack takes. GUESSED: the Make-X box (the Wiki says only that the player selects from
+ * the list); its title is held.
+ */
+internal suspend fun takeSupplies(world: World, houses: Houses, context: ScriptContext, loc: ZoneLoc, supplies: List<Int>) {
+    val player = context.player
+    if (houses.houseAt(loc.x, loc.z) == null) return world.message(player, GameLines.NOTHING_INTERESTING)
+    if (player.inventory.freeSlots == 0) return world.message(player, GameLines.NO_SPACE)
+    var pick: Pair<Int, Int>? = null
+    world.dialogues.start(context) { pick = makeX(ConstructionLines.TAKE_SUPPLIES, supplies, player.inventory.freeSlots, 1) }
+    val (index, quantity) = pick ?: return
+    if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
+    val type = world.objTypes[supplies.getOrNull(index) ?: return] ?: return
+    val added = player.inventory.add(type, minOf(quantity, player.inventory.freeSlots).coerceAtLeast(1))
+    if (added == 0) world.message(player, GameLines.NO_SPACE)
 }
 
 /** The built stoves Cooking cooks on: the three firepits as fires, the fancy range (as it is, or with a kettle or pot) as a range. */
