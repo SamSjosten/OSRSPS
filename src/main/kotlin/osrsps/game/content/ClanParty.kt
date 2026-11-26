@@ -249,6 +249,9 @@ class ClanParty(private val world: World) {
         if (!world.clans.mayParty(player, clan, Clans.VAR_PARTY_DEPOSIT)) return world.message(player, ClanPartyLines.NO_DEPOSIT)
         // One confirm per chest a tick, and one disk-writing action a tick across every clan (R59C-1, R60C-1).
         if (party.lastConfirm == world.tick) return
+        // The allowance is taken only when something can go in, so confirms at a full chest don't use it up for every
+        // other clan (Codex on PR 975).
+        if (player.priceChecker.contents().none { (_, obj) -> fits(party.chest, obj.id) }) return world.message(player, ClanPartyLines.CHEST_FULL)
         if (!world.clans.takeDurableWrite(world.tick)) return
         party.lastConfirm = world.tick
         var full = false
@@ -352,7 +355,14 @@ class ClanParty(private val world: World) {
         for (viewer in viewers(party)) sendChest(viewer, party)
     }
 
-    private fun viewers(party: Party): List<Player> =
+    /** Whether any of item [id] fits in [chest]: a free slot, or room on its stack if it stacks. */
+    private fun fits(chest: Inventory, id: Int): Boolean {
+        if (chest.freeSlots > 0) return true
+        if (world.objTypes[id]?.stackable != true) return false
+        return chest.contents().any { (_, obj) -> obj.id == id && obj.count < Inventory.MAX_STACK }
+    }
+
+        private fun viewers(party: Party): List<Player> =
         world.onlinePlayers.filter { isOpen(it) && world.instances.at(it.x, it.z) === party.instance }
 
     private fun sendChest(player: Player, party: Party) {
