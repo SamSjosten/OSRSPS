@@ -548,7 +548,7 @@ class World(
     /** Demonic Brutus's, the scoreboard's Read (Demonic). */
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
     /** Pet cats out following their players; see [Cats]. */
-    val cats = Cats(this)
+    val cats = Cats(this, collision)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)

@@ -134,7 +134,7 @@ object CatLines : Lines("cat", "Transcript:Kitten, Transcript:Cat, Transcript:Ov
  * menagerie and pet feeder (Construction), the location lines (Ardougne's rat pits, Varrock's sewers), the cat ears
  * talk, Call follower, selling cats in West Ardougne, the cat training medal, a cat running off on its player's death.
  */
-class Cats(private val world: World) {
+class Cats(private val world: World, private val collision: osrsps.map.CollisionMap) {
     /** A colour's kitten, cat and overgrown cat: their items and their NPCs. */
     enum class Colour(val kittenObj: Int, val catObj: Int, val overgrownObj: Int, val kittenNpc: Int, val catNpc: Int, val overgrownNpc: Int) {
         GREY_BLACK(1555, 1561, 1567, 5591, 1619, 5598),
@@ -633,8 +633,10 @@ class Cats(private val world: World) {
         if (out[player.saveKey] !== mine) return
         mine.chasingUntil = 0
         world.npcs.follow(cat, player)
-        // Only a rat the cat got beside: one behind a wall or too far to reach in the chase gets away.
-        val reached = cat.level == rat.level && maxOf(kotlin.math.abs(rat.x - cat.x), kotlin.math.abs(rat.z - cat.z)) <= 1
+        // Only a rat the cat got beside, as an NPC reaches what it fights: one behind a wall or too far to reach in
+        // the chase gets away (Codex review on #980).
+        val reached = cat.level == rat.level &&
+            osrsps.map.Reach.reachedEntity(collision, cat.level, cat.x, cat.z, cat.type.size, rat.x, rat.z, rat.type.size, rat.type.size)
         if (!reached || rat.dead || rat.hidden || world.npcs[rat.index] !== rat) {
             player.message(text[CatLines.GOT_AWAY])
             return
@@ -668,6 +670,8 @@ class Cats(private val world: World) {
         world.npcs.stopFollowingNpc(rat)
         rat.destination = null
         val deathTicks = maxOf(def?.deathTicks ?: 1, 1)
+        // It stands for its death ticks: an idle rat would otherwise wander off mid-animation (Codex review on #980).
+        rat.holdTicks = deathTicks + 1
         val respawn = maxOf(def?.respawnTicks ?: RAT_RESPAWN_TICKS, deathTicks)
         world.npcScripts.later(deathTicks) {
             if (world.npcs[rat.index] !== rat) return@later
