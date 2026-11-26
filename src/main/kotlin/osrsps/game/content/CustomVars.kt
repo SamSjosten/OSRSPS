@@ -125,26 +125,30 @@ class CustomVars(
     /** The player's total XP at their last drink of the Tears, in tens of XP ([TearsOfGuthix]); guessed as above. */
     val togVisitXpVarp: Int = firstVarp + 15
 
+    /** The same as Brutus's for Demonic Brutus, the scoreboard's Read (Demonic). */
+    val brutusDemonicDeathsVarp: Int = firstVarp + 16
+    val brutusDemonicBestVarp: Int = firstVarp + 17
+
     /**
      * The player's pet cat: its growth cycles ([Cats.GROWTH_CYCLE_TICKS] each) in the low 16 bits and the rats their
      * cats have caught above them ([Cats]). Live keeps these somewhere we haven't found; ours is guessed.
      */
-    val catVarp: Int = firstVarp + 16
+    val catVarp: Int = firstVarp + 18
 
     /**
      * A kitten's care ([Cats]): ticks until it runs off hungry in bits 0 to 11, lonely in bits 12 to 25, and bit 30 set
      * once it has been out. Guessed as above.
      */
-    val catCareVarp: Int = firstVarp + 17
+    val catCareVarp: Int = firstVarp + 19
 
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, catVarp, catCareVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp, catVarp, catCareVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [CAT] and [CAT_CARE]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS], [BRUTUS_DEMONIC_BEST], [CAT] and [CAT_CARE]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
@@ -152,6 +156,7 @@ class CustomVars(
         CHAMPIONS to championsVarp,
         BRUTUS_DEATHS to brutusDeathsVarp, BRUTUS_BEST to brutusBestVarp,
         TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
+        BRUTUS_DEMONIC_DEATHS to brutusDemonicDeathsVarp, BRUTUS_DEMONIC_BEST to brutusDemonicBestVarp,
         CAT to catVarp, CAT_CARE to catCareVarp,
     )
 
@@ -214,6 +219,8 @@ class CustomVars(
         /** Brutus's scoreboard's varps' names: the player's deaths and fastest kill. */
         const val BRUTUS_DEATHS = "brutus.deaths"
         const val BRUTUS_BEST = "brutus.best_ticks"
+        const val BRUTUS_DEMONIC_DEATHS = "brutus.demonic_deaths"
+        const val BRUTUS_DEMONIC_BEST = "brutus.demonic_best_ticks"
 
         /** The Tears of Guthix's last-visit varps' names. */
         const val TOG_VISIT = "tears_of_guthix"

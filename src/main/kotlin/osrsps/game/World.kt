@@ -544,6 +544,8 @@ class World(
     /** Brutus's records across the server, his scoreboard's global column. */
     val brutusRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.FILE_NAME))
 
+    /** Demonic Brutus's, the scoreboard's Read (Demonic). */
+    val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
     /** Pet cats out following their players; see [Cats]. */
     val cats = Cats(this)
 
@@ -854,8 +856,10 @@ class World(
         placeOf = ::deathPlace,
         fell = {
             archiveRaids.fell(it)
-            // Demonic Brutus's deaths aren't Brutus's: his scoreboard page comes with step 7.
-            if (brutusPens.runOf(it)?.demonic == false) osrsps.game.content.BrutusScoreboard.died(this, it)
+            brutusPens.runOf(it)?.let { run ->
+                osrsps.game.content.BrutusScoreboard.died(this, it, run.demonic)
+                if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
+            }
         },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
