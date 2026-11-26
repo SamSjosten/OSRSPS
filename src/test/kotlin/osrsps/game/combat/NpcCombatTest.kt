@@ -139,6 +139,7 @@ class NpcCombatTest {
             "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
             "bdrag_attack" to 25, "bdrag_block" to 26, "bdrag_death" to 28,
             "giant_update_fire_attack" to 4666, "giant_update_fire_defend" to 4664, "giant_update_fire_death" to 4668,
+            "giant_attack" to 128, "giant_block" to 129, "giant_death" to 131,
         ),
     )
 
@@ -1232,6 +1233,16 @@ class NpcCombatTest {
             mapOf("red_dragon" to 25, "bronze_dragon" to 25, "iron_dragon" to 25, "steel_dragon" to 25, "firegiant" to 0),
             listOf("red_dragon", "bronze_dragon", "iron_dragon", "steel_dragon", "firegiant").associateWith { def(it).xpBonusTenths },
         )
+    }
+
+    @Test
+    fun `the jungle's jogres have the Wiki's speed, hit and respawn, come for the player, and are weak to earth`() {
+        val jogre = NpcType(2094, "Jogre", internalName = "jogre", stats = NpcStats(strength = 43))
+        val types = NpcTypes.of(jogre)
+        val def = NpcCombat.load(types, seqs)[jogre]!!
+        assertEquals(listOf(6, 7, 30), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertTrue(def.aggression != null)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def.weakness)
     }
 
     @Test

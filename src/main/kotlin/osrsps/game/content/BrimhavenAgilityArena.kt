@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.client.HintArrow
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.PlayerEffects
 import osrsps.game.Skill
@@ -11,6 +12,9 @@ import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
+import osrsps.game.shop.OmnishopCurrency
+import osrsps.game.shop.OmnishopOwner
+import osrsps.game.shop.OmnishopStock
 import osrsps.game.shop.ShopScreen
 import osrsps.game.skill.Agility
 import osrsps.game.skill.SuccessRoll
@@ -108,7 +112,9 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser; Spinning bl
  * - **The ticket dispensers** (3608, and 3581 with darts): one of the 24 has the arrow, and it moves every minute (100
  *   ticks) to another at random. A tag of the arrowed one gives 30 Agility XP for every 10 Agility levels (boosts and
  *   drains count, at most 300), an Agility arena ticket and a Brimhaven voucher, once until the arrow moves.
- * - **Pirate Jackie the Fruit** (5516, shown as 7650 or 7651) talks.
+ * - **Pirate Jackie the Fruit** (5516) talks, and her Trade, or her talk's trade-in, opens the **Agility Arena Store**
+ *   (step K3.4c): the cache's omnishop row 583, a ticket for 345 Agility XP, and vouchers for noted toadflax and
+ *   snapdragon, the Pirate's hook and amylase ([AgilityArenaStore]).
  * - **The obstacles** (step K3.4b) are agility.json's `arena_` entries; a fall lands in the pit, whose climbing ropes
  *   (3610) climb back up to the same tile on the platforms. **The planks** are rigged: of each set of three, the smooth
  *   one holds and the broken ones break under anyone below 99 Agility (the Wiki's Plank page), and the smooth one moves
@@ -117,15 +123,15 @@ object AgilityArenaLines : Lines("agility_arena", "Ticket dispenser; Spinning bl
  *   a pressure pad (3585, level 20, 26 XP, none for a third in a row within 8 ticks) or the spinning blades (3580,
  *   level 40, 28 XP, the Wiki's 153/256 to 255/256) jumps it ([AgilityArena.stepped]); a failure deals HP * 5 / 100 + 2.
  *
- * Inferred: the arrow is the client's tile hint arrow; the ladders' landing tiles are the sides the other ladder faces, and their climbs the usual ladder anims and wait;
+ * Inferred: the arrow is the client's tile hint arrow; the talk's trade-in ending in the store; the ladders' landing tiles are the sides the other ladder faces, and their climbs the usual ladder anims and wait;
  * his Pay option takes the fee with the Wiki's message and no talk, and refuses with his talk's line; "initial" in the
  * transcript is back to the menu. Guessed: the hint arrow's height; that the arrow only draws its next dispenser once
  * someone is in the arena to see it; that a ticket and voucher with no room drop at the player's feet; the parrot's chathead (the
  * Eadgar parrot, 4768) and the chathead faces. Guessed: the smooth plank drawn afresh each time the arrow moves
  * (the Wiki: every minute), the climbing ropes' anim and wait. Guessed: the traps' anims and jump, the spikes' and pads' success pairs, a failure putting the player back where
  * they came from, and a trap below its level always failed. Left out: the blades (3567-3569, timed) and the darts
- * (their Agility drain); a broken plank's extra tick at 99; the Agility Arena Store behind
- * Jackie's trade-in and her Trade option (step K3.4c); the diary talk and the elite diary's double tickets (no diaries
+ * (their Agility drain); a broken plank's extra tick at 99; the store's graceful recolour and Karamja gloves' tenth
+ * more XP a ticket; the diary talk and the elite diary's double tickets (no diaries
  * yet); the "Tagged a Ticket!" jingle (its id isn't known here); the minute's wait to re-enter after logging out; the
  * Brimhaven Agility worlds' first-tag shout; the clue step.
  */
@@ -222,6 +228,14 @@ object BrimhavenAgilityArena {
 
     /** The trap at [x], [z] on the platforms, or null. */
     fun trapAt(x: Int, z: Int): Trap? = Trap.entries.firstOrNull { (x to z) in it.tiles }
+    /** Pirate Jackie the Fruit's Trade: the Agility Arena Store, omnishop row 583 (the 242 cache). */
+    const val TRADE = 3
+    const val STORE = 583
+
+    /** The store's entries that aren't items: 345 Agility XP a ticket (row 3538) and the graceful recolour (row 3541). */
+    const val STORE_XP = 29484
+    const val STORE_GRACEFUL_RECOLOUR = 29485
+    const val TICKET_XP_TENTHS = 3_450
 
     /** Agility XP in tenths for a tag at [level]: 30 for every 10 levels, at most 300. */
     fun tagTenths(level: Int): Int = minOf(level, 100) / 10 * 300
@@ -335,10 +349,12 @@ class AgilityArena(private val world: World) {
         if (!success) {
             player.anim(trap.failAnim)
             val damage = player.skills.currentLevel(Skill.HITPOINTS) * 5 / 100 + 2
+            val x = player.x
+            val z = player.z
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
             if (trap == BrimhavenAgilityArena.Trap.SPINNING_BLADES) player.message(world.textFor(player)[AgilityArenaLines.SPINNING_BLADES])
-            // A hit that kills leaves the player to the death script, not put back by this one.
-            if (player.dead) return@with
+            // A hit that kills leaves the player to the death script, and a ring of life's escape stands: not put back.
+            if (player.dead || player.x != x || player.z != z) return@with
             delay(1)
             world.teleport(player, before.first, before.second, player.level)
             return@with
@@ -424,6 +440,42 @@ class AgilityArena(private val world: World) {
                 player.message(text[AgilityArenaLines.TICKET])
             }
         }
+    }
+}
+
+/**
+ * The Agility Arena Store's books: its prices are in Agility arena tickets and Brimhaven vouchers, counted and taken
+ * from the backpack, and a ticket's entry gives 345 Agility XP instead of an item (the Wiki's Agility Arena Store page).
+ */
+internal object AgilityArenaStore : OmnishopOwner {
+    private val none = Inventory(-1, 0)
+
+    override fun balance(player: Player) = 0
+
+    override fun setBalance(player: Player, value: Int) {}
+
+    override fun stock(player: Player): Inventory = none
+
+    override fun balance(player: Player, currency: OmnishopCurrency): Int =
+        if (currency.obj < 0) 0 else player.inventory.count(currency.obj).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+    override fun setBalance(player: Player, currency: OmnishopCurrency, value: Int) {
+        var left = balance(player, currency) - value
+        for ((slot, held) in player.inventory.contents()) {
+            if (left <= 0) break
+            if (held.id == currency.obj) left -= player.inventory.remove(slot, left)
+        }
+    }
+
+    override fun delivers(stock: OmnishopStock): Boolean? = when (stock.obj) {
+        BrimhavenAgilityArena.STORE_XP -> true
+        // Not built: the recolour wants the six graceful pieces too, and the recoloured set.
+        BrimhavenAgilityArena.STORE_GRACEFUL_RECOLOUR -> false
+        else -> null
+    }
+
+    override fun deliver(player: Player, stock: OmnishopStock) {
+        player.skills.addTenths(Skill.AGILITY, BrimhavenAgilityArena.TICKET_XP_TENTHS)
     }
 }
 
@@ -547,7 +599,8 @@ internal object AgilityArenaTalk {
     }
 
     /** Jackie's talk. */
-    suspend fun Dialogue.jackie() = with(JackieLines) {
+    /** Jackie's talk; the trade-in ends opening the store ([store]). */
+    suspend fun Dialogue.jackie(store: () -> Unit) = with(JackieLines) {
         chatNpc(ChatAnim.HAPPY, AHOY)
         while (true) {
             when (choice(WHAT_PLACE, WHAT_DO, TRADE_IN)) {
@@ -564,6 +617,7 @@ internal object AgilityArenaTalk {
                 else -> {
                     chatPlayer(ChatAnim.HAPPY, TRADE_IN)
                     chatNpc(ChatAnim.HAPPY, RIGHT_TACK)
+                    store()
                     return@with
                 }
             }
@@ -573,6 +627,11 @@ internal object AgilityArenaTalk {
 
 /** Client cycles (20 ms) in a 600 ms tick. */
 private const val CYCLES_PER_TICK = 30
+/** Opens the Agility Arena Store for [player]; nothing on a cache without it. */
+private fun openStore(world: World, player: Player) {
+    val shop = world.omnishops[BrimhavenAgilityArena.STORE] ?: return logger.warn { "No omnishop ${BrimhavenAgilityArena.STORE} in the cache" }
+    world.omnishopScreen.open(player, shop, AgilityArenaStore)
+}
 
 fun registerBrimhavenAgilityArena(world: World) {
     val arena = world.agilityArena
@@ -593,8 +652,9 @@ fun registerBrimhavenAgilityArena(world: World) {
         }
         for (jackie in JACKIE_SHOWN) {
             world.handlers.onNpc(jackie, TALK_TO) { op ->
-                world.dialogues.start(this, op.npc) { with(AgilityArenaTalk) { jackie() } }
+                world.dialogues.start(this, op.npc) { with(AgilityArenaTalk) { jackie { openStore(world, player) } } }
             }
+            world.handlers.onNpc(jackie, TRADE) { openStore(world, player) }
         }
         world.handlers.onLoc(LADDER_DOWN, CLIMB) {
             arriveDelay()

@@ -205,6 +205,7 @@ import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
+import osrsps.game.content.registerCairnIsle
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -853,7 +854,8 @@ class World(
         placeOf = ::deathPlace,
         fell = {
             archiveRaids.fell(it)
-            if (brutusPens.runOf(it) != null) osrsps.game.content.BrutusScoreboard.died(this, it)
+            // Demonic Brutus's deaths aren't Brutus's: his scoreboard page comes with step 7.
+            if (brutusPens.runOf(it)?.demonic == false) osrsps.game.content.BrutusScoreboard.died(this, it)
         },
         takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
@@ -1370,6 +1372,7 @@ class World(
         registerBrimhavenTown(this)
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
+        registerCairnIsle(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1384,6 +1387,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerBrutus(this, brutusPens)
+        osrsps.game.content.registerDemonicBrutus(this, brutusPens)
         osrsps.game.content.registerBrutusFight(this)
         osrsps.game.content.registerBrutusScoreboard(this)
         osrsps.game.content.registerCowbellAmulet(this)
