@@ -14,6 +14,7 @@ import osrsps.game.script.ScriptContext
 import osrsps.game.shop.ShopScreen
 import osrsps.game.skill.Agility
 import osrsps.game.skill.SuccessRoll
+import osrsps.map.Tile
 import kotlin.math.sign
 
 private val logger = KotlinLogging.logger {}
@@ -205,8 +206,9 @@ object BrimhavenAgilityArena {
         FLOOR_SPIKES(20, 240, 150 to 255, 1603, 1113, listOf(2761 to 9573, 2761 to 9574, 2772 to 9551, 2772 to 9552, 2799 to 9568, 2800 to 9568)),
         // Guessed pair.
         PRESSURE_PAD(20, 260, 150 to 255, 1115, 1113, listOf(2772 to 9584, 2772 to 9585, 2799 to 9557, 2800 to 9557, 2799 to 9579, 2800 to 9579)),
-        // The Wiki's success chart: 153/256 at 40 to 255/256 at 99.
-        SPINNING_BLADES(40, 280, 153 to 255, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
+        // The Wiki's success chart, 153/256 at 40 to 255/256 at 99, as SuccessRoll's low/high: (1 + 85) at 1 Agility,
+        // (1 + 254) at 99, which gives 1 + round((85 * 59 + 254 * 39) / 98) = 153 at 40.
+        SPINNING_BLADES(40, 280, 85 to 254, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
     }
 
     /** The floor spikes never fail from this level. */
@@ -296,22 +298,26 @@ class AgilityArena(private val world: World) {
     private val pads = HashMap<String, PadStreak>()
 
     /**
-     * A step from [fromX], [fromZ] in the arena: onto a floor trap (or over one, a run's first tile), the player jumps
-     * it, landing on the far side in the way they were going. A failure deals the arena's HP * 5 / 100 + 2 and puts
-     * them back where they came from.
+     * A player's movement in the arena, [trail] being the tiles they stood on this tick: onto a floor trap (either step
+     * of a run, in the way that step went), the player jumps it, landing on the far side. A failure deals the arena's
+     * HP * 5 / 100 + 2 and puts them back on the tile before the trap.
      */
-    fun stepped(player: Player, fromX: Int, fromZ: Int) {
-        if (player.level != 3 || !BrimhavenAgilityArena.inArena(player.x, player.z) || player.scripts.delayed) return
-        val dx = (player.x - fromX).sign
-        val dz = (player.z - fromZ).sign
-        if (dx == 0 && dz == 0) return
-        val first = fromX + dx to fromZ + dz
-        val (tile, trap) = listOf(first, player.x to player.z).firstNotNullOfOrNull { tile -> BrimhavenAgilityArena.trapAt(tile.first, tile.second)?.let { tile to it } } ?: return
-        var end = tile
-        while (BrimhavenAgilityArena.trapAt(end.first + dx, end.second + dz) == trap) end = end.first + dx to end.second + dz
-        val landing = end.first + dx to end.second + dz
-        val before = tile.first - dx to tile.second - dz
-        world.scripts.start(player) { jump(this, trap, landing, before) }
+    fun stepped(player: Player, trail: List<Tile>) {
+        if (player.level != 3 || player.scripts.delayed) return
+        for (i in 1 until trail.size) {
+            val to = trail[i]
+            if (!BrimhavenAgilityArena.inArena(to.x, to.z)) continue
+            val trap = BrimhavenAgilityArena.trapAt(to.x, to.z) ?: continue
+            val dx = (to.x - trail[i - 1].x).sign
+            val dz = (to.z - trail[i - 1].z).sign
+            if (dx == 0 && dz == 0) continue
+            var end = to.x to to.z
+            while (BrimhavenAgilityArena.trapAt(end.first + dx, end.second + dz) == trap) end = end.first + dx to end.second + dz
+            val landing = end.first + dx to end.second + dz
+            val before = to.x - dx to to.z - dz
+            world.scripts.start(player) { jump(this, trap, landing, before) }
+            return
+        }
     }
 
     private suspend fun jump(context: ScriptContext, trap: BrimhavenAgilityArena.Trap, landing: Pair<Int, Int>, before: Pair<Int, Int>) = with(context) {
@@ -327,6 +333,8 @@ class AgilityArena(private val world: World) {
             val damage = player.skills.currentLevel(Skill.HITPOINTS) * 5 / 100 + 2
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
             if (trap == BrimhavenAgilityArena.Trap.SPINNING_BLADES) player.message(world.textFor(player)[AgilityArenaLines.SPINNING_BLADES])
+            // A hit that kills leaves the player to the death script, not put back by this one.
+            if (player.dead) return@with
             delay(1)
             world.teleport(player, before.first, before.second, player.level)
             return@with

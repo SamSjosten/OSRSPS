@@ -48,6 +48,7 @@ class Movement(private val collision: CollisionMap) {
     fun process(player: Player): MoveResult {
         // A dead player goes nowhere, even partway along an obstacle.
         if (player.dead) player.forcedSteps.clear()
+        player.stepTrail.clear()
         // Counted down by the world at the tick's start, so the walk and the attack delay end on the same tick.
         val weary = player.wearyTicks > 0
         if (player.forcedSteps.isNotEmpty()) {
@@ -61,6 +62,8 @@ class Movement(private val collision: CollisionMap) {
             // One tile at most, so a step can't carry the player off along a gap in the list.
             player.x += (to.x - player.x).sign
             player.z += (to.z - player.z).sign
+            player.stepTrail += player.lastStepFrom!!
+            player.stepTrail += Tile(player.x, player.z)
             updateEnergy(player, MoveResult.WALKED)
             return MoveResult.WALKED
         }
@@ -91,8 +94,10 @@ class Movement(private val collision: CollisionMap) {
             return false
         }
         player.lastStepFrom = Tile(player.x, player.z)
+        if (player.stepTrail.isEmpty()) player.stepTrail += player.lastStepFrom!!
         player.x += dx
         player.z += dz
+        player.stepTrail += Tile(player.x, player.z)
         if (player.x == target.x && player.z == target.z) player.waypoints.removeFirst()
         return true
     }
