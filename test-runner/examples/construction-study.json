@@ -1,0 +1,272 @@
+{
+ "name": "Construction step CON7a: a study added off the garden takes the oak telescope (121 XP) and crystal ball (280); Observe shows the next shooting star, and a staff of air used on the crystal ball becomes a staff of fire, while a battlestaff is refused (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 44",
+   "expectMessage": "44",
+   "comment": "the study needs 40, the crystal ball 42, the oak telescope 44"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 50000",
+   "expectMessage": "50,000",
+   "comment": "the study's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 25,
+   "comment": "the study's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 2",
+   "expectMessage": "Oak plank",
+   "comment": "the oak telescope's 2"
+  },
+  {
+   "step": "command",
+   "text": "::item 1775 1",
+   "expectMessage": "Molten glass"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 3",
+   "expectMessage": "Teak plank",
+   "comment": "the crystal ball's 3"
+  },
+  {
+   "step": "command",
+   "text": "::item 567 1",
+   "expectMessage": "Unpowered orb"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15424,
+   "option": "Build",
+   "comment": "the telescope space (poh_study_6)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the oak telescope"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 55770,
+   "timeoutMs": 5000,
+   "comment": "level 44's XP and the telescope's 121"
+  },
+  {
+   "step": "locOption",
+   "locId": 15422,
+   "option": "Build",
+   "comment": "the crystal ball space (poh_study_4)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the crystal ball"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 56050,
+   "timeoutMs": 5000,
+   "comment": "and the crystal ball's 280"
+  },
+  {
+   "step": "locOption",
+   "locId": 13656,
+   "option": "Observe"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "shooting_stars.telescope",
+   "timeoutMs": 10000,
+   "comment": "what the telescope shows of the next star"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 1381 1",
+   "expectMessage": "Staff of air"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Staff of air",
+   "locId": 13659,
+   "comment": "an elemental staff on the crystal ball"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.crystal_ball_fire]"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Staff of fire",
+   "count": 1,
+   "timeoutMs": 5000,
+   "comment": "changed, free for a basic staff"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Staff of air",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::item 1397 1",
+   "expectMessage": "Air battlestaff"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Air battlestaff",
+   "locId": 13659,
+   "comment": "a battlestaff needs the elemental sphere"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.crystal_ball_staff]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
