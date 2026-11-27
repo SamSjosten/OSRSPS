@@ -175,6 +175,8 @@ class Deaths(
     private val saveNow: (Player) -> Boolean = { true },
     /** A PvP death's lost Wilderness lairs' fee, in coins for the killer ([osrsps.game.content.WildernessLairFee.forfeit]); 0 for none. */
     private val forfeit: (Player) -> Int = { 0 },
+    /** A death with no player killer, where the player fell: a Revenant Caves death takes the fee ([osrsps.game.content.RevenantCaves.lose]). */
+    private val diedUnkilled: (Player) -> Unit = {},
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -281,6 +283,8 @@ class Deaths(
         if (killer != null) {
             val fee = forfeit(player)
             if (fee > 0) forKiller += InvObj(COINS, fee)
+        } else if (!keep) {
+            diedUnkilled(player)
         }
         if (buried.isNotEmpty()) bury(player, buried, place)
         val fellX = player.x

@@ -1,0 +1,26 @@
+{
+  "name": "Wilderness step W5.1: the Revenant Caves' level 17 cavern (Enter paying the 100,000-coin fee from the backpack), the southern stairs out to the level 17 trapdoor, then the level 26 crevice back in with no menu, the fee still paid (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 17 outside, the caves 17 to 40"},
+    {"step": "command", "text": "::varp revenant_fee_paid 0", "comment": "the fee back to unpaid, so its menu shows every run"},
+    {"step": "command", "text": "::item 995 100000", "comment": "the fee in the backpack"},
+    {"step": "command", "text": "::tele 3074 3653 0", "expectMessage": "Teleported to 3074, 3653, 0", "comment": "south of the cavern at 3073,3654"},
+    {"step": "locOption", "locId": 31555, "option": "Enter", "x": 3073, "y": 3654},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[revenant_caves.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3197, "y": 10056, "plane": 0},
+    {"step": "command", "text": "::tele 3217 10058 0", "expectMessage": "Teleported to 3217, 10058, 0", "comment": "beside the southern stairs at 3218,10058"},
+    {"step": "locOption", "locId": 31558, "option": "Climb-up", "x": 3218, "y": 10058},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3102, "y": 3655, "plane": 0},
+    {"step": "command", "text": "::tele 3066 3741 0", "expectMessage": "Teleported to 3066, 3741, 0", "comment": "west of the crevice at 3067,3740"},
+    {"step": "locOption", "locId": 40386, "option": "Jump-Down", "x": 3067, "y": 3740},
+    {"step": "waitTicks", "ticks": 4},
+    {"step": "assertLocation", "x": 3187, "y": 10127, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

@@ -426,6 +426,13 @@ class Player(
     var launchedAtNpc: Npc? = null
     var launchedAtNpcTick: Long = -1
 
+    /**
+     * The tick a singles-plus PvP attack last ended their monster fight ([osrsps.game.combat.MeleeCombat.leaveNpcFight]),
+     * -1 for never: an attack on the monster launched before it still lands while their PJ timer runs, without starting
+     * that fight again. Not saved.
+     */
+    var npcFightLeftTick: Long = -1
+
     /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
     val tolerance = osrsps.game.combat.Tolerance()
 
