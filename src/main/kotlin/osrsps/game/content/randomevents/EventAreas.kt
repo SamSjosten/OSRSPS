@@ -48,10 +48,10 @@ class EventAreas(private val world: World) {
 
     /**
      * Takes [player] to [event]'s place: the [widthZones] by [heightZones] zones from [fromX], [fromZ] (zone-aligned),
-     * landing on [arrive] (real-map coordinates). Returns the stay, or null, leaving them where they are, when the
-     * dynamic area has no room or the event isn't allowed where they stand now ([RandomEvents.allowedAt]).
+     * landing on [arrive] (real-map coordinates) on [arriveLevel]. Returns the stay, or null, leaving them where they
+     * are, when the dynamic area has no room or the event isn't allowed where they stand now ([RandomEvents.allowedAt]).
      */
-    fun takeAway(player: Player, event: RandomEvent, fromX: Int, fromZ: Int, widthZones: Int, heightZones: Int, arrive: Tile): Away? {
+    fun takeAway(player: Player, event: RandomEvent, fromX: Int, fromZ: Int, widthZones: Int, heightZones: Int, arrive: Tile, arriveLevel: Int = 0): Away? {
         require(fromX % 8 == 0 && fromZ % 8 == 0) { "${event.key}'s place isn't zone-aligned" }
         // Checked again as they say yes: a fight or Tele Block that began during the talk keeps them here (R50).
         if (!world.randomEvents.allowedAt(player, event)) return null
@@ -61,7 +61,7 @@ class EventAreas(private val world: World) {
         val away = Away(player.saveKey, event, instance, fromX, fromZ, Tile(player.x, player.z), player.level)
         stays[instance.id] = away
         val to = away.inside(arrive.x, arrive.z)
-        world.teleport(player, to.x, to.z, 0)
+        world.teleport(player, to.x, to.z, arriveLevel)
         world.randomEvents.taken(player)
         return away
     }

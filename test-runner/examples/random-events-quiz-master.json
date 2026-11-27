@@ -1,0 +1,29 @@
+{
+  "name": "Random events: the Quiz Master, his invitation, the studio and the odd-one-out window",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "command", "text": "::randomevent quiz_master", "expectMessage": "Started random event quiz_master"},
+    {"step": "npcOption", "npcId": 6755, "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Quiz Master", "contains": "[quiz_master.invite", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[quiz_master.yes]"},
+    {"step": "assertDialogue", "contains": "[quiz_master.yes]"},
+    {"step": "continueDialogue"},
+    {"comment": "The studio: look that the player sits in the black chair under a spotlight, facing the Quiz Master.", "step": "assertDialogue", "speaker": "Quiz Master", "contains": "[quiz_master.welcome]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Quiz Master", "contains": "[quiz_master.odd_one_out]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Quiz Master", "contains": "[quiz_master.contestant"},
+    {"step": "continueDialogue"},
+    {"comment": "The question: look that the chatbox says Pick the odd one out. over three spinning items, two of one kind and one of another, each with Select. Answering, the prizes and the mystery box are the headless test's part.", "step": "assertInterface", "interfaceId": 191, "timeoutMs": 20000},
+    {"step": "waitTicks", "ticks": 5},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000}
+  ]
+}

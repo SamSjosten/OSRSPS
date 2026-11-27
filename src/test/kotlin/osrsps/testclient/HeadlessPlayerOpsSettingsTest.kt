@@ -40,6 +40,23 @@ class HeadlessPlayerOpsSettingsTest {
     }
 
     @Test
+    fun `a toggle that sends the menu again keeps an option given in slot 5`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("Trade with at login") { client.playerOps().takeIf { it[PlayerOps.TRADE] == "Trade with" } }
+                val bob = server.world.playerNamed("bob")!!
+                val done = java.util.concurrent.CompletableFuture<Unit>()
+                server.world.npcScripts.later(1) { bob.slot5Op = SLOT_5_TEXT; done.complete(Unit) }
+                done.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                open(client)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
+                client.await("Trade with gone") { Unit.takeIf { PlayerOps.TRADE in client.playerOps() && client.playerOps()[PlayerOps.TRADE] == null } }
+                assertEquals(SLOT_5_TEXT, client.playerOps()[PlayerOps.SLOT_5])
+            }
+        }
+    }
+
+    @Test
     fun `the toggles take Trade with and Report off the menu and put them back, and a hidden one stays hidden after a relog`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
@@ -109,6 +126,7 @@ class HeadlessPlayerOpsSettingsTest {
     }
 
     private companion object {
+        const val SLOT_5_TEXT = "op5"
         /** tradeoption_disabled is bit 29 of varp 2903 (VarbitType(2903, 29, 29)). */
         const val TRADE_VARP = 2903
         const val TRADE_BIT = 29

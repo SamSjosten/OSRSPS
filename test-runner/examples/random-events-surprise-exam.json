@@ -1,0 +1,31 @@
+{
+  "name": "Random events: the Surprise Exam, the dunce's invitation, Mr. Mordaut's welcome and the what-comes-next window",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "command", "text": "::randomevent surprise_exam", "expectMessage": "Started random event surprise_exam"},
+    {"step": "npcOption", "npcId": 6749, "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Dunce", "contains": "[surprise_exam.invite", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[surprise_exam.sure]"},
+    {"step": "assertDialogue", "contains": "[surprise_exam.sure]"},
+    {"step": "continueDialogue"},
+    {"comment": "The classroom: look at Mr. Mordaut at his desk, the dunce on his stool in the corner, and the four doors with their shapes.", "step": "assertDialogue", "speaker": "Mr. Mordaut", "contains": "[surprise_exam.slacking", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Mr. Mordaut", "contains": "[surprise_exam.two_types]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Mr. Mordaut", "contains": "[surprise_exam.fifteen_cards]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "speaker": "Mr. Mordaut", "contains": "[surprise_exam.pick_next]"},
+    {"step": "continueDialogue"},
+    {"comment": "The window: look that the blackboard shows three spinning objects with arrows, a question mark and What comes next?, and four objects below to pick from, one of them like the three (the themes are a guess: fish, food, drinks and headgear). Answering, passing, failing and the book are the headless test's part.", "step": "assertInterface", "interfaceId": 103, "timeoutMs": 20000},
+    {"step": "waitTicks", "ticks": 5},
+    {"comment": "Out by a door, before finishing: home with nothing.", "step": "locOption", "locId": 9316, "option": "Open", "timeoutMs": 20000},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000}
+  ]
+}

@@ -636,7 +636,7 @@ class HeadlessClient private constructor(
         p1(trade)
     }
 
-    /** Option [op] on player [index]: 2 Attack (in the Wilderness), 3 Follow, 4 Trade with (and a trade request's Accept trade), 8 Report. */
+    /** Option [op] on player [index]: 2 Attack (in the Wilderness), 3 Follow, 4 Trade with (and a trade request's Accept trade), 5 the rat pits' Challenge, 8 Report. */
     fun playerOp(index: Int, op: Int, ctrl: Boolean = false) {
         val key = if (ctrl) 1 else 0
         when (op) {
@@ -644,6 +644,7 @@ class HeadlessClient private constructor(
             2 -> send(GameClientProt.OPPLAYER2) { p1Alt2(key); p2(index) }
             3 -> send(GameClientProt.OPPLAYER3) { p2Alt2(index); p1(key) }
             4 -> send(GameClientProt.OPPLAYER4) { p1Alt1(key); p2(index) }
+            5 -> send(GameClientProt.OPPLAYER5) { p1Alt3(key); p2Alt2(index) }
             8 -> send(GameClientProt.OPPLAYER8) { p2Alt2(index); p1Alt3(key) }
             else -> throw IllegalArgumentException("No player op $op here")
         }

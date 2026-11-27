@@ -267,9 +267,11 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         return true
     }
 
-    /** Whether [player] may be taken away: not in combat, not Tele Blocked and not jailed in Shantay's cell. */
+    /** Whether [player] may be taken away: not in combat, not Tele Blocked, not jailed in Shantay's cell nor a pillory's. */
     private fun freeToLeave(player: Player): Boolean =
-        !world.inCombat(player) && player.teleblockTicks <= 0 && !(player.charges[ShantayPass.JAILED] != 0 && ShantayPass.inCell(player))
+        !world.inCombat(player) && player.teleblockTicks <= 0 && !(player.charges[ShantayPass.JAILED] != 0 && ShantayPass.inCell(player)) &&
+            // Nor held in a pillory's cage: an event's way back would drop them in it free (exploit review R63C-2).
+            !Pillory.held(player)
 
     /** Ends [player]'s event NPC, if one is out, without a word: a test setup starting or being put back. */
     fun end(player: Player) {
@@ -497,7 +499,7 @@ fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
         FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze, Pillory,
-        Pinball,
+        Pinball, QuizMaster, SurpriseExam,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -514,5 +516,7 @@ fun registerRandomEvents(world: World) {
     Maze.register(world)
     Pillory.register(world)
     Pinball.register(world)
+    QuizMaster.register(world)
+    SurpriseExam.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }

@@ -29,7 +29,7 @@ import osrsps.map.LocShape
  * click.
  */
 class HeadlessDiaryPerksTest {
-    private val barrel = ZoneLoc(ZaffBarrel.FULL, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3218, 0)
+    private val barrel = ZoneLoc(ZaffBarrel.MULTI, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3218, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objTypes = TeleportObjs.objTypes(
@@ -48,7 +48,8 @@ class HeadlessDiaryPerksTest {
             varTypes = VarTypes(6_000, DIARY_VARBITS + (Teleports.VARBIT_VARROCK_GE to VarbitType(3_000, 29, 29))),
             locTypes = LocTypes(
                 listOf(
-                    LocType(ZaffBarrel.FULL, "Barrel", ops = listOf("Claim-staves", null, null, null, null), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+                    // The map's multiloc, as live: the click comes with its id, not the full barrel's.
+                    LocType(ZaffBarrel.MULTI, collision = LocCollisionType(width = 1, length = 1, interactType = 0), multiloc = true),
                 ).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply { add(barrel) },
@@ -69,13 +70,13 @@ class HeadlessDiaryPerksTest {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.locOp(ZaffBarrel.FULL, barrel.x, barrel.z, 1)
+                client.locOp(ZaffBarrel.MULTI, barrel.x, barrel.z, 1)
                 client.await("the refusal") { client.messages().firstOrNull { it.text == "[zaff_barrel.not_for_you]" } }
 
                 client.done("diary complete varrock easy all")
                 client.command("item ${ZaffBarrel.COINS} 105000")
                 client.await("the coins") { Unit.takeIf { client.count(ZaffBarrel.COINS) == 105_000 } }
-                client.locOp(ZaffBarrel.FULL, barrel.x, barrel.z, 1)
+                client.locOp(ZaffBarrel.MULTI, barrel.x, barrel.z, 1)
                 client.awaitDialogue("the price") { it is DialogueView.Message && it.text == "[zaff_barrel.buy count=15 total=105,000]" }
                 client.continueDialogue()
                 client.awaitDialogue("yes or no") { it is DialogueView.Menu }
@@ -86,7 +87,7 @@ class HeadlessDiaryPerksTest {
                 // Bought today: the barrel does nothing more.
                 client.command("item ${ZaffBarrel.COINS} 105000")
                 client.await("more coins") { Unit.takeIf { client.count(ZaffBarrel.COINS) == 105_000 } }
-                client.locOp(ZaffBarrel.FULL, barrel.x, barrel.z, 1)
+                client.locOp(ZaffBarrel.MULTI, barrel.x, barrel.z, 1)
                 client.awaitTicks(3)
                 assertEquals(null, client.dialogueView)
                 assertEquals(15, client.count(ZaffBarrel.NOTED_BATTLESTAFF))
@@ -106,7 +107,7 @@ class HeadlessDiaryPerksTest {
                 val bob = server.world.playerNamed("bob")!!
                 bob.inventory.add(server.world.objTypes[ZaffBarrel.NOTED_BATTLESTAFF]!!, Int.MAX_VALUE - 10)
                 client.await("the stack") { Unit.takeIf { client.count(ZaffBarrel.NOTED_BATTLESTAFF) == Int.MAX_VALUE - 10 } }
-                client.locOp(ZaffBarrel.FULL, barrel.x, barrel.z, 1)
+                client.locOp(ZaffBarrel.MULTI, barrel.x, barrel.z, 1)
                 client.awaitDialogue("no space") { it is DialogueView.Message && it.text == "[zaff_barrel.need_space]" }
                 client.continueDialogue()
                 assertEquals(105_000, client.count(ZaffBarrel.COINS))
