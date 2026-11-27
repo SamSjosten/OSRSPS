@@ -287,8 +287,8 @@ object CorporealBeast {
         if (world.tick < fight.coreNext) return
         fight.coreNext = world.tick + if (core.poison > 0) CORE_POISONED_TICKS else CORE_TICKS
         for (player in beside) {
-            // A Retribution from one it kills can kill it mid-leech: no more from a dead core (Codex review on #1000).
-            if (core.dead || world.npcs[core.index] !== core) break
+            // A Retribution from one it kills can kill it or the beast mid-leech: no more once either is dead (Codex review on #1000).
+            if (core.dead || world.npcs[core.index] !== core || boss.dead || boss.hitpoints <= 0) break
             val dealt = world.meleeCombat.hitPlayer(player, core, roll(CORE_MIN, CORE_MAX), world.tick)
             if (!boss.dead) boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + dealt / 2)
             log("core leeches ${player.username} for $dealt")
