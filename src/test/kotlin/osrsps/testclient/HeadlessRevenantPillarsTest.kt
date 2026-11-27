@@ -107,6 +107,33 @@ class HeadlessRevenantPillarsTest {
         }
     }
 
+    @Test
+    fun `frozen or bound, no jump until 3 ticks of it are left, even from the start`(@TempDir dir: Path) {
+        server(dir, AgilityData.parse(text.replace(SUCCESS, "\"success\": [256, 256]"))).use { server ->
+            server.login("cid").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel agility 89")
+                client.await("level 89") { client.stat(AGILITY)?.takeIf { it.level == 89 } }
+                val easy = pillars[0]
+                client.teleTo(easy.a.first, easy.a.second)
+                val cid = server.world.playerNamed("cid")!!
+                // Codex review on #1012: on its start tile, the jump was a way out of a freeze.
+                cid.freezeTicks = 1_000
+                client.locOp(PILLAR, easy.x, easy.z, 1)
+                client.await("the refusal") { client.messages().firstOrNull { it.text == "[pvp.magical_force]" } }
+                client.awaitTicks(3)
+                assertEquals(easy.a.first to easy.a.second, client.position!!.let { it.x to it.z }, "still on the start")
+                cid.freezeTicks = 0
+                cid.rootedTicks = 1_000
+                client.locOp(PILLAR, easy.x, easy.z, 1)
+                client.await("the bound refusal") { client.messages().count { it.text == "[pvp.magical_force]" }.takeIf { it >= 2 } }
+                cid.rootedTicks = 0
+                cid.freezeTicks = 3
+                client.crossTo(easy, easy.b)
+            }
+        }
+    }
+
     private companion object {
         const val PILLAR = 31561
         const val AGILITY = 16

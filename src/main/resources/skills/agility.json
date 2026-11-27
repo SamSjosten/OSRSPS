@@ -20,7 +20,7 @@
     "Brimhaven Dungeon's shortcuts (Karamja step K3.3): locs and tiles from the 242 cache's map, levels and XP from the OSRS Wiki's pages for each (read 2026-11-18): the western stepping stones (12 from the north, 7.5 XP), the pipe by the entrance (22 toward the moss giants, 8.5 XP), the log balance (30 toward the red dragons, 10 XP; its tiles are bridged level-1 tiles the player walks on level 0), the pipe to the black demons (34 from the red dragons, 10 XP), the eastern stepping stones to and from the island (56 toward the island either way, no XP) and the vine up to the baby green dragons (87 both ways, no XP). Each is free the other way (the route's own level 1), but the vine. Inferred from the map: each side's tile and the stones' middle tiles. Guessed until recorded: the animations by their cache names (as the Gnome Stronghold's pipe and log, the stepping-stone jump, a ladder climb for the vine), every timing, the vine's top and bottom tiles, the western stones' failure (the Wiki says they fail rarely; the Champions' Guild stone's 225-255 chance, its 1 to 3 damage and a fall back to the start), and the level messages, which the Wiki doesn't give.",
     "The Brimhaven Agility Arena's obstacles (Karamja step K3.4b): locs and tiles from the 242 cache's map (the platforms on level 3, the pit below them on level 0), levels, XP and speeds from the OSRS Wiki's Brimhaven Agility Arena page and each obstacle's page (read 2026-11-19): the balancing ropes, log balances, balancing ledges, monkey bars, pillars, rope swings and low walls from level 1, the hand holds from 20; a fall lands in the pit below the start and deals HP * 5 / 100 + 2 (Mod Ash, on the obstacle pages), the low wall's stumble none; the planks are rigged (the smooth one always holds, a broken one only at 99 Agility, BrimhavenAgilityArena.kt). Guessed: the success pairs (easy obstacles 200/256 to 255/256, the hand holds 160/256, the low wall 230/256: the Wiki gives only that each tier shares one and none fails at 99), every anim but the walks', the slides' cycles and the fall's tiles; the crossings walk at a tile a tick but the monkey bars, paced to the Wiki's 13 ticks across (a fall's 3 tiles over 6 ticks, GUESSED at the same pace).",
     "Cairn Isle's rock slide (Karamja step K4.1): loc 2231 and its six tiles from the 242 cache's map, climbed from in front (east or west) across to the promontory and its bridge; level 15, 1 XP and the fall's two hits of HP * 5 / 100 + 1 and its message from the OSRS Wiki's Rock slide (Cairn Isle) page (read 2026-11-19). The success pair from that page's Jagex-supported chart (171/256 at 1, 183/256 at 15, 254/256 at 99: low 170, high 253). Guessed: the climbing anim, and a fall leaving the player where they started.",
-    "Revenant Caves pillars (Wilderness step W5.1b): the five Jump-to pillars (loc 31561, one type for all) at their tiles from the 242 cache's map, each jumped 2 tiles onto the pillar and 2 off along its turn; levels 65, 75 and 89, XP 6.5, 7.5 and 8.9, failure XP 3.5, 3.8 and 4.5 (the Wiki marks these as unconfirmed) and 4 to 11 damage on a failure that still crosses, from the OSRS Wiki's Pillar (Revenant Caves) page (read 2026-11-15); which pillar is easy, medium or hard by its map on that page. GUESSED: the jump's animation and slide (the stepping stones'), the 150/256 to 255/256 cross chance. Not built: no jump while frozen or bound until 3 ticks before it ends."
+    "Revenant Caves pillars (Wilderness step W5.1b): the five Jump-to pillars (loc 31561, one type for all) at their tiles from the 242 cache's map, each jumped 2 tiles onto the pillar and 2 off along its turn; levels 65, 75 and 89, XP 6.5, 7.5 and 8.9, failure XP 3.5, 3.8 and 4.5 (the Wiki marks these as unconfirmed) and 4 to 11 damage on a failure that still crosses, from the OSRS Wiki's Pillar (Revenant Caves) page (read 2026-11-15); which pillar is easy, medium or hard by its map on that page. GUESSED: the jump's animation and slide (the stepping stones'), the 150/256 to 255/256 cross chance. No jump while frozen or bound until 3 ticks of it are left (the same page), with the words of a frozen player's other refusals."
   ],
   "obstacles": [
     {
@@ -2848,6 +2848,7 @@
     {
       "key": "revenant_caves_pillar_easy",
       "loc": 31561,
+      "frozenGraceTicks": 3,
       "option": "Jump-to",
       "level": 65,
       "xpTenths": 65,
@@ -2990,6 +2991,7 @@
     {
       "key": "revenant_caves_pillar_medium_south",
       "loc": 31561,
+      "frozenGraceTicks": 3,
       "option": "Jump-to",
       "level": 75,
       "xpTenths": 75,
@@ -3132,6 +3134,7 @@
     {
       "key": "revenant_caves_pillar_medium_north",
       "loc": 31561,
+      "frozenGraceTicks": 3,
       "option": "Jump-to",
       "level": 75,
       "xpTenths": 75,
@@ -3274,6 +3277,7 @@
     {
       "key": "revenant_caves_pillar_medium_west",
       "loc": 31561,
+      "frozenGraceTicks": 3,
       "option": "Jump-to",
       "level": 75,
       "xpTenths": 75,
@@ -3416,6 +3420,7 @@
     {
       "key": "revenant_caves_pillar_hard",
       "loc": 31561,
+      "frozenGraceTicks": 3,
       "option": "Jump-to",
       "level": 89,
       "xpTenths": 89,
