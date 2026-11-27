@@ -43,7 +43,7 @@ object PilloryGuardLines : Lines("pillory_guard", "Transcript:Pillory Guard") {
  * shapes in a random order; the small locks shown, one for each lock to undo, with a flash on each undone; which town
  * and cage (one at random, an empty cage first); the Unlock on the cage from inside opening the window again (the
  * window can be closed and nothing else is left to open it); that a player who logs out in a cage gets the window again
- * on logging in and is sent to Lumbridge when done (the way back isn't saved). Left out: the tramp and his rotten
+ * on logging in, their way back kept ([ARRESTED]). Left out: the tramp and his rotten
  * tomatoes, and other players pelting the prisoner.
  */
 object Pillory : RandomEvent("pillory", 380) {
@@ -77,6 +77,19 @@ object Pillory : RandomEvent("pillory", 380) {
         Triple(1454, 1, 4), Triple(985, 1, 1), Triple(987, 1, 1),
     )
     const val REWARD_ROLL = 120
+
+    /**
+     * Saved with the account while they are arrested: their way back, packed by [pack], so a relog keeps both the stay
+     * and where it ends (exploit review R63C-1 and C-3). 0, no charge, when they aren't arrested.
+     */
+    const val ARRESTED = "pillory_arrested"
+
+    private fun pack(tile: Tile, level: Int): Int = 1 + ((level shl 28) or (tile.x shl 14) or tile.z)
+
+    private fun unpack(packed: Int): Pair<Tile, Int> {
+        val v = packed - 1
+        return Tile((v shr 14) and 0x3FFF, v and 0x3FFF) to (v shr 28)
+    }
 
     /** Guessed: how soon after logging in a prisoner gets the window back. */
     const val LOGIN_OPEN_TICKS = 2
@@ -119,7 +132,10 @@ object Pillory : RandomEvent("pillory", 380) {
 
     /** [player] is being moved to [x], [z], [level]: out of the cages by any way, their stay is over. */
     fun moving(player: Player, x: Int, z: Int, level: Int) {
-        if (level != 0 || Tile(x, z) !in CELLS) stays.remove(player)
+        if (level != 0 || Tile(x, z) !in CELLS) {
+            stays.remove(player)
+            player.charges[ARRESTED] = 0
+        }
     }
 
     private fun lockUp(world: World, player: Player) {
@@ -131,6 +147,7 @@ object Pillory : RandomEvent("pillory", 380) {
         val cell = if (free.isNotEmpty()) free[world.random.nextInt(free.size)] else town[world.random.nextInt(town.size)]
         val stay = Stay(Tile(player.x, player.z), player.level)
         stays[player] = stay
+        player.charges[ARRESTED] = pack(stay.back, stay.backLevel)
         world.teleport(player, cell.x, cell.z, 0)
         newLock(world, stay)
         open(world, player, stay)
@@ -162,6 +179,8 @@ object Pillory : RandomEvent("pillory", 380) {
 
     /** Select on key [index] (0 to 2): right undoes a lock, wrong adds one and starts again. */
     fun select(world: World, player: Player, index: Int) {
+        // Only from inside a cage: walked out of one some way, the window does nothing (exploit review R63C-4).
+        if (!held(player)) return
         val stay = stayOf(player) ?: return
         if (stay.keys.getOrNull(index) == stay.shape) {
             stay.undone++
@@ -188,6 +207,7 @@ object Pillory : RandomEvent("pillory", 380) {
 
     private fun letOut(world: World, player: Player, stay: Stay) {
         stays.remove(player)
+        player.charges[ARRESTED] = 0
         world.interfaces.closeModals(player)
         val (x, z, level) = if (world.canStand(stay.back.x, stay.back.z, stay.backLevel)) Triple(stay.back.x, stay.back.z, stay.backLevel)
         else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
@@ -206,10 +226,19 @@ object Pillory : RandomEvent("pillory", 380) {
         world.message(player, osrsps.game.content.PilloryLines.UNLOCK)
     }
 
-    /** A player who logged out in a cage is still locked in. */
+    /**
+     * A player who logged out in a cage is still locked in, with the way back they had. Only an arrested one: anyone
+     * else on a cage tile gets no window and no reward (exploit review R63C-1).
+     */
     override fun loggedIn(world: World, player: Player) {
-        if (player.level != 0 || Tile(player.x, player.z) !in CELLS) return
-        val stay = stays.getOrPut(player) { Stay(Tile(World.SPAWN_X, World.SPAWN_Z), 0).also { newLock(world, it) } }
+        val packed = player.charges[ARRESTED]
+        if (packed == 0) return
+        if (player.level != 0 || Tile(player.x, player.z) !in CELLS) {
+            player.charges[ARRESTED] = 0
+            return
+        }
+        val (back, backLevel) = unpack(packed)
+        val stay = stays.getOrPut(player) { Stay(back, backLevel).also { newLock(world, it) } }
         // After the game frame is up, which login sends later in the same tick.
         world.npcScripts.later(LOGIN_OPEN_TICKS) { if (stays[player] === stay && player in world.onlinePlayers) open(world, player, stay) }
     }
