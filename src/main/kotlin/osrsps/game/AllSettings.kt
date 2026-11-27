@@ -459,7 +459,7 @@ class AllSettings(
         }
         flip(player, id)
         // Player Trade options and Player Report options: the menus change at once.
-        if (id == PLAYER_TRADE_OPTIONS || id == PLAYER_REPORT_OPTIONS) PlayerOps.send(player.vars, player.session::queue, attack = player.attackOp)
+        if (id == PLAYER_TRADE_OPTIONS || id == PLAYER_REPORT_OPTIONS) PlayerOps.send(player.vars, player.session::queue, attack = player.attackOp, slot5 = player.slot5Op)
     }
 
     private fun flip(player: Player, id: Int) {

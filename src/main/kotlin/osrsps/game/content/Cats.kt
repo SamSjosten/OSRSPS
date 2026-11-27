@@ -15,6 +15,7 @@ import osrsps.game.script.ScriptContext
 object CatLines : Lines("cat", "Transcript:Kitten, Transcript:Cat, Transcript:Overgrown cat, read 2026-11-19") {
     val ALREADY_FOLLOWER = line("already_follower", "dropping a pet with one out already; our own line")
     val NOT_YOURS = line("not_yours", "another player's cat's options; our own line")
+    val BUSY = line("busy", "a cat's options while it fights in the rat pits; our own line")
     val DROPPED = line("dropped", "overhead, a kitten or cat put down")
 
     // Talk-to: the menu and its questions.
@@ -74,6 +75,7 @@ object CatLines : Lines("cat", "Transcript:Kitten, Transcript:Cat, Transcript:Ov
     val SHOO_CAT = line("shoo_cat", "overhead, the player shooing")
     val MEOW_AWAY = line("meow_away", "overhead, the cat shooed, and one running away")
     val RUN_AWAY = line("run_away", "the message, a cat shooed or run away")
+    val PASSED_AWAY = line("passed_away", "the message, a cat dead in a fight (Cat page)")
 
     // Chase vermin.
     val NO_VERMIN = line("no_vermin", "Chase vermin with no rat near")
@@ -165,6 +167,8 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
     private class Out(val npc: Npc, var kind: Kind, var growthTicks: Int = 0) {
         /** The tick a Chase vermin run ends; until then the cat goes for the rat and doesn't follow. */
         var chasingUntil: Long = 0
+        /** Held by a game (the rat pits' fight): it stays where it is put, neither following nor growing. */
+        var held = false
     }
 
     private val out = HashMap<String, Out>()
@@ -295,6 +299,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             player.message(world.textFor(player)[CatLines.NOT_YOURS])
             return
         }
+        if (busy(player, mine)) return
         val type = world.objTypes[mine.kind.obj] ?: return
         if (player.inventory.add(type, 1) != 1) {
             player.message(world.textFor(player)[GameLines.NO_SPACE])
@@ -358,6 +363,10 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key }
             if (player == null) {
                 despawn(key)
+                return@later
+            }
+            if (mine.held) {
+                watch(key, npc)
                 return@later
             }
             if (npc.level != player.level || maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)) > CATCH_UP) {
@@ -449,11 +458,49 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         }
     }
 
+    // ---- Games ------------------------------------------------------------------------------------------------------
+
+    /** Takes [player]'s follower out of their hands for a game: it stops following and stays where the game puts it. */
+    fun hold(player: Player): Npc? {
+        val mine = out[player.saveKey] ?: return null
+        mine.held = true
+        world.npcs.stopFollowing(mine.npc)
+        // A Talk-to or Interact open on it now would keep it standing (an engaged NPC doesn't move) or shoo it mid-game.
+        world.scripts.interrupt(player)
+        world.npcs.release(mine.npc)
+        return mine.npc
+    }
+
+    /** Whether [mine] is held for a game, with the message: its options wait till the game gives it back. */
+    private fun busy(player: Player, mine: Out): Boolean {
+        if (!mine.held) return false
+        player.message(world.textFor(player)[CatLines.BUSY])
+        return true
+    }
+
+    /** Gives a held follower back: it follows again from where it stands. */
+    fun release(player: Player) {
+        val mine = out[player.saveKey] ?: return
+        mine.held = false
+        world.npcs.follow(mine.npc, player)
+    }
+
+    /** [cycles] more growth for [player]'s cat, as a won or lost fight gives; it grows up at its next cycle if due. */
+    fun addGrowth(player: Player, cycles: Int) = setGrowth(player, growth(player) + cycles)
+
+    /** [player]'s cat died in a fight: gone for good, with the message. */
+    fun passedAway(player: Player) {
+        player.message(world.textFor(player)[CatLines.PASSED_AWAY])
+        despawn(player)
+        setFollowerVarps(player, null, -1)
+        forget(player)
+    }
+
     // ---- Talk-to and Interact -----------------------------------------------------------------------------------
 
     private fun ScriptContext.mine(npc: Npc): Out? {
         val mine = out[player.saveKey]
-        if (mine?.npc === npc) return mine
+        if (mine?.npc === npc) return mine.takeUnless { busy(player, it) }
         player.message(world.textFor(player)[CatLines.NOT_YOURS])
         return null
     }
@@ -540,7 +587,10 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             } else {
                 listOf(CatLines.STROKE, CatLines.CHASE_VERMIN, CatLines.SHOO_AWAY)
             }
-            when (options[choice(*options.toTypedArray(), title = title) - 1]) {
+            val picked = options[choice(*options.toTypedArray(), title = title) - 1]
+            // Taken into a game while the menu was open: nothing to do with it now.
+            if (out[player.saveKey] !== mine || busy(player, mine)) return@start
+            when (picked) {
                 CatLines.STROKE -> stroke(mine)
                 CatLines.CHASE_VERMIN -> {
                     chase(this@interact, mine)
@@ -593,7 +643,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         }
         // The kitten's are player, kitten, player; the others' player, cat.
         pages.forEachIndexed { i, line -> if (i == 1) chatNpc(ChatAnim.SAD, line) else chatPlayer(ChatAnim.ANGRY, line) }
-        if (out[player.saveKey] !== mine) return
+        if (out[player.saveKey] !== mine || busy(player, mine)) return
         player.effects.say(text(CatLines.SHOO_CAT))
         mine.npc.effects.say(text(CatLines.MEOW_AWAY))
         runAway(player)

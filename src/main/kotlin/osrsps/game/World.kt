@@ -148,6 +148,8 @@ import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerCats
 import osrsps.game.content.Cats
+import osrsps.game.content.RatPits
+import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -553,6 +555,9 @@ class World(
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
     /** Pet cats out following their players; see [Cats]. */
     val cats = Cats(this, collision)
+
+    /** Varrock's rat pits under the manhole east of the city; see [RatPits]. */
+    val ratPits = RatPits(this, collision)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -1345,6 +1350,7 @@ class World(
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
         registerCats(this, cats)
+        registerRatPits(this, ratPits)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -2626,6 +2632,7 @@ class World(
         inferno.login(player)
         tearsOfGuthix.login(player)
         cats.login(player)
+        ratPits.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -2748,6 +2755,12 @@ class World(
             // nothing else here uses option 1 (Attack, in PvP areas, isn't built).
             val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
             clans.inviteOrAccept(player, target)
+            return
+        }
+        if (option == RatPits.CHALLENGE_OP && ratPits.inArea(player.x, player.z, player.level)) {
+            // The rat pits' "Challenge", set while the player is down there.
+            val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
+            ratPits.challenge(player, target)
             return
         }
         if (option == PlayerOps.ATTACK && player.attackOp) {
@@ -3948,6 +3961,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            ratPits.logout(player)
             cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
