@@ -218,6 +218,25 @@ class HeadlessCatsTest {
     }
 
     @Test
+    fun `Chase vermin leaves the Rat Pits' rats alone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 3222 3230 0")
+                client.await("away from the test rat") { client.position?.takeIf { it == Coord(3222, 3230, 0) } }
+                server.world.npcScripts.later(1) {
+                    server.world.spawnNpc(NpcSpawn(rat, 3224, 3230, source = osrsps.game.content.RatPits.RAT_SOURCE, respawns = false))
+                }
+                client.await("the pit rat out") { server.world.npcs.all.firstOrNull { it.spawn.source == osrsps.game.content.RatPits.RAT_SOURCE } }
+                client.commandReply("item $CAT_OBJ 1") { it.contains("Pet cat") }
+                client.drop(CAT_OBJ)
+                client.npcOp(client.npcIndex(CAT_NPC), Cats.CHASE)
+                client.message(CatLines.NO_VERMIN)
+            }
+        }
+    }
+
+    @Test
     fun `a reset puts back the cat that followed before the scenario, and a kitten from the scenario goes`(@TempDir dir: Path) {
         server(dir).use { server ->
             val cats = server.world.cats
@@ -230,8 +249,11 @@ class HeadlessCatsTest {
 
                 client.command("scenario bare")
                 client.await("at the scenario's tile") { client.position?.takeIf { it == Coord(3225, 3218, 0) } }
-                client.npcOp(client.npcIndex(CAT_NPC), Cats.PICK_UP)
-                client.await("the cat picked up") { if (cats.follower(cal) == null) Unit else null }
+                // The cat from before stays out of the scenario, so it can't be picked up there and come back twice
+                // (exploit review 64, R64A-1).
+                client.await("the cat gone") { if (server.world.npcs.all.none { it.type.id == CAT_NPC }) Unit else null }
+                assertNull(cats.follower(cal))
+                assertEquals(-1, cal.vars[Cats.FOLLOWER_OBJ])
                 client.commandReply("item $KITTEN_OBJ 1") { it.contains("Pet kitten") }
                 client.drop(KITTEN_OBJ)
                 client.await("the kitten following") { cats.follower(cal)?.takeIf { cats.followerKind(cal)?.stage == Cats.Stage.KITTEN } }

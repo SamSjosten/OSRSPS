@@ -2608,7 +2608,8 @@ class World(
         player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
-        PlayerOps.send(player.vars, player.session::queue)
+        // Challenge in the Rat Pits too (exploit review 64, R64A-3).
+        PlayerOps.send(player.vars, player.session::queue, slot5 = player.slot5Op)
         // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
         player.attackOp = false
         clans.resync(player)

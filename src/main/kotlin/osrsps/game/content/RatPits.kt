@@ -91,6 +91,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         var stage = Stage.BETTING
         val rats = ArrayList<Npc>()
         val ratHp = HashMap<Npc, Int>()
+        var rounds = 0
         fun sides() = listOf(a, b)
         fun of(player: Player) = if (a.player === player) a else b
         fun other(player: Player) = if (a.player === player) b else a
@@ -318,7 +319,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
     private fun spawnRat(match: Match, i: Int) {
         val type = world.npcTypes[RAT_TYPES[i % RAT_TYPES.size]] ?: return
         val (x, z) = RAT_TILES[i % RAT_TILES.size]
-        val rat = world.spawnNpc(NpcSpawn(type, x, z, 0, wander = 3, source = "rat pits", respawns = false)) ?: return
+        val rat = world.spawnNpc(NpcSpawn(type, x, z, 0, wander = 3, source = RAT_SOURCE, respawns = false)) ?: return
         match.rats += rat
         match.ratHp[rat] = type.stats.hitpoints
     }
@@ -336,6 +337,12 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
     /** Every [ATTACK_TICKS]: each cat swings at its nearest rat, and the rats beside a cat swing back. */
     private fun round(match: Match) {
         if (match.stage != Stage.FIGHT) return
+        // A match that can't finish (no rats left to kill, with the NPC table full) ends with the bets back, so the
+        // stakes aren't held for good (exploit review 64, R64A-2).
+        if (++match.rounds > MAX_ROUNDS) return end(match, null, refund = true)
+        match.rats.removeAll { world.npcs[it.index] !== it }
+        match.ratHp.keys.retainAll(match.rats.toSet())
+        for (i in match.rats.size until RATS) spawnRat(match, i)
         for (side in match.sides()) {
             if (side.fled || side.dead) continue
             val cat = side.cat ?: continue
@@ -471,7 +478,8 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
             world.cats.passedAway(p)
         } else if (side.cat != null) {
             world.cats.release(p)
-            world.cats.addGrowth(p, if (winner === side) WIN_GROWTH else LOSS_GROWTH)
+            // A draw grows neither cat (exploit review 64, R64A-8).
+            if (winner != null) world.cats.addGrowth(p, if (winner === side) WIN_GROWTH else LOSS_GROWTH)
         }
     }
 
@@ -484,6 +492,9 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
 
         /** The bet held while a match runs, by name in the player's saved [osrsps.game.Charges]. */
         const val STAKE = "rat_pits_stake"
+
+        /** The spawn source of the pit's rats, which a cat's Chase vermin leaves alone. */
+        const val RAT_SOURCE = "rat pits"
 
         /** Guessed: the player op slot for Challenge (Attack's is 2; 5 is free). */
         const val CHALLENGE_OP = osrsps.game.PlayerOps.SLOT_5
@@ -527,6 +538,8 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         const val KILLS_TO_WIN = 5
         const val ATTACK_TICKS = 4
         const val RATS = 3
+        /** Guessed: about ten minutes of rounds, after which the match is a draw. */
+        const val MAX_ROUNDS = 150
         const val FLEE_AT = 2
         const val CHALLENGE_TICKS = 100
         const val STRATEGY_TICKS = 50

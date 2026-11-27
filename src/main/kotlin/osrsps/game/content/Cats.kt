@@ -353,6 +353,26 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
     fun afterRestore(player: Player) = login(player)
 
     /**
+     * A scenario starting, after the snapshot: the follower out now goes and its vars are cleared, so it can't be picked
+     * up and traded during the scenario and then brought back again by `::reset` (exploit review 64, R64A-1).
+     */
+    fun startScenario(player: Player) {
+        despawn(player)
+        setFollowerVarps(player, null, -1)
+    }
+
+    /**
+     * No room in the world for [player]'s follower: rather than lose it, the cat goes back in the backpack (on the
+     * floor under them if that's full), its vars cleared (exploit review 64, R64A-5).
+     */
+    private fun noRoom(player: Player, kind: Kind) {
+        out.remove(player.saveKey)
+        setFollowerVarps(player, null, -1)
+        val type = world.objTypes[kind.obj] ?: return
+        world.groundObjs.give(player, type, 1)
+    }
+
+    /**
      * Each tick a follower is out: it keeps up with its player (put back beside them after a teleport or on another
      * level), a kitten's care runs down, and it grows.
      */
@@ -371,7 +391,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             }
             if (npc.level != player.level || maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)) > CATCH_UP) {
                 despawn(player)
-                spawn(player, mine.kind, mine.growthTicks) ?: return@later
+                spawn(player, mine.kind, mine.growthTicks) ?: return@later noRoom(player, mine.kind)
                 // The tick still counts for the cat put back beside them.
                 val moved = out[key] ?: return@later
                 if (moved.kind.stage == Stage.KITTEN && !tend(player, moved)) return@later
@@ -444,7 +464,8 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         val npc = mine.npc
         // A new type, so a new NPC where the old one stood.
         world.removeNpc(npc)
-        val grown = world.spawnNpc(NpcSpawn(type, npc.x, npc.z, npc.level, source = "${player.username}'s cat", respawns = false)) ?: return
+        val grown = world.spawnNpc(NpcSpawn(type, npc.x, npc.z, npc.level, source = "${player.username}'s cat", respawns = false))
+            ?: return noRoom(player, kind)
         out[player.saveKey] = Out(grown, kind)
         setFollowerVarps(player, grown, kind.obj)
         world.npcs.follow(grown, player)
@@ -664,7 +685,8 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         }
         val cat = mine.npc
         val rat = world.npcs.near(cat.x, cat.z, cat.level, VERMIN_RANGE)
-            .filter { it.type.name == RAT && !it.dead }
+            // Not the Rat Pits' rats, which belong to a match (exploit review 64, R64A-2).
+            .filter { it.type.name == RAT && !it.dead && it.spawn.source != RatPits.RAT_SOURCE }
             .minByOrNull { maxOf(kotlin.math.abs(it.x - cat.x), kotlin.math.abs(it.z - cat.z)) }
         if (rat == null) {
             player.message(text[CatLines.NO_VERMIN])
