@@ -91,6 +91,7 @@
     "NPCs and locs: random events step 18 (2026-11-19): Mr. Mordaut (5504), the dunce (5503 on his stool, 6749 the invitation, one examine for both) and the classroom doors (9316 to 9319, one examine in their infobox), from each page's infobox.",
     "Locs: Wilderness step W5.1 (2026-11-15): the Revenant Caves' ways in and out and the trapdoors they come out by, one per id, from the infobox of the page in wiki; W5.1b: the caves' pillars (one type for all five); W5.2: the eleven kinds of revenant; W5.3: the Emblem Trader.",
     "NPCs: random events step 19 (2026-11-19): the Evil Chicken in the Champions' Guild coop (6739), from its infobox.",
+    "The Killerwatt plane (post-quest step 15, KillerwattPlane.kt): the rift on Draynor Manor's top floor, the Portal Home back, both killerwatt forms and the storm clouds (the 242 cache, 2026-11-19).",
     "Locs and NPCs: Karamja (step K4.2b): the Cleanup's event creatures (the spider and tribesman under the wild ones' entries) and its gem rock (the 242 cache, 2026-11-19). None yet for the Gout Tuber Plant (9033), which has no Wiki text."
   ],
   "npcs": [
@@ -201,6 +202,8 @@
     {"npc": 409, "name": "Cave crawler"},
     {"npc": 421, "name": "Rockslug"},
     {"npc": 422, "name": "Rockslug"},
+    {"npc": 469, "name": "Killerwatt", "wiki": "Killerwatt page, infobox, its Attacking version"},
+    {"npc": 470, "name": "Killerwatt", "wiki": "Killerwatt page, infobox, its Idle version"},
     {"npc": 473, "name": "Ghost"},
     {"npc": 474, "name": "Ghost"},
     {"npc": 475, "name": "Hole in the wall", "wiki": "Wall beast page, infobox"},
@@ -209,6 +212,7 @@
     {"npc": 480, "name": "Cave slime"},
     {"npc": 481, "name": "Cave bug"},
     {"npc": 482, "name": "Cave bug larva"},
+    {"npc": 488, "name": "Storm Cloud", "wiki": "Storm cloud page, infobox"},
     {"npc": 500, "name": "Olivia"},
     {"npc": 505, "name": "Ghost"},
     {"npc": 506, "name": "Ghost"},
@@ -2311,6 +2315,8 @@
     {"loc": 11192, "name": "Rockslide"},
     {"loc": 11193, "name": "Rockslide"},
     {"loc": 11228, "name": "Crate", "wiki": "Crate (Cabin Fever) page, infobox"},
+    {"loc": 11355, "name": "Interdimensional rift", "also": [11354], "wiki": "Portal machine page, its Portal version (the map's multiloc, shown as 11354)"},
+    {"loc": 11356, "name": "Portal Home", "wiki": "Portal Home page, infobox"},
     {"loc": 11357, "name": "Portal machine"},
     {"loc": 11360, "name": "Tin rocks"},
     {"loc": 11361, "name": "Tin rocks"},
