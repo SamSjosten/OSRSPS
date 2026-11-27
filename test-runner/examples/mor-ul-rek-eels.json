@@ -25,6 +25,10 @@
     {"step": "command", "text": "::setlevel thieving 82", "expectMessage": "Thieving set to level 82"},
     {"step": "command", "text": "::tele 2521 5073 0", "expectMessage": "Teleported to 2521, 5073, 0", "comment": "between TzHaar-Hur-Rin's two counters"},
     {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::kill TzHaar-Ket", "expectMessage": "Killed TzHaar-Ket", "comment": "TzHaar-Ket who can wander into sight of the counters (spawns 2516,5072, 2519,5080 and 2510,5070, wander 5) catch the steal at random (Nov 27 nightly), so the nearest three go first; they respawn in 50 ticks"},
+    {"step": "command", "text": "::kill TzHaar-Ket", "expectMessage": "Killed TzHaar-Ket", "comment": "the next nearest"},
+    {"step": "command", "text": "::kill TzHaar-Ket", "expectMessage": "Killed TzHaar-Ket", "comment": "the third"},
+    {"step": "waitTicks", "ticks": 2},
     {"step": "locOption", "locId": 30279, "option": "Steal-from", "x": 2522, "y": 5075, "timeoutMs": 20000, "comment": "the ore counter (82 Thieving)"},
     {"step": "assertLoc", "locId": 30278, "x": 2522, "y": 5075, "timeoutMs": 10000, "comment": "emptied, so an ore was taken"},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

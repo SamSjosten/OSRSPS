@@ -58,6 +58,7 @@ import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerTaiBwoCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerRandomEventCommands
 import osrsps.game.content.registerXpLamp
@@ -149,6 +150,8 @@ import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerCats
 import osrsps.game.content.Cats
 import osrsps.game.content.RatPits
+import osrsps.game.content.KillerwattPlane
+import osrsps.game.content.registerKillerwattPlane
 import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
@@ -564,6 +567,9 @@ class World(
 
     /** Varrock's rat pits under the manhole east of the city; see [RatPits]. */
     val ratPits = RatPits(this, collision)
+
+    /** The Killerwatt plane through Professor Oddenstein's portal; see [KillerwattPlane]. */
+    val killerwattPlane = KillerwattPlane(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -1265,6 +1271,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerTaiBwoCommands()
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
@@ -1363,6 +1370,7 @@ class World(
         registerTearsOfGuthix(this, tearsOfGuthix)
         registerCats(this, cats)
         registerRatPits(this, ratPits)
+        registerKillerwattPlane(this, killerwattPlane)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
