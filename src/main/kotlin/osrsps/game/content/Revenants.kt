@@ -68,6 +68,9 @@ object Revenants {
     private val heals = WeakHashMap<Npc, Heals>()
 
     /** [npc]'s heals, rolled the first time it is asked about (8 to 25). */
+    /** The player each revenant was fighting as of its last tick, so a new fight's first attack waits a tick. */
+    private val lastTarget = WeakHashMap<Npc, Player>()
+
     fun heals(world: World, npc: Npc): Heals = heals.getOrPut(npc) { Heals(world.random.between(HEALS_MIN, HEALS_MAX)) }
 
     /**
@@ -83,7 +86,12 @@ object Revenants {
     /** One tick of [npc]'s fight, while it has a target: walking into range, and its heal and attack when due. */
     fun tick(world: World, kind: Kind, npc: Npc) {
         npc.scriptedAttacks = true
-        val player = npc.target ?: return
+        val player = npc.target ?: run {
+            lastTarget.remove(npc)
+            return
+        }
+        // A fight it has just taken up strikes from the next tick, as an aggressive monster's does (Codex review on #1013).
+        if (lastTarget.put(npc, player) !== player) npc.nextAttackTick = maxOf(npc.nextAttackTick, world.tick + 1)
         if (npc.dead || npc.hidden || player.dead || player.level != npc.level) return
         val beside = world.meleeCombat.reaches(npc, player)
         val inShot = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z) in 1..RANGE && world.meleeCombat.sees(npc, player)
@@ -109,6 +117,8 @@ object Revenants {
         val left = heals(world, npc)
         if (left.left <= 0 || world.tick < left.readyTick) return
         npc.hitpoints = minOf(npc.maxHitpoints, npc.hitpoints + HEAL)
+        // The client's health bar shows the heal now, not at its next hit (Codex review on #1013).
+        npc.effects.headBar(-1, osrsps.game.combat.MeleeCombat.HEALTH_BAR, osrsps.game.combat.MeleeCombat.healthBarFill(npc.hitpoints, npc.maxHitpoints))
         left.left--
         left.readyTick = world.tick + HEAL_COOLDOWN
     }

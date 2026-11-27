@@ -50,9 +50,10 @@ class HeadlessRevenantsTest {
                 client.keepAlive()
                 client.await("frozen", timeoutMillis = 40_000) { Unit.takeIf { abe.freezeTicks > 0 } }
 
-                client.commandReply("hit 6 ${npc.index}") { it.startsWith("Hit Revenant imp") }
+                // The count first: the imp can heal as soon as the hit lands (Codex review on #1013).
                 val heals = Revenants.heals(server.world, npc)
                 val before = heals.left
+                client.commandReply("hit 6 ${npc.index}") { it.startsWith("Hit Revenant imp") }
                 client.await("its heal", timeoutMillis = 20_000) { Unit.takeIf { heals.left == before - 1 } }
                 assertEquals(10, npc.hitpoints, "20 heals the imp's 10 whole")
                 assertTrue(heals.readyTick > server.world.tick, "a cooldown after")
