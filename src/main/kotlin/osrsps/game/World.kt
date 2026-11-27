@@ -809,6 +809,7 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
+            osrsps.game.content.EvilChicken.damaged(this, npc, player)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -3432,7 +3433,8 @@ class World(
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
+            osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
