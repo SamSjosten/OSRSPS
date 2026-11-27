@@ -332,7 +332,9 @@ object DemonicBrutus {
         // And on a tile he can stand on that the player can walk to beside him from, not shut away in his pen behind its
         // gate, where they'd be safe to range him (exploit review R61B-1): else the nearest such tile, else where he is.
         val field = if (ghost == null) world.brutusPens.runAt(target.x, target.z) else null
-        fun kept(tile: Tile, fallback: Tile) = field?.let { landing(world, boss, it, target, fieldTile(it, tile, boss.type.size)) ?: fallback } ?: tile
+        // One walk-out from the player per special serves both of his tiles (exploit review R64B-3: tick cost).
+        val reach by lazy { field?.let { reach(world, it, target) } ?: emptySet() }
+        fun kept(tile: Tile, fallback: Tile) = field?.let { landing(world, boss, it, target, fieldTile(it, tile, boss.type.size), reach) ?: fallback } ?: tile
         val at = kept(aimedAt, Tile(boss.x, boss.z))
         val end = kept(aimedEnd, at)
         val npc = if (ghost == null) {
@@ -367,16 +369,44 @@ object DemonicBrutus {
     /**
      * Where the real bull lands for [at] (already within the field): [at] itself when he can stand there and [target]
      * can walk to beside him, else the nearest such tile within [LANDING_SEARCH] in the field; null when there's none.
+     * [reach] is the field tiles [target] can walk to, worked out once per special by the other [reach].
      */
-    fun landing(world: World, boss: Npc, run: BrutusPens.Run, target: Player, at: Tile): Tile? {
-        fun ok(tile: Tile) = fieldTile(run, tile, boss.type.size) == tile && world.npcs.canStand(boss, tile.x, tile.z) &&
-            world.canWalkBeside(target, tile.x, tile.z, boss.type.size)
+    fun landing(world: World, boss: Npc, run: BrutusPens.Run, target: Player, at: Tile, reach: Set<Tile> = reach(world, run, target)): Tile? {
+        val size = boss.type.size
+        fun beside(tile: Tile) = (0 until size).any { i ->
+            Tile(tile.x - 1, tile.z + i) in reach || Tile(tile.x + size, tile.z + i) in reach ||
+                Tile(tile.x + i, tile.z - 1) in reach || Tile(tile.x + i, tile.z + size) in reach
+        }
+        fun ok(tile: Tile) = fieldTile(run, tile, size) == tile && world.npcs.canStand(boss, tile.x, tile.z) && beside(tile)
         if (ok(at)) return at
         return (1..LANDING_SEARCH).asSequence().flatMap { r ->
             (-r..r).asSequence().flatMap { dx -> (-r..r).asSequence().map { dz -> Tile(at.x + dx, at.z + dz) } }
                 .filter { maxOf(abs(it.x - at.x), abs(it.z - at.z)) == r }
                 .sortedBy { abs(it.x - at.x) + abs(it.z - at.z) }
         }.firstOrNull(::ok)
+    }
+
+    /** The tiles of [run]'s field that [target] can walk to from where they stand: one flood, steps as the walk takes them. */
+    fun reach(world: World, run: BrutusPens.Run, target: Player): Set<Tile> {
+        val low = run.inside(Brutus.FIELD_X, Brutus.FIELD_Z)
+        val highX = low.x + (Brutus.FIELD_WIDTH_ZONES shl 3) - 1
+        val highZ = low.z + (Brutus.FIELD_HEIGHT_ZONES shl 3) - 1
+        val start = Tile(target.x, target.z)
+        if (start.x !in low.x..highX || start.z !in low.z..highZ) return emptySet()
+        val seen = hashSetOf(start)
+        val queue = ArrayDeque(listOf(start))
+        while (queue.isNotEmpty()) {
+            val at = queue.removeFirst()
+            for (dx in -1..1) for (dz in -1..1) {
+                if (dx == 0 && dz == 0) continue
+                val next = Tile(at.x + dx, at.z + dz)
+                if (next.x !in low.x..highX || next.z !in low.z..highZ || next in seen) continue
+                if (!world.canStep(target.level, at.x, at.z, dx, dz)) continue
+                seen += next
+                queue += next
+            }
+        }
+        return seen
     }
 
     /** [at] moved the least it takes for a [size] footprint there to lie within [run]'s copy of the field. */

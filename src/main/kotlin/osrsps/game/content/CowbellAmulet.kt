@@ -79,10 +79,12 @@ object CowbellAmulet {
     fun anywhere(player: Player) = AMULETS.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0 }
 
     /**
-     * Whether [player] still has an amulet: held, worn, banked, or dropped (by them, or for them on a full backpack) and
-     * still on the ground. Gillie's next is only for one that's gone (exploit review R60A-3: no endless alch stock).
+     * Whether [player] still has an amulet: held, worn, banked, dropped (by them, or for them on a full backpack) and
+     * still on the ground, or in their grave. Gillie's next is only for one that's gone (exploit review R60A-3: no endless
+     * alch stock; R64B-1: nor one per death).
      */
-    fun owned(world: World, player: Player) = anywhere(player) || AMULETS.any { world.groundObjs.hasDropped(player, it) }
+    fun owned(world: World, player: Player) = anywhere(player) ||
+        AMULETS.any { world.groundObjs.hasDropped(player, it) || (world.deaths.graveOf(player)?.items?.count(it) ?: 0) > 0 }
 
     private fun s(count: Int) = if (count == 1) "" else "s"
 
