@@ -54,6 +54,11 @@ class ClanHallFurniture(private val world: World) {
         world.handlers.onLoc(DUMMY, ATTACK) { hitDummy(world, xp = false) }
     }
 
+    /** Drops [player] on leaving: closing a modal doesn't run its close hook when the player is removed (Codex on PR 1005). */
+    fun forget(player: Player) {
+        entertaining.remove(player)
+    }
+
     private fun open(player: Player, entertain: Boolean) {
         world.interfaces.closeModals(player)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, WINDOW)

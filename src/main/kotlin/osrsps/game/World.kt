@@ -3943,6 +3943,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            clanHallFurniture.forget(player)
             fairyRings.forget(player)
             balloons.forget(player)
             makeoverScreen.forget(player)
