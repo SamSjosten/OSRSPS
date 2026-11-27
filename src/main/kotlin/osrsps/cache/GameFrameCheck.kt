@@ -72,6 +72,7 @@ object GameFrameCheck {
             osrsps.game.content.ClanCoffer.CACHE_NAMES,
             osrsps.game.content.ClanParty.CACHE_NAMES,
             osrsps.game.content.randomevents.Pinball.CACHE_NAMES,
+            osrsps.game.content.randomevents.QuizMaster.CACHE_NAMES,
             osrsps.game.content.randomevents.Pillory.CACHE_NAMES,
         )
 
