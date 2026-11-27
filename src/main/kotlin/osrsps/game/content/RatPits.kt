@@ -5,6 +5,8 @@ import osrsps.game.FrameSlot
 import osrsps.game.Interfaces
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.combat.HitsplatType
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -37,6 +39,7 @@ object RatPitsLines : Lines("rat_pits", "Rat Pits, Transcript:Kitten (Rat Pits),
     val LOST = line("lost", "the player, their cat lost", "coins")
     val MEOW = line("meow", "the cat's answer after the fight")
     val DRAW = line("draw", "both cats out at the same kills: the bets back; our own line")
+    val STAKE_BACK = line("stake_back", "logging in after the server stopped mid-match: the bet back; our own line", "coins")
 }
 
 /**
@@ -62,7 +65,7 @@ object RatPitsLines : Lines("rat_pits", "Rat Pits, Transcript:Kitten (Rat Pits),
  * Left out: spectating from the rat walls, the Ardougne, Keldagrim and Port Sarim pits (outside Misthalin or other
  * cats), the jingles, ironman refusals, and reading the manual.
  */
-class RatPits(private val world: World) {
+class RatPits(private val world: World, private val collision: osrsps.map.CollisionMap) {
     /** Guessed numbers on the Wiki's trade-offs: Attack, the cat's max hit, Defence and Hitpoints, and whether it flees. */
     enum class Strategy(val attack: Int, val maxHit: Int, val defence: Int, val hitpoints: Int, val flees: Boolean) {
         CAREFUL(-2, 1, 4, 4, true),
@@ -138,6 +141,13 @@ class RatPits(private val world: World) {
     }
 
     fun login(player: Player) {
+        // A stake still saved is from a match the server stopped (or crashed) in the middle of: it goes back.
+        val stake = player.charges[STAKE]
+        if (stake > 0 && !inMatch(player)) {
+            player.charges[STAKE] = 0
+            world.objTypes[ShopScreen.COINS]?.let { world.groundObjs.give(player, it, stake) }
+            player.message(world.textFor(player)[RatPitsLines.STAKE_BACK, "coins" to "%,d".format(stake)])
+        }
         if (inArea(player.x, player.z, player.level)) arrived(player)
     }
 
@@ -224,7 +234,11 @@ class RatPits(private val world: World) {
             for (side in match.sides()) side.player.message(world.textFor(side.player)[RatPitsLines.NO_COINS])
             return end(match, null, refund = false)
         }
-        for (side in match.sides()) AlKharidTraders.pay(side.player, side.bet)
+        for (side in match.sides()) {
+            AlKharidTraders.pay(side.player, side.bet)
+            // Kept with the save until the match settles, so a stop or crash mid-match hands it back at login.
+            side.player.charges[STAKE] = side.bet
+        }
         match.stage = Stage.STRATEGY
         for (side in match.sides()) {
             world.interfaces.closeModals(side.player)
@@ -233,7 +247,11 @@ class RatPits(private val world: World) {
         // Guessed: a player who walks off their dialogue (but stays in the pits) doesn't hold the match up for ever.
         world.npcScripts.later(STRATEGY_TICKS) {
             if (match.stage != Stage.STRATEGY) return@later
-            for (side in match.sides()) if (side.strategy == null) side.strategy = Strategy.STAY_IN
+            for (side in match.sides()) {
+                if (side.strategy != null) continue
+                side.strategy = Strategy.STAY_IN
+                world.scripts.interrupt(side.player)
+            }
             startFight(match)
         }
     }
@@ -256,17 +274,25 @@ class RatPits(private val world: World) {
                 chatPlayer(ChatAnim.QUIZ, RatPitsLines.UP_FOR_IT)
                 chatNpc(ChatAnim.HAPPY, RatPitsLines.ADVICE)
                 val picked = choice(*RatPitsLines.STRATEGY.toTypedArray())
+                // Once the timeout has picked for them (or the match is over) a late answer changes nothing.
+                if (match.stage != Stage.STRATEGY) return@start
                 chatPlayer(ChatAnim.NEUTRAL, RatPitsLines.STRATEGY[picked - 1])
-                side.strategy = Strategy.entries[picked - 1]
+                if (match.stage == Stage.STRATEGY) side.strategy = Strategy.entries[picked - 1]
             }
+            if (match.stage != Stage.STRATEGY) return@start
             if (side.strategy == null) side.strategy = Strategy.STAY_IN
-            if (match.stage == Stage.STRATEGY && match.sides().all { it.strategy != null }) startFight(match)
+            if (match.sides().all { it.strategy != null }) startFight(match)
         }
     }
 
     // ---- The fight ------------------------------------------------------------------------------------------------
 
     private fun startFight(match: Match) {
+        // The cat may have been picked up and another dropped since the challenge: only grown cats fight.
+        if (match.sides().any { !grownCat(it.player) }) {
+            for (side in match.sides()) side.player.message(world.textFor(side.player)[RatPitsLines.THEY_NEED_CAT])
+            return end(match, null, refund = true)
+        }
         match.stage = Stage.FIGHT
         for ((i, side) in match.sides().withIndex()) {
             val cat = world.cats.hold(side.player) ?: return end(match, null, refund = true)
@@ -308,11 +334,18 @@ class RatPits(private val world: World) {
             val strategy = side.strategy!!
             val rat = match.rats.filter { world.npcs[it.index] === it }.minByOrNull { maxOf(kotlin.math.abs(it.x - cat.x), kotlin.math.abs(it.z - cat.z)) } ?: continue
             cat.destination = osrsps.map.Tile(rat.x, rat.z)
+            // No swings until the cat has got beside its rat, past the pit's walls.
+            if (cat.level != rat.level || !osrsps.map.Reach.reachedEntity(collision, cat.level, cat.x, cat.z, cat.type.size, rat.x, rat.z, rat.type.size, rat.type.size)) continue
             val catType = cat.type.stats
+            val ratMax = rat.type.stats.hitpoints
+            var ratKilled = false
             if (hits(catType.attack + strategy.attack, rat.type.stats.defence)) {
                 val damage = world.random.between(1, strategy.maxHit)
                 val left = (match.ratHp[rat] ?: 1) - damage
+                rat.effects.hit(-1, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, damage)
+                rat.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(left, ratMax))
                 if (left <= 0) {
+                    ratKilled = true
                     side.kills++
                     world.removeNpc(rat)
                     match.rats.remove(rat)
@@ -321,13 +354,21 @@ class RatPits(private val world: World) {
                 } else {
                     match.ratHp[rat] = left
                 }
+            } else {
+                rat.effects.hit(-1, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
             }
-            // The rat bites back.
+            // The rat bites back, if it lived.
+            if (ratKilled) continue
+            val catMax = (CAT_HITPOINTS + strategy.hitpoints).coerceAtLeast(1)
             if (hits(rat.type.stats.attack, catType.defence + strategy.defence)) {
                 side.hitpoints -= 1
+                cat.effects.hit(-1, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, 1)
                 if (side.hitpoints <= 0) side.dead = true
                 else if (strategy.flees && side.hitpoints <= FLEE_AT) side.fled = true
+            } else {
+                cat.effects.hit(-1, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
             }
+            cat.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(side.hitpoints, catMax))
         }
         showScores(match)
         val (a, b) = match.a to match.b
@@ -373,6 +414,7 @@ class RatPits(private val world: World) {
         for (side in match.sides()) {
             matches.remove(side.player.saveKey)
             val p = side.player
+            p.charges[STAKE] = 0
             world.interfaces.closeModals(p)
             world.interfaces.closeInside(p, p.frame.interfaceId, p.frame.component(FrameSlot.OVERLAY_HUD))
             if (!paid) continue
@@ -410,6 +452,9 @@ class RatPits(private val world: World) {
         const val CLIMB_DOWN = 1
         const val CLIMB_UP = 1
         const val MANUAL = 6767
+
+        /** The bet held while a match runs, by name in the player's saved [osrsps.game.Charges]. */
+        const val STAKE = "rat_pits_stake"
 
         /** Guessed: the player op slot for Challenge (Attack's is 2; 5 is free). */
         const val CHALLENGE_OP = 5

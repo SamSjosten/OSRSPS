@@ -1,6 +1,8 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -139,6 +141,7 @@ class HeadlessRatPitsTest {
                     for (c in listOf(alice, bob)) c.await("the fight over", timeoutMillis = 60_000) { if (RatPits.SCORES !in c.openInterfaces()) Unit else null }
                     assertTrue(server.world.npcs.all.none { it.type.id in RatPits.RAT_TYPES }, "the rats go with the fight")
                     assertTrue(!server.world.ratPits.inMatch(a) && !server.world.ratPits.inMatch(b))
+                    assertTrue(server.onTick { a.charges[RatPits.STAKE] == 0 && b.charges[RatPits.STAKE] == 0 }, "no stake kept once the match settles")
 
                     val coins = alice.await("alice's coins settled") { alice.coins().takeIf { it != 800 || bob.coins() != 800 } }
                     val bobs = bob.coins()
@@ -188,6 +191,39 @@ class HeadlessRatPitsTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `a stake saved from a match the server stopped comes back at the next login`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { frank ->
+                frank.await("the login rebuild") { frank.position }
+                val f = server.world.playerNamed("frank")!!
+                server.onTick { f.charges[RatPits.STAKE] = 300 }
+            }
+            waitFor("frank saved and gone") { if (server.world.playerNamed("frank") == null) Unit else null }
+            server.login("frank").use { frank ->
+                frank.message(RatPitsLines.STAKE_BACK, "coins" to "300")
+                frank.await("the stake back") { if (frank.coins() == 300) Unit else null }
+                val f = server.world.playerNamed("frank")!!
+                assertEquals(0, server.onTick { f.charges[RatPits.STAKE] })
+            }
+        }
+    }
+
+    private fun <T : Any> waitFor(what: String, timeoutMillis: Long = 10_000, value: () -> T?): T {
+        val end = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < end) {
+            value()?.let { return it }
+            Thread.sleep(20)
+        }
+        throw AssertionError("Timed out waiting for $what")
+    }
+
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, TimeUnit.SECONDS)
     }
 
     private companion object {

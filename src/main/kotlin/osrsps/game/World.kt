@@ -557,7 +557,7 @@ class World(
     val cats = Cats(this, collision)
 
     /** Varrock's rat pits under the manhole east of the city; see [RatPits]. */
-    val ratPits = RatPits(this)
+    val ratPits = RatPits(this, collision)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
