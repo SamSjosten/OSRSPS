@@ -51,7 +51,13 @@ class ClanHallFurniture(private val world: World) {
         }
         world.handlers.onButton(WINDOW, CLOSE) { world.interfaces.closeModals(player) }
         for ((component, synth) in KEYS) world.handlers.onButton(WINDOW, component, 1) { play(player, synth) }
-        world.interfaces.onClose(WINDOW) { entertaining.remove(it) }
+        // clan_hall_piano sets %smithing_listening, which keypress_permit then uses to hold keys for any other main
+        // window; smithing_close is the only script that clears it, so it runs whenever the piano closes (inferred:
+        // the live server's own close isn't seen; nightly 27 Nov, a stuck chatbox after Play-quietly).
+        world.interfaces.onClose(WINDOW) {
+            entertaining.remove(it)
+            world.interfaces.runClientScript(it, SCRIPT_SMITHING_CLOSE, emptyList())
+        }
         world.handlers.onLoc(DUMMY, ATTACK) { hitDummy(world, xp = false) }
     }
 
@@ -87,6 +93,9 @@ class ClanHallFurniture(private val world: World) {
         const val WINDOW = 698
         const val CLOSE = 45
         const val SCRIPT_PIANO = 4321
+
+        /** smithing_close: sets %smithing_listening (varc 989) back to 0. */
+        const val SCRIPT_SMITHING_CLOSE = 6123
 
         /** rhapsody. */
         const val RHAPSODY = 692

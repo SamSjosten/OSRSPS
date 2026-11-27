@@ -86,6 +86,8 @@ class HeadlessClanHallFurnitureTest {
                     assertEquals(quiet, bob.synths())
                     alice.ifButton(ClanHallFurniture.WINDOW, ClanHallFurniture.CLOSE, 1)
                     alice.await("closed") { if (ClanHallFurniture.WINDOW in alice.openInterfaces()) null else Unit }
+                    // Closing clears the script's keyboard hold (%smithing_listening) with smithing_close.
+                    alice.await("smithing_close") { alice.clientScripts().firstOrNull { it.id == ClanHallFurniture.SCRIPT_SMITHING_CLOSE } }
 
                     // Entertain: no script (the client mustn't play the key itself); the key plays for bob and alice.
                     val scripts = alice.clientScripts().count { it.id == ClanHallFurniture.SCRIPT_PIANO }
