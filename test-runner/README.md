@@ -510,7 +510,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `killerwatt-plane.json`: post-quest step 15 (with `::keys on`): Professor Oddenstein's warning at the rift on Draynor
   Manor's top floor, through to the Killerwatt plane, and back by the Portal Home.
 - `post-quest-leftovers.json`: post-quest step 16 (with `::keys on`): Rat Burgiss's broken cart searched, and ogre
-  bellows filled at the Lumbridge Swamp's bubbles by Suck and by using one on them.
+  bellows filled at the Lumbridge Swamp's bubbles by Suck and by using one on them, and Lucien's door opened, walked
+  through and shut again behind the player.
 - `sourhog-cave.json`: post-quest step 8: the strange hole east of Draynor Manor climbed down into the Sourhog Cave,
   the blockage climbed over both ways, and the exit rope climbed back up beside the hole.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's

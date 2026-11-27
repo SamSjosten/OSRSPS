@@ -1,5 +1,5 @@
 {
- "name": "Post-quest step 16: Rat Burgiss's broken cart searched, and the Lumbridge Swamp's bubbles filling ogre bellows by Suck and by using one on them (::keys on)",
+ "name": "Post-quest step 16: Rat Burgiss's broken cart searched, and the Lumbridge Swamp's bubbles filling ogre bellows by Suck and by using one on them, and Lucien's door letting the player in and shutting behind them (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -23,6 +23,12 @@
   {"step": "useItemOnLoc", "item": "Ogre bellows (2)", "locId": 684, "x": 3165, "y": 3194},
   {"step": "assertInventory", "item": "Ogre bellows (3)", "count": 3, "timeoutMs": 10000},
   {"step": "command", "text": "::empty"},
+  {"step": "command", "text": "::tele 3122 3490 0", "expectMessage": "Teleported to 3122, 3490, 0", "comment": "outside Lucien's house east of the Edgeville willows; his door (102) is at 3122, 3488 in the cache"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 102, "option": "Open", "x": 3122, "y": 3488},
+  {"step": "assertLocation", "x": 3122, "y": 3488, "plane": 0, "timeoutMs": 10000, "comment": "through onto the door's tile, inside (guessed: the door on the house's north wall)"},
+  {"step": "waitTicks", "ticks": 5, "comment": "the door stands open 3 ticks (DOOR_TICKS)"},
+  {"step": "assertLoc", "loc": "Door", "option": "Open", "x": 3122, "y": 3488, "comment": "shut behind them"},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
  ]
 }
