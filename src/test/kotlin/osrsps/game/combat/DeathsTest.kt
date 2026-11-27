@@ -141,6 +141,32 @@ class DeathsTest {
     }
 
     @Test
+    fun `a Wilderness death with no player killer deletes the lost food, and one elsewhere puts it in the grave`() {
+        map.markLoaded(3100 shr 6, 3600 shr 6)
+        val wildy = Deaths(
+            objTypes, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
+            spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it) },
+            teleportToSpawn = { player -> player.x = 3222; player.z = 3218 },
+            openModal = { _, _ -> }, closeModals = { it.modals.clear() }, setVarbitNow = { _, _, _ -> },
+            supply = { it == lobster.id },
+        )
+        for ((x, z, graved) in listOf(Triple(3100, 3600, false), Triple(3212, 3210, true))) {
+            alice.x = x
+            alice.z = z
+            alice.skullTicks = 100
+            alice.inventory.add(lobster, 1)
+            alice.inventory.add(bones, 1)
+            alice.hitpoints = 0
+            wildy.die(alice)
+            repeat(Deaths.DEATH_TICKS) { tick++; wildy.process() }
+            val items = wildy.graveOf(alice)!!.items.contents().map { it.second.id }
+            assertEquals(graved, lobster.id in items, "lobster in the grave at $x, $z: $items")
+            assertTrue(bones.id in items)
+            assertTrue(alice.inventory.contents().isEmpty())
+        }
+    }
+
+    @Test
     fun `dying drops a delayed script, so a climb half done never finishes`() {
         handlers.onLoc(1, 1) {
             delay(1)
