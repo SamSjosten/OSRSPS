@@ -280,13 +280,21 @@
   },
   {
    "step": "clickWidget",
-   "interfaceId": 541,
-   "component": 32,
-   "comment": "Smite on"
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
   },
   {
-   "step": "waitTicks",
-   "ticks": 2
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 26,
+   "comment": "prayerbook:prayer18, Smite on"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "overhead 4: Smite",
+   "comment": "Smite is on before the second Pray-at"
   },
   {
    "step": "locOption",
