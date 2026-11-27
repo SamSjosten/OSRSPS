@@ -317,3 +317,6 @@ callistos_den	0	3328	10304	3391	10367
 # Vet'ion's Rest (Wilderness step W4.13): the OSRS Wiki's Vet'ion's Rest calls it multi-way. The box is its whole map
 # square 51_159 on level 1 (inferred: live's box is the same).
 vetions_rest	1	3264	10176	3327	10239
+# The Silk Chasm (Wilderness step W4.14): the OSRS Wiki's Silk Chasm calls it a multi-combat dungeon. The box is its whole
+# map square 53_159 on level 2 (inferred: live's box is the same).
+silk_chasm	2	3392	10176	3455	10239
