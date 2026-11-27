@@ -112,13 +112,14 @@ private fun ScriptContext.fillOnce(world: World, source: ZoneLoc, vessel: WaterS
     queue(WaterSources.FILL_QUEUE, QueueType.WEAK, delay) { fillOnce(world, source, vessel) }
 }
 
-private suspend fun ScriptContext.hitDummy(world: World) {
+/** A swing at a dummy; [xp] false for the clan hall's, which teaches nothing ([ClanHallFurniture]). */
+internal suspend fun ScriptContext.hitDummy(world: World, xp: Boolean = true) {
     arriveDelay()
     if (world.combat.style(player).type == AttackType.RANGED) {
         world.message(player, DummyLines.NO_RANGED)
         return
     }
-    if (player.skills.baseLevel(Skill.ATTACK) >= TrainingDummies.LEVEL_CAP) {
+    if (xp && player.skills.baseLevel(Skill.ATTACK) >= TrainingDummies.LEVEL_CAP) {
         world.message(player, DummyLines.NOTHING_MORE)
         return
     }
@@ -126,6 +127,6 @@ private suspend fun ScriptContext.hitDummy(world: World) {
     if (world.tick < player.nextAttackTick) return
     player.nextAttackTick = world.tick + world.combat.attackSpeed(player)
     player.anim(world.combat.anims(player).attack(world.combat.style(player)))
-    player.skills.addTenths(Skill.ATTACK, TrainingDummies.XP_TENTHS)
+    if (xp) player.skills.addTenths(Skill.ATTACK, TrainingDummies.XP_TENTHS)
     world.message(player, DummyLines.HIT)
 }
