@@ -542,6 +542,9 @@ class Houses(private val world: World) {
      */
     internal suspend fun remove(context: ScriptContext, house: Open, state: HouseState, room: HouseRoom) {
         val player = context.player
+        // A ghost shown goes first, as Build on a doorway takes it away: Remove-room on a staircase comes here directly
+        // (exploit review round 62, A-3).
+        clearGhost(house, state)
         // Not the room with the house's only exit portal: a house needs one (the Garden page).
         if (House.EXIT_PORTAL in room.built.values && state.rooms.all { it === room || House.EXIT_PORTAL !in it.built.values }) {
             return world.message(player, ConstructionLines.REMOVE_PORTAL)
