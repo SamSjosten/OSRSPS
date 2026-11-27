@@ -314,3 +314,12 @@ escape_caves	0	3328	10240	3391	10303
 # Callisto's Den (Wilderness step W4.12): the OSRS Wiki's Callisto's Den calls it multi-way. The box is its whole map
 # square 52_161 on the ground level (inferred: live's box is the same).
 callistos_den	0	3328	10304	3391	10367
+# Vet'ion's Rest (Wilderness step W4.13): the OSRS Wiki's Vet'ion's Rest calls it multi-way. The box is its whole map
+# square 51_159 on level 1 (inferred: live's box is the same).
+vetions_rest	1	3264	10176	3327	10239
+# The Silk Chasm (Wilderness step W4.14): the OSRS Wiki's Silk Chasm calls it a multi-combat dungeon. The box is its whole
+# map square 53_159 on level 2 (inferred: live's box is the same).
+silk_chasm	2	3392	10176	3455	10239
+# The Corporeal Beast's Lair (Wilderness step W4.15): the OSRS Wiki's Corporeal Beast's Lair calls it a multi-combat area.
+# The box is its whole map square 46_66 on level 2 (inferred: live's box is the same).
+corporeal_beast_lair	2	2944	4224	3007	4287

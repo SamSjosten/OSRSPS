@@ -445,6 +445,15 @@
    "comment": "Groats' farm, in the dairy cows' pen beside Gillie (spawn 3254 3274)"
   },
   {
+   "step": "command",
+   "text": "::item 33103",
+   "comment": "a cowbell amulet: without one, Gillie hands over another (Brutus step 4) before her usual talk"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
    "step": "npcOption",
    "npc": "Gillie Groats",
    "option": "Talk-to"

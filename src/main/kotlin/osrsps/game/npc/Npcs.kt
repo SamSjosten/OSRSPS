@@ -528,14 +528,16 @@ class Npcs(
      * The tiles beside [npc]'s sides (not its corners) that one step out from under it reaches: for a fight that puts its
      * adds next to the boss, so none lands behind a wall or across a thin edge from it.
      */
-    fun openBeside(npc: Npc): List<Tile> {
-        val size = npc.type.size
+    fun openBeside(npc: Npc): List<Tile> = openAround(npc.level, npc.x, npc.z, npc.type.size)
+
+    /** [openBeside] for anything [size] tiles across with its south-west tile on [x], [z]: a player, at size 1. */
+    fun openAround(level: Int, x: Int, z: Int, size: Int = 1): List<Tile> {
         val out = ArrayList<Tile>()
         for (i in 0 until size) {
-            if (Steps.canStep(collision, npc.level, npc.x, npc.z + i, -1, 0)) out += Tile(npc.x - 1, npc.z + i)
-            if (Steps.canStep(collision, npc.level, npc.x + size - 1, npc.z + i, 1, 0)) out += Tile(npc.x + size, npc.z + i)
-            if (Steps.canStep(collision, npc.level, npc.x + i, npc.z, 0, -1)) out += Tile(npc.x + i, npc.z - 1)
-            if (Steps.canStep(collision, npc.level, npc.x + i, npc.z + size - 1, 0, 1)) out += Tile(npc.x + i, npc.z + size)
+            if (Steps.canStep(collision, level, x, z + i, -1, 0)) out += Tile(x - 1, z + i)
+            if (Steps.canStep(collision, level, x + size - 1, z + i, 1, 0)) out += Tile(x + size, z + i)
+            if (Steps.canStep(collision, level, x + i, z, 0, -1)) out += Tile(x + i, z - 1)
+            if (Steps.canStep(collision, level, x + i, z + size - 1, 0, 1)) out += Tile(x + i, z + size)
         }
         return out
     }

@@ -13,13 +13,19 @@
     },
     {
       "step": "command",
-      "text": "::setlevel agility 99", "comment": "at 99 the western stones (225-255 out of 256) cannot fail, so every crossing lands"
+      "text": "::setlevel agility 99", "expectMessage": "Agility set to level 99", "comment": "at 99 the western stones (225-255 out of 256) cannot fail, so every crossing lands"
     },
     {
       "step": "command",
       "text": "::tele 2649 9562 0",
       "expectMessage": "Teleported to 2649, 9562, 0",
       "comment": "the western stepping stones"
+    },
+    {
+      "step": "command",
+      "text": "::god on",
+      "expectMessage": "You can't be hurt now (::god again to turn it off).",
+      "comment": "the moss giants by the western stones attack; without this they kill a low-level account (nightly 26 Nov)"
     },
     {
       "step": "waitTicks",
@@ -296,6 +302,11 @@
       "y": 9583,
       "plane": 0,
       "timeoutMs": 15000
+    },
+    {
+      "step": "command",
+      "text": "::god off",
+      "expectMessage": "You can be hurt again."
     },
     {
       "step": "command",

@@ -366,12 +366,20 @@ fun registerSpindel(world: World) {
             if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
-        // The Silk Chasm has the same way out; Venenatis's step gives it its own place to put the player.
+        // The same loc is the Silk Chasm's way out, which leads into the Escape Caves.
         world.handlers.onLoc(EXIT, 1) { op ->
             val loc = op.loc!!
-            if (!inChasm(loc.x, loc.z)) return@onLoc world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
-            arriveDelay()
-            world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+            when {
+                inChasm(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+                }
+                Venenatis.inChasm(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.escapeCaves.leaveLair(world, player, Venenatis.NAME)
+                }
+                else -> world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
+            }
         }
         FIGHT.register(world, WildernessBoss("spindel", setOf(BOSS), KILL_COUNT_VARP, lair = true))
     }

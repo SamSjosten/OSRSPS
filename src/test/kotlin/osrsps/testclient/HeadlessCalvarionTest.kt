@@ -309,26 +309,53 @@ class HeadlessCalvarionTest {
         }
     }
 
+    /** Hits him to half, freezes both hounds where they come in, away from the player, and awaits [line] for both. */
+    private fun HeadlessClient.idleHounds(server: TestServer, line: String): kotlin.Pair<osrsps.game.npc.Npc, osrsps.game.encounter.Encounter> {
+        val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+        commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+        val fight = await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+        val hounds = await("his hounds") {
+            Calvarion.FIGHT.hounds(npc).toList().takeIf { it.size == 2 }?.onEach { server.world.npcs.freeze(it, 500) }
+        }
+        assertTrue(hounds.none { it.dead })
+        commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 0") }
+        val called = server.world.tick
+        await(line, timeoutMillis = 20_000) { fight.lines.filter { it.endsWith(line) }.takeIf { it.size == 2 } }
+        assertTrue(server.world.tick - called >= SkeletalLord.HOUND_IDLE_TICKS - 2, "not before 50 idle ticks")
+        return npc to fight
+    }
+
     @Test
-    fun `a hound that never swings is let go, and he can be hurt again`(@TempDir dir: Path) {
+    fun `a hound that never swings comes back beside the player, and keeps him from harm`(@TempDir dir: Path) {
         server(dir, seed = 4).use { server ->
             server.login("ida").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("god") { it.startsWith("You can") }
                 client.command("varp 172 1")
                 client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
-                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
-                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
-                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
-                // Frozen where they come in, away from the player: hounds stuck where they reach no one (R47B-1).
-                val hounds = client.await("his hounds") {
-                    Calvarion.FIGHT.hounds(npc).toList().takeIf { it.size == 2 }?.onEach { server.world.npcs.freeze(it, 500) }
+                val ida = server.world.playerNamed("ida")!!
+                // Kept out of reach, they aren't sent away unkilled (exploit review round 49, R49C-2): stuck ones too (R47B-1).
+                val (npc, _) = client.idleHounds(server, "brings back an idle hound")
+                for (hound in Calvarion.FIGHT.hounds(npc)) {
+                    assertTrue(!hound.dead, "still there")
+                    assertTrue(server.world.meleeCombat.reaches(hound, ida), "beside ida at ${hound.x},${hound.z}")
                 }
-                assertTrue(hounds.none { it.dead })
                 client.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 0") }
-                val called = server.world.tick
-                client.await("both let go", timeoutMillis = 20_000) { fight.lines.filter { it.endsWith("lets go an idle hound") }.takeIf { it.size == 2 } }
-                assertTrue(server.world.tick - called >= SkeletalLord.HOUND_IDLE_TICKS - 2, "not before 50 idle ticks")
+            }
+        }
+    }
+
+    @Test
+    fun `a hound that never swings, with nowhere beside the player for it, is let go and he can be hurt again`(@TempDir dir: Path) {
+        val at = Tile(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4)
+        val walledIn = listOf(Tile(at.x - 1, at.z), Tile(at.x + 1, at.z), Tile(at.x, at.z - 1), Tile(at.x, at.z + 1))
+        server(dir, seed = 4, blocked = walledIn).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.tele(at.x, at.z, Calvarion.TOMB_LEVEL)
+                val (npc, fight) = client.idleHounds(server, "lets go an idle hound")
                 client.await("his hounds gone") { fight.lines.firstOrNull { it.endsWith("his hounds are dead") } }
                 client.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 10") }
             }

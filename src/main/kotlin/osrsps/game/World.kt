@@ -146,6 +146,8 @@ import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
+import osrsps.game.content.registerCats
+import osrsps.game.content.Cats
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -190,8 +192,11 @@ import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
+import osrsps.game.content.registerVenenatis
+import osrsps.game.content.registerCorporealBeast
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
+import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -205,6 +210,7 @@ import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
 import osrsps.game.content.registerCairnIsle
+import osrsps.game.content.registerTaiBwoWannai
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -545,6 +551,8 @@ class World(
 
     /** Demonic Brutus's, the scoreboard's Read (Demonic). */
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
+    /** Pet cats out following their players; see [Cats]. */
+    val cats = Cats(this, collision)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -741,6 +749,7 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
@@ -793,6 +802,7 @@ class World(
             wildernessBosses.damaged(npc, player, dealt)
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
+            osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -1040,7 +1050,6 @@ class World(
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
-    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     /**
      * Called after a player moves in the movement phase, with the tiles they stood on this tick ([Player.stepTrail]:
      * the start, then each tile stepped onto), for what a tile does when walked onto (the Agility Arena's floor traps).
@@ -1051,6 +1060,13 @@ class World(
     /** Tiles a running player stops on after one step; see [Movement.stopChecks]. */
     val stepStops: MutableList<(Player) -> Boolean> get() = movement.stopChecks
 
+    /** Called for each player as they log in, after the quests are marked done: content that sets vars at login (Tai Bwo Wannai's villagers). */
+    val loginHooks = ArrayList<(Player) -> Unit>()
+
+    /** Called at the start of each tick with its number, for content that counts down on its own clock (Tai Bwo Wannai's trading sticks). */
+    val tickHooks = ArrayList<(Long) -> Unit>()
+
+    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
@@ -1328,6 +1344,7 @@ class World(
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
+        registerCats(this, cats)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1355,8 +1372,11 @@ class World(
         registerArtio(this)
         registerCalvarion(this)
         registerSpindel(this)
+        registerVenenatis(this)
+        registerCorporealBeast(this)
         registerEscapeCaves(this)
         registerCallisto(this)
+        registerVetion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1381,6 +1401,7 @@ class World(
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
         registerCairnIsle(this)
+        registerTaiBwoWannai(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1795,6 +1816,7 @@ class World(
         endEmptyInstances()
         groundObjs.process()
         agilityArena.process(tick)
+        for (hook in tickHooks) hook(tick)
         archiveRaids.settleDepartures()
         houses.settleDepartures()
         phase = TickPhase.INPUT
@@ -2458,6 +2480,8 @@ class World(
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
         clans.flush()
+        brutusRecords.flush()
+        brutusDemonicRecords.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
@@ -2601,9 +2625,11 @@ class World(
         collectionLog.login(player)
         inferno.login(player)
         tearsOfGuthix.login(player)
+        cats.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
+        for (hook in loginHooks) hook(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
@@ -2988,6 +3014,9 @@ class World(
     /** Whether no wall edge stands between [x], [z] and the tile [dx], [dz] from it; what stands on that tile isn't asked. */
     fun noWallBetween(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean =
         osrsps.map.Steps.canStep(collision, level, x, z, dx, dz, block = 0)
+
+    /** Whether [player] could walk to beside a [size] by [size] footprint at [x], [z] (a route that isn't the closest-tile fallback). */
+    fun canWalkBeside(player: Player, x: Int, z: Int, size: Int): Boolean = !movement.find(player, RouteTarget.entity(x, z, size)).alternative
 
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
@@ -3717,6 +3746,7 @@ class World(
                     it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
                 )
             },
+            say = { extendedInfo.setSay(it) },
         )
     }
 
@@ -3916,6 +3946,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
