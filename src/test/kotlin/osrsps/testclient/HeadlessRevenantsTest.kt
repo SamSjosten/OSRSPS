@@ -61,4 +61,40 @@ class HeadlessRevenantsTest {
             }
         }
     }
+
+    @Test
+    fun `held at its leash, it fires out to 10 tiles, so no spot just past its range is safe`(@TempDir dir: Path) {
+        val server = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3170 shr 6, 10070 shr 6) }, npcTypes = types, random = GameRandom(9),
+                npcSpawns = listOf(NpcSpawn(imp, 3170, 10070, wander = 0, source = "test")), npcCombat = NpcCombat.load(types, SeqNames.NONE),
+                cycleMillis = millis,
+            )
+        }
+        server.use {
+            server.login("abe").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                // 16 tiles east of its spawn: it can come only 7 of them, and stops 9 away (exploit review R65B-2).
+                client.command("tele 3186 10070 0")
+                client.await("there") { client.position?.takeIf { it == Coord(3186, 10070, 0) } }
+                val abe = server.world.playerNamed("abe")!!
+                val npc = server.world.npcs.all.first { it.type.id == Revenants.KINDS[0].id }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Revenant imp") }
+                client.keepAlive()
+                client.await("its shot from the leash", timeoutMillis = 30_000) { Unit.takeIf { abe.hitpoints < 99 || abe.freezeTicks > 0 } }
+                assertTrue(kotlin.math.abs(npc.x - 3170) <= 7, "it stayed on its leash: ${npc.x}")
+                assertTrue(3186 - npc.x > Revenants.RANGE, "fired from past its range: ${npc.x}")
+                // And again each time its attack is due, not a tick late (Codex review on #1031).
+                client.keepAlive()
+                val first = npc.nextAttackTick
+                client.await("its next shot", timeoutMillis = 20_000) { Unit.takeIf { npc.nextAttackTick > first } }
+                val second = npc.nextAttackTick
+                client.keepAlive()
+                client.await("the one after", timeoutMillis = 20_000) { Unit.takeIf { npc.nextAttackTick > second } }
+                assertEquals(second - first, npc.nextAttackTick - second, "a steady cadence")
+                assertTrue(second - first <= 5, "every ${second - first} ticks")
+            }
+        }
+    }
 }
