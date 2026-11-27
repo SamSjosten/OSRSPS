@@ -367,8 +367,8 @@ class NpcSpawnFileTest {
         assertEquals(3, pen.count { it.type.internalName?.startsWith("ramunsheered") == true })
         assertEquals(listOf(4, 5, 1, 1, 2, 2, 3, 3), listOf(intArrayOf(2674, 2672, 2681, 2680), intArrayOf(0), intArrayOf(1323), intArrayOf(5731), intArrayOf(2837), intArrayOf(3245, 3250), intArrayOf(5007), intArrayOf(2069, 2070, 2071)).map { count(*it) })
         assertEquals(listOf(1, 1, 1, 1, 2), listOf(4158, 1351, 2839, 3073, 1831).map { count(it) })
-        // The Evil Chicken in the Champions' Guild coop, still (random events step 19).
-        assertEquals(listOf(Triple(3198, 3359, 0)), spawns.filter { it.type.id == 6739 }.map { Triple(it.x, it.z, it.wander) })
+        // The Evil Chicken in the Champions' Guild coop, never moving, not even in combat (random events step 19; Codex on #1011).
+        assertEquals(listOf(Triple(3198, 3359, MoveRestrict.NOMOVE)), spawns.filter { it.type.id == 6739 }.map { Triple(it.x, it.z, it.restrict) })
         // Ducks and swans swim; every other NPC walks.
         assertTrue(spawns.all { (it.restrict == MoveRestrict.BLOCKED) == (it.type.id in setOf(1838, 1839, 1831)) })
         // The cows and goblins keep to the land between the three towns, west of the Varrock road.

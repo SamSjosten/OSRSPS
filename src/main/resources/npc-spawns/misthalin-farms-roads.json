@@ -224,6 +224,6 @@
     {"npc": "unicorn", "x": 3286, "z": 3349, "wander": 5, "source": "Unicorn, east of the Lumbridge to Varrock road. mejrs NPCList_OSRS"},
     {"npc": "darkbear", "x": 3296, "z": 3347, "wander": 5, "source": "Black bear, east of the Lumbridge to Varrock road. mejrs NPCList_OSRS"},
     {"npc": "fai_barbarian_goblin_armed_1", "x": 3259, "z": 3338, "wander": 5, "source": "Goblin (level 5), on the Lumbridge to Varrock road. mejrs NPCList_OSRS"},
-    {"npc": "evil_chicken", "x": 3198, "z": 3359, "wander": 0, "source": "Evil Chicken, the Champions' Guild chicken coop. The OSRS Wiki's location map (read 2026-11-19); still (guessed: it couldn't move as a random event)"}
+    {"npc": "evil_chicken", "x": 3198, "z": 3359, "restrict": "nomove", "source": "Evil Chicken, the Champions' Guild chicken coop. The OSRS Wiki's location map (read 2026-11-19); never moves, not even after a target out of range (guessed: it couldn't move as a random event)"}
   ]
 }
