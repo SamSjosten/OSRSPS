@@ -169,6 +169,53 @@ class HeadlessKillerwattPlaneTest {
         }
     }
 
+    @Test
+    fun `out of melee reach a killerwatt stays put and shoots every 2 ticks, and insulated boots cap its hits`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dee").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Enough hitpoints to take its 15s while it shoots.
+                client.commandReply("setlevel hitpoints 99") { it.isNotEmpty() }
+                client.command("tele ${ORB_X - 5} $ORB_Z 2")
+                client.at(ORB_X - 5, ORB_Z, 2)
+                val world = server.world
+                val plane = world.killerwattPlane
+                val dee = world.playerNamed("dee")!!
+                val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                fun <T> onTick(block: () -> T): T {
+                    val result = java.util.concurrent.CompletableFuture<T>()
+                    world.npcScripts.later(1) { result.complete(block()) }
+                    return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                }
+
+                // Without boots, both its attacks hit up to 15; in them, its melee is its own and its ranged 8.
+                onTick {
+                    assertEquals(KillerwattPlane.UNINSULATED_MAX_HIT, plane.meleeMaxHit(dee))
+                    assertEquals(KillerwattPlane.UNINSULATED_MAX_HIT, plane.rangedMaxHit(dee))
+                }
+
+                // Five tiles off, its fight starts out of melee reach: it shoots from where it is.
+                // As if hit from there: it takes them on (MeleeCombat.aggress), and its fight is its own (Npc.scriptedAttacks).
+                onTick { world.meleeCombat.aggress(killerwatt, dee, world.tick) }
+                // Its next attack tick, each tick for 7 (inside the fight's IN_COMBAT_TICKS with no hit back): the
+                // distinct values are its shots, RANGED_SPEED apart.
+                val seen = (1..7).map { onTick { killerwatt.nextAttackTick } }.filter { it > 0 }.distinct()
+                assertTrue(seen.size >= 3, "it kept shooting: $seen")
+                assertEquals(List(seen.size - 1) { RANGED_SPEED }, seen.zipWithNext { x, y -> y - x }, "a shot every $RANGED_SPEED ticks: $seen")
+                assertEquals(ORB_X to ORB_Z, onTick { killerwatt.x to killerwatt.z }, "it doesn't come to melee")
+
+                client.command("item ${KillerwattPlane.INSULATED_BOOTS} 1")
+                val slot = client.await("the boots") { client.inventory(BACKPACK).indexOfFirst { it?.id == KillerwattPlane.INSULATED_BOOTS }.takeIf { it >= 0 } }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, WEAR_BUTTON_OP, slot, KillerwattPlane.INSULATED_BOOTS)
+                client.await("the boots worn") { client.inventory(WORN).getOrNull(WearPos.FEET)?.takeIf { it.id == KillerwattPlane.INSULATED_BOOTS } }
+                onTick {
+                    assertEquals(null, plane.meleeMaxHit(dee))
+                    assertEquals(KillerwattPlane.RANGED_MAX_HIT, plane.rangedMaxHit(dee))
+                }
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94
@@ -177,5 +224,6 @@ class HeadlessKillerwattPlaneTest {
         const val HITPOINTS = 3
         const val ORB_X = 2660
         const val ORB_Z = 5214
+        const val RANGED_SPEED = 2L
     }
 }
