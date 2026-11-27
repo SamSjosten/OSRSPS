@@ -400,6 +400,7 @@ object DialogueLines {
         LeonDCourLines,
         ChampionsChestLines,
         JunaLines,
+        CatLines,
         TearsLines,
         ExamCentreLines,
         TerryLines,
