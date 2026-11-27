@@ -29,6 +29,7 @@ class HeadlessTaiBwoParcelsTest {
         val objs = arrayOfNulls<ObjType>(TaiBwoWannai.TRADING_STICKS + 1)
         objs[LOGS] = ObjType(LOGS, "Logs", internalName = "logs")
         objs[COINS] = ObjType(COINS, "Coins", stackable = true, internalName = "coins")
+        objs[RUM] = ObjType(RUM, "Karamjan rum", internalName = "karamjan_rum")
         objs[TaiBwoWannai.TRADING_STICKS] = ObjType(TaiBwoWannai.TRADING_STICKS, "Trading sticks", stackable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
@@ -45,7 +46,7 @@ class HeadlessTaiBwoParcelsTest {
     private fun HeadlessClient.message(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
     @Test
-    fun `the parcel service charges 10 sticks an item and refuses currency`(@TempDir dir: Path) {
+    fun `the parcel service charges 10 sticks an item and refuses currency and rum`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ada").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -71,11 +72,24 @@ class HeadlessTaiBwoParcelsTest {
                 client.message("[tbw_parcel.currency]")
                 client.ifButton(DepositBox.INTERFACE, DepositBox.ITEMS, 6, client.slotOf(LOGS), LOGS)
                 client.message("[tbw_parcel.cant_afford]")
+                client.command("item $RUM 1")
+                client.await("the rum") { if (client.count(RUM) == 1L) Unit else null }
+                client.ifButton(DepositBox.INTERFACE, DepositBox.ITEMS, 6, client.slotOf(RUM), RUM)
+                client.message("[tbw_parcel.rum]")
+
+                // Deposit-inventory: each item turned away again, so the refusals show the server handled the click.
+                val before = client.messages().size
                 client.ifButton(DepositBox.INTERFACE, DepositBox.DEPOSIT_INVENTORY, 1)
-                client.await("nothing more sent") { if (client.count(COINS) == 100L && client.count(LOGS) == 3L && client.count(TaiBwoWannai.TRADING_STICKS) == 5L) Unit else null }
+                val refusals = client.await("deposit-inventory handled") {
+                    client.messages().drop(before).map { it.text }.takeIf { it.containsAll(listOf("[tbw_parcel.currency]", "[tbw_parcel.rum]", "[tbw_parcel.cant_afford]")) }
+                }
+                kotlin.test.assertTrue(refusals.isNotEmpty())
+                client.awaitTicks(2)
+                client.await("nothing more sent") { if (client.count(COINS) == 100L && client.count(LOGS) == 3L && client.count(RUM) == 1L && client.count(TaiBwoWannai.TRADING_STICKS) == 5L) Unit else null }
                 val bank = server.world.onlinePlayers.single().bank
                 kotlin.test.assertEquals(2L, bank.count(LOGS), "the 2 logs paid for, in the bank")
                 kotlin.test.assertEquals(0L, bank.count(COINS))
+                kotlin.test.assertEquals(0L, bank.count(RUM))
             }
         }
     }
@@ -84,6 +98,7 @@ class HeadlessTaiBwoParcelsTest {
         const val RIONASTA = 6432
         const val LOGS = 1511
         const val COINS = 995
+        const val RUM = 431
 
         val VARS = VarTypes(
             6_000,
