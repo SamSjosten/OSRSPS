@@ -294,7 +294,7 @@ class MagicCombat(
         if (spell.travel >= 0) projectile(flight(player, npc.x, npc.z, npc.index + 1, spell.travel, landTick - tick))
         melee.attackMade(player, npc, tick)
         val hit = roll(player, npc, spell, matchup, landTick, defensive)
-        if (combat.paysXp(npc)) player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
+        if (combat.paysXp(npc)) player.skills.addTenths(Skill.MAGIC, combat.xpOn(npc, if (hit) spell.xpTenths else spell.splashXpTenths))
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
             for (other in around(npc)) {
                 if (combat.barred(player, other, type = AttackType.MAGIC) != null) continue
@@ -412,12 +412,12 @@ class MagicCombat(
         if (!combat.paysXp(npc)) {
             // None for a combat dummy (Combat.dummy).
         } else if (defensive) {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.withXpBonus(CombatMath.defensiveSpellMagicXpTenths(damage), bonus))
-            player.skills.addTenths(Skill.DEFENCE, CombatMath.withXpBonus(CombatMath.defensiveSpellDefenceXpTenths(damage), bonus))
+            player.skills.addTenths(Skill.MAGIC, combat.xpOn(npc, CombatMath.withXpBonus(CombatMath.defensiveSpellMagicXpTenths(damage), bonus)))
+            player.skills.addTenths(Skill.DEFENCE, combat.xpOn(npc, CombatMath.withXpBonus(CombatMath.defensiveSpellDefenceXpTenths(damage), bonus)))
         } else {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.withXpBonus(CombatMath.spellDamageXpTenths(damage), bonus))
+            player.skills.addTenths(Skill.MAGIC, combat.xpOn(npc, CombatMath.withXpBonus(CombatMath.spellDamageXpTenths(damage), bonus)))
         }
-        if (combat.paysXp(npc)) player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        if (combat.paysHitpointsXp(npc)) player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         inFlight += Cast(player, npc, spell, hit, damage, landTick, matchup.maxHit, Tile(player.x, player.z))
         return hit
     }

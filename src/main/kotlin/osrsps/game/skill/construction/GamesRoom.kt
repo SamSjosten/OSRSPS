@@ -1,10 +1,15 @@
 package osrsps.game.skill.construction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.NpcType
+import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.arriveDelay
 import osrsps.game.content.message
+import osrsps.game.npc.MoveRestrict
+import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 
@@ -18,16 +23,94 @@ import osrsps.game.zone.ZoneLoc
  * human_throw_hoop1 animation for each throw; the score told at the end (the page's scoreboard is left out); the
  * words. Anyone in the house can play.
  *
- * Next: the attack stones, then the dartboard and archery target, the prize chest, and the game space's games and the
- * elemental balances.
+ * Step CON6f, the attack stones (the Clay, Limestone and Marble attack stone pages, read 2026-11-27): Set-up puts up
+ * the combat stone (the cache's poh_tbt_* NPCs, whose op is Hit, with the cache's hitpoints: 40 for the clay one) in the stone's place ([setUp]). "The
+ * player who deals the most damage wins the game" once it breaks ([broken]); it never fights back ([osrsps.game.combat.Combat.passive]);
+ * hitting it gives XP for "2.5% of the damage dealt" in the attack style's skill and no Hitpoints XP
+ * ([osrsps.game.combat.Combat.xpPermille]). INFERRED: the cache's 64 looks of each stone (poh_tbt_clay_000 to _333)
+ * are its chips; GUESSED: they come off one at a time as it loses hitpoints ([CHIPS]); a tie goes to whoever got there
+ * first; the stone is back on its place 3 ticks after it breaks; the words. Left out: the chips that "may chip off and
+ * deal damage to the player" (how often and how much is not on the pages), and the refusal of stat-lowering spells.
+ *
+ * Next: the dartboard and archery target, the prize chest, and the game space's games and the elemental balances.
  */
 class GamesRoom(private val world: World, private val houses: Houses) {
+    /** Each stone's looks by chips, poh_tbt_<kind>_000 to _333, by [Stone]. */
+    private val looks = HashMap<Stone, List<NpcType>>()
+
+    /** The stones up now, and what each player dealt to each, in the order they first hit it. */
+    private val games = HashMap<Npc, LinkedHashMap<String, Int>>()
+
     fun register() {
         world.handlers.onLoc(HOOP_AND_STICK, HOOP) { op ->
             arriveDelay()
             hoop(this, op.loc ?: return@onLoc)
         }
+        for (stone in Stone.entries) {
+            val all = (0..63).mapNotNull { world.npcTypes.find("poh_tbt_${stone.key}_${it / 16}${it / 4 % 4}${it % 4}") }
+            if (all.size == 64) looks[stone] = all
+            world.handlers.onLoc(stone.loc, SET_UP) { op ->
+                arriveDelay()
+                setUp(this, op.loc ?: return@onLoc, stone)
+            }
+        }
+        val stoneTypes = looks.values.flatten().map { it.id }.toSet()
+        val baseTypes = looks.values.map { it.first().id }.toSet()
+        val attacksBy = world.npcInteractions.attacksBy
+        world.npcInteractions.attacksBy = { type, op -> (op == HIT && type.id in stoneTypes) || attacksBy(type, op) }
+        val xpPermille = world.combat.xpPermille
+        world.combat.xpPermille = { npc -> if (npc.spawn.type.id in baseTypes) STONE_XP_PERMILLE else xpPermille(npc) }
+        val passive = world.combat.passive
+        world.combat.passive = { npc -> npc.spawn.type.id in baseTypes || passive(npc) }
+        world.npcScripts.onDeath(baseTypes) { broken(it) }
     }
+
+    /** Set-up on attack stone [loc]: the combat stone stands in its place until it breaks or the room goes. */
+    private fun setUp(context: ScriptContext, loc: ZoneLoc, stone: Stone) {
+        val house = houses.houseAt(loc.x, loc.z) ?: return
+        val slot = Houses.slot(loc.x, loc.z, loc.level, loc.layer)
+        if (slot in house.dummies || world.locs[loc.x, loc.z, loc.level, loc.layer] != loc) return
+        val type = looks[stone]?.first() ?: return
+        val npc = world.spawnNpc(NpcSpawn(type, loc.x, loc.z, loc.level, restrict = MoveRestrict.NOMOVE, source = "house attack stone", respawns = false)) ?: return
+        world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, null)
+        house.dummies[slot] = CombatRoom.Attached(npc, loc)
+        games.keys.removeAll { world.npcs[it.index] !== it }
+        games[npc] = LinkedHashMap()
+        logger.info { "${context.player.username} set up an attack stone (${stone.key}) in ${house.owner}'s house" }
+    }
+
+    /** [player]'s hit took [dealt] off [npc]: kept toward the win, and a stone chips as it goes down. */
+    fun damaged(npc: Npc, player: Player, dealt: Int) {
+        val game = games[npc] ?: return
+        if (dealt <= 0) return
+        game[player.saveKey] = (game[player.saveKey] ?: 0) + dealt
+        val all = Stone.entries.firstNotNullOfOrNull { stone -> looks[stone]?.takeIf { it.first().id == npc.spawn.type.id } } ?: return
+        val max = npc.maxHitpoints.coerceAtLeast(1)
+        val chips = ((max - npc.hitpoints.coerceAtLeast(0)) * (CHIPS.size - 1) / max).coerceIn(0, CHIPS.size - 1)
+        val look = all[CHIPS[chips]]
+        if (look.id != (npc.transformedTo ?: npc.spawn.type).id) world.npcs.transform(npc, look, Int.MAX_VALUE)
+    }
+
+    /** A combat stone broke: whoever dealt it the most wins, everyone who hit it is told, and the stone is back. */
+    private fun broken(npc: Npc) {
+        val game = games.remove(npc) ?: return
+        val winner = game.entries.maxByOrNull { it.value }?.key
+        val name = world.onlinePlayers.firstOrNull { it.saveKey == winner }?.username ?: winner ?: return
+        for (player in world.onlinePlayers) if (player.saveKey in game) world.message(player, ConstructionLines.STONE_WINNER, "name" to name)
+        logger.info { "$name won an attack stone game: $game" }
+        val house = houses.houseAt(npc.x, npc.z) ?: return
+        val (slot, attached) = house.dummies.entries.firstOrNull { it.value.npc === npc }?.toPair() ?: return
+        house.dummies.remove(slot)
+        world.npcScripts.later(BACK_TICKS) {
+            val loc = attached.loc
+            if (houses.houseAt(loc.x, loc.z) === house && slot !in house.dummies && world.locs[loc.x, loc.z, loc.level, loc.layer] == null) {
+                world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
+            }
+        }
+    }
+
+    /** The attack stones: their gameval kind and the loc each is built as. */
+    enum class Stone(val key: String, val loc: Int) { CLAY("clay", 13393), LIMESTONE("limestone", 13392), MARBLE("marble", 13394) }
 
     /** Hoop on the hoop and stick [loc]: ten throws, then the score. */
     private suspend fun hoop(context: ScriptContext, loc: ZoneLoc) {
@@ -49,6 +132,19 @@ class GamesRoom(private val world: World, private val houses: Houses) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        /** The attack stones' Set-up (op 1), and the combat stone's Hit, which attacks it. */
+        const val SET_UP = 1
+        const val HIT = "Hit"
+
+        /** 2.5% of the usual combat XP (the attack stone pages). */
+        const val STONE_XP_PERMILLE = 25
+
+        /** GUESSED: how long after breaking a stone is back on its place. */
+        const val BACK_TICKS = 3
+
+        /** GUESSED: the looks a stone goes through as it loses hitpoints, as indexes of _000 to _333 (one chip at a time). */
+        val CHIPS: List<Int> = listOf("000", "100", "110", "111", "211", "221", "222", "322", "332", "333").map { it.toInt(4) }
 
         /** Poh_stick+hoop1, as built, and its Hoop (op 1). */
         const val HOOP_AND_STICK = 13398

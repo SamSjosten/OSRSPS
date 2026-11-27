@@ -212,8 +212,27 @@ class Combat(
      */
     var dummy: (Npc) -> Boolean = { false }
 
+    /**
+     * Set by content: whether [Npc] never fights back or keeps who attacked it, as a [dummy] and the house's attack
+     * stones ([osrsps.game.skill.construction.GamesRoom]).
+     */
+    var passive: (Npc) -> Boolean = { npc -> dummy(npc) }
+
     /** Whether hitting [npc] gives XP: anything but a [dummy]. */
     fun paysXp(npc: Npc): Boolean = !dummy(npc)
+
+    /**
+     * Set by content: the share, in thousandths, of the usual combat XP that hitting [Npc] gives, with no Hitpoints XP
+     * when it is under 1000: the house's attack stones give 25 (OSRS Wiki, Clay attack stone: XP for "2.5% of the damage
+     * dealt", in the skill of the attack style, and no Hitpoints XP).
+     */
+    var xpPermille: (Npc) -> Int = { 1000 }
+
+    /** [tenths] of combat XP for hitting [npc], cut to its [xpPermille]. */
+    fun xpOn(npc: Npc, tenths: Int): Int = xpPermille(npc).let { if (it >= 1000) tenths else tenths * it / 1000 }
+
+    /** Whether hitting [npc] gives Hitpoints XP: it [paysXp] in full ([xpPermille]). */
+    fun paysHitpointsXp(npc: Npc): Boolean = paysXp(npc) && xpPermille(npc) >= 1000
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
