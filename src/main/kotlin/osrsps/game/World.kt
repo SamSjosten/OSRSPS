@@ -902,6 +902,7 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        supply = { id -> id in foods.all || id in potions.all || id == objTypes.find("jewl_necklace_of_phoenix")?.id },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
         forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
