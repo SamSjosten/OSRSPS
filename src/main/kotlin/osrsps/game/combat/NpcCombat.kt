@@ -133,6 +133,17 @@ data class NpcCombatDef(
     /** Typeless attacks, which no protection prayer blocks or cuts (`"typeless": true`; the Escape Caves' bears and spiders). */
     val typeless: Boolean = false,
     /**
+     * The protection prayer that blocks its melee swing when that isn't its [attackType]'s own (`"prayedAs": "melee"`): magical
+     * and ranged melee roll against Magic or Ranged defence but Protect from Melee blocks them (OSRS Wiki, Magical melee and
+     * Ranged melee). Null for the attack type's own prayer.
+     */
+    val prayedAs: AttackType? = null,
+    /**
+     * A successful hit drains a random stat other than Hitpoints by [NpcHitDrain.min] to [NpcHitDrain.max] levels
+     * (`"hitDrain": { "min": 1, "max": 4 }`; the gorak's, OSRS Wiki, Gorak). Null for none.
+     */
+    val hitDrain: NpcHitDrain? = null,
+    /**
      * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
      * The Fractured Archive/Strategies).
      */
@@ -196,6 +207,9 @@ data class NpcMeleeSpell(
 data class NpcBlinding(val protection: Set<Int>, val min: Int, val max: Int, val drainPercent: Int, val skills: List<Skill>)
 
 data class StatDrain(val skill: Skill, val percent: Int, val stacks: Boolean = false)
+
+/** What a successful hit of an NPC with [NpcCombatDef.hitDrain] takes from a random stat other than Hitpoints. */
+data class NpcHitDrain(val min: Int, val max: Int)
 
 /**
  * One of a magic or ranged NPC's attacks: its animation (-1 for the NPC's own attack one), the spotanim on it as it
@@ -339,6 +353,16 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
                 typeless = entry["typeless"]?.jsonPrimitive?.boolean ?: false,
+                prayedAs = entry["prayedAs"]?.jsonPrimitive?.content?.let {
+                    require(it == "melee") { "\"prayedAs\": \"$it\"" }
+                    require(attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "prayed as melee on a $attackType NPC" }
+                    AttackType.CRUSH
+                },
+                hitDrain = entry["hitDrain"]?.jsonObject?.let { drain ->
+                    NpcHitDrain(drain.required("min").jsonPrimitive.int, drain.required("max").jsonPrimitive.int).also {
+                        require(it.min in 1..it.max) { "a hit drain of ${it.min} to ${it.max}" }
+                    }
+                },
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
                 range = (entry["range"]?.jsonPrimitive?.int ?: 1).also { require(it in 1..MAX_RANGE) { "range $it" } },
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {

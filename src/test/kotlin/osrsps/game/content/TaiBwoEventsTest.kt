@@ -11,7 +11,7 @@ class TaiBwoEventsTest {
         assertEquals(1.0 / 33, TaiBwoEvents.tuberChance(99), 1e-12)
         assertEquals((0.01 + 1.0 / 33) / 2, TaiBwoEvents.tuberChance(54) + (TaiBwoEvents.tuberChance(55) - TaiBwoEvents.tuberChance(54)) / 2, 1e-12)
         assertEquals(TaiBwoEvents.TABLE_TOTAL, TaiBwoEvents.TABLE.sumOf { it.second })
-        assertEquals(listOf(22, 21, 21, 8, 7, 6), TaiBwoEvents.Creature.entries.map { it.weight }, "spider, tribesman, snake, mosquito, the two swarms")
+        assertEquals(listOf(22, 21, 21, 8, 7, 6, 5, 4, 3, 2), TaiBwoEvents.TABLE.map { it.second }, "Mod Ash's order: spider, tribesman, snake, mosquito, the two swarms, the rock, the three victims")
     }
 
     @Test

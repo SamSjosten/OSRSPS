@@ -146,6 +146,18 @@ class Combat(
     var ruled: (Player, Npc, AttackType?) -> Line? = { _, _, _ -> null }
 
     /**
+     * Set by content: whether [Npc] may only be attacked by a player with it as their Slayer task and [Player] hasn't,
+     * as the Wilderness Slayer Cave's abyssal demons are ([osrsps.game.content.WildernessSlayerCave]).
+     */
+    var taskOnly: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
+     * Set by content: tells [Player] in its own way why [Npc] can't be attacked, for the [Line] [barred] gave, and
+     * returns true; false leaves the line as a game message. Asked only where an attack is clicked or walked to.
+     */
+    var tellBarred: (Player, Npc, Line) -> Boolean = { _, _, _ -> false }
+
+    /**
      * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
      * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
      * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
@@ -212,6 +224,7 @@ class Combat(
      */
     fun barred(player: Player, npc: Npc, weapon: Boolean = true, type: AttackType? = null): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
+        taskOnly(player, npc) -> CombatLines.TASK_ONLY
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
         else -> (if (weapon) weaponBarred(player, npc) else null) ?: ruled(player, npc, type) ?: notYours(player, npc)
     }

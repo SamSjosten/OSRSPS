@@ -1,0 +1,28 @@
+{
+  "name": "Wilderness step W6.1: the Deep Wilderness Dungeon's stairs from the broken house down and back up, then the crevice at Agility 46 over to the fire giants and back, and a fire giant attacked (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 51"},
+    {"step": "command", "text": "::tele 3044 3927 0", "expectMessage": "Teleported to 3044, 3927, 0", "comment": "in the broken house, north of the stairs at 3044,3924"},
+    {"step": "locOption", "locId": 16664, "option": "Climb-down", "x": 3044, "y": 3924},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3044, "y": 10322, "plane": 0},
+    {"step": "locOption", "locId": 16665, "option": "Climb-up", "x": 3044, "y": 10324},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3044, "y": 3927, "plane": 0},
+    {"step": "command", "text": "::setlevel agility 46", "comment": "the crevice's level"},
+    {"step": "command", "text": "::tele 3046 10326 0", "expectMessage": "Teleported to 3046, 10326, 0", "comment": "below the crevice at 3046,10327"},
+    {"step": "locOption", "locId": 19043, "option": "Use", "x": 3046, "y": 10327},
+    {"step": "waitTicks", "ticks": 5},
+    {"step": "assertLocation", "x": 3048, "y": 10336, "plane": 0},
+    {"step": "npcOption", "npc": "Fire giant", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Fire giant", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Fire giant #"},
+    {"step": "locOption", "locId": 19043, "option": "Use", "x": 3048, "y": 10335},
+    {"step": "waitTicks", "ticks": 5},
+    {"step": "assertLocation", "x": 3046, "y": 10326, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

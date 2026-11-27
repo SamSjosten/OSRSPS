@@ -235,6 +235,8 @@ object DialogueLines {
         RevenantCavesLines,
         EmblemTraderLines,
         MaledictusLines,
+        PeeveLines,
+        WildernessGodWarsLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,

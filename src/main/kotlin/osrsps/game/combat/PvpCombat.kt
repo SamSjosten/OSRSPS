@@ -115,6 +115,11 @@ class PvpCombat(
         val level: Int = target.level,
         /** Made on an arena's special ground ([arenaHitQueued]): it lands by [arenaHit] wherever the target is by then. */
         val arena: Boolean = false,
+        /**
+         * Made from an arena ([inArena]): it lands only on a target still in one, and counts for no kill credit
+         * ([dealtBy]), as a fight there risks nothing (exploit review R65A-1).
+         */
+        val ring: Boolean = false,
     ) {
         /** A phoenix necklace's heal before it landed ([dropIncoming]): it lands nowhere, [landed] aside. */
         var cancelled = false
@@ -273,12 +278,16 @@ class PvpCombat(
         player.waypoints.clear()
         val tick = currentTick()
         if (tick < player.nextAttackTick) return false
-        return when {
-            mode.spell != null -> castSpell(player, target, fight, mode.spell, tick)
-            mode.weapon != null -> shoot(player, target, mode.weapon, tick)
-            else -> {
-                swing(player, target, tick)
-                false
+        // No XP for a fight in an arena, where a death costs nothing and restores the stats, so two accounts can't
+        // train there with no risk (exploit review R65A-2; GUESSED, the Wiki's Combat room page doesn't say).
+        return player.skills.withoutXpIf(inArena(player)) {
+            when {
+                mode.spell != null -> castSpell(player, target, fight, mode.spell, tick)
+                mode.weapon != null -> shoot(player, target, mode.weapon, tick)
+                else -> {
+                    swing(player, target, tick)
+                    false
+                }
             }
         }
     }
@@ -386,7 +395,7 @@ class PvpCombat(
         player.effects.anim(combat.anims(player).attack(matchup.style), 0)
         val damage = dealt(target, matchup.style.type, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
         styleXp(player, matchup.style, damage)
-        hits += Hit(player, target, damage, tick + late(target, tick), arena = arenaHitQueued(player, target))
+        hits += Hit(player, target, damage, tick + late(target, tick), arena = arenaHitQueued(player, target), ring = inArena(player))
         fought(player, target, tick)
     }
 
@@ -405,7 +414,7 @@ class PvpCombat(
             ranged.flyAt(player, target, travel, delay.toLong(), shot)
             val damage = dealt(target, AttackType.RANGED, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
             styleXp(player, matchup.style, damage)
-            hits += Hit(player, target, damage, tick + delay, landed = { ranged.landAmmo(player, spent, target.x, target.z, target.level) })
+            hits += Hit(player, target, damage, tick + delay, landed = { ranged.landAmmo(player, spent, target.x, target.z, target.level) }, ring = inArena(player))
         }
         // The last one thrown: the fight ends rather than going on bare-handed (guessed, as at an NPC).
         return weapon.thrown && player.equipment[WearPos.WEAPON] == null
@@ -463,7 +472,7 @@ class PvpCombat(
             player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        hits += Hit(player, target, damage, landTick, spell, hit = rolled != null)
+        hits += Hit(player, target, damage, landTick, spell, hit = rolled != null, ring = inArena(player))
         return rolled != null
     }
 
@@ -510,6 +519,8 @@ class PvpCombat(
             hit.landed()
             if (hit.cancelled) continue
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
+            // An arena's hit on someone who has left the arena since does nothing (exploit review R65A-1).
+            if (hit.ring && !inArena(player)) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null && hit.arena && arenaHit(hit.attacker, player, hit.damage)) {
@@ -522,7 +533,7 @@ class PvpCombat(
             }
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
-                dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
+                if (!hit.ring) dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
                 val (fromX, fromZ, fromLevel) = Triple(player.x, player.z, player.level)
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
                 // A ring of life took them away: out of the fight, no hitting back or freeze (Codex review on #956).
@@ -653,6 +664,19 @@ class PvpCombat(
         player.skullTicks = 0
         player.attackedFirst.clear()
         Teleblock.clear(player)
+        player.pvpDamage.clear()
+        player.lastPvpHitTick = -1
+    }
+
+    /**
+     * [player] has left a house, whose arenas' fights they leave behind: their PJ timer ends, so it gives no single-way
+     * cover outside (exploit review R65A-3), and the damage players dealt them is forgotten, so no one is credited
+     * with a kill there they had no part in (R65A-1). GUESSED: the Wiki doesn't say.
+     */
+    fun leftHouse(player: Player) {
+        player.pjOpponent = null
+        player.pjUntil = 0
+        player.pjAfterKill = false
         player.pvpDamage.clear()
         player.lastPvpHitTick = -1
     }

@@ -97,6 +97,9 @@ class Aggression(
     private val currentTick: () -> Long,
     private val players: () -> Sequence<Player>,
 ) {
+    /** Whether [npc] leaves [player] alone for content's reasons: a god's follower and the god's item worn. */
+    var spares: (Npc, Player) -> Boolean = { _, _ -> false }
+
     /** Counts every player's tolerance, then lets each aggressive NPC hunt. */
     fun process() {
         for (player in players()) count(player)
@@ -155,6 +158,7 @@ class Aggression(
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && osrsps.game.Wilderness.level(npc.x, npc.z) == 0 &&
             player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
+        if (spares(npc, player)) return false
         return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
     }
 
