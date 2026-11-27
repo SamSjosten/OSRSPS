@@ -71,6 +71,8 @@ object GameFrameCheck {
             osrsps.game.content.PollBooths.CACHE_NAMES,
             osrsps.game.content.ClanCoffer.CACHE_NAMES,
             osrsps.game.content.ClanParty.CACHE_NAMES,
+            osrsps.game.content.randomevents.Pinball.CACHE_NAMES,
+            osrsps.game.content.randomevents.Pillory.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */

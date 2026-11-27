@@ -74,7 +74,7 @@ class VarCommandsTest {
         assertEquals(
             listOf(
                 "Usage: ::varp id|name [value]",
-                "Usage: ::varp id|name [value] ('abc' is not a number or one of banana_crate, brutus.best_ticks, brutus.deaths, brutus.demonic_best_ticks, brutus.demonic_deaths, champions_challenge, fight_cave, giant_lairs, harlan.claimed, inferno, lodestones, log_storage, log_storage.magic, mor_ul_rek_access, tears_of_guthix, tears_of_guthix.xp, white_tree, wilderness_lair_visit)",
+                "Usage: ::varp id|name [value] ('abc' is not a number or one of banana_crate, brutus.best_ticks, brutus.deaths, brutus.demonic_best_ticks, brutus.demonic_deaths, champions_challenge, fight_cave, giant_lairs, harlan.claimed, inferno, lodestones, log_storage, log_storage.magic, mor_ul_rek_access, tbw_cleanup, tears_of_guthix, tears_of_guthix.xp, white_tree, wilderness_lair_visit)",
                 "Varps are 0 to 4999",
                 "Usage: ::varp id|name [value] ('x' is not a number)",
                 "No varbit 1 in the cache",

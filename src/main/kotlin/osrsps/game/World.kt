@@ -192,6 +192,7 @@ import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
+import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -205,6 +206,7 @@ import osrsps.game.content.registerBrimhavenTown
 import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
 import osrsps.game.content.registerCairnIsle
+import osrsps.game.content.registerTaiBwoWannai
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -741,6 +743,7 @@ class World(
                 it in osrsps.game.content.randomevents.PrisonPete.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
@@ -1040,7 +1043,6 @@ class World(
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
-    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     /**
      * Called after a player moves in the movement phase, with the tiles they stood on this tick ([Player.stepTrail]:
      * the start, then each tile stepped onto), for what a tile does when walked onto (the Agility Arena's floor traps).
@@ -1051,6 +1053,13 @@ class World(
     /** Tiles a running player stops on after one step; see [Movement.stopChecks]. */
     val stepStops: MutableList<(Player) -> Boolean> get() = movement.stopChecks
 
+    /** Called for each player as they log in, after the quests are marked done: content that sets vars at login (Tai Bwo Wannai's villagers). */
+    val loginHooks = ArrayList<(Player) -> Unit>()
+
+    /** Called at the start of each tick with its number, for content that counts down on its own clock (Tai Bwo Wannai's trading sticks). */
+    val tickHooks = ArrayList<(Long) -> Unit>()
+
+    /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
@@ -1094,6 +1103,10 @@ class World(
     val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
+    /** The combat room's racks and ropes; see [osrsps.game.skill.construction.CombatRoom]. */
+    val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
+    /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
+    val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
@@ -1353,6 +1366,7 @@ class World(
         registerSpindel(this)
         registerEscapeCaves(this)
         registerCallisto(this)
+        registerVetion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1377,6 +1391,7 @@ class World(
         registerBrimhavenDungeon(this)
         registerBrimhavenAgilityArena(this)
         registerCairnIsle(this)
+        registerTaiBwoWannai(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
@@ -1458,6 +1473,8 @@ class World(
         furniture.register()
         kitchen.register()
         workshop.register()
+        combatRoom.register()
+        stairs.register()
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
@@ -1789,6 +1806,7 @@ class World(
         endEmptyInstances()
         groundObjs.process()
         agilityArena.process(tick)
+        for (hook in tickHooks) hook(tick)
         archiveRaids.settleDepartures()
         houses.settleDepartures()
         phase = TickPhase.INPUT
@@ -2267,12 +2285,17 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         // A house keeps its kitchen's own supplies: saved inside, at the portal outside, they stay behind (Codex on #906).
-        val leaving = if (houses.houseAt(player.x, player.z) == null) inventory
-        else inventory.filterValues { it.id !in osrsps.game.skill.construction.Kitchen.HOUSE_ONLY }
+        val inHouse = houses.houseAt(player.x, player.z) != null
+        val leaving = if (!inHouse) inventory else inventory.filterValues { it.id !in osrsps.game.skill.construction.HouseOnly.OBJS }
+        // Its combat room's practice kit stays too when worn (step CON6a).
+        val worn = player.equipment.contents().toMap().let { if (!inHouse) it else it.filterValues { obj -> obj.id !in osrsps.game.skill.construction.HouseOnly.OBJS } }
+        // A random event's place sends them back by the way back's own rule (R51 C-4).
+        val (x, z, level) = randomEvents.areas.awayOf(player)?.let { randomEvents.areas.backOf(it) }
+            ?: Triple(instance?.exitX ?: SPAWN_X, instance?.exitZ ?: SPAWN_Z, instance?.exitLevel ?: SPAWN_LEVEL)
         return PlayerSave.of(
             // A random event's place keeps its own items: a player saved there leaves without them.
-            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank,
-            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            player, randomEvents.areas.withoutPlaceItems(player, leaving), bank, equipment = worn,
+            x = x, z = z, level = level,
             held = held,
         )
     }
@@ -2595,6 +2618,7 @@ class World(
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
+        for (hook in loginHooks) hook(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
@@ -2960,6 +2984,7 @@ class World(
         npcInteractions.leave(player)
         // Out of a random event's place by any way, its own items stay there.
         randomEvents.areas.moving(player, x, z)
+        osrsps.game.content.randomevents.Pillory.moving(player, x, z, level)
         player.x = x
         player.z = z
         player.level = level

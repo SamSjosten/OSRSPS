@@ -35,6 +35,7 @@
     {"step": "locOption", "locId": 11727, "option": "Open", "x": 3038, "y": 3956},
     {"step": "assertMessage", "contains": "[thieving_lock.through]", "timeoutMs": 10000},
     {"step": "assertLocation", "x": 3037, "y": 3956, "plane": 0, "timeoutMs": 10000, "comment": "out through it"},
+    {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you", "comment": "tolerated, so no pirate takes the player on as they arrive and the Attack below isn't refused in single-way combat"},
     {"step": "command", "text": "::tele 3040 3953 0", "expectMessage": "Teleported to 3040, 3953, 0", "comment": "inside the hideout, among the pirates' spawns"},
     {"step": "npcOption", "npc": "Pirate", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Pirate", "timeoutMs": 20000},

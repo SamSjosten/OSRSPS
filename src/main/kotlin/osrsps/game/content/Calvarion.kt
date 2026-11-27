@@ -48,8 +48,9 @@ object CalvarionLines : Lines("calvarion", "Transcript:Calvar'ion") {
  * glow's [LIGHTNING_WARN] ticks and graphics (fx_vetion_attack_magic and its impact, by the form); the random bolts
  * within [ARENA_SPAN] of him; the bash one attack in [BASH_ODDS] when he can reach, its [BASH_WARN] ticks and shadows
  * (fx_vetion_attack_melee), either shape at even odds; the enraged ring 2 to 3 tiles out from him; where the hounds come
- * in (beside him, west and east) and a hound let go after [HOUND_IDLE_TICKS] without a swing; the enraged form's max
- * hit (the Wiki says only that it is higher); a shout with every attack.
+ * in (beside him, west and east), and a hound brought back beside its target after [HOUND_IDLE_TICKS] without a swing
+ * (let go only with nowhere there for it to stand); the enraged form's max hit (the Wiki says only that it is higher);
+ * a shout with every attack.
  * Left out: his defence drained and restored as he enrages, singles-plus combat (the arena is single-way).
  */
 class SkeletalLord(val config: Config) {
@@ -253,13 +254,29 @@ class SkeletalLord(val config: Config) {
             if (seen == null || seen.first != hound.nextAttackTick) {
                 fight.houndSwings[hound] = hound.nextAttackTick to world.tick
             } else if (world.tick - seen.second >= HOUND_IDLE_TICKS) {
-                world.removeNpc(hound)
-                fight.houndSwings.remove(hound)
-                log("lets go an idle hound")
+                // Back beside its target, so staying out of its reach doesn't send it away unkilled (exploit review
+                // round 49, R49C-2); let go only when there is nowhere beside them it fits.
+                val target = hound.target ?: boss.target ?: players.firstOrNull()
+                val at = target?.let { beside(hound.type.size, it) }
+                if (target != null && at != null) {
+                    world.npcs.teleport(hound, at.x, at.z)
+                    world.meleeCombat.aggress(hound, target, world.tick)
+                    fight.houndSwings[hound] = hound.nextAttackTick to world.tick
+                    log("brings back an idle hound")
+                } else {
+                    world.removeNpc(hound)
+                    fight.houndSwings.remove(hound)
+                    log("lets go an idle hound")
+                }
             }
         }
         fight.houndSwings.keys.retainAll(fight.hounds.toSet())
     }
+
+    /** Where a hound [size] tiles across can stand next to [player], a step from them, inside his tomb on open floor. */
+    private fun EncounterContext.beside(size: Int, player: Player): Tile? = world.npcs.openAround(player.level, player.x, player.z)
+        .map { Tile(if (it.x < player.x) it.x - size + 1 else it.x, if (it.z < player.z) it.z - size + 1 else it.z) }
+        .firstOrNull { config.inArena(it.x, it.z) && config.inArena(it.x + size - 1, it.z + size - 1) && world.npcs.fits(size, player.level, it.x, it.z) }
 
     /** At 0 in his normal form: a ring of lightning round him, and back as his enraged form with full hitpoints. */
     private fun EncounterContext.enrage(fight: Fight) {
@@ -434,12 +451,20 @@ fun registerCalvarion(world: World) {
             if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
-        // Vet'ion's Rest has the same way out; his step gives it its own place to put the player.
+        // Vet'ion's Rest has the same way out, into the Escape Caves.
         world.handlers.onLoc(EXIT, 1) { op ->
             val loc = op.loc!!
-            if (!inTomb(loc.x, loc.z)) return@onLoc world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
-            arriveDelay()
-            world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+            when {
+                inTomb(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+                }
+                Vetion.inRest(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.escapeCaves.leaveLair(world, player, Vetion.NAME)
+                }
+                else -> world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
+            }
         }
         FIGHT.register(world, WildernessBoss("calvarion", setOf(BOSS, ENRAGED), KILL_COUNT_VARP, lair = true))
     }

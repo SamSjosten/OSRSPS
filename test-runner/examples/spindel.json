@@ -21,7 +21,7 @@
     {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Spindel count=", "timeoutMs": 15000},
     {"step": "locOption", "locId": 47000, "option": "Exit", "x": 1630, "y": 11527},
     {"step": "waitTicks", "ticks": 6},
-    {"step": "assertLocation", "x": 3184, "y": 3743, "plane": 0},
+    {"step": "assertLocation", "x": 3184, "y": 3743, "plane": 0, "timeoutMs": 30000, "comment": "the walk from the north end to the way out is about 30 tiles"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

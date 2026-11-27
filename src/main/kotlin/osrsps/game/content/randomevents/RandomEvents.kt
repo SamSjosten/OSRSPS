@@ -63,11 +63,26 @@ abstract class RandomEvent(
     /** Items that belong to its place and stay there: taken as the player leaves it, by any way out, logging out too. */
     open val placeItems: Set<Int> = emptySet()
 
+    /**
+     * Called as [player] leaves its place ([teleports]) by any way out ([EventAreas.moving]): the way back, a teleport
+     * or a death. For what the place set on them that must not follow them out (R51 A-2: the Drill Demon's signs).
+     */
+    open fun leftPlace(world: World, player: Player) {}
+
     /** Called once its NPC is out, before its first words. */
     open fun started(world: World, out: RandomEvents.Out) {}
 
     /** Talk-to by its player, which ends the event when it returns true: its NPC then goes. */
     abstract suspend fun Dialogue.talk(world: World, events: RandomEvents): Boolean
+
+    /** Called as its player logs in, for an event that keeps them somewhere on the real map (the Pillory). */
+    open fun loggedIn(world: World, player: Player) {}
+
+    /** `::randomevent end`: lets [player] out of this event, with nothing; false when it doesn't hold them. */
+    open fun end(world: World, player: Player): Boolean = false
+
+    /** Called as a player logs out. */
+    open fun loggedOut(player: Player) {}
 
     /** Talk-to on one of [npcIds] that is no event's NPC out in the world: Evil Bob on his own island. */
     open suspend fun ScriptContext.talkElsewhere(world: World, npc: Npc) {}
@@ -201,11 +216,13 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     fun login(player: Player) {
         val due = player.charges[DUE]
         if (due != 0 && due <= nowMinutes()) player.charges[DUE] = nowMinutes() + world.random.between(OFFLINE_MIN_MINUTES, OFFLINE_MAX_MINUTES)
+        for (event in all.values) event.loggedIn(world, player)
     }
 
     fun leaving(player: Player) {
         held -= player.saveKey
         for (it in out.values.filter { it.owner == player.saveKey }) remove(it)
+        for (event in all.values) event.loggedOut(player)
     }
 
     /** The event NPC out for [player], if any. */
@@ -377,6 +394,18 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         it.leaveAt = world.tick + CLAIMED_TICKS
     }
 
+    /**
+     * [player] has been taken to their event's place: the NPC that took them goes on the next tick, however the talk ends.
+     * A teleport cast during the arrival talk drops the talk before it could remove the NPC, which left it to be taken
+     * again (exploit review round 51, C-1). Guessed: that it goes on the next tick and says nothing as it goes; the
+     * player is out of sight of it by then.
+     */
+    fun taken(player: Player) {
+        val it = outFor(player) ?: return
+        world.npcs.stopFollowing(it.npc)
+        it.leaveAt = world.tick + 1
+    }
+
     /** [it] gives up: its leaving line, then it goes. */
     fun leave(it: Out, owner: Player) {
         say(it, owner, it.event.leaving)
@@ -467,7 +496,8 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze, Pillory,
+        Pinball,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -482,5 +512,7 @@ fun registerRandomEvents(world: World) {
     EvilTwin.register(world)
     KissTheFrog.register(world)
     Maze.register(world)
+    Pillory.register(world)
+    Pinball.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
