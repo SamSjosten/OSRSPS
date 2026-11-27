@@ -75,6 +75,10 @@ internal fun resetScenario(world: World, player: Player): String {
     before.restoreTo(player)
     world.cats.afterRestore(player)
     for ((name, value) in kept) player.charges[name] = value
+    // Poison, venom and an antipoison's immunity from before the setup don't come back with its varp: put back, an
+    // account poisoned once outside a setup carried it into every later ::reset, its timer wound back each time,
+    // until the poison killed it in the next script (nightly 2026-11-26, settings-dropdowns after sepulchre-of-death).
+    world.poison.clear(player)
     // A trail being followed ends, and the restored varbits show none of its footprints.
     world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
@@ -149,7 +153,7 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     world.pvpCombat.clear(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
-    // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
+    // Nor poison, venom or an antipoison's immunity from before; ::reset doesn't put them back either.
     world.poison.clear(player)
     world.statusEffects.clear(player)
     player.testCheatsOff()

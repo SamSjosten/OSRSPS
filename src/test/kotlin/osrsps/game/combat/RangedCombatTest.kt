@@ -410,6 +410,22 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `no arrow fired at a combat dummy comes back or falls, even with an accumulator`() {
+        recover = AvaDevices.RECOVERED.getValue(AvaDevices.ACCUMULATOR)
+        combat.dummy = { true }
+        wield(alice, shortbow, bronzeArrow, 100)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        repeat(100) { tick() }
+        val fired = projectiles.size
+        assertTrue(fired >= 20, "$fired fired")
+        // "Any ammunition fired at it will always be lost" (OSRS Wiki, Combat dummy).
+        assertEquals(100 - fired, ammoLeft(alice))
+        assertTrue(dropped.isEmpty(), "$dropped")
+    }
+
+    @Test
     fun `an arrow coming back to a quiver that now holds other ammunition falls instead`() {
         recover = 100 - AvaDevices.BROKEN
         val npc = spawn(type = dummy, x = 3214)

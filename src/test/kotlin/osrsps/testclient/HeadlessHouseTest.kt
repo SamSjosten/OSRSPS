@@ -8,6 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.Inventory
 import osrsps.game.InventoryTab
 import osrsps.game.NpcType
@@ -24,6 +25,8 @@ import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.combat.SlayerHelm
+import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.CombatRoom
@@ -54,6 +57,9 @@ import osrsps.map.LocShape
  */
 class HeadlessHouseTest {
     private val agent = NpcType(EstateAgent.ID, "Estate agent", ops = listOf("Talk-to", null, "Relocate", "Redecorate", null), internalName = "poh_estate_agent")
+    private val dummyNpc = NpcType(DUMMY_NPC, "<col=00ffff>Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_npc")
+    private val undeadDummyNpc = NpcType(UNDEAD_DUMMY_NPC, "<col=00ffff>Undead Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_undeadslayer_npc")
+    private val ornateDummyNpc = NpcType(ORNATE_DUMMY_NPC, "<col=00ffff>Ornate undead combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Swap", "Remove"), internalName = "poh_combat_dummy_upgraded_undeadslayer_npc")
 
     private fun hotspot(id: Int, name: String, width: Int = 1) =
         LocType(id, name, ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = width, length = width, interactType = 0))
@@ -105,6 +111,8 @@ class HeadlessHouseTest {
         hotspot(RING_CORNER_SPACE, "Combat ring space"), hotspot(PEDESTAL_WALL_SPACE, "Combat ring space"),
         LocType(BOXING_CORNER, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(BARRIER, "Magic barrier", ops = listOf("Walk-through", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        hotspot(DUMMY_SPACE, "Combat dummy space"),
+        LocType(COMBAT_DUMMY, "Combat dummy", ops = listOf("Attach", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
     ).associateBy { it.id }
 
@@ -145,6 +153,8 @@ class HeadlessHouseTest {
         objs[BAGGED_PLANT_1] = ObjType(BAGGED_PLANT_1, "Bagged plant 1")
         objs[WATERING_CAN_8] = ObjType(WATERING_CAN_8, "Watering can(8)")
         objs[KNIFE] = ObjType(KNIFE, "Knife")
+        objs[SLAYER_HELMET] = ObjType(SLAYER_HELMET, "Slayer helmet", wearpos1 = WearPos.HEAD)
+        objs[SLAYER_HELMET_I] = ObjType(SLAYER_HELMET_I, "Slayer helmet (i)", wearpos1 = WearPos.HEAD)
         for (gloves in listOf(CombatRoom.RED_GLOVES, CombatRoom.BLUE_GLOVES)) {
             objs[gloves] = ObjType(gloves, "Boxing gloves", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, wearpos3 = WearPos.HANDS)
         }
@@ -165,7 +175,7 @@ class HeadlessHouseTest {
                 markLoaded(AGENT_X shr 6, AGENT_Z shr 6)
             },
             objTypes = ObjTypes(objs),
-            npcTypes = NpcTypes.of(agent),
+            npcTypes = NpcTypes.of(agent, dummyNpc, undeadDummyNpc, ornateDummyNpc),
             npcSpawns = listOf(NpcSpawn(agent, AGENT_X, AGENT_Z, source = "test")),
             locTypes = LocTypes(types),
             staticLocs = StaticLocs().apply {
@@ -217,6 +227,7 @@ class HeadlessHouseTest {
                 add(ZoneLoc(RING_CORNER_SPACE, LocShape.WALL_SQUARE_CORNER, 1, combat.templateX + 2, combat.templateZ + 1, 0))
                 add(ZoneLoc(PEDESTAL_WALL_SPACE, LocShape.WALL_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 5, 0))
                 add(ZoneLoc(STORAGE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 6, 0))
+                add(ZoneLoc(DUMMY_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 2, combat.templateZ + 6, 0))
                 doors(combat.templateX, combat.templateZ, listOf(0, 2, 3)).forEach(::add)
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
@@ -1211,7 +1222,88 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a combat dummy is attached and detached, Remove waits for Detach, and removing its room takes it away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("nell").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("nell")!!
+                // A combat room east of the parlour with a combat dummy already in it.
+                val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                room.built[DUMMY_SPACE] = COMBAT_DUMMY
+                player.house!!.rooms += room
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val house = assertNotNull(server.world.houses.houseAt(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val px = cx - 8
+                fun dummy() = server.world.npcs.all.firstOrNull { it.type.id == DUMMY_NPC && it.x == cx + 2 && it.z == cz + 6 }
+                client.await("the dummy") { if (client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+
+                // Attach: the loc gives way to the dummy NPC on its tile.
+                client.locOp(COMBAT_DUMMY, cx + 2, cz + 6, CombatRoom.ATTACH)
+                val npc = client.await("the dummy attached") { dummy() }
+                client.await("the loc gone") { if (!client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+                assertTrue(server.world.combat.dummy(npc))
+                assertEquals(1, house.dummies.size)
+
+                // Remove on it waits for Detach; Detach puts the loc back.
+                client.npcOp(npc.index, CombatRoom.NPC_REMOVE)
+                client.await("detach first") { client.messages().firstOrNull { it.text == "[construction.dummy_detach_first]" } }
+                assertEquals(COMBAT_DUMMY, player.house!!.room(House.STARTER_X + 1, House.STARTER_Z + 1)!!.built[DUMMY_SPACE])
+                client.npcOp(npc.index, CombatRoom.DETACH)
+                client.await("the loc back") { if (client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+                assertNull(dummy())
+                assertTrue(house.dummies.isEmpty())
+
+                // Attached again, then the room removed: the dummy goes with it.
+                client.locOp(COMBAT_DUMMY, cx + 2, cz + 6, CombatRoom.ATTACH)
+                client.await("attached again") { dummy() }
+                client.command("tele ${px + 6} ${cz + 3} ${House.GROUND}")
+                client.await("beside the parlour's east door") { client.position?.takeIf { it == Coord(px + 6, cz + 3, House.GROUND) } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, px + 7, cz + 3, House.BUILD)
+                client.menu("construction.remove_yes", "construction.remove_no")
+                client.chooseOption(1)
+                client.await("the room gone") { if (player.house!!.room(House.STARTER_X + 1, House.STARTER_Z + 1) == null) Unit else null }
+                assertNull(dummy())
+                assertTrue(house.dummies.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `the undead combat dummies count as any Slayer task for a Slayer helmet, and the plain one doesn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rue").use { client ->
+                client.ready()
+                val player = server.world.playerNamed("rue")!!
+                val slayer = server.world.slayer
+                fun npc(type: NpcType) = Npc(0, NpcSpawn(type, 0, 0, source = "test", respawns = false))
+                // No task at all.
+                assertNull(slayer.task(player))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(undeadDummyNpc)), "no helmet, no bonus")
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET, 1)
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET_I, 1)
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+            }
+        }
+    }
+
     private companion object {
+        const val DUMMY_SPACE = 29335
+        const val COMBAT_DUMMY = 29336
+        const val DUMMY_NPC = 2668
+        const val UNDEAD_DUMMY_NPC = 7413
+        const val ORNATE_DUMMY_NPC = 10507
+        const val SLAYER_HELMET = 11864
+        const val SLAYER_HELMET_I = 11865
         const val STAIR_SPACE = 15380
         const val STAIR_TOP_SPACE = 15381
         const val OAK_STAIRCASE_ROW = 5644
