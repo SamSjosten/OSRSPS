@@ -56,6 +56,7 @@ class ClanHallFurniture(private val world: World) {
         // the live server's own close isn't seen; nightly 27 Nov, a stuck chatbox after Play-quietly).
         world.interfaces.onClose(WINDOW) {
             entertaining.remove(it)
+            lastNote.remove(it)
             world.interfaces.runClientScript(it, SCRIPT_SMITHING_CLOSE, emptyList())
         }
         world.handlers.onLoc(DUMMY, ATTACK) { hitDummy(world, xp = false) }
@@ -64,6 +65,7 @@ class ClanHallFurniture(private val world: World) {
     /** Drops [player] on leaving: closing a modal doesn't run its close hook when the player is removed (Codex on PR 1005). */
     fun forget(player: Player) {
         entertaining.remove(player)
+        lastNote.remove(player)
     }
 
     private fun open(player: Player, entertain: Boolean) {
@@ -72,12 +74,22 @@ class ClanHallFurniture(private val world: World) {
         if (entertain) entertaining += player else world.interfaces.runClientScript(player, SCRIPT_PIANO, emptyList())
     }
 
+    /** The tick each entertaining player last played a note heard by the hall. */
+    private val lastNote = HashMap<Player, Long>()
+
+    /**
+     * A key pressed while entertaining: the note to everyone in the hall. One a tick per player, and the hall's own
+     * bounds checked for each listener rather than a search of every instance, so a client sending many key presses a
+     * tick can't make the game thread walk every player and instance for each (exploit review R65C-4).
+     */
     private fun play(player: Player, synth: Int) {
         if (player.modals[FrameSlot.MAINMODAL] != WINDOW || player !in entertaining) return
+        if (lastNote[player] == world.tick) return
         val hall = world.instances.at(player.x, player.z) ?: return
         if (world.clanHall.clanAt(player.x, player.z) == null) return
+        lastNote[player] = world.tick
         for (other in world.onlinePlayers) {
-            if (world.instances.at(other.x, other.z) === hall) other.session.queue(SynthSound(synth, 1, 0))
+            if (hall.contains(other.x, other.z)) other.session.queue(SynthSound(synth, 1, 0))
         }
     }
 
