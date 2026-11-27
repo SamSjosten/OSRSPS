@@ -32,7 +32,7 @@
     {"step": "locOption", "locId": 9031, "option": "Mine", "x": 2768, "y": 3061, "timeoutMs": 30000},
     {"step": "waitTicks", "ticks": 2},
     {"step": "locOption", "locId": 9032, "option": "Mine", "x": 2768, "y": 3061, "timeoutMs": 30000},
-    {"step": "waitTicks", "ticks": 4, "comment": "the third gem: the rock goes and the jungle shows chopped away"},
+    {"step": "assertLoc", "locId": 9014, "x": 2768, "y": 3061, "timeoutMs": 30000, "comment": "the third gem: the rock goes and the jungle shows chopped away (light jungle's chopped loc)"},
     {"step": "command", "text": "::god on"},
     {"step": "command", "text": "::tele 2766 3060 0", "expectMessage": "Teleported to 2766, 3060, 0"},
     {"step": "waitTicks", "ticks": 2},

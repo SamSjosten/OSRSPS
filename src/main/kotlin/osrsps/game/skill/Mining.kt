@@ -276,12 +276,15 @@ class Mining(private val world: World) {
             val glory = wearsChargedGlory(player)
             val low = if (glory) type.low * GLORY_GEM_ROCK_MULTIPLIER else type.low
             val high = if (glory) type.high * GLORY_GEM_ROCK_MULTIPLIER else type.high
-            if (SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.MINING))) {
+            // The celestial ring's invisible boost, as at every other rock (Codex review on #1033).
+            if (SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.MINING) + celestialBoost(player))) {
                 val gem = BirdNests.pick(world.random, GEM_ROCK_TABLE)
                 val gemType = world.objTypes[gem] ?: error("No obj type $gem for a gem rock's gem")
                 player.inventory.add(gemType, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
                 GEM_ROCK_LINES[gem]?.let { player.message(text[it]) }
+                // The skilling clue roll, as at the gem rocks of mine (Codex review on #1033).
+                world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                 stop()
                 taken(player, loc)
                 return

@@ -137,6 +137,49 @@ class HeadlessTaiBwoEventsTest {
         }
     }
 
+    @Test
+    fun `a full backpack leaves the tuber plant for later, and a creature goes once its player has gone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bea").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.command("varp tbw_cleanup 31")
+                client.command("setlevel woodcutting 99")
+                client.command("item $MACHETE 1")
+                client.command("item ${TaiBwoEvents.SPADE} 1")
+                client.await("the tools") { if (client.count(TaiBwoEvents.SPADE) == 1L) Unit else null }
+
+                client.tele(2770, 3060)
+                client.commandReply("tbwevent tuber") { it.endsWith("tuber") }
+                client.locOp(LIGHT_JUNGLE, 2770, 3061, TaiBwoCleanup.HACK)
+                client.message("[tbw_event.tuber]")
+                client.shown(TaiBwoEvents.TUBER_PLANT, 2770, 3061)
+                client.command("item $SPAR_LIGHT 26")
+                client.await("a full backpack") { client.inventory(Inventory.INV).takeIf { inv -> inv.count { it != null } == 28 } }
+                client.locTarget(TaiBwoEvents.TUBER_PLANT, 2770, 3061, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(TaiBwoEvents.SPADE), TaiBwoEvents.SPADE)
+                client.message("[tbw_event.no_room]")
+                client.awaitTicks(2)
+                assertEquals(0L, client.count(TaiBwoEvents.GOUT_TUBER))
+                assertEquals(TaiBwoEvents.TUBER_PLANT, client.locChanges().last { it.coord == Coord(2770, 3061, 0) }.id, "the plant stays")
+
+                // Room again for the hack's spar.
+                client.command("empty")
+                client.command("item $MACHETE 1")
+                client.await("the machete") { if (client.count(MACHETE) == 1L && client.count(SPAR_LIGHT) == 0L) Unit else null }
+                client.command("god on")
+                client.tele(2766, 3060)
+                client.commandReply("tbwevent spider") { it.endsWith("spider") }
+                client.locOp(LIGHT_JUNGLE, 2766, 3061, TaiBwoCleanup.HACK)
+                client.message("[tbw_event.monster]")
+                client.await("the spider") { client.npcs().firstOrNull { it.id == spider.id } }
+                client.tele(2766 + TaiBwoEvents.LEAVE_DISTANCE + 10, 3060)
+                client.await("the spider gone", timeoutMillis = 20_000) {
+                    if (server.world.npcs.all.none { it.type.id == spider.id && !it.dead }) Unit else null
+                }
+            }
+        }
+    }
+
     private companion object {
         const val LIGHT_JUNGLE = 9010
         const val MACHETE = 975

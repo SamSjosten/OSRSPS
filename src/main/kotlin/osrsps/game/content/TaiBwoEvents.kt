@@ -14,6 +14,7 @@ object TaiBwoEventLines : Lines("tbw_event", "Gout tuber; Tai Bwo Wannai Cleanup
     val TUBER = line("tuber", "a gout tuber event: the jungle hacked away to reveal an unusual plant")
     val NOT_YOURS = line("not_yours", "a spade on someone else's gout tuber plant")
     val DUG = line("dug", "INFERRED words wanted: the gout tuber dug up")
+    val NO_ROOM = line("no_room", "INFERRED words wanted: a spade on the gout tuber plant with no room for the tuber")
     val GEMS = line("gems", "INFERRED words wanted: a gem rock event, the jungle hacked away to show it")
     val MONSTER = line("monster", "INFERRED words wanted: a creature leaping out of the jungle")
 }
@@ -31,7 +32,8 @@ object TaiBwoEventLines : Lines("tbw_event", "Gout tuber; Tai Bwo Wannai Cleanup
  *   level 17 swarm 7, the level 20 swarm 6, a gem rock 5 and the three Broodoo victims 4, 3 and 2 (food, poison and
  *   disease, built in K4.2c: until then they fall through to no event).
  * - **The tuber.** The jungle becomes the Gout Tuber Plant (9033) for 10 minutes, the finder's alone while they stay
- *   logged in; a spade on it gives the gout tuber (6311). Someone else's: "It's not yours to dig."
+ *   logged in; a spade on it gives the gout tuber (6311). Someone else's is refused ([TaiBwoEventLines.NOT_YOURS]),
+ *   and so is a dig with a full backpack, the plant left for later.
  * - **The gem rock** (9030, then 9031 and 9032): Mining 40, three gems from the gem rock table at 65 XP each, then gone.
  * - **The creatures** (6271, 6103, 6272, 6273, 6402, 6407) come out beside the player and attack them; killing one gives
  *   its favour to whoever killed it ([Creature.favour]: 1%, or 1 to 2% for the spider and the tribesman). Wild jungle
@@ -60,6 +62,10 @@ object TaiBwoEvents {
 
     /** Fifty minutes, as the Wiki gives for a Broodoo victim. */
     const val CREATURE_TICKS = 3000
+
+    /** How often an event creature checks its player is still about, and how far off counts as gone. GUESSED. */
+    const val WATCH_TICKS = 5
+    const val LEAVE_DISTANCE = 15
 
     const val SURPRISED = 2390
     const val WILD_SPIDER = 3020
@@ -171,8 +177,22 @@ object TaiBwoEvents {
         player.anim(SURPRISED)
         world.message(player, TaiBwoEventLines.MONSTER)
         world.meleeCombat.aggress(npc, player, world.tick)
-        world.npcScripts.later(CREATURE_TICKS) { if (world.npcs[npc.index] === npc && !npc.dead) world.removeNpc(npc) }
+        watch(world, npc, player, world.tick + CREATURE_TICKS)
         return true
+    }
+
+    /**
+     * Every [WATCH_TICKS] the creature is checked: it goes once [until] is reached, or once the player it came out for
+     * has logged out, changed level or gone more than [LEAVE_DISTANCE] tiles away, so it never turns on someone else
+     * (Codex review on #1033).
+     */
+    private fun watch(world: World, npc: Npc, player: Player, until: Long) {
+        world.npcScripts.later(WATCH_TICKS) {
+            if (world.npcs[npc.index] !== npc || npc.dead) return@later
+            val gone = player.loggedOut || player.level != npc.level ||
+                maxOf(kotlin.math.abs(player.x - npc.x), kotlin.math.abs(player.z - npc.z)) > LEAVE_DISTANCE
+            if (gone || world.tick >= until) world.removeNpc(npc) else watch(world, npc, player, until)
+        }
     }
 
     /** The first tile beside [player] that can be stood on, west, east, south then north; their own when none. */
@@ -190,13 +210,15 @@ object TaiBwoEvents {
         arriveDelay()
         val owner = tuberOwners[key(loc)]
         if (owner != null && owner !== player && !owner.loggedOut) return world.message(player, TaiBwoEventLines.NOT_YOURS)
+        val tuber = world.objTypes[GOUT_TUBER] ?: return
+        // No room for it: the plant stays (Codex review on #1033).
+        if (player.inventory.freeSlots == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
         // Locked to whoever starts digging.
         tuberOwners[key(loc)] = player
         player.anim(DIG_ANIM)
         delay(1)
         if (!world.locs.exists(loc)) return
-        val tuber = world.objTypes[GOUT_TUBER] ?: return
-        player.inventory.add(tuber, 1)
+        if (player.inventory.add(tuber, 1) == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
         world.message(player, TaiBwoEventLines.DUG)
         cleared(world, loc)
     }
