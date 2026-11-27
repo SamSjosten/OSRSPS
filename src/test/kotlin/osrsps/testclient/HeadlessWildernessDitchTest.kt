@@ -103,6 +103,11 @@ class HeadlessWildernessDitchTest {
                 client.cross()
                 client.await("the warning screen") { WildernessDitch.WARNING_SCREEN.takeIf { it in client.openInterfaces() } }
                 assertEquals(DialogueText.NONE[WildernessDitchLines.WARNING], client.text(WildernessDitch.WARNING_SCREEN, WildernessDitch.WARNING_MESSAGE))
+                // The client sends these clicks only with the pause button allowed in events1 (Codex on #917).
+                for (button in listOf(WildernessDitch.DONT_GO, WildernessDitch.ENTER)) {
+                    assertTrue(client.pauseEnabled(WildernessDitch.WARNING_SCREEN, WildernessDitch.WARNING_UNIVERSE, button), "button $button")
+                }
+                assertTrue(client.pauseEnabled(WildernessDitch.WARNING_SCREEN, WildernessDitch.WARNING_TOGGLE, 0), "the toggle")
                 assertEquals(WildernessDitch.WARNING_ID, (client.varp(210) ushr 15) and 63, "cws_warning_id names the ditch's warning")
                 client.resumePause(WildernessDitch.WARNING_SCREEN, WildernessDitch.WARNING_UNIVERSE, WildernessDitch.DONT_GO)
                 client.await("the screen closed") { Unit.takeIf { WildernessDitch.WARNING_SCREEN !in client.openInterfaces() } }

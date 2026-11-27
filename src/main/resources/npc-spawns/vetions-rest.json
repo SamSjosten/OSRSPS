@@ -1,0 +1,6 @@
+{
+  "about": "Vet'ion's Rest (Wilderness step W4.13): Vet'ion. mejrs's NPCList_OSRS has him at 3219,3788 on the surface, from before the 2023 rework moved him into his rest, so his tile is GUESSED: the middle of the rest, map square 51_159 on level 1. His wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "vetion", "x": 3294, "z": 10201, "level": 1, "wander": 5, "source": "Vet'ion, Vet'ion's Rest. GUESSED: the rest's middle; wander guessed"}
+  ]
+}
