@@ -1,0 +1,6 @@
+# Item spawns in the Deep Wilderness Dungeon (Wilderness step W6.1): the grimy guam leaf and the attack potion(1).
+# Items and tiles are the OSRS Wiki's item spawn lists on each item's page (read 2026-11-15); the 100-tick respawns
+# are the other files' guess. The wine of Zamorak at 3018,10353 waits on Telekinetic Grab, which isn't built.
+obj	count	x	z	level	respawn
+unidentified_guam	1	3044	10313	0	100	# Wiki, Grimy guam leaf; respawn guessed
+1dose1attack	1	3026	10325	0	100	# Wiki, Attack potion; respawn guessed

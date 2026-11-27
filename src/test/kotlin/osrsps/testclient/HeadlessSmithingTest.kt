@@ -190,6 +190,8 @@ class HeadlessSmithingTest {
                 assertEquals("[smithing.smithed bar=bronze item=obj 1205]", daggers[0].text)
                 assertEquals(listOf(5, 5), daggers.zipWithNext { a, b -> b.tick - a.tick })
                 assertTrue(Smithing.INTERFACE !in client.openInterfaces(), "the anvil closes as smithing starts")
+                // Closing it lets go of the keyboard hold its scripts set (%smithing_listening) with smithing_close.
+                client.await("smithing_close") { client.clientScripts().firstOrNull { it.id == Smithing.SCRIPT_SMITHING_CLOSE } }
                 client.await("the daggers") { if (client.count(DAGGER_OBJ) == 3) Unit else null }
                 assertEquals(0, client.count(Smithing.BRONZE.obj))
                 assertEquals(37, client.await("Smithing XP") { client.stat(SMITHING)?.takeIf { it.xp >= 37 } }.xp)
