@@ -38,10 +38,10 @@ object ClanHallLines : Lines("clan_hall", "Clan hall portal") {
  * - The exit portal's Leave, and logging out inside, put the player outside the hub portal.
  * - The hall's altar's Pray-at recharges prayer as the churches' do. Its bank booths, deposit box and oven work as
  *   every other's (Banking, Cooking). Its coffer is [ClanCoffer]; its party chest and lever
- *   are [ClanParty]; its piano and dummy, [ClanHallFurniture].
+ *   are [ClanParty]; its piano and dummy, [ClanHallFurniture]; its people, [ClanHallPeople].
  *
  * Guessed: every line, the tiles each way (beside each portal), and that the portals act at once. Not built yet: the
- * hall settings (home world, lock, most players), the seats, bookcases, weapons rack, combat ring and the hall's people.
+ * hall settings (home world, lock, most players), the seats, bookcases, weapons rack and combat ring.
  */
 class ClanHall(private val world: World) {
     /** Each clan's hall standing now, by clan id. */
@@ -111,6 +111,7 @@ class ClanHall(private val world: World) {
         halls[clan.id]?.let { return it }
         val instance = world.instances.create(TEMPLATE_X, TEMPLATE_Z, ZONES, ZONES, OUTSIDE_X, OUTSIDE_Z, 0) ?: return null
         halls[clan.id] = instance
+        world.clanHallPeople.spawn(instance, clan)
         return instance
     }
 
