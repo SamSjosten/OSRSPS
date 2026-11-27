@@ -733,6 +733,8 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return
         if (connects(player, room)) return
         player.anim(BUILD_ANIM)
+        // Anyone on the balance beam comes off it first (Codex review on #1018).
+        if (loc.id in CombatRoom.BEAMS) world.combatRoom.offBeam(house, room)
         for (id in FurnitureBuilds.siblings(hotspot.id, room.type)) room.built.remove(id)
         redraw(house, room, hotspot.id)
         logger.info { "${player.username} removed furniture ${loc.id} from hotspot ${hotspot.id}" }

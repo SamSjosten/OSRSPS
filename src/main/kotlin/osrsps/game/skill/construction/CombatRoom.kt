@@ -90,6 +90,7 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         world.pvpCombat.inArena = { player -> arena(player) != null }
         world.pvpCombat.arenaRefusal = ::arenaRefusal
         world.pvpCombat.arenaHit = ::beamHit
+        world.pvpCombat.arenaHitQueued = { _, target -> onBeam(target) }
         for (beam in BEAMS) {
             world.handlers.onLoc(beam, STAND_ON) { op ->
                 arriveDelay()
@@ -229,6 +230,9 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         }
     }
 
+    /** The pugels each player on the balance beam carried as they stood on it ([leaveBeam]). */
+    private val carried = HashMap<Player, Long>()
+
     /**
      * Stand-on on a part of the balance beam [loc]: up onto it, with a second pugel wielded while the one carried stays
      * in the pack. Needs a pugel and both hands empty (GUESSED), and nobody else on that part (GUESSED).
@@ -241,6 +245,7 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         if (world.onlinePlayers.any { it !== player && it.x == loc.x && it.z == loc.z && it.level == loc.level }) return world.message(player, ConstructionLines.BEAM_TAKEN)
         player.waypoints.clear()
         world.teleport(player, loc.x, loc.z, loc.level)
+        carried[player] = player.inventory.count(PUGEL)
         player.equipment[WearPos.WEAPON] = InvObj(PUGEL, 1)
         player.anim(GETUP_ANIM)
     }
@@ -252,12 +257,14 @@ class CombatRoom(private val world: World, private val houses: Houses) {
     }
 
     /**
-     * A hit of [damage] from [attacker] landing on [target]: on the balance beam, any that does damage knocks them off
-     * instead (the Balance beam page: "The first person to fall off the balance beam is considered the loser").
+     * A hit of [damage] from [attacker], made on the balance beam, landing on [target]: any that does damage knocks them
+     * off instead (the Balance beam page: "The first person to fall off the balance beam is considered the loser"). One
+     * whose target has come off the beam since it was made (Get-down, or the beam removed) lands as nothing (Codex review
+     * on #1018).
      */
     private fun beamHit(attacker: Player, target: Player, damage: Int): Boolean {
         if (damage <= 0) return false
-        val off = beamExit(target) ?: return false
+        val off = beamExit(target) ?: return true
         leaveBeam(target, off, FALLOFF_ANIM)
         logger.info { "${attacker.username} knocked ${target.username} off a balance beam" }
         return true
@@ -269,8 +276,19 @@ class CombatRoom(private val world: World, private val houses: Houses) {
     /** Where [player] on the balance beam comes down, or null when they aren't on it: as a death in a ring does. */
     private fun beamExit(player: Player): Tile? = if (onBeam(player)) arenaDeathTile(player) else null
 
+    /**
+     * Off the beam: the pugel it gave goes back, worn or not. One taken off or swapped into the pack on the beam is
+     * taken from there, down to the pugels carried onto it (Codex review on #1018).
+     */
     private fun leaveBeam(player: Player, to: Tile, anim: Int) {
         if (player.equipment[WearPos.WEAPON]?.id == PUGEL) player.equipment[WearPos.WEAPON] = null
+        val before = carried.remove(player)
+        if (before != null) {
+            while (player.inventory.count(PUGEL) > before) {
+                val slot = player.inventory.contents().firstOrNull { it.second.id == PUGEL }?.first ?: break
+                player.inventory.remove(slot, 1)
+            }
+        }
         player.waypoints.clear()
         world.teleport(player, to.x, to.z, player.level)
         player.anim(anim)
@@ -278,7 +296,8 @@ class CombatRoom(private val world: World, private val houses: Houses) {
 
     /**
      * After the balance beam is built in [room] of [house]: anyone standing on its row comes off, as its rails would
-     * fence them in (round 63, R63A-1).
+     * fence them in (round 63, R63A-1). Before it is removed, anyone on it comes off too, with the pugel it gave (Codex
+     * review on #1018).
      */
     fun offBeam(house: Houses.Open, room: HouseRoom) {
         val baseX = house.instance.baseX + (room.x shl 3)

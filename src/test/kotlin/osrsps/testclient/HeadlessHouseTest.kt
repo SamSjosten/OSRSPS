@@ -1447,6 +1447,11 @@ class HeadlessHouseTest {
                     a.awaitTicks(3)
                     assertNull(ola.interaction)
 
+                    // Its pugel taken off into the pack on the beam still goes back at Get-down (Codex review on #1018).
+                    ola.equipment[WearPos.WEAPON] = null
+                    ola.inventory.add(server.world.objTypes[CombatRoom.PUGEL]!!, 1)
+                    assertEquals(2L, ola.inventory.count(CombatRoom.PUGEL))
+
                     // Get-down: off the beam, the pugel it gave taken back.
                     a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.GET_DOWN)
                     a.await("ola down") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
@@ -1483,6 +1488,19 @@ class HeadlessHouseTest {
                 client.await("the beam") { if (client.shown(BEAM_LEFT, cx + 2, cz + 5) && client.shown(BEAM_MIDDLE, cx + 3, cz + 5)) Unit else null }
                 client.await("moved off it") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
                 assertNull(player.equipment[WearPos.WEAPON])
+
+                // Back on it with a pugel, then the beam removed: off it first, the pugel it gave taken back (Codex review on #1018).
+                client.command("item ${CombatRoom.PUGEL} 1")
+                client.await("the pugel") { if (client.count(CombatRoom.PUGEL) == 1) Unit else null }
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                client.await("on the beam") { client.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                assertEquals(CombatRoom.PUGEL, player.equipment[WearPos.WEAPON]?.id)
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("off the removed beam") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                assertNull(player.equipment[WearPos.WEAPON])
+                assertEquals(1L, player.inventory.count(CombatRoom.PUGEL))
             }
         }
     }
