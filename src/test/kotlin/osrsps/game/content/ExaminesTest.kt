@@ -54,6 +54,20 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the Wilderness's bosses and their lairs have examines, keyed one per id`() {
+        // Wilderness step W4.16: piece 4's bosses (the 242 cache's ids), their lairs' monsters, the Escape Caves' bear
+        // and spider, and the lairs' locs that had none and that the Wiki gives one text.
+        val npcs = listOf(
+            239, CorporealBeast.BOSS, CorporealBeast.CORE, 2054, Callisto.BOSS, Venenatis.BOSS, 6611, 6612,
+            6613, 6614, 6615, 6616, 6617, 6618, 6619, 11989, 11990, 11992, 11993, 11994, 11998, Venenatis.SPIDERLING, 12001,
+            12107, 12108,
+        )
+        for (id in npcs) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        val locs = listOf(CorporealBeast.EXIT, VolcanicForge.FORGE, Vetion.ENTRANCE)
+        for (id in locs) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")

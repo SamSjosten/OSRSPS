@@ -411,7 +411,7 @@ class MeleeCombat(
         // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
         // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
         val landed = if (npc.protectsFromMelee) 0 else combat.rolledOn(player, npc, style.type, rolled)
-        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(armoured(npc, landed, magic = false, player, style.type), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
@@ -438,6 +438,8 @@ class MeleeCombat(
         val type: AttackType = AttackType.MAGIC, val prayedOnLanding: Boolean = false,
         /** The [NpcBlinding] it lands with on a player without its protection, null for none. */
         val blinding: NpcBlinding? = null,
+        /** Hears the damage a hit dealt as it lands (the Corporeal Beast's draining spell healing it, W4.15). */
+        val onLand: ((Int) -> Unit)? = null,
     ) {
         /** A phoenix necklace's heal while it flew: it lands nowhere. Marked, not removed, as [landShots] may be walking the list. */
         var cancelled = false
@@ -472,14 +474,24 @@ class MeleeCombat(
     }
 
     /**
-     * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.armour]),
-     * as the hit is rolled: before what it has left caps it and its XP is given, so a hit can still finish it and the XP
-     * is for what lands. Guessed: a hit can't go below 0 for it, and a 0 stays 0.
+     * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.armour])
+     * and then cut as its type's [damageCuts] entry says (given [player] and the hit's [type]), as the hit is rolled: before what
+     * it has left caps it and its XP is given, so a hit can still finish it and the XP is for what lands. Guessed: a hit
+     * can't go below 0 for it, and a 0 stays 0.
      */
-    fun armoured(npc: Npc, damage: Int, magic: Boolean): Int {
+    /**
+     * By NPC type, what one takes of each player hit after its [Npc.armour], with the player and the hit's attack type:
+     * the Corporeal Beast's halving of all but stabs from its bane weapons (W4.15). Set at registration rather than per
+     * NPC, so a fresh spawn has it from its first tick (Codex review on #999). No entry takes all of it.
+     */
+    val damageCuts = HashMap<Int, (player: Player, damage: Int, type: AttackType) -> Int>()
+
+    fun armoured(npc: Npc, damage: Int, magic: Boolean, player: Player? = null, type: AttackType? = null): Int {
         if (damage <= 0) return damage
-        val armour = npc.armour?.invoke(magic) ?: return damage
-        return (damage - armour).coerceAtLeast(0)
+        val armour = npc.armour?.invoke(magic)
+        val worn = if (armour == null) damage else (damage - armour).coerceAtLeast(0)
+        val cut = damageCuts[npc.type.id]
+        return if (cut == null || player == null || type == null || worn <= 0) worn else cut(player, worn, type).coerceIn(0, worn)
     }
 
     /**
@@ -865,11 +877,12 @@ class MeleeCombat(
      * nothing for an NPC with no such attacks. A protection prayer against it blocks it all, unless [prayerPasses] says
      * what share of the damage, in percent, still lands through one (Obor's rocks, half). The prayer counts as it fires,
      * or with [prayedOnLanding] as it lands (Scurrius's: "they will only deal damage on impact, so players can pray
-     * against them even after the projectile is launched", OSRS Wiki, Perfect Scurrius).
+     * against them even after the projectile is launched", OSRS Wiki, Perfect Scurrius). [onLand] hears the damage a
+     * hit dealt as it lands (the Corporeal Beast's draining spell healing it, W4.15); a miss or a block says nothing.
      */
     fun fireAt(
         npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null, prayerPasses: Int = 0,
-        prayedOnLanding: Boolean = false,
+        prayedOnLanding: Boolean = false, onLand: ((Int) -> Unit)? = null,
     ) {
         require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
@@ -897,9 +910,9 @@ class MeleeCombat(
         val bulwarked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         val reduced = if (prayed) bulwarked * prayerPasses / 100 else bulwarked
         shots += if (prayedOnLanding) {
-            Shot(npc, player, shot, hit, false, bulwarked, tick + delay, shotType, prayedOnLanding = true)
+            Shot(npc, player, shot, hit, false, bulwarked, tick + delay, shotType, prayedOnLanding = true, onLand = onLand)
         } else {
-            Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+            Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay, onLand = onLand)
         }
     }
 
@@ -1007,8 +1020,9 @@ class MeleeCombat(
             if (shot.attack.maxHit == 0) {
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
-                hitPlayer(player, shot.npc, damage, tick)
+                val dealt = hitPlayer(player, shot.npc, damage, tick)
                 shotPoison(shot)
+                shot.onLand?.invoke(dealt)
             }
         }
     }

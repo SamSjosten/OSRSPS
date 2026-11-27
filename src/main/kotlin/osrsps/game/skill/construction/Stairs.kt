@@ -2,6 +2,7 @@ package osrsps.game.skill.construction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.GameLines
+import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.Ned
@@ -80,11 +81,11 @@ class Stairs(private val world: World, private val houses: Houses, private val f
         val above = state.room(room.x, room.z, House.UPPER)
         val waiting = otherEnd(state, room)?.takeIf(::bare)
         when {
-            connected(state, room) -> world.teleport(player, player.x, player.z, House.UPPER)
-            house.buildingMode && waiting != null -> connectTop(context, house, state, room, waiting)
+            connected(state, room) -> climb(player, house, room, loc, House.UPPER)
+            house.buildingMode && waiting != null -> connectTop(context, house, state, room, waiting, loc)
             above != null -> world.message(player, ConstructionLines.STAIRS_BLOCKED)
             !house.buildingMode -> world.message(player, ConstructionLines.STAIRS_NOTHING_ABOVE)
-            else -> buildTop(context, house, state, room)
+            else -> buildTop(context, house, state, room, loc)
         }
     }
 
@@ -92,14 +93,15 @@ class Stairs(private val world: World, private val houses: Houses, private val f
      * Climb-up on [hall]'s staircase where [top], the hall above, waits for it: its top built there for its materials,
      * and the climb.
      */
-    private fun connectTop(context: ScriptContext, house: Houses.Open, state: HouseState, hall: HouseRoom, top: HouseRoom) {
+    private fun connectTop(context: ScriptContext, house: Houses.Open, state: HouseState, hall: HouseRoom, top: HouseRoom, loc: ZoneLoc) {
         val player = context.player
+        if (landing(player, house, hall, loc) == null) return
         val row = staircase(hall) ?: return
         val build = pay(context, hall, row) ?: return
         val space = stairSpace(top.type) ?: return
         furniture.fill(top, space, build)
         houses.lay(house, state, top.type, Houses.Cell(top.x, top.z, top.floor), top.rotation)
-        world.teleport(player, player.x, player.z, House.UPPER)
+        climb(player, house, hall, loc, House.UPPER)
         logger.info { "${player.username} built the top of their staircase at ${top.x}, ${top.z}" }
     }
 
@@ -141,13 +143,33 @@ class Stairs(private val world: World, private val houses: Houses, private val f
     private fun down(context: ScriptContext, loc: ZoneLoc) {
         val player = context.player
         if (loc.level != House.UPPER) return world.message(player, GameLines.NOTHING_INTERESTING)
-        val (_, state, room) = roomOf(context, loc) ?: return
+        val (house, state, room) = roomOf(context, loc) ?: return
         if (!connected(state, room)) return world.message(player, ConstructionLines.STAIRS_BLOCKED)
-        world.teleport(player, player.x, player.z, House.GROUND)
+        climb(player, house, room, loc, House.GROUND)
+    }
+
+    /**
+     * [player] up or down to [level] from [room]'s staircase [loc]: on their own tile when they are still in the house, on
+     * the staircase's floor and in its room; else beside the staircase, on its west (the stair space is always at 3,3 to
+     * 4,4 of its room, however turned, so that tile is in the room too). Nobody climbs who has left (exploit review round
+     * 62, A-1 and A-2).
+     */
+    private fun climb(player: Player, house: Houses.Open, room: HouseRoom, loc: ZoneLoc, level: Int) {
+        val (x, z) = landing(player, house, room, loc) ?: return
+        world.teleport(player, x, z, level)
+    }
+
+    /** Where [climb] puts [player], or null when they are no longer beside [loc] in [house]. */
+    private fun landing(player: Player, house: Houses.Open, room: HouseRoom, loc: ZoneLoc): Pair<Int, Int>? {
+        if (!houses.stillHere(house, player) || player.level != loc.level) return null
+        val inRoom = (player.x - house.instance.baseX) shr 3 == room.x && (player.z - house.instance.baseZ) shr 3 == room.z
+        // GUESSED: one who has stepped out of the room lands just west of the staircase, still in its room (no live source;
+        // a safeguard so a delayed climb can't carry them anywhere else).
+        return if (inRoom) player.x to player.z else loc.x - 1 to loc.z
     }
 
     /** The prompt for the room at the top of [hall]'s staircase, then that room built with the staircase's top, and the climb. */
-    private suspend fun buildTop(context: ScriptContext, house: Houses.Open, state: HouseState, hall: HouseRoom) {
+    private suspend fun buildTop(context: ScriptContext, house: Houses.Open, state: HouseState, hall: HouseRoom, loc: ZoneLoc) {
         val player = context.player
         val row = staircase(hall) ?: return
         var pick = 0
@@ -163,7 +185,7 @@ class Stairs(private val world: World, private val houses: Houses, private val f
             else -> return
         }
         // Checked after the prompt's wait: the hall, its staircase and the empty cell above must all still be there.
-        if (!houses.stillHere(house, player) || state.room(hall.x, hall.z) !== hall || staircase(hall) != row || state.room(hall.x, hall.z, House.UPPER) != null) return
+        if (landing(player, house, hall, loc) == null || state.room(hall.x, hall.z) !== hall || staircase(hall) != row || state.room(hall.x, hall.z, House.UPPER) != null) return
         val level = player.skills.baseLevel(Skill.CONSTRUCTION)
         if (state.rooms.size >= House.maxRooms(level)) return world.message(player, ConstructionLines.ROOM_LIMIT, "max" to House.maxRooms(level))
         if (player.skills.currentLevel(Skill.CONSTRUCTION) < type.level) return world.message(player, ConstructionLines.ROOM_LEVEL, "level" to type.level)
@@ -174,7 +196,7 @@ class Stairs(private val world: World, private val houses: Houses, private val f
         furniture.fill(top, stairSpace(type) ?: return, build)
         state.rooms += top
         houses.lay(house, state, type, Houses.Cell(top.x, top.z, top.floor), top.rotation)
-        world.teleport(player, player.x, player.z, House.UPPER)
+        climb(player, house, hall, loc, House.UPPER)
         logger.info { "${player.username} built a ${type.key} at ${top.x}, ${top.z} upstairs, over their staircase, for ${type.cost} coins" }
     }
 

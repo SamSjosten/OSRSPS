@@ -1,0 +1,29 @@
+{
+  "name": "Wilderness step W4.13: Vet'ion's Rest's way in (Check-Fee, then Jump-Down paying the lairs' fee from the backpack) down to level 1, Vet'ion fought under ::god, ::kill bringing back his enraged form and a second ::kill ending it, his kill count's key, and the way out into the Escape Caves (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 34 outside, 35 inside"},
+    {"step": "command", "text": "::tele 3220 3788 0", "expectMessage": "Teleported to 3220, 3788, 0", "comment": "west of the crevice at 3221,3787"},
+    {"step": "locOption", "locId": 46995, "option": "Check-Fee", "x": 3221, "y": 3787},
+    {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
+    {"step": "locOption", "locId": 46995, "option": "Jump-Down", "x": 3221, "y": 3787},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3295, "y": 10208, "plane": 1},
+    {"step": "npcOption", "npc": "Vet'ion", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Vet'ion", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Vet'ion #", "comment": "his normal form held at 0: he comes back enraged"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Vet'ion #", "comment": "his enraged form"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Vet'ion count=", "timeoutMs": 15000},
+    {"step": "locOption", "locId": 46925, "option": "Exit", "x": 3294, "y": 10190},
+    {"step": "waitTicks", "ticks": 8},
+    {"step": "command", "text": "::pos", "comment": "one of the Escape Caves' three cave mouths: 3341,10254, 3362,10297 or 3377,10256"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

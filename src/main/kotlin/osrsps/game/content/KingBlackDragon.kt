@@ -83,6 +83,9 @@ object KingBlackDragon {
     val SPAWN = osrsps.map.Tile(2269, 4697)
     const val WANDER = 10
 
+    /** GUESSED: how near he comes before he breathes (the Wiki gives no range); inside a client's 15-tile view. */
+    const val BREATH_RANGE = 10
+
     /** The private lair copies his whole map square. */
     const val LAIR_X = 35 shl 6
     const val LAIR_Z = 73 shl 6
@@ -215,11 +218,14 @@ object KingBlackDragon {
         }
         boss.face(target)
         val reaches = world.meleeCombat.reaches(boss, target)
-        val sees = world.meleeCombat.sees(boss, target)
-        if (sees) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
+        // He comes within BREATH_RANGE before he breathes, rather than breathing from wherever he sees them: from the
+        // lever's landing he is 17 tiles off, further than a client draws an NPC (nightly Nov 23).
+        val inBreath = world.meleeCombat.sees(boss, target) &&
+            LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z) <= BREATH_RANGE
+        if (inBreath) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
         // His cooldown is the NPC's own, so a generic strike made before his fight began (as he respawns beside a
         // player) holds his next attack too.
-        if (!sees || world.tick < boss.nextAttackTick) return
+        if (!inBreath || world.tick < boss.nextAttackTick) return
         boss.nextAttackTick = world.tick + ATTACK_SPEED
         if (reaches && roll(1, 3) == 1) {
             world.meleeCombat.swingAt(boss, target, world.tick, ANIM_MELEE)

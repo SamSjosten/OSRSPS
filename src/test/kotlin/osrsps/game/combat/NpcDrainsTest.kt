@@ -82,6 +82,17 @@ class NpcDrainsTest {
     }
 
     @Test
+    fun `a type with its own restore ticks gets a level back on those alone, not the minute as well`() {
+        val drains = NpcDrains { npcCombat[it.type] }.also { it.restoreTicksByType[ogre.id] = 20 }
+        val npc = npc(ogre)
+        drains.drain(npc, NpcStat.DEFENCE, 10)
+        drains.process(npc)
+        assertEquals("drained defence 65/75, a level back in 20 ticks", drains.describe(npc))
+        repeat(NpcDrains.RESTORE_TICKS) { drains.process(npc) }
+        assertEquals(70, npc.level(NpcStat.DEFENCE), "five levels in 100 ticks, not six")
+    }
+
+    @Test
     fun `a hidden NPC's drained stats come back as ever, and it can't be drained further`() {
         val npc = npc(ogre)
         drains.drain(npc, NpcStat.DEFENCE, 2)

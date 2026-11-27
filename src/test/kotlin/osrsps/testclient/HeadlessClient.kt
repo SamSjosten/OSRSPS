@@ -385,6 +385,12 @@ class HeadlessClient private constructor(
         mask and (1L shl 23) != 0L
     }
 
+    /** Whether the server let slot [sub] of a component resume a pause button: events1's bit 0, which the client checks. */
+    fun pauseEnabled(interfaceId: Int, componentId: Int, sub: Int): Boolean = lock.withLock {
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
+        mask and 1L != 0L
+    }
+
     /** The drag depth (0 to 7) the server enabled on slot [sub] of a component, events1's bits 17 to 19. */
     fun dragDepth(interfaceId: Int, componentId: Int, sub: Int): Int = lock.withLock {
         val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L

@@ -1,0 +1,6 @@
+{
+  "about": "The Corporeal Beast's Lair (Wilderness step W4.15): the Corporeal Beast, at mejrs's NPCList_OSRS tile for it (2993,4254 on level 2, the normal room; the ironman room's at 2993,4382 is left out). Its wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "corp_beast", "x": 2993, "z": 4254, "level": 2, "wander": 5, "source": "Corporeal Beast, mejrs NPCList_OSRS. Wander guessed"}
+  ]
+}

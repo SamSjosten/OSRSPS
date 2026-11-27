@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
@@ -158,6 +159,20 @@ class HeadlessBrutusUniquesTest {
                 client.chooseOption(1)
                 client.seen(DialogueText.NONE[BottomlessLines.FILLED_ONE, "type" to DialogueText.NONE[BottomlessLines.TYPE_HANGOVER], "total" to 1])
                 assertEquals(BottomlessMilkBucket.TYPES[3], BottomlessMilkBucket.type(alice))
+            }
+        }
+    }
+
+    @Test
+    fun `a new empty bucket banked beside a filled one joins its slot when the milk next changes, so one id has one slot`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cass").use { client ->
+                client.await("the login rebuild") { client.position }
+                val cass = server.world.playerNamed("cass")!!
+                cass.bank[0] = InvObj(BottomlessMilkBucket.FILLED, 1)
+                cass.bank[1] = InvObj(BottomlessMilkBucket.EMPTY, 1)
+                BottomlessMilkBucket.set(cass, BottomlessMilkBucket.REGULAR, 4, server.world)
+                assertEquals(listOf(InvObj(BottomlessMilkBucket.FILLED, 2)), cass.bank.contents().map { it.second })
             }
         }
     }

@@ -6,6 +6,8 @@
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
     {"step": "command", "text": "::tele 2977 3697 0", "expectMessage": "Teleported to 2977, 3697, 0", "comment": "south of his spawn at 2977,3702 in the Ruins"},
+    {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you", "comment": "the Ruins' giant rats are aggressive in the Wilderness: tolerated, none takes the player on from here"},
+    {"step": "command", "text": "::kill giant rat", "expectMessage": "Killed Giant rat #", "comment": "one that took the player on as they arrived (else the nearest), or single-way combat refuses the Attack below"},
     {"step": "npcOption", "npc": "Crazy archaeologist", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Crazy archaeologist", "timeoutMs": 30000, "comment": "his books or punches, or the player's punches on him"},
     {"step": "command", "text": "::kill", "expectMessage": "Killed Crazy archaeologist #"},

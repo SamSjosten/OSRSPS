@@ -94,13 +94,25 @@ object BottomlessMilkBucket {
 
     private fun s(count: Int) = if (count == 1) "" else "s"
 
-    /** Sets the uses to [uses] of [type] and every bucket, in the backpack and the bank, to match (they share the uses). */
-    fun set(player: Player, type: MilkType?, uses: Int) {
+    /**
+     * Sets the uses to [uses] of [type] and every bucket, in the backpack and the bank, to match (they share the uses).
+     * A banked bucket of the other look joins the bank's slot of this one, if it has one, so one id never has two bank
+     * slots (exploit review R60A-4); [world]'s bank closes the gap, and without it (unit tests) the slot just turns.
+     */
+    fun set(player: Player, type: MilkType?, uses: Int, world: World? = null) {
         player.charges[USES] = if (type == null) 0 else uses
         player.charges[TYPE] = if (type == null || uses == 0) 0 else TYPES.indexOf(type) + 1
         val (from, to) = if (uses(player) > 0) EMPTY to FILLED else FILLED to EMPTY
-        for (inv in listOf(player.inventory, player.bank)) {
-            for ((slot, held) in inv.contents()) if (held.id == from) inv[slot] = InvObj(to, held.count)
+        for ((slot, held) in player.inventory.contents()) if (held.id == from) player.inventory[slot] = InvObj(to, held.count)
+        while (true) {
+            val (slot, held) = player.bank.contents().firstOrNull { it.second.id == from } ?: break
+            val into = player.bank.contents().firstOrNull { it.second.id == to }
+            if (into == null || world == null) {
+                player.bank[slot] = InvObj(to, held.count)
+                continue
+            }
+            player.bank[into.first] = InvObj(to, into.second.count + held.count)
+            world.bank.discard(player.bank, world.bankScreen.tabs(player), slot, any = true)
         }
     }
 
@@ -114,7 +126,7 @@ object BottomlessMilkBucket {
             world.message(player, BottomlessLines.FULL)
             return false
         }
-        set(player, REGULAR, have + 1)
+        set(player, REGULAR, have + 1, world)
         if (have + 1 >= MAX_USES) world.message(player, BottomlessLines.FULL)
         return true
     }
@@ -160,7 +172,7 @@ object BottomlessMilkBucket {
             filled++
         }
         val total = uses(player) + filled
-        set(player, type, total)
+        set(player, type, total, world)
         val name = world.textFor(player)[type.name]
         if (filled == 1) {
             world.message(player, BottomlessLines.FILLED_ONE, "type" to name, "total" to total)
@@ -183,7 +195,7 @@ object BottomlessMilkBucket {
             yes = choice(BottomlessLines.EMPTY_YES, BottomlessLines.EMPTY_NO, title = text(BottomlessLines.EMPTY_PROCEED)) == 1
         }
         if (!yes || !held(player)) return
-        set(player, null, 0)
+        set(player, null, 0, world)
         world.message(player, BottomlessLines.EMPTIED)
     }
 
@@ -193,14 +205,14 @@ object BottomlessMilkBucket {
         // Guessed: the chocolatey milk goes where the dust was (unnoted dust doesn't stack), and its messages are ours.
         val slot = player.inventory.contents().firstOrNull { it.second.id == CHOCOLATE_DUST }?.first ?: return
         player.inventory[slot] = InvObj(CHOCOLATEY_MILK, 1)
-        set(player, REGULAR, uses(player) - 1)
+        set(player, REGULAR, uses(player) - 1, world)
         world.message(player, BottomlessLines.CHOCOLATE)
     }
 
     /** One use of regular milk taken for the churn; false when there is none. */
-    fun takeMilk(player: Player): Boolean {
+    fun takeMilk(world: World, player: Player): Boolean {
         if (type(player) != REGULAR) return false
-        set(player, REGULAR, uses(player) - 1)
+        set(player, REGULAR, uses(player) - 1, world)
         return true
     }
 }
