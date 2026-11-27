@@ -3470,6 +3470,8 @@
     {"loc": 41617, "name": "Portal", "wiki": "Clan hall page (the exit portal, clan_hall_exit_medieval)"},
     {"loc": 41626, "name": "Clan Coffer"},
     {"loc": 41650, "name": "Altar", "wiki": "Clan hall page (the chapel's altar, clan_medieval_altar)"},
+    {"loc": 41651, "name": "Piano"},
+    {"loc": 41652, "name": "Dummy"},
     {"loc": 41724, "name": "Clan hall portal"},
     {"loc": 41728, "name": "Clan recruitment board"},
     {"loc": 41730, "name": "Clan recruitment board"},
