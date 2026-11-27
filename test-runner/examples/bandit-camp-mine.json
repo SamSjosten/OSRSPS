@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.3: mithril mined at the Bandit Camp mine (level 31) with a rune pickaxe, then the Wilderness God Wars Dungeon's mouth (level 28) shut (::keys on)",
+  "name": "Wilderness step W3.3: mithril mined at the Bandit Camp mine (level 31) with a rune pickaxe (::keys on)",
   "account": "test2",
   "steps": [
     {"step": "waitForLogin"},
@@ -11,11 +11,6 @@
     {"step": "assertMessage", "contains": "mining.swing"},
     {"step": "assertInventory", "item": "Mithril ore", "count": 1, "timeoutMs": 60000},
     {"step": "assertMessage", "contains": "mining.get_ore ore=mithril"},
-
-    {"step": "command", "text": "::tele 3017 3740 0", "expectMessage": "Teleported to 3017, 3740, 0", "comment": "north of wilderness_gwd_entrance (3016, 3738, 3 by 2): a fence closes its south side, so it is entered from the north (nightly 2026-11-16 ended here from 3017, 3737)"},
-    {"step": "locOption", "locId": 26766, "option": "Enter", "x": 3016, "y": 3738},
-    {"step": "assertMessage", "contains": "game.nothing_interesting", "timeoutMs": 10000, "comment": "shut until Wilderness step W6.3"},
-    {"step": "assertLocation", "x": 3017, "y": 3740, "plane": 0},
 
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]

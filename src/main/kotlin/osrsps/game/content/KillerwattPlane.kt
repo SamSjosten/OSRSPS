@@ -52,6 +52,12 @@ class KillerwattPlane(private val world: World) {
 
     fun insulated(player: Player): Boolean = player.equipment.count(INSULATED_BOOTS) > 0
 
+    /** A killerwatt's melee max hit on [player]: its usual one in insulated boots (null), [UNINSULATED_MAX_HIT] without. */
+    internal fun meleeMaxHit(player: Player): Int? = if (insulated(player)) null else UNINSULATED_MAX_HIT
+
+    /** A killerwatt's ranged max hit on [player]: [RANGED_MAX_HIT] in insulated boots, [UNINSULATED_MAX_HIT] without. */
+    internal fun rangedMaxHit(player: Player): Int = if (insulated(player)) RANGED_MAX_HIT else UNINSULATED_MAX_HIT
+
     suspend fun ScriptContext.enterRift() {
         arriveDelay()
         if (!insulated(player) && !warned()) return
@@ -118,12 +124,12 @@ class KillerwattPlane(private val world: World) {
         if (inMelee) {
             if (npc.following !== player) world.npcs.follow(npc, player)
             if (tick < npc.nextAttackTick || !fighting.reaches(npc, player)) return
-            fighting.swingAt(npc, player, tick, maxHit = if (insulated(player)) null else UNINSULATED_MAX_HIT)
+            fighting.swingAt(npc, player, tick, maxHit = meleeMaxHit(player))
         } else {
             npc.face(player)
             val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
             if (tick < npc.nextAttackTick || distance !in 1..RANGE || !fighting.sees(npc, player)) return
-            val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = if (insulated(player)) RANGED_MAX_HIT else UNINSULATED_MAX_HIT)
+            val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
             fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
         }
     }

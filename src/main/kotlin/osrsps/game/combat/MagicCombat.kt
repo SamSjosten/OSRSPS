@@ -141,7 +141,7 @@ class MagicCombat(
         }
         val barred = combat.barred(player, npc, type = AttackType.MAGIC)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             return
         }
         if (melee.underAttackByAnother(player, npc)) {
@@ -212,7 +212,7 @@ class MagicCombat(
         // leave where the NPC is fought.
         val barred = combat.barred(player, npc, type = AttackType.MAGIC)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             stopFacing(player)
             return true
         }

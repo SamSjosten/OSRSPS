@@ -53,7 +53,7 @@ in the code. Current RuneLite connects unchanged.
 
 | | |
 |---|---|
-| **Places** | Every level, the Ferox Enclave, the Chaos Temple, the Lava Maze, the Mage Arena bank, the Resource Area, the Deep Wilderness Dungeon, Rogues' Castle, the obelisks and levers |
+| **Places** | Every level, the Ferox Enclave, the Chaos Temple, the Lava Maze, the Mage Arena bank, the Resource Area, the Deep Wilderness Dungeon, the Wilderness God Wars Dungeon, the Wilderness Slayer Cave, Rogues' Castle, the obelisks and levers |
 | **Bosses** | King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia, Artio |
 
 </details>
