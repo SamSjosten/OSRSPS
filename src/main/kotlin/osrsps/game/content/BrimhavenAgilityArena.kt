@@ -216,7 +216,9 @@ object BrimhavenAgilityArena {
         PRESSURE_PAD(20, 260, 150 to 255, 4, 1115, 1113, listOf(2772 to 9584, 2772 to 9585, 2799 to 9557, 2800 to 9557, 2799 to 9579, 2800 to 9579)),
         // The Wiki's success chart, 153/256 at 40 to 255/256 at 99, as SuccessRoll's low/high: (1 + 85) at 1 Agility,
         // (1 + 254) at 99, which gives 1 + round((85 * 59 + 254 * 39) / 98) = 153 at 40.
-        SPINNING_BLADES(40, 280, 85 to 254, 5, 1115, 1113, listOf(2777 to 9556, 2777 to 9580, 2782 to 9573)),
+        // The two corridor tiles beside each blade loc (2777,9556, 2777,9580 and 2782,9573), either side of the wall
+        // across the corridor there; the blade locs' own tiles can't be walked on (the 242 map, round 61).
+        SPINNING_BLADES(40, 280, 85 to 254, 5, 1115, 1113, listOf(2777 to 9557, 2778 to 9557, 2777 to 9579, 2778 to 9579, 2783 to 9573, 2783 to 9574)),
     }
 
     /** The floor spikes never fail from this level. */
@@ -328,25 +330,26 @@ class AgilityArena(private val world: World) {
             if (!BrimhavenAgilityArena.inArena(to.x, to.z)) continue
             val trap = BrimhavenAgilityArena.trapAt(to.x, to.z) ?: continue
             val from = trail[i - 1]
-            val dx = (to.x - from.x).sign
-            val dz = (to.z - from.z).sign
-            if (dx == 0 && dz == 0) continue
-            // A jump goes straight across: a diagonal step jumps along one of its two axes, the one the trap doesn't run
-            // along first (round 60, R60B-2: a diagonal landing could be outside the 2-wide corridors). Only onto a tile
-            // the player can stand on; with none, they are put back where they stepped from.
-            val axes = if (dx != 0 && dz != 0) listOf(dx to 0, 0 to dz) else listOf(dx to dz)
-            val landings = axes.map { (ax, az) ->
-                var end = to.x to to.z
-                while (BrimhavenAgilityArena.trapAt(end.first + ax, end.second + az) == trap) end = end.first + ax to end.second + az
-                Triple(end == (to.x to to.z), end.first + ax, end.second + az)
-            }.sortedByDescending { it.first }
-            val landing = landings.firstOrNull { world.canStand(it.second, it.third, player.level) }
             val before = from.x to from.z
-            if (landing == null) {
+            // Each trap is two tiles along a one-tile corridor with a wall between them (the 242 map): the jump goes
+            // along the corridor, the way the pair runs, to the tile past the far one. A step onto a trap with no
+            // part along that way (round 61, R61C-1), or with nowhere to land, puts the player back where they stepped
+            // from instead.
+            val alongX = BrimhavenAgilityArena.trapAt(to.x + 1, to.z) == trap || BrimhavenAgilityArena.trapAt(to.x - 1, to.z) == trap
+            val ax = if (alongX) (to.x - from.x).sign else 0
+            val az = if (alongX) 0 else (to.z - from.z).sign
+            if (ax == 0 && az == 0) {
                 world.scripts.start(player) { putBack(this, before) }
                 return
             }
-            world.scripts.start(player) { jump(this, trap, landing.second to landing.third, before) }
+            var end = to.x to to.z
+            while (BrimhavenAgilityArena.trapAt(end.first + ax, end.second + az) == trap) end = end.first + ax to end.second + az
+            val landing = end.first + ax to end.second + az
+            if (!world.canStand(landing.first, landing.second, player.level)) {
+                world.scripts.start(player) { putBack(this, before) }
+                return
+            }
+            world.scripts.start(player) { jump(this, trap, landing, before) }
             return
         }
     }

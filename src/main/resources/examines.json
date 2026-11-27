@@ -83,6 +83,7 @@
     "Locs and NPCs: Karamja (step K4.2): Tai Bwo Wannai's ten trading-stick villagers (with and without sticks, and the multi-NPC each is shown through), Jiminua, the tribal statue, the jungle in every state and the village fence's repaired types (the 242 cache, 2026-11-19). None yet for the Hardwood Grove's doors (9038, 9039), which have no Wiki text.",
     "NPCs: random events step 15 (2026-11-19): the Pillory Guard (380), from his infobox.",
     "NPCs and locs: random events step 16 (2026-11-19): Flippa (5427 in the room, 6744 the invitation, one examine in his infobox), Tilt (5428) and the pinball posts (8982 and the nine other ids, one examine in their infobox), from each page's infobox.",
+    "NPCs: random events step 17 (2026-11-19): the Quiz Master (379 in his studio, 6755 the invitation, one examine in his infobox), from his infobox.",
     "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175).",
     "The Varrock rat pits (post-quest step 14, RatPits.kt): the ladder up and the pits' rats, the other two under also (the 242 cache, 2026-11-19)."
   ],
@@ -181,6 +182,7 @@
     {"npc": 372, "name": "Freaky Forester", "also": [6748]},
     {"npc": 373, "name": "Pheasant", "also": [5500, 374, 5502]},
     {"npc": 375, "name": "Rick Turpentine"},
+    {"npc": 379, "name": "Quiz Master", "also": [6755]},
     {"npc": 380, "name": "Pillory Guard", "wiki": "Pillory Guard page, infobox (Random event)"},
     {"npc": 390, "name": "Evil Bob", "also": [391, 6754]},
     {"npc": 393, "name": "Servant", "wiki": "Servant (ScapeRune) page, infobox"},

@@ -457,10 +457,10 @@ class HeadlessAgilityArenaTest {
                 client.commandReply("setlevel hitpoints 99") { true }
                 client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
                 // Below 40 the blades always fail.
-                client.tele(2782, 9575, 3)
-                client.walk(2782, 9570)
+                client.tele(2783, 9575, 3)
+                client.walk(2783, 9570)
                 client.await("hit below 40") { client.stat(HITPOINTS)?.takeIf { it.level < 99 } }
-                client.await("put back below 40") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                client.await("put back below 40") { client.position?.takeIf { it == Coord(2783, 9575, 3) } }
                 client.awaitTicks(2)
                 // Level 40: the Wiki's 153/256, so about two times in five a failure.
                 client.command("setlevel agility 40")
@@ -469,13 +469,13 @@ class HeadlessAgilityArenaTest {
                 for (attempt in 1..30) {
                     client.commandReply("setlevel hitpoints 99") { true }
                     client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
-                    client.tele(2782, 9575, 3)
-                    client.walk(2782, 9570)
-                    // Across, or hit: 2782,9574 is also the walk's first tile, so the hit tells a failure apart.
+                    client.tele(2783, 9575, 3)
+                    client.walk(2783, 9570)
+                    // Across, or hit: the put-back tile is where the walk starts, so the hit tells a failure apart.
                     val hit = client.await("over or hit") {
                         when {
                             (client.stat(HITPOINTS)?.level ?: 99) < 99 -> true
-                            client.position == Coord(2782, 9572, 3) -> false
+                            client.position == Coord(2783, 9572, 3) -> false
                             else -> null
                         }
                     }
@@ -483,9 +483,9 @@ class HeadlessAgilityArenaTest {
                         // 99 * 5 / 100 + 2.
                         client.await("a 6 hit") { client.stat(HITPOINTS)?.takeIf { it.level == 93 } }
                         client.message("[agility_arena.spinning_blades]")
-                        client.await("put back") { client.position?.takeIf { it == Coord(2782, 9574, 3) } }
+                        client.await("put back") { client.position?.takeIf { it == Coord(2783, 9575, 3) } }
                         client.awaitTicks(2)
-                        assertEquals(Coord(2782, 9574, 3), client.position, "back on the tile before the blades")
+                        assertEquals(Coord(2783, 9575, 3), client.position, "back on the tile before the blades")
                         failed = true
                         break
                     }
@@ -520,7 +520,7 @@ class HeadlessAgilityArenaTest {
                 // The blades from the tile beside them, running: the run's first step is onto the trap.
                 val crossings = listOf(
                     Crossing(Coord(2772, 9553, 3), Coord(2772, 9552, 3), Coord(2772, 9550, 3), 4, run = false),
-                    Crossing(Coord(2782, 9574, 3), Coord(2782, 9573, 3), Coord(2782, 9572, 3), 5, run = true),
+                    Crossing(Coord(2783, 9575, 3), Coord(2783, 9574, 3), Coord(2783, 9572, 3), 5, run = true),
                 )
                 for (crossing in crossings) {
                     // The blades still fail 1 time in 256 at 99: a failure (the hit) is tried again.
@@ -561,22 +561,29 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
-    fun `a diagonal step onto the spikes jumps straight across them, not off to the side`(@TempDir dir: Path) {
+    fun `a diagonal step onto the spikes jumps along the corridor they lie in, and a step across it puts the player back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
             server.login("dia").use { client ->
                 client.ready()
                 client.command("setlevel agility 99")
                 client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
-                // The spikes at 2761,9573 and 2761,9574 run north-south, so the jump goes east: from 2760,9572 the first
-                // step is north-east onto 2761,9573, and the landing is 2762,9573, not 2762,9574 diagonally on.
+                // The spikes at 2761,9573 and 2761,9574 lie along a north-south corridor (the 242 map), so the jump goes
+                // north: from 2760,9572 the first step is north-east onto 2761,9573, and the landing is 2761,9575 past
+                // the pair, not off the corridor to the east (round 61, R61C-1).
                 client.tele(2760, 9572, 3)
                 client.awaitTicks(2)
-                client.walk(2763, 9575)
-                // The jump clears the walk, so the player stays where it lands.
-                assertEquals(Coord(2762, 9573, 3), client.await("over the spikes") { client.position?.takeIf { it.x >= 2762 } })
+                client.walk(2763, 9576)
+                assertEquals(Coord(2761, 9575, 3), client.await("over the spikes") { client.position?.takeIf { it.z >= 9575 } })
                 client.awaitTicks(2)
-                assertEquals(Coord(2762, 9573, 3), client.position)
+                assertEquals(Coord(2761, 9575, 3), client.position, "the jump clears the walk, so the player stays where it lands")
+                // Straight across the corridor from the side: nothing to jump along, so back where the step started.
+                client.tele(2760, 9573, 3)
+                client.awaitTicks(2)
+                client.walk(2763, 9573)
+                client.await("put back") { client.position?.takeIf { it == Coord(2760, 9573, 3) } }
+                client.awaitTicks(3)
+                assertEquals(Coord(2760, 9573, 3), client.position)
             }
         }
     }
