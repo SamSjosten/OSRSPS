@@ -196,10 +196,21 @@ class HeadlessKillerwattPlaneTest {
 
                 // Five tiles off, its fight starts out of melee reach: it shoots from where it is.
                 // As if hit from there: it takes them on (MeleeCombat.aggress), and its fight is its own (Npc.scriptedAttacks).
-                onTick { world.meleeCombat.aggress(killerwatt, dee, world.tick) }
-                // Its next attack tick, each tick for 7 (inside the fight's IN_COMBAT_TICKS with no hit back): the
-                // distinct values are its shots, RANGED_SPEED apart.
-                val seen = (1..7).map { onTick { killerwatt.nextAttackTick } }.filter { it > 0 }.distinct()
+                // Then its next attack tick on each of the 7 ticks after (inside the fight's IN_COMBAT_TICKS with no hit
+                // back), all read on the game thread so no tick is missed: the distinct values are its shots,
+                // RANGED_SPEED apart.
+                val samples = java.util.concurrent.CompletableFuture<List<Long>>()
+                fun sample(into: MutableList<Long>) {
+                    world.npcScripts.later(1) {
+                        into += killerwatt.nextAttackTick
+                        if (into.size == 7) samples.complete(into) else sample(into)
+                    }
+                }
+                world.npcScripts.later(1) {
+                    world.meleeCombat.aggress(killerwatt, dee, world.tick)
+                    sample(ArrayList())
+                }
+                val seen = samples.get(10, java.util.concurrent.TimeUnit.SECONDS).filter { it > 0 }.distinct()
                 assertTrue(seen.size >= 3, "it kept shooting: $seen")
                 assertEquals(List(seen.size - 1) { RANGED_SPEED }, seen.zipWithNext { x, y -> y - x }, "a shot every $RANGED_SPEED ticks: $seen")
                 assertEquals(ORB_X to ORB_Z, onTick { killerwatt.x to killerwatt.z }, "it doesn't come to melee")
