@@ -154,6 +154,20 @@ class HeadlessCorporealBeastTest {
     }
 
     @Test
+    fun `its armour holds for a fresh spawn, before any fight tick`(@TempDir dir: Path) {
+        server(dir, seed = 5, spawn = false).use { server ->
+            server.login("fi").use { client ->
+                client.await("the login rebuild") { client.position }
+                val fi = server.world.playerNamed("fi")!!
+                // A respawn is a new Npc, nothing set on it yet.
+                val fresh = osrsps.game.npc.Npc(1, NpcSpawn(boss, CorporealBeast.SPAWN.x, CorporealBeast.SPAWN.z, CorporealBeast.LAIR_LEVEL, wander = 0, source = "test"))
+                assertEquals(20, server.world.meleeCombat.armoured(fresh, 40, magic = false, player = fi, type = AttackType.SLASH))
+                assertEquals(40, server.world.meleeCombat.armoured(fresh, 40, magic = true, player = fi, type = AttackType.MAGIC))
+            }
+        }
+    }
+
+    @Test
     fun `its kill count and loot go to its top damage dealer, not whoever struck last`(@TempDir dir: Path) {
         server(dir, seed = 3).use { server ->
             server.login("di").use { di ->
@@ -172,8 +186,14 @@ class HeadlessCorporealBeastTest {
                     val edPlayer = server.world.playerNamed("ed")!!
                     di.await("di's kill count") { Unit.takeIf { diPlayer.vars[CorporealBeast.KILL_COUNT_VARP] == 1 } }
                     assertEquals(0, edPlayer.vars[CorporealBeast.KILL_COUNT_VARP], "nothing for the last hit")
+                    val ashes = di.await("its ashes, di's") { server.world.groundObjs.visibleAt(diPlayer, npc.x, npc.z, npc.level).firstOrNull { it.id == ASHES } }
+                    assertEquals(1, ashes.count, "always ashes")
                 }
             }
         }
+    }
+
+    private companion object {
+        const val ASHES = 592
     }
 }

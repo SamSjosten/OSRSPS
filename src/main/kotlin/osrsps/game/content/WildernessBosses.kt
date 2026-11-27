@@ -181,11 +181,13 @@ class WildernessBosses(private val world: World) {
         damage.remove(npc)
         if (boss.topDamage) {
             val def = world.npcDrops[npc.type] ?: return true
-            val player = world.onlinePlayers.firstOrNull { it.saveKey == top }
-            for (drop in def.roll(world.random)) {
+            for (rolled in def.roll(world.random)) {
+                // A clue scroll as its scroll box, or nothing past the cap, as World.dropLoot's (Codex review on #999).
+                val drop = clueChecked(top, rolled) ?: continue
                 if (top != null) {
                     world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, top, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
-                    player?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
+                    // The collection log's too, kept for a looter who logs out as the body falls.
+                    world.lootDroppedFor(top, drop.type, drop.count)
                 } else {
                     world.groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
                 }
@@ -205,6 +207,13 @@ class WildernessBosses(private val world: World) {
             }
         }
         return true
+    }
+
+    /** [rolled] as the looter saved under [key] gets it: a clue scroll as its scroll box, or null past their clue cap. */
+    private fun clueChecked(key: String?, rolled: osrsps.game.combat.Drop): osrsps.game.combat.Drop? {
+        val player = key?.let { k -> world.onlinePlayers.firstOrNull { it.saveKey == k && !it.loggedOut } }
+        val type = world.trails.dropFor(player, rolled.type) ?: return null
+        return if (type === rolled.type) rolled else rolled.copy(type = type)
     }
 
     /** Whose a solo boss's drop is, from [loot] to [soloLooter]: [key], or everyone's for null. */

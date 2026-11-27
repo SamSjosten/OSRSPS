@@ -42,7 +42,7 @@ object CorporealBeastLines : Lines("corporeal_beast", "Corporeal Beast") {
  * - **The stomp**: every [STOMP_TICKS], everyone under it takes 30 to 51, no prayer blocking it.
  * - **Its armour**: every hit but magic and a stab from a corpbane weapon (the cache's param 701: spears, halberds,
  *   Osmumten's fang and the like) does half ([cut]).
- * - **Healing**: drained stats come back a level every [RESTORE_TICKS]; with no one in its room it heals 75 every
+ * - **Healing**: drained stats come back a level every [RESTORE_TICKS] (NpcDrains.restoreTicksByType); with no one in its room it heals 75 every
  *   [STOMP_TICKS] and 10 more each time after; left alone [RESET_TICKS] it is whole again; with 8 or more players in its
  *   room it heals 5 for each every [STOMP_TICKS].
  * - Only its top damage dealer gets its loot and the kill count (`total_corp_kills`), as [WildernessBosses] gives a
@@ -75,9 +75,6 @@ object CorporealBeast {
     const val PASSAGE_WEST_X = 2970
     const val PASSAGE_EAST_X = 2974
     val PASSAGE_ROWS = 4254..4258
-
-    /** The lair: its map square, on level 2. */
-    fun inLair(x: Int, z: Int): Boolean = x shr 6 == 46 && z shr 6 == 66
 
     /** Its room, east of the Passage. */
     fun inRoom(x: Int, z: Int): Boolean = x in PASSAGE_EAST_X..3000 && z in 4240..4270
@@ -122,7 +119,6 @@ object CorporealBeast {
 
     private class Fight {
         var nextStomp = Long.MIN_VALUE
-        var nextRestore = Long.MIN_VALUE
         var emptyHeals = 0
         var lastHitpoints = -1
         var lastFought = Long.MIN_VALUE
@@ -147,7 +143,6 @@ object CorporealBeast {
 
     private fun EncounterContext.tick() {
         val fight = fights.getOrPut(boss) { Fight().also { it.lastHitpoints = boss.hitpoints; it.lastFought = world.tick } }
-        if (boss.damageCut == null) boss.damageCut = { player, damage, type -> cut(world.combat.weapon(player), damage, type) }
         if (boss.hitpoints < fight.lastHitpoints) fight.lastFought = world.tick
         heal(fight)
         fight.lastHitpoints = boss.hitpoints
@@ -178,13 +173,9 @@ object CorporealBeast {
         }
     }
 
-    /** Its stomp, its stats coming back and its healing, on their timers. */
+    /** Its stomp and its healing, on their timers; its stats come back by NpcDrains, at [RESTORE_TICKS]. */
     private fun EncounterContext.heal(fight: Fight) {
         val now = world.tick
-        if (now >= fight.nextRestore) {
-            if (fight.nextRestore != Long.MIN_VALUE) for (i in boss.drained.indices) if (boss.drained[i] > 0) boss.drained[i]--
-            fight.nextRestore = now + RESTORE_TICKS
-        }
         if (now - fight.lastFought >= RESET_TICKS && boss.hitpoints < boss.maxHitpoints) {
             boss.hitpoints = boss.maxHitpoints
             boss.drained.fill(0)
@@ -282,6 +273,8 @@ object CorporealBeast {
 
 fun registerCorporealBeast(world: World) {
     with(CorporealBeast) {
+        world.meleeCombat.damageCuts[BOSS] = { player, damage, type -> cut(world.combat.weapon(player), damage, type) }
+        world.npcDrains.restoreTicksByType[BOSS] = RESTORE_TICKS
         world.handlers.onLoc(ENTRANCE, ENTER) {
             arriveDelay()
             if (world.inCombat(player)) return@onLoc world.message(player, CorporealBeastLines.IN_COMBAT)

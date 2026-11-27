@@ -475,15 +475,22 @@ class MeleeCombat(
 
     /**
      * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.armour])
-     * and then cut as it says ([Npc.damageCut], given [player] and the hit's [type]), as the hit is rolled: before what
+     * and then cut as its type's [damageCuts] entry says (given [player] and the hit's [type]), as the hit is rolled: before what
      * it has left caps it and its XP is given, so a hit can still finish it and the XP is for what lands. Guessed: a hit
      * can't go below 0 for it, and a 0 stays 0.
      */
+    /**
+     * By NPC type, what one takes of each player hit after its [Npc.armour], with the player and the hit's attack type:
+     * the Corporeal Beast's halving of all but stabs from its bane weapons (W4.15). Set at registration rather than per
+     * NPC, so a fresh spawn has it from its first tick (Codex review on #999). No entry takes all of it.
+     */
+    val damageCuts = HashMap<Int, (player: Player, damage: Int, type: AttackType) -> Int>()
+
     fun armoured(npc: Npc, damage: Int, magic: Boolean, player: Player? = null, type: AttackType? = null): Int {
         if (damage <= 0) return damage
         val armour = npc.armour?.invoke(magic)
         val worn = if (armour == null) damage else (damage - armour).coerceAtLeast(0)
-        val cut = npc.damageCut
+        val cut = damageCuts[npc.type.id]
         return if (cut == null || player == null || type == null || worn <= 0) worn else cut(player, worn, type).coerceIn(0, worn)
     }
 
