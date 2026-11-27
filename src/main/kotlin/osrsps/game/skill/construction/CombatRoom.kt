@@ -147,8 +147,8 @@ class CombatRoom(private val world: World, private val houses: Houses) {
 
         /**
          * The attached dummies that count as any Slayer task: the undead and ornate undead ones (the Undead combat
-         * dummy page: "acts as an undead creature, a demonic creature, and a Slayer task"; its examine, "functions as any
-         * slayer task"). INFERRED: whatever task the player has, or none.
+         * dummy page: "acts as an undead creature, a demonic creature, and a Slayer task", and its NPC examine says the
+         * same). INFERRED: whatever task the player has, or none.
          */
         val ANY_TASK: Set<Int> = setOf(7413, 10507)
 

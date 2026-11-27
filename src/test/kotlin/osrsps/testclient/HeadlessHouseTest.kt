@@ -8,6 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.Inventory
 import osrsps.game.InventoryTab
 import osrsps.game.NpcType
@@ -24,6 +25,8 @@ import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.combat.SlayerHelm
+import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.CombatRoom
@@ -55,6 +58,8 @@ import osrsps.map.LocShape
 class HeadlessHouseTest {
     private val agent = NpcType(EstateAgent.ID, "Estate agent", ops = listOf("Talk-to", null, "Relocate", "Redecorate", null), internalName = "poh_estate_agent")
     private val dummyNpc = NpcType(DUMMY_NPC, "<col=00ffff>Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_npc")
+    private val undeadDummyNpc = NpcType(UNDEAD_DUMMY_NPC, "<col=00ffff>Undead Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_undeadslayer_npc")
+    private val ornateDummyNpc = NpcType(ORNATE_DUMMY_NPC, "<col=00ffff>Ornate undead combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Swap", "Remove"), internalName = "poh_combat_dummy_upgraded_undeadslayer_npc")
 
     private fun hotspot(id: Int, name: String, width: Int = 1) =
         LocType(id, name, ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = width, length = width, interactType = 0))
@@ -148,6 +153,8 @@ class HeadlessHouseTest {
         objs[BAGGED_PLANT_1] = ObjType(BAGGED_PLANT_1, "Bagged plant 1")
         objs[WATERING_CAN_8] = ObjType(WATERING_CAN_8, "Watering can(8)")
         objs[KNIFE] = ObjType(KNIFE, "Knife")
+        objs[SLAYER_HELMET] = ObjType(SLAYER_HELMET, "Slayer helmet", wearpos1 = WearPos.HEAD)
+        objs[SLAYER_HELMET_I] = ObjType(SLAYER_HELMET_I, "Slayer helmet (i)", wearpos1 = WearPos.HEAD)
         for (gloves in listOf(CombatRoom.RED_GLOVES, CombatRoom.BLUE_GLOVES)) {
             objs[gloves] = ObjType(gloves, "Boxing gloves", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, wearpos3 = WearPos.HANDS)
         }
@@ -168,7 +175,7 @@ class HeadlessHouseTest {
                 markLoaded(AGENT_X shr 6, AGENT_Z shr 6)
             },
             objTypes = ObjTypes(objs),
-            npcTypes = NpcTypes.of(agent, dummyNpc),
+            npcTypes = NpcTypes.of(agent, dummyNpc, undeadDummyNpc, ornateDummyNpc),
             npcSpawns = listOf(NpcSpawn(agent, AGENT_X, AGENT_Z, source = "test")),
             locTypes = LocTypes(types),
             staticLocs = StaticLocs().apply {
@@ -1266,10 +1273,37 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `the undead combat dummies count as any Slayer task for a Slayer helmet, and the plain one doesn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rue").use { client ->
+                client.ready()
+                val player = server.world.playerNamed("rue")!!
+                val slayer = server.world.slayer
+                fun npc(type: NpcType) = Npc(0, NpcSpawn(type, 0, 0, source = "test", respawns = false))
+                // No task at all.
+                assertNull(slayer.task(player))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(undeadDummyNpc)), "no helmet, no bonus")
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET, 1)
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET_I, 1)
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+            }
+        }
+    }
+
     private companion object {
         const val DUMMY_SPACE = 29335
         const val COMBAT_DUMMY = 29336
         const val DUMMY_NPC = 2668
+        const val UNDEAD_DUMMY_NPC = 7413
+        const val ORNATE_DUMMY_NPC = 10507
+        const val SLAYER_HELMET = 11864
+        const val SLAYER_HELMET_I = 11865
         const val STAIR_SPACE = 15380
         const val STAIR_TOP_SPACE = 15381
         const val OAK_STAIRCASE_ROW = 5644
