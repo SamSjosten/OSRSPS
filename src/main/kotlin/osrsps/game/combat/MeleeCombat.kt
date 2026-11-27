@@ -303,7 +303,8 @@ class MeleeCombat(
     }
 
     /**
-     * [player] is out of any fight with a monster: their attack on one stops, and one fighting them gives up. Their PJ
+     * [player] is out of any fight with a monster: their attack on one stops, and one fighting them gives up, before
+     * its first hit as after. Their PJ
      * timer then keeps the monster off them, and them off it, as a player fight does in single-way combat
      * ([underAttackByAnother]).
      */
@@ -313,9 +314,10 @@ class MeleeCombat(
             player.interaction = null
             stopFacing(player)
         }
+        // The monster they fight, whether or not it has hit them yet, as well as one hitting them (Codex review on #1002).
+        for (npc in listOfNotNull(player.attackedBy, player.attackedNpc, player.launchedAtNpc)) if (npc.target === player) giveUp(npc)
         player.attackedNpc = null
         player.npcFightLeftTick = currentTick()
-        player.attackedBy?.let { if (it.target === player) giveUp(it) }
     }
 
     /**

@@ -198,6 +198,10 @@ class HeadlessRevenantCavesTest {
                     b.await("the man on di") { Unit.takeIf { di.attackedBy === other && other.target === di } }
                     b.npcOp(other.index, 2)
                     b.await("di on the man") { Unit.takeIf { di.attackedNpc === other } }
+                    // As before its first hit on di: it hasn't struck them yet, and won't before di's attack (Codex
+                    // review on #1002).
+                    other.nextAttackTick = world.tick + 1_000
+                    di.attackedBy = null
                     b.playerOp(a.index, PlayerOps.ATTACK)
                     b.await("di's attack on cy") { Unit.takeIf { (di.interaction as? PvpInteraction)?.target === cy && di.pjUntil > world.tick && di.pjOpponent === cy } }
                     b.await("the man gives up on di") { Unit.takeIf { other.target == null } }
