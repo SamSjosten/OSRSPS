@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InvObj
@@ -114,6 +115,10 @@ class HeadlessHouseTest {
         LocType(BARRIER, "Magic barrier", ops = listOf("Walk-through", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         hotspot(DUMMY_SPACE, "Combat dummy space"),
         LocType(COMBAT_DUMMY, "Combat dummy", ops = listOf("Attach", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        hotspot(FLOOR_NW_SPACE, "Combat ring space"), hotspot(FLOOR_N_SPACE, "Combat ring space"), hotspot(FLOOR_NE_SPACE, "Combat ring space"),
+        LocType(BEAM_MIDDLE, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BEAM_LEFT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BEAM_RIGHT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
     ).associateBy { it.id }
 
@@ -159,6 +164,8 @@ class HeadlessHouseTest {
         for (gloves in listOf(CombatRoom.RED_GLOVES, CombatRoom.BLUE_GLOVES)) {
             objs[gloves] = ObjType(gloves, "Boxing gloves", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, wearpos3 = WearPos.HANDS)
         }
+        objs[CombatRoom.PUGEL] = ObjType(CombatRoom.PUGEL, "Pugel", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, internalName = "poh_pugel")
+        objs[WOODEN_SHIELD] = ObjType(WOODEN_SHIELD, "Wooden shield", wearpos1 = WearPos.SHIELD)
         for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
@@ -228,6 +235,11 @@ class HeadlessHouseTest {
                 add(ZoneLoc(RING_CORNER_SPACE, LocShape.WALL_SQUARE_CORNER, 1, combat.templateX + 2, combat.templateZ + 1, 0))
                 add(ZoneLoc(PEDESTAL_WALL_SPACE, LocShape.WALL_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 5, 0))
                 add(ZoneLoc(STORAGE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 6, 0))
+                // The beam's row of floor along 2..5, 5, as the cache has it.
+                add(ZoneLoc(FLOOR_NW_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 2, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_N_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 3, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_N_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 4, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_NE_SPACE, LocShape.GROUND_DECOR, 2, combat.templateX + 5, combat.templateZ + 5, 0))
                 add(ZoneLoc(DUMMY_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 2, combat.templateZ + 6, 0))
                 doors(combat.templateX, combat.templateZ, listOf(0, 2, 3)).forEach(::add)
             },
@@ -286,7 +298,11 @@ class HeadlessHouseTest {
     private val staircases = listOf(FurnitureOption(OAK_STAIRCASE_ROW, "Oak staircase", 8249, listOf(OAK_PLANK to 5, STEEL_BAR to 2), level = 27))
 
     /** The rug space's first choice (row 5524). */
-    private val rings = listOf(FurnitureOption(BOXING_RING_ROW, "Boxing ring", 8023, listOf(OAK_PLANK to 6, BOLT_OF_CLOTH to 4), level = 32))
+    private val rings = listOf(
+        FurnitureOption(BOXING_RING_ROW, "Boxing ring", 8023, listOf(OAK_PLANK to 6, BOLT_OF_CLOTH to 4), level = 32),
+        // The balance beam (row 5637) at its level, with half its steel bars and none of its teak.
+        FurnitureOption(FurnitureBuilds.BALANCE_BEAM, "Balance beam", 8027, listOf(STEEL_BAR to 2), level = 81),
+    )
     private val racks = listOf(FurnitureOption(GLOVE_RACK_ROW, "Glove rack", 8028, listOf(OAK_PLANK to 2), level = 34))
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
 
@@ -1367,7 +1383,157 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `two players on the balance beam with a pugel each, a landed hit knocks the other off with no damage, and Get-down`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                server.login("pia").use { b ->
+                    a.ready()
+                    b.ready()
+                    a.buyHouse()
+                    val ola = server.world.playerNamed("ola")!!
+                    val pia = server.world.playerNamed("pia")!!
+                    // A combat room east of the parlour with the balance beam in it.
+                    val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                    val beam = FurnitureBuilds.BUILDS.getValue(FurnitureBuilds.BALANCE_BEAM)
+                    for (id in FurnitureBuilds.siblings(FLOOR_NW_SPACE)) {
+                        val loc = beam.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                        if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                    }
+                    ola.house!!.rooms += room
+                    val at = a.goIn(House.HOME)
+                    val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                    val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                    val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                    a.await("the beam") { if (a.shown(BEAM_LEFT, cx + 2, cz + 5) && a.shown(BEAM_MIDDLE, cx + 3, cz + 5)) Unit else null }
+                    a.command("tele ${cx + 2} ${cz + 4} ${House.GROUND}")
+                    b.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    b.await("pia beside the beam") { b.position?.takeIf { it == Coord(cx + 3, cz + 4, House.GROUND) } }
+
+                    // No pugel: refused.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("the pugel refusal") { a.messages().firstOrNull { it.text == "[construction.beam_pugel]" } }
+                    ola.inventory[20] = InvObj(CombatRoom.PUGEL, 1)
+                    pia.inventory[20] = InvObj(CombatRoom.PUGEL, 1)
+                    // A shield in hand: refused.
+                    ola.equipment[WearPos.SHIELD] = InvObj(WOODEN_SHIELD, 1)
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("the hands refusal") { a.messages().firstOrNull { it.text == "[construction.beam_hands]" } }
+                    ola.equipment.remove(WearPos.SHIELD, 1)
+
+                    // Up: a second pugel wielded, the first still carried.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on the beam") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    a.await("the pugel wielded") { a.inventory(Inventory.WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == CombatRoom.PUGEL } }
+                    assertEquals(1, a.count(CombatRoom.PUGEL))
+                    // Her part of the beam is taken.
+                    b.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    b.await("the taken refusal") { b.messages().firstOrNull { it.text == "[construction.beam_taken]" } }
+                    b.locOp(BEAM_MIDDLE, cx + 3, cz + 5, CombatRoom.STAND_ON)
+                    b.await("pia on the beam") { b.position?.takeIf { it == Coord(cx + 3, cz + 5, House.GROUND) } }
+                    a.await("Attack given") { Unit.takeIf { a.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    a.await("pia in view") { a.otherPlayers().takeIf { it.isNotEmpty() } }
+
+                    // ola's landed bash knocks pia off: no damage, her worn pugel gone, the carried one kept, no skull.
+                    for (c in listOf(a, b)) c.commandReply("setlevel strength 99") { true }
+                    a.commandReply("sure max") { it.startsWith("Your attacks") }
+                    val before = pia.hitpoints
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    b.await("pia knocked off") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertEquals(before, pia.hitpoints)
+                    // Still a hit by ola: the logout lock holds (Codex review on #1018).
+                    assertSame(ola, pia.attackedByPlayer)
+                    assertTrue(pia.attackedByPlayerTick >= 0)
+                    assertNull(pia.equipment[WearPos.WEAPON])
+                    assertEquals(1L, pia.inventory.count(CombatRoom.PUGEL))
+                    assertEquals(0, ola.skullTicks)
+                    // And ola stops going for her.
+                    a.awaitTicks(3)
+                    assertNull(ola.interaction)
+
+                    // Its pugel taken off into the pack on the beam still goes back at Get-down (Codex review on #1018).
+                    ola.equipment[WearPos.WEAPON] = null
+                    ola.inventory.add(server.world.objTypes[CombatRoom.PUGEL]!!, 1)
+                    assertEquals(2L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // Get-down: off the beam, the pugel it gave taken back.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.GET_DOWN)
+                    a.await("ola down") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertNull(ola.equipment[WearPos.WEAPON])
+                    assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // A death on the beam takes the pugel it gave back too (Codex review on #1018).
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on to die") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    a.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    a.await("ola back in the room") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) && !ola.dead } }
+                    assertNull(ola.equipment[WearPos.WEAPON])
+                    assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // ola back on, then out of the house without Get-down: nothing is kept for her (Codex review on #1018).
+                    assertEquals(0, server.world.combatRoom.tracked())
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on again") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    assertEquals(1, server.world.combatRoom.tracked())
+                    a.tele(OUTSIDE.x, OUTSIDE.z)
+                    a.await("out of the house") { if (server.world.combatRoom.tracked() == 0) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `building the balance beam moves whoever stands on its row off it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rae").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("rae")!!
+                player.house!!.rooms += HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 81")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $STEEL_BAR 2")
+                client.await("the bars") { if (client.count(STEEL_BAR) == 2) Unit else null }
+                client.await("level 81") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 81 } }
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                // Built from the beam's own row, beside its left end.
+                client.command("tele ${cx + 3} ${cz + 5} ${House.GROUND}")
+                client.await("on the row") { client.position?.takeIf { it == Coord(cx + 3, cz + 5, House.GROUND) } }
+                client.locOp(FLOOR_NW_SPACE, cx + 2, cz + 5, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 2)
+                client.await("the beam") { if (client.shown(BEAM_LEFT, cx + 2, cz + 5) && client.shown(BEAM_MIDDLE, cx + 3, cz + 5)) Unit else null }
+                client.await("moved off it") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                assertNull(player.equipment[WearPos.WEAPON])
+
+                // Back on it with a pugel, then the beam removed: off it first, the pugel it gave taken back (Codex review on #1018).
+                client.command("item ${CombatRoom.PUGEL} 1")
+                client.await("the pugel") { if (client.count(CombatRoom.PUGEL) == 1) Unit else null }
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                client.await("on the beam") { client.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                assertEquals(CombatRoom.PUGEL, player.equipment[WearPos.WEAPON]?.id)
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("off the removed beam") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                assertNull(player.equipment[WearPos.WEAPON])
+                assertEquals(1L, player.inventory.count(CombatRoom.PUGEL))
+
+            }
+        }
+    }
+
     private companion object {
+        const val FLOOR_NW_SPACE = 15290
+        const val FLOOR_N_SPACE = 15288
+        const val FLOOR_NE_SPACE = 15289
+        const val BEAM_MIDDLE = 13142
+        const val BEAM_LEFT = 13143
+        const val BEAM_RIGHT = 13144
+        const val WOODEN_SHIELD = 7676
         const val DUMMY_SPACE = 29335
         const val COMBAT_DUMMY = 29336
         const val DUMMY_NPC = 2668

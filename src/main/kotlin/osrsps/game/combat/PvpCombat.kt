@@ -113,6 +113,8 @@ class PvpCombat(
         val hit: Boolean = true,
         val landed: () -> Unit = {},
         val level: Int = target.level,
+        /** Made on an arena's special ground ([arenaHitQueued]): it lands by [arenaHit] wherever the target is by then. */
+        val arena: Boolean = false,
     ) {
         /** A phoenix necklace's heal before it landed ([dropIncoming]): it lands nowhere, [landed] aside. */
         var cancelled = false
@@ -132,6 +134,19 @@ class PvpCombat(
      * rules allow it. The [Boolean] is whether the attack is a cast from the spellbook.
      */
     var arenaRefusal: (Player, Player, Boolean) -> List<Line> = { _, _, _ -> emptyList() }
+
+    /**
+     * Set by content: what a melee hit of the [Int] damage from the first [Player] does to the second when it was made on
+     * an arena's own ground ([arenaHitQueued]), whose rules take the hit's place, as the balance beam's knock-off does.
+     * True when it took the hit, which then deals no damage and draws nothing back.
+     */
+    var arenaHit: (Player, Player, Int) -> Boolean = { _, _, _ -> false }
+
+    /**
+     * Set by content: whether a melee hit [Player] makes on [Player] now lands by [arenaHit] instead of as damage, decided
+     * as it is made, so the target leaving the arena before it lands changes nothing (Codex review on #1018).
+     */
+    var arenaHitQueued: (Player, Player) -> Boolean = { _, _ -> false }
 
     /** The lines refusing [attacker]'s attack on [target]: an arena's ([arenaRefusal]) from one, else the Wilderness's. */
     private fun refusal(attacker: Player, target: Player, spell: Boolean = false): List<Line> =
@@ -371,7 +386,7 @@ class PvpCombat(
         player.effects.anim(combat.anims(player).attack(matchup.style), 0)
         val damage = dealt(target, matchup.style.type, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
         styleXp(player, matchup.style, damage)
-        hits += Hit(player, target, damage, tick + late(target, tick))
+        hits += Hit(player, target, damage, tick + late(target, tick), arena = arenaHitQueued(player, target))
         fought(player, target, tick)
     }
 
@@ -497,6 +512,14 @@ class PvpCombat(
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
+            if (spell == null && hit.arena && arenaHit(hit.attacker, player, hit.damage)) {
+                // Still a hit by a player: the logout lock holds as for one that hurt (Codex review on #1018).
+                player.attackedByPlayer = hit.attacker
+                player.attackedByPlayerTick = tick
+                // Out of the fight: the attacker stops going for them.
+                if ((hit.attacker.interaction as? PvpInteraction)?.target === player) hit.attacker.interaction = null
+                continue
+            }
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
                 dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
