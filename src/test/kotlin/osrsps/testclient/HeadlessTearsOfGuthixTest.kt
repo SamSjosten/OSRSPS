@@ -125,6 +125,13 @@ class HeadlessTearsOfGuthixTest {
                 client.awaitAt(TearsOfGuthix.START.x, TearsOfGuthix.START.z, 2)
                 assertTrue(tog.isPlaying(alice))
                 assertEquals(TearsOfGuthix.BOWL_STANCE, alice.stanceOverride)
+                // A second start while playing changes nothing: the game's time isn't reset or doubled.
+                val (tick0, left0) = server.onTick { server.world.tick to tog.ticksLeft(alice)!! }
+                server.onTick { tog.start(alice) }
+                client.awaitTicks(3)
+                val (tick1, left1) = server.onTick { server.world.tick to tog.ticksLeft(alice)!! }
+                assertTrue(left1 < left0, "the time isn't reset: $left0 then $left1")
+                assertTrue(left0 - left1 <= tick1 - tick0, "a tick a tick, not two: ${left0 - left1} in ${tick1 - tick0}")
 
                 // Collect from whichever wall runs blue, and again each time that stream moves on.
                 val attack = alice.skills.tenths(Skill.ATTACK)
@@ -147,6 +154,12 @@ class HeadlessTearsOfGuthixTest {
                 assertTrue(gained / 100 <= QUEST_POINTS, "at most a tear a tick")
                 assertEquals(null, alice.stanceOverride)
                 assertEquals(day, tog.lastVisit(alice))
+
+                // A start once the visit is recorded (a dialogue left open across the game) goes nowhere.
+                server.onTick { tog.start(alice) }
+                client.awaitTicks(2)
+                assertFalse(tog.isPlaying(alice))
+                assertEquals(TearsOfGuthix.END.x to TearsOfGuthix.END.z, alice.x to alice.z)
 
                 // Back at once: not enough adventures since, and the week not up.
                 client.locOp(juna.id, juna.x, juna.z, TearsOfGuthix.STORY)
@@ -237,6 +250,13 @@ class HeadlessTearsOfGuthixTest {
                 assertEquals(null, tog.lastVisit(bob), "no drink, no visit")
             }
         }
+    }
+
+    /** [block] run on the game's tick, its result back here. */
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = java.util.concurrent.CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     private companion object {
