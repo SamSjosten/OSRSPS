@@ -208,6 +208,9 @@ import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
+import osrsps.game.content.registerDeepWildernessDungeon
+import osrsps.game.content.registerWildernessGodWars
+import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -1301,6 +1304,13 @@ class World(
         registerLookCommands(this@World)
     }
 
+    /**
+     * Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. Declared
+     * before the init that registers content: set later, its empty start would wipe what registration added (Codex
+     * review on #1042).
+     */
+    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
+
     init {
         replayTradeJournal()
         deaths.register(handlers)
@@ -1406,6 +1416,9 @@ class World(
         registerRevenants(this)
         registerEmblemTrader(this)
         registerMaledictus(this)
+        registerDeepWildernessDungeon(this)
+        registerWildernessSlayerCave(this)
+        registerWildernessGodWars(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -3470,7 +3483,7 @@ class World(
         } else {
             npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
                 osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
-        }
+        } + extraDrops(npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
