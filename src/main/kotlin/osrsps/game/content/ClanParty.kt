@@ -254,8 +254,9 @@ class ClanParty(private val world: World) {
         // other clan (Codex on PR 975).
         if (player.priceChecker.contents().none { (_, obj) -> fits(party.chest, obj.id) }) return world.message(player, ClanPartyLines.CHEST_FULL)
         if (!world.clans.takeDurableWrite(world.tick)) {
-            // Refused by the server-wide cap: the player's cooldown is given back, and they're told (R64C-3).
-            if (last == null) lastConfirm.remove(player.saveKey) else lastConfirm[player.saveKey] = last
+            // Refused by the server-wide cap: the player may try again next tick, not wait out the whole cooldown, and
+            // is told (R64C-3); more clicks this tick are still turned away by the check at the top (Codex on PR 1025).
+            lastConfirm[player.saveKey] = world.tick - CONFIRM_TICKS + 1
             return world.message(player, ClanPartyLines.BUSY)
         }
         party.lastConfirm = world.tick
