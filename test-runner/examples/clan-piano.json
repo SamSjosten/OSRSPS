@@ -1,0 +1,31 @@
+{
+ "name": "The clan hall piano and dummy (::keys on): in a clan made by ::clanmake, Play-quietly on the hall's piano opens its window, a key clicked plays, the close button shuts it, Background-music plays, and the dummy swings with no experience",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any"},
+  {"step": "command", "text": "::clandisband Piano Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Piano Gate", "expectMessage": "Clan Piano Gate made"},
+  {"step": "command", "text": "::clanjoin Piano Gate recruiter", "expectMessage": "Joined clan Piano Gate as a recruiter"},
+  {"step": "command", "text": "::tele 3185 3471 0", "expectMessage": "Teleported to 3185, 3471, 0", "comment": "west of the clan hall portal (3186, 3471)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 41724, "option": "Enter", "timeoutMs": 20000},
+  {"step": "waitTicks", "ticks": 4, "comment": "into the hall's instance, a new region"},
+  {"step": "locOption", "locId": 41651, "option": "Play-quietly", "timeoutMs": 30000, "comment": "the piano, south-west in the main room"},
+  {"step": "assertInterface", "interfaceId": 698, "timeoutMs": 30000, "comment": "the piano's window, once the player has walked from the entrance to the south-west corner (longer than 10 s; nightly 27 Nov)"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 698, "component": 31, "op": 1, "comment": "Play-c"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 698, "component": 45, "op": 1, "comment": "Close"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 41651, "option": "Background-music", "timeoutMs": 10000, "comment": "Rhapsody plays"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 41652, "option": "Attack", "timeoutMs": 30000, "comment": "the dummy in the garden to the south-west"},
+  {"step": "assertMessage", "contains": "[dummy.hit]", "timeoutMs": 20000},
+  {"step": "command", "text": "::clandisband Piano Gate", "expectMessage": "Clan Piano Gate deleted"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

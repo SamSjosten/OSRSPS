@@ -202,6 +202,8 @@ import osrsps.game.content.RevenantCaves
 import osrsps.game.content.SinglesPlus
 import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
+import osrsps.game.content.registerEmblemTrader
+import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -1131,6 +1133,8 @@ class World(
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
     val clanParty = osrsps.game.content.ClanParty(this)
+    val clanHallFurniture = osrsps.game.content.ClanHallFurniture(this)
+    val clanHallPeople = osrsps.game.content.ClanHallPeople(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1390,6 +1394,8 @@ class World(
         registerCorporealBeast(this)
         registerRevenantCaves(this)
         registerRevenants(this)
+        registerEmblemTrader(this)
+        registerMaledictus(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1504,6 +1510,8 @@ class World(
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
+        clanHallFurniture.register()
+        clanHallPeople.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -2603,7 +2611,8 @@ class World(
         player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
-        PlayerOps.send(player.vars, player.session::queue)
+        // Challenge in the Rat Pits too (exploit review 64, R64A-3).
+        PlayerOps.send(player.vars, player.session::queue, slot5 = player.slot5Op)
         // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
         player.attackOp = false
         clans.resync(player)
@@ -3443,9 +3452,15 @@ class World(
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
-        // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
-            osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
+        // The revenants' shared table hangs on their combat level and the killer's skull (Wilderness step W5.3). A
+        // superior's three rolls on its normal counterpart's table come after its own drops.
+        val rolled = if (npc.type.id in osrsps.game.content.Revenants.IDS) {
+            val ownsBag = killer != null && osrsps.game.content.RevenantDrops.ownsBag(killer, groundObjs::hasDropped)
+            osrsps.game.content.RevenantDrops.roll(random, npc.type.id, npc.type.combatLevel, (killer?.skullTicks ?: 0) > 0, ownsBag) { objTypes[it] }
+        } else {
+            npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
+                osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
+        }
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
@@ -3970,6 +3985,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            clanHallFurniture.forget(player)
             fairyRings.forget(player)
             balloons.forget(player)
             makeoverScreen.forget(player)

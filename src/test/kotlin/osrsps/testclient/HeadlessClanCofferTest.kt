@@ -132,8 +132,8 @@ class HeadlessClanCofferTest {
                     alice.await("written again") { alice.varClan(Clans.VARCLAN_COFFER)?.takeIf { it == 0 } }
                     assertEquals(0, ClanStore(dir.resolve("data").resolve(ClanStore.FILE_NAME)).byId(clan.id)!!.coffer)
 
-                    // One disk-writing transfer or confirm a tick across every clan (exploit review R60C-1).
-                    assertTrue(server.world.clans.takeDurableWrite(-5))
+                    // A few disk-writing transfers or confirms a tick across every clan (exploit review R60C-1, R64C-3).
+                    repeat(Clans.DURABLE_WRITES_PER_TICK) { assertTrue(server.world.clans.takeDurableWrite(-5)) }
                     assertFalse(server.world.clans.takeDurableWrite(-5))
                     assertTrue(server.world.clans.takeDurableWrite(-4))
                 }

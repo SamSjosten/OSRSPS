@@ -27,7 +27,7 @@
   {"step": "clickWidget", "interfaceId": 783, "component": 17, "op": 1, "comment": "Confirm: into the chest"},
   {"step": "waitTicks", "ticks": 2},
   {"step": "locOption", "locId": 46250, "option": "Pull", "timeoutMs": 20000, "comment": "the lever beside the chest"},
-  {"step": "assertMessage", "contains": "[clan_party.pulled name=", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[clan_party.pulled name=", "timeoutMs": 30000, "comment": "the walk round to the lever can take longer than 10 s (nightly 27 Nov)"},
   {"step": "assertInventory", "item": "Coins", "count": 0, "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 2},
   {"step": "locOption", "loc": "Party Balloon", "option": "Burst", "timeoutMs": 30000, "comment": "the nearest balloon"},

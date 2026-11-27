@@ -38,11 +38,10 @@ object ClanHallLines : Lines("clan_hall", "Clan hall portal") {
  * - The exit portal's Leave, and logging out inside, put the player outside the hub portal.
  * - The hall's altar's Pray-at recharges prayer as the churches' do. Its bank booths, deposit box and oven work as
  *   every other's (Banking, Cooking). Its coffer is [ClanCoffer]; its party chest and lever
- *   are [ClanParty].
+ *   are [ClanParty]; its piano and dummy, [ClanHallFurniture]; its people, [ClanHallPeople].
  *
  * Guessed: every line, the tiles each way (beside each portal), and that the portals act at once. Not built yet: the
- * hall settings (home world, lock, most players), the piano, combat ring, dummy and the hall's
- * people.
+ * hall settings (home world, lock, most players), the seats, bookcases, weapons rack and combat ring.
  */
 class ClanHall(private val world: World) {
     /** Each clan's hall standing now, by clan id. */
@@ -112,6 +111,7 @@ class ClanHall(private val world: World) {
         halls[clan.id]?.let { return it }
         val instance = world.instances.create(TEMPLATE_X, TEMPLATE_Z, ZONES, ZONES, OUTSIDE_X, OUTSIDE_Z, 0) ?: return null
         halls[clan.id] = instance
+        world.clanHallPeople.spawn(instance, clan)
         return instance
     }
 
@@ -163,10 +163,12 @@ class ClanHall(private val world: World) {
         /**
          * The hall's locs whose options work inside its instances (locs elsewhere in instances do nothing unless listed):
          * the exit, the altar, the bank booths (fai_varrock_bankbooth), the deposit box, the oven (fai_varrock_posh_stove)
-         * the coffer ([ClanCoffer]), and the party chest, lever and balloons ([ClanParty]).
+         * the coffer ([ClanCoffer]), the party chest, lever and balloons ([ClanParty]), and the piano and dummy
+         * ([ClanHallFurniture]).
          */
         val INSTANCE_LOCS = setOf(EXIT, ALTAR, 10583, 41723, 7421, ClanCoffer.COFFER) +
-            setOf(ClanParty.CHEST_CLOSED, ClanParty.CHEST_OPEN, ClanParty.LEVER) + ClanParty.BALLOONS
+            setOf(ClanParty.CHEST_CLOSED, ClanParty.CHEST_OPEN, ClanParty.LEVER) + ClanParty.BALLOONS +
+            setOf(ClanHallFurniture.PIANO, ClanHallFurniture.DUMMY)
 
         /** The hall's map: the south-west tile of map square 27,85, copied whole (8 by 8 zones, every level). */
         const val TEMPLATE_X = 1728

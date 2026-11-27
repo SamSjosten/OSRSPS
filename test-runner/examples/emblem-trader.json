@@ -1,0 +1,25 @@
+{
+  "name": "Wilderness step W5.3: the Emblem Trader in the Revenant Caves: Rewards and his no-rewards line, then Skull from no skull: the warning menu, the skull taken, and the skull read off ::skull; and a revenant imp killed for its revenant ether (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the caves' north, level 40"},
+    {"step": "command", "text": "::tele 3196 10222 0", "expectMessage": "Teleported to 3196, 10222, 0", "comment": "by the Emblem Trader's patch round 3196,10224"},
+    {"step": "npcOption", "npc": "Emblem Trader", "option": "Rewards", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[emblem_trader.no_rewards]", "timeoutMs": 10000},
+    {"step": "command", "text": "::skull off", "expectMessage": "Your skull is gone.", "comment": "a known start: no skull, so Skull opens the warning menu"},
+    {"step": "npcOption", "npc": "Emblem Trader", "option": "Skull", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[emblem_trader.skull_warning]", "timeoutMs": 10000},
+    {"step": "chooseOption", "text": "[emblem_trader.skull_give]"},
+    {"step": "assertDialogue", "contains": "[emblem_trader.skulled]", "timeoutMs": 10000},
+    {"step": "continueDialogue"},
+    {"step": "command", "text": "::skull", "expectMessage": "You're skulled: ", "comment": "the trader's skull, 20 minutes"},
+    {"step": "command", "text": "::tele 3199 10072 0", "expectMessage": "Teleported to 3199, 10072, 0", "comment": "the southern imps"},
+    {"step": "npcOption", "npc": "Revenant imp", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Revenant imp", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Revenant imp #"},
+    {"step": "assertGroundItem", "item": "Revenant ether", "timeoutMs": 15000},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
