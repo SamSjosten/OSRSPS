@@ -91,8 +91,9 @@
     "NPCs and locs: random events step 18 (2026-11-19): Mr. Mordaut (5504), the dunce (5503 on his stool, 6749 the invitation, one examine for both) and the classroom doors (9316 to 9319, one examine in their infobox), from each page's infobox.",
     "Locs: Wilderness step W5.1 (2026-11-15): the Revenant Caves' ways in and out and the trapdoors they come out by, one per id, from the infobox of the page in wiki; W5.1b: the caves' pillars (one type for all five); W5.2: the eleven kinds of revenant; W5.3: the Emblem Trader.",
     "NPCs: random events step 19 (2026-11-19): the Evil Chicken in the Champions' Guild coop (6739), from its infobox.",
-    "The Killerwatt plane (post-quest step 15, KillerwattPlane.kt): the rift on Draynor Manor's top floor, the Portal Home back, both killerwatt forms and the storm clouds (the 242 cache, 2026-11-19).",
-    "Locs and NPCs: Karamja (step K4.2b): the Cleanup's event creatures (the spider and tribesman under the wild ones' entries) and its gem rock (the 242 cache, 2026-11-19). None yet for the Gout Tuber Plant (9033), which has no Wiki text."
+    "Locs and NPCs: Karamja (step K4.2b): the Cleanup's event creatures (the spider and tribesman under the wild ones' entries) and its gem rock (the 242 cache, 2026-11-19). None yet for the Gout Tuber Plant (9033), which has no Wiki text.",
+    "Locs and NPCs: Karamja (step K4.2c): the three Broodoo victims (the 242 cache, 2026-11-19).",
+    "The Killerwatt plane (post-quest step 15, KillerwattPlane.kt): the rift on Draynor Manor's top floor, the Portal Home back, both killerwatt forms and the storm clouds (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -866,6 +867,9 @@
     {"npc": 6272, "name": "Large mosquito"},
     {"npc": 6273, "name": "Mosquito swarm", "wiki": "Mosquito swarm page, infobox (Level 17)"},
     {"npc": 6402, "name": "Mosquito swarm", "wiki": "Mosquito swarm page, infobox (Level 20)"},
+    {"npc": 6409, "name": "Broodoo victim", "also": [6408], "wiki": "Broodoo victim page, infobox (Green)"},
+    {"npc": 6411, "name": "Broodoo victim", "also": [6410], "wiki": "Broodoo victim page, infobox (Yellow)"},
+    {"npc": 6413, "name": "Broodoo victim", "also": [6412], "wiki": "Broodoo victim page, infobox (White)"},
     {"npc": 6414, "name": "Sharimika", "also": [6415, 6548]},
     {"npc": 6416, "name": "Mamma Bufetta", "also": [6417, 6549]},
     {"npc": 6418, "name": "Layleen", "also": [6419, 6550]},
