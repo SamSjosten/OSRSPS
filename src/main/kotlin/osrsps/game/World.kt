@@ -1051,7 +1051,7 @@ class World(
     /**
      * Called after a player moves in the movement phase, with the tiles they stood on this tick ([Player.stepTrail]:
      * the start, then each tile stepped onto), for what a tile does when walked onto (the Agility Arena's floor traps).
-     * Not after a teleport.
+     * Not when a teleport after the walk moved them off its last tile.
      */
     val stepHooks = ArrayList<(Player, List<Tile>) -> Unit>()
 
@@ -3620,7 +3620,9 @@ class World(
     private fun move(player: Player) {
         val result = movement.process(player)
         if (result != MoveResult.NONE) player.lastMoveTick = tick
-        if (result != MoveResult.NONE && !player.teleported) for (hook in stepHooks) hook(player, player.stepTrail)
+        // A teleport earlier in the tick leaves the trail where the player now stands, so the hooks still see the step
+        // (round 61: a walk the tick of a put-back stepped onto an arena trap unjumped); one after the walk doesn't.
+        if (result != MoveResult.NONE && player.stepTrail.lastOrNull() == Tile(player.x, player.z)) for (hook in stepHooks) hook(player, player.stepTrail)
         val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
         val speed = when (result) {
             MoveResult.NONE -> null

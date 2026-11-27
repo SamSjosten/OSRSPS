@@ -23,7 +23,8 @@ object CairnIsleLines : Lines("cairn_isle", "Cairn Isle") {
  * Hitpoints each, rounded down, and washes them back to the shore.
  *
  * Inferred: the check comes on the bridge's first tile and the player is walked the rest of the way. Guessed: the fall
- * comes halfway, and the shore it washes them to (the beach south of the bridge, [SHORE]); its message is a key only.
+ * comes halfway, and the shore it washes them to (the land off the end they set out from, [CairnIsle.WEST_SHORE] and
+ * [CairnIsle.EAST_SHORE]); its message is a key only.
  */
 object CairnIsle {
     const val Z = 2979
@@ -32,8 +33,13 @@ object CairnIsle {
     const val XP_TENTHS = 100
     val SUCCESS = 75 to 250
 
-    /** Guessed: where a fall washes the player up. */
-    val SHORE = Tile(2779, 2975)
+    /**
+     * Guessed: where a fall washes the player up, the land off the end they set out from (2769,2979 on Cairn Isle,
+     * 2787,2979 on the promontory). Not the sandbank south of the bridge, which the 242 map has no way off (round 61,
+     * R61C-3), and not the other side, which would be a crossing for nothing.
+     */
+    val WEST_SHORE = Tile(WEST_END - 2, Z)
+    val EAST_SHORE = Tile(EAST_END + 2, Z)
 
     /** A fall's three hits, each [hitpoints] / 11. */
     fun fallHit(hitpoints: Int): Int = hitpoints / 11
@@ -51,15 +57,19 @@ fun registerCairnIsle(world: World) {
 
 private fun stepped(world: World, player: Player, trail: List<Tile>) {
     if (player.level != 0 || player.scripts.delayed) return
-    // The step onto an end of the bridge from off it: onto the east end from the promontory, or the west end from Cairn Isle.
+    // A step onto an end of the bridge from off it, straight or diagonal (round 61, R61C-2: the land beside the west
+    // end lets a player step on from 2770,2978 or 2770,2980): onto the east end from the promontory's side, or the
+    // west end from Cairn Isle's.
+    val onBridge = { tile: Tile -> tile.z == CairnIsle.Z && tile.x in CairnIsle.WEST_END..CairnIsle.EAST_END }
     val target = trail.zipWithNext().firstNotNullOfOrNull { (from, to) ->
         when {
-            from.z != CairnIsle.Z || to.z != CairnIsle.Z -> null
-            from.x > CairnIsle.EAST_END && to.x == CairnIsle.EAST_END -> CairnIsle.WEST_END - 1
-            from.x < CairnIsle.WEST_END && to.x == CairnIsle.WEST_END -> CairnIsle.EAST_END + 1
+            to.z != CairnIsle.Z || onBridge(from) -> null
+            to.x == CairnIsle.EAST_END && from.x >= CairnIsle.EAST_END -> CairnIsle.WEST_END - 1
+            to.x == CairnIsle.WEST_END && from.x <= CairnIsle.WEST_END -> CairnIsle.EAST_END + 1
             else -> null
         }
     } ?: return
+    val shore = if (target > CairnIsle.EAST_END) CairnIsle.WEST_SHORE else CairnIsle.EAST_SHORE
     world.scripts.start(player) {
         player.waypoints.clear()
         player.forcedSteps.clear()
@@ -83,6 +93,6 @@ private fun stepped(world: World, player: Player, trail: List<Tile>) {
         }
         player.message(world.textFor(player)[CairnIsleLines.FELL])
         delay(1)
-        world.teleport(player, CairnIsle.SHORE.x, CairnIsle.SHORE.z, 0)
+        world.teleport(player, shore.x, shore.z, 0)
     }
 }
