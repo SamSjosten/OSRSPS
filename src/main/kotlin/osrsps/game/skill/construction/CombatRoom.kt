@@ -51,7 +51,7 @@ import kotlin.math.max
  * losing their items" ([arena], [arenaRefusal]; Attack shows there as in the Wilderness). The boxing ring takes boxing
  * gloves or bare fists, with no armour, jewellery or combat spells; the fencing ring any weapon, but no armour,
  * jewellery or combat spells; the combat ring "anything goes"; on the pedestals "the player must use Ranged or
- * Magic". A death in a ring stays in the room ([arenaDeathTile]). GUESSED: no skull; XP as for any fight; a shield is
+ * Magic". A death in a ring stays in the room ([arenaDeathTile]). GUESSED: no skull; no XP (exploit review R65A-2); a shield is
  * allowed in the fencing ring (the weapons rack gives one); the refusals' words. Left out: the combat ring's ban on
  * teleport spells.
  *
