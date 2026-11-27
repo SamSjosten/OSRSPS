@@ -320,3 +320,6 @@ vetions_rest	1	3264	10176	3327	10239
 # The Silk Chasm (Wilderness step W4.14): the OSRS Wiki's Silk Chasm calls it a multi-combat dungeon. The box is its whole
 # map square 53_159 on level 2 (inferred: live's box is the same).
 silk_chasm	2	3392	10176	3455	10239
+# The Corporeal Beast's Lair (Wilderness step W4.15): the OSRS Wiki's Corporeal Beast's Lair calls it a multi-combat area.
+# The box is its whole map square 46_66 on level 2 (inferred: live's box is the same).
+corporeal_beast_lair	2	2944	4224	3007	4287

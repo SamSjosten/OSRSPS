@@ -23,6 +23,7 @@ import osrsps.game.World
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.content.CorporealBeast
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -38,7 +39,7 @@ import osrsps.map.LocShape
  * client visiting each map square (both floors of the Dark Warriors' Fortress) sees that square's NPCs; a level 145
  * dark warrior fought with the real combat and drop files drops its bones and only what its table names; a green dragon
  * breathes dragonfire, burning or resisted bare and held to the shield's line behind an anti-dragon shield; and the
- * Corporeal Beast's cave mouth stands at level 20 and leads nowhere yet.
+ * Corporeal Beast's cave mouth stands at level 20 and, since W4.15, leads into its lair.
  */
 class HeadlessWilderness11To20Test {
     /** The file's NPCs by their 242 cache ids, read by name as the server reads them. */
@@ -109,7 +110,7 @@ class HeadlessWilderness11To20Test {
         val objTypes = DropTestItems.objTypes()
         val cave = LocType(CAVE, "Cave", listOf("Enter", null, null, null, null), LocCollisionType(width = 5, length = 5))
         World(
-            crcs, CollisionMap().apply { markLoaded(WARRIOR_X shr 6, WARRIOR_Z shr 6); markLoaded(DRAGON_X shr 6, DRAGON_Z shr 6); markLoaded(CAVE_X shr 6, CAVE_Z shr 6) },
+            crcs, CollisionMap().apply { markLoaded(WARRIOR_X shr 6, WARRIOR_Z shr 6); markLoaded(DRAGON_X shr 6, DRAGON_Z shr 6); markLoaded(CAVE_X shr 6, CAVE_Z shr 6); markLoaded(46, 66) },
             random = GameRandom(7), objTypes = objTypes,
             locTypes = LocTypes(mapOf(CAVE to cave)),
             staticLocs = StaticLocs().apply { add(ZoneLoc(CAVE, LocShape.CENTREPIECE_STRAIGHT, 3, CAVE_X, CAVE_Z, 0)) },
@@ -180,16 +181,15 @@ class HeadlessWilderness11To20Test {
     }
 
     @Test
-    fun `the Corporeal Beast's cave mouth is at level 20 and leads nowhere yet`(@TempDir dir: Path) {
+    fun `the Corporeal Beast's cave mouth is at level 20 and leads into its lair`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("lia").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.commandReply("keys on") { it == "Dialogue shows keys" }
                 assertEquals(20, Wilderness.level(CAVE_X, CAVE_Z))
                 client.tele(CAVE_X + 2, CAVE_Z - 1)
                 client.locOp(CAVE, CAVE_X, CAVE_Z, 1)
-                client.awaitMessage("nothing interesting") { it == "[game.nothing_interesting]" }
-                assertEquals(Coord(CAVE_X + 2, CAVE_Z - 1, 0), client.position)
+                val arrival = Coord(CorporealBeast.ARRIVAL.x, CorporealBeast.ARRIVAL.z, CorporealBeast.LAIR_LEVEL)
+                client.await("in the lair", timeoutMillis = 15_000) { client.position?.takeIf { it == arrival } }
             }
         }
     }
