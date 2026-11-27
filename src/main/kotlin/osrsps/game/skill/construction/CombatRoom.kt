@@ -233,6 +233,24 @@ class CombatRoom(private val world: World, private val houses: Houses) {
     /** The pugels each player on the balance beam carried as they stood on it ([leaveBeam]). */
     private val carried = HashMap<Player, Long>()
 
+    /** The pugel the beam gave [player], worn or carried, goes back: down to the pugels they carried onto it. */
+    private fun takePugelBack(player: Player) {
+        if (player.equipment[WearPos.WEAPON]?.id == PUGEL) player.equipment[WearPos.WEAPON] = null
+        val before = carried.remove(player) ?: return
+        while (player.inventory.count(PUGEL) > before) {
+            val slot = player.inventory.contents().firstOrNull { it.second.id == PUGEL }?.first ?: break
+            player.inventory.remove(slot, 1)
+        }
+    }
+
+    /**
+     * [player] died: on the balance beam, the pugel it gave goes back before their items are sorted, as the death then
+     * puts them off it like a fall (Codex review on #1018).
+     */
+    fun dying(player: Player) {
+        if (onBeam(player)) takePugelBack(player)
+    }
+
     /** [player] has left the house or logged out: what was kept for them on the beam goes (Codex review on #1018). */
     fun forget(player: Player) {
         carried.remove(player)
@@ -289,14 +307,7 @@ class CombatRoom(private val world: World, private val houses: Houses) {
      * taken from there, down to the pugels carried onto it (Codex review on #1018).
      */
     private fun leaveBeam(player: Player, to: Tile, anim: Int) {
-        if (player.equipment[WearPos.WEAPON]?.id == PUGEL) player.equipment[WearPos.WEAPON] = null
-        val before = carried.remove(player)
-        if (before != null) {
-            while (player.inventory.count(PUGEL) > before) {
-                val slot = player.inventory.contents().firstOrNull { it.second.id == PUGEL }?.first ?: break
-                player.inventory.remove(slot, 1)
-            }
-        }
+        takePugelBack(player)
         player.waypoints.clear()
         world.teleport(player, to.x, to.z, player.level)
         player.anim(anim)

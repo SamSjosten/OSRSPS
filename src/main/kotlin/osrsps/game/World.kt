@@ -879,7 +879,8 @@ class World(
                 if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
             }
         },
-        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
+        // And a death on the balance beam takes back the pugel it gave (Codex review on #1018).
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it); combatRoom.dying(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->

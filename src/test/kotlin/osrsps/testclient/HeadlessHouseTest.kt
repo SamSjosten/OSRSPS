@@ -1458,6 +1458,14 @@ class HeadlessHouseTest {
                     assertNull(ola.equipment[WearPos.WEAPON])
                     assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
 
+                    // A death on the beam takes the pugel it gave back too (Codex review on #1018).
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on to die") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    a.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    a.await("ola back in the room") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) && !ola.dead } }
+                    assertNull(ola.equipment[WearPos.WEAPON])
+                    assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
                     // ola back on, then out of the house without Get-down: nothing is kept for her (Codex review on #1018).
                     assertEquals(0, server.world.combatRoom.tracked())
                     a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
