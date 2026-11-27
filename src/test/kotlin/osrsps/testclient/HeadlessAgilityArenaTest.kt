@@ -24,6 +24,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopScreen
+import osrsps.game.skill.Agility
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -441,6 +442,29 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
+    fun `the hand holds' climb-off waits for the last step to be drawn, or the client holds the player a tile short`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds2").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2759, 9559, 3)
+                client.awaitTicks(2)
+                val from = client.actorEvents().size
+                client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                client.await("across") { client.position?.takeIf { it == Coord(2759, 9566, 3) } }
+                val off = client.await("the climb-off") {
+                    client.actorEvents(from).firstOrNull { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_OFF }
+                }
+                assertEquals(Agility.WALK_END_DELAY, off.amount, "the climb-off's delay")
+                val grab = client.actorEvents(from).first { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_GRAB }
+                assertEquals(0, grab.amount, "the grab, before any walk, plays at once")
+            }
+        }
+    }
+
+    @Test
     fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
@@ -716,6 +740,7 @@ class HeadlessAgilityArenaTest {
         const val MONKEY_BARS = 3564
         const val HAND_HOLDS = 3583
         const val HAND_HOLDS_GRAB = 1117
+        const val HAND_HOLDS_OFF = 1121
         const val TOADFLAX = 2998
         const val PIRATES_HOOK = 2997
         const val TICKETS = 620
