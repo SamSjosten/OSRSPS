@@ -176,7 +176,8 @@ object CorporealBeast {
     /** Its stomp and its healing, on their timers; its stats come back by NpcDrains, at [RESTORE_TICKS]. */
     private fun EncounterContext.heal(fight: Fight) {
         val now = world.tick
-        if (now - fight.lastFought >= RESET_TICKS && boss.hitpoints < boss.maxHitpoints) {
+        // Its drained stats reset too, even once its empty-room heals have made it whole (Codex review on #999).
+        if (now - fight.lastFought >= RESET_TICKS && (boss.hitpoints < boss.maxHitpoints || boss.drained.any { it > 0 })) {
             boss.hitpoints = boss.maxHitpoints
             boss.drained.fill(0)
             log("whole again")
@@ -194,6 +195,8 @@ object CorporealBeast {
                 val dealt = hit(player, roll(STOMP_MIN, STOMP_MAX))
                 log("stomps on ${player.username} for $dealt")
             }
+            // A Retribution set off by the stomp may have finished it: no heal for the dead (Codex review on #999).
+            if (boss.hitpoints <= 0 || boss.dead) return
         }
         val healed = when {
             inRoom.isEmpty() -> EMPTY_HEAL + EMPTY_HEAL_STEP * fight.emptyHeals++

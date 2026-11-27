@@ -143,6 +143,27 @@ class HeadlessCorporealBeastTest {
     }
 
     @Test
+    fun `left alone, its drained stats reset even when it is already whole`(@TempDir dir: Path) {
+        server(dir, seed = 6).use { server ->
+            server.login("gil").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val level = CorporealBeast.LAIR_LEVEL
+                client.tele(CorporealBeast.SPAWN.x + 2, CorporealBeast.SPAWN.z + 5, level)
+                val npc = server.world.npcs.all.first { it.type.id == CorporealBeast.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                val fight = client.await("its fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                server.world.npcDrains.drain(npc, osrsps.game.NpcStat.MAGIC, 300)
+                client.tele(CorporealBeast.ARRIVAL.x, CorporealBeast.ARRIVAL.z, level)
+                client.keepAlive()
+                client.await("whole again", timeoutMillis = 30_000) { fight.lines.firstOrNull { it.endsWith("whole again") } }
+                assertTrue(npc.drained.all { it == 0 }, "its drains gone: ${npc.drained.toList()}")
+                assertEquals(npc.maxHitpoints, npc.hitpoints)
+            }
+        }
+    }
+
+    @Test
     fun `its armour halves all but magic and a corpbane weapon's stab`() {
         val spear = ObjType(1249, "Dragon spear", params = mapOf(CorporealBeast.PARAM_CORPBANE to 1))
         val whip = ObjType(4151, "Abyssal whip")
