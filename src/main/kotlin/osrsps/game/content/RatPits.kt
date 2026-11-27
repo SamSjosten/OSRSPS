@@ -127,7 +127,9 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
 
     /** In the pits: the Challenge op shows until they leave. */
     private fun arrived(player: Player) {
-        player.session.queue(SetPlayerOp(CHALLENGE_OP, false, world.textFor(player)[RatPitsLines.CHALLENGE]))
+        // Kept on the player so a settings toggle that sends every option again ([osrsps.game.PlayerOps.send]) keeps it.
+        player.slot5Op = world.textFor(player)[RatPitsLines.CHALLENGE]
+        player.session.queue(SetPlayerOp(CHALLENGE_OP, false, player.slot5Op))
         watchArea(player)
     }
 
@@ -136,6 +138,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
             if (player.loggedOut) return@later
             if (inArea(player.x, player.z, player.level)) return@later watchArea(player)
             forfeit(player)
+            player.slot5Op = null
             player.session.queue(SetPlayerOp(CHALLENGE_OP, false, null))
         }
     }
@@ -414,25 +417,23 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         for (side in match.sides()) {
             matches.remove(side.player.saveKey)
             val p = side.player
-            p.charges[STAKE] = 0
             world.interfaces.closeModals(p)
             world.interfaces.closeInside(p, p.frame.interfaceId, p.frame.component(FrameSlot.OVERLAY_HUD))
-            if (!paid) continue
-            // What doesn't fit goes on the floor under them, as other content's rewards do (GroundObjs.give).
-            val coins = world.objTypes[ShopScreen.COINS]
-            when {
-                winner == null && refund -> {
-                    coins?.let { world.groundObjs.give(p, it, side.bet) }
-                    p.message(world.textFor(p)[RatPitsLines.DRAW])
-                }
-                winner === side -> coins?.let { world.groundObjs.give(p, it, side.bet * 2) }
+        }
+        if (!paid) return
+        var settled = false
+        val settleAll = {
+            if (!settled) {
+                settled = true
+                for (side in match.sides()) settle(side, winner, refund)
             }
-            if (side.dead) {
-                world.cats.passedAway(p)
-            } else if (side.cat != null) {
-                world.cats.release(p)
-                world.cats.addGrowth(p, if (winner === side) WIN_GROWTH else LOSS_GROWTH)
-            }
+        }
+        // Both saves are written together, as a trade's are (World.commitTrade): a crash can't keep one player's
+        // winnings and the other's stake, which would hand the stake back at login. If the saves can't be journalled
+        // the match still settles in memory, for the next saves to record.
+        if (!world.commitTrade(match.a.player, match.b.player, settleAll)) settleAll()
+        for (side in match.sides()) {
+            val p = side.player
             if (winner == null || p.loggedOut) continue
             val won = winner === side
             val cat = side.cat
@@ -443,6 +444,27 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
                     if (!side.dead && cat != null) chatNpc(ChatAnim.HAPPY, RatPitsLines.MEOW)
                 }
             }
+        }
+    }
+
+    /** [side]'s share of the end: the stake is settled, the coins paid, and the cat released, grown or gone. */
+    private fun settle(side: Side, winner: Side?, refund: Boolean) {
+        val p = side.player
+        p.charges[STAKE] = 0
+        // What doesn't fit goes on the floor under them, as other content's rewards do (GroundObjs.give).
+        val coins = world.objTypes[ShopScreen.COINS]
+        when {
+            winner == null && refund -> {
+                coins?.let { world.groundObjs.give(p, it, side.bet) }
+                p.message(world.textFor(p)[RatPitsLines.DRAW])
+            }
+            winner === side -> coins?.let { world.groundObjs.give(p, it, side.bet * 2) }
+        }
+        if (side.dead) {
+            world.cats.passedAway(p)
+        } else if (side.cat != null) {
+            world.cats.release(p)
+            world.cats.addGrowth(p, if (winner === side) WIN_GROWTH else LOSS_GROWTH)
         }
     }
 
@@ -457,7 +479,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         const val STAKE = "rat_pits_stake"
 
         /** Guessed: the player op slot for Challenge (Attack's is 2; 5 is free). */
-        const val CHALLENGE_OP = 5
+        const val CHALLENGE_OP = osrsps.game.PlayerOps.SLOT_5
 
         const val BETTING = 279
         const val P1_NAME = 7
