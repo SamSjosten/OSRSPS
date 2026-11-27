@@ -411,6 +411,7 @@ object DialogueLines {
         JunaLines,
         CatLines,
         RatPitsLines,
+        KillerwattPlaneLines,
         TearsLines,
         ExamCentreLines,
         TerryLines,

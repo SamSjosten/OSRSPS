@@ -2,6 +2,16 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
+      "npcs": ["slayer_killerwatt_ball", "slayer_killerwatt"],
+      "attackSpeed": 2, "maxHit": 6, "attackType": "crush", "attackBonus": 30, "strengthBonus": 0,
+      "defence": { "stab": 10, "slash": 10, "crush": 10, "magic": 20, "light": -10, "standard": -10, "heavy": -10 },
+      "anims": { "attack": "killerwatt_biped_attack", "defend": "killerwatt_biped_block", "death": "killerwatt_biped_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "air", "percent": 60 },
+      "slayerLevel": 37,
+      "source": "OSRS Wiki, Killerwatt (469, 470), read 2026-11-19 (post-quest step 15, KillerwattPlane.kt): speed 2, max hit 6 melee and 8 magical ranged (15 either way without insulated boots, KillerwattPlane), attack bonus 30, the defences, weak to air 60%, Slayer 37, respawn 30, range 13. Both forms share it: the passive orb (470) grows limbs (469) once it fights. Its attacks are KillerwattPlane's (Npc.scriptedAttacks), the magical ranged one (max 8, range 13, killerwatt_biped_cast) too. Animations by name. GUESSED: crush for the orb's melee too (the Wiki gives stab for the orb, crush once it has limbs), the cast with no projectile, and the magical ranged attack rolled as ranged"
+    },
+    {
       "npcs": ["champions_imp"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },

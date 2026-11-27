@@ -163,6 +163,10 @@ class Quests(val all: List<Quest>) {
             // "during and after" the quest; [osrsps.game.content.TunnelOfChaos]).
             3524 to 1,
             3529 to 1,
+            // slayer_killerwatt_portal_check: after Ernest the Chicken, Professor Oddenstein's portal machine shows the
+            // interdimensional rift to the Killerwatt plane (1 shows draynor_killerwatt_portal; the Wiki's Portal machine,
+            // read 2026-11-19; [osrsps.game.content.KillerwattPlane]).
+            1766 to 1,
         )
 
         val NONE = Quests(emptyList())
