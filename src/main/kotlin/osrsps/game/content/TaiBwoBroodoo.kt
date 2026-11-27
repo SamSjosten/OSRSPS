@@ -6,6 +6,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.CombatLines
 import osrsps.game.npc.Npc
 
 /**
@@ -45,6 +46,12 @@ object TaiBwoBroodoo {
     const val OTHER_FOOD_MIN = 1
     const val OTHER_FOOD_MAX = 20
 
+    /**
+     * Calquat fruit and the gout tuber: on the Wiki's list for the white victim, though not eaten (Codex review on
+     * #1034). GUESSED: the fruit and vegetables' 10 to 35; given up whole.
+     */
+    val WHITE_EXTRAS = setOf(5980, TaiBwoEvents.GOUT_TUBER)
+
     /** Twice the damage, in tenths. */
     const val XP_TENTHS_PER_DAMAGE = 20
 
@@ -62,7 +69,7 @@ object TaiBwoBroodoo {
 
     /** The most [obj] hits [victim] for, or null when it does nothing to it. */
     fun maxHit(world: World, victim: Int, obj: Int): IntRange? = when (victim) {
-        FOOD -> world.foods.all[obj]?.let {
+        FOOD -> if (obj in WHITE_EXTRAS) FRUIT_MIN..FRUIT_MAX else world.foods.all[obj]?.let {
             val category = world.objTypes[obj]?.category
             if (category == FRUIT || category == VEGETABLE) FRUIT_MIN..FRUIT_MAX else OTHER_FOOD_MIN..OTHER_FOOD_MAX
         }
@@ -90,6 +97,10 @@ object TaiBwoBroodoo {
         if (npc.dead || world.npcs[npc.index] !== npc) return
         val range = maxHit(world, npc.type.id, obj) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         if (player.inventory[slot]?.id != obj) return
+        // Single-way, as any attack: not someone else's victim, nor while another monster fights the player (Codex
+        // review on #1034).
+        if (world.meleeCombat.underAttackByAnother(player, npc)) return world.message(player, CombatLines.ALREADY_UNDER_ATTACK)
+        if (world.meleeCombat.foughtByAnother(player, npc)) return world.message(player, CombatLines.SOMEONE_ELSE)
         player.inventory[slot] = used(world, obj)
         npc.effects.anim(EAT_ANIM)
         val damage = world.meleeCombat.hit(npc, player, world.random.between(range.first, range.last), world.tick)

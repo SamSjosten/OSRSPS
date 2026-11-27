@@ -25,6 +25,7 @@ import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.Potions
 import osrsps.game.content.TaiBwoBroodoo
 import osrsps.game.content.TaiBwoCleanup
+import osrsps.game.content.TaiBwoEvents
 import osrsps.game.content.TaiBwoWannai
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -131,7 +132,42 @@ class HeadlessTaiBwoBroodooTest {
         }
     }
 
+    @Test
+    fun `another player's weakness item is turned away while the victim fights someone else, and calquat and the tuber count for the white`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            assertEquals(TaiBwoBroodoo.FRUIT_MIN..TaiBwoBroodoo.FRUIT_MAX, TaiBwoBroodoo.maxHit(server.world, TaiBwoBroodoo.FOOD, CALQUAT_FRUIT))
+            assertEquals(TaiBwoBroodoo.FRUIT_MIN..TaiBwoBroodoo.FRUIT_MAX, TaiBwoBroodoo.maxHit(server.world, TaiBwoBroodoo.FOOD, TaiBwoEvents.GOUT_TUBER))
+            server.login("ada").use { ada ->
+                ada.await("the login rebuild") { ada.position }
+                ada.command("varp tbw_cleanup 31")
+                ada.command("setlevel woodcutting 99")
+                ada.command("god on")
+                ada.command("varp 172 1")
+                ada.command("item $MACHETE 1")
+                ada.await("the machete") { if (ada.count(MACHETE) == 1L) Unit else null }
+                ada.command("tele 2770 3060 0")
+                ada.await("by the jungle") { ada.position?.takeIf { it == Coord(2770, 3060, 0) } }
+                ada.commandReply("tbwevent broodoo_poison") { it.endsWith("broodoo_poison") }
+                ada.locOp(LIGHT_JUNGLE, 2770, 3061, TaiBwoCleanup.HACK)
+                ada.await("the victim") { ada.npcs().firstOrNull { it.id == victim.id } }
+                server.login("bea").use { bea ->
+                    bea.await("the login rebuild") { bea.position }
+                    bea.commandReply("keys on") { it == "Dialogue shows keys" }
+                    bea.command("god on")
+                    bea.command("item $ANTIPOISON_4 1")
+                    bea.await("the potion") { if (bea.count(ANTIPOISON_4) == 1L) Unit else null }
+                    bea.command("tele 2771 3060 0")
+                    val npc = bea.await("the victim") { bea.npcs().firstOrNull { it.id == victim.id } }.index
+                    bea.use(npc, ANTIPOISON_4)
+                    bea.await("someone else's") { bea.messages().firstOrNull { it.text == "[combat.someone_else]" } }
+                    assertEquals(1L, bea.count(ANTIPOISON_4), "the dose kept")
+                }
+            }
+        }
+    }
+
     private companion object {
+        const val CALQUAT_FRUIT = 5980
         const val LIGHT_JUNGLE = 9010
         const val MACHETE = 975
         const val SPAR_LIGHT = 6281
