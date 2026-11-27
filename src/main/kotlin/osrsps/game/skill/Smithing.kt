@@ -88,6 +88,11 @@ class Smithing(private val world: World) {
         for (component in AnvilItems.BY_BAR.values.flatten().map { it.component }.toSet()) {
             world.handlers.onButton(INTERFACE, component) { op -> smith(op.componentId) }
         }
+        // The anvil's scripts set %smithing_listening (varc 989), which keypress_permit then uses to hold the keyboard for
+        // any main window after it; smithing_close is what clears it, so it runs whenever the anvil closes (inferred, as
+        // for the clan hall's piano: the runner's Enter stalls with varc 989 at 1 came in scripts after smithing-lumbridge
+        // and diary-varrock-elite, nightly 26-27 Nov). A client whose own close already ran it loses nothing.
+        world.interfaces.onClose(INTERFACE) { world.interfaces.runClientScript(it, SCRIPT_SMITHING_CLOSE, emptyList()) }
     }
 
     /** The loc's option called [name], 1 to 5; 1 when the cache doesn't say (tests). */
@@ -310,6 +315,9 @@ class Smithing(private val world: World) {
 
         /** Interface smithing, the anvil. */
         const val INTERFACE = 312
+
+        /** smithing_close: sets %smithing_listening (varc 989) back to 0. */
+        const val SCRIPT_SMITHING_CLOSE = 6123
 
         /** Its item buttons start at dagger, 9; enum 1101 numbers them from 1 for varbit smithing_item_lasttype. */
         const val FIRST_ITEM_COMPONENT = 9

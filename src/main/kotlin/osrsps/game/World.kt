@@ -207,6 +207,7 @@ import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
+import osrsps.game.content.registerDeepWildernessDungeon
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -1404,6 +1405,7 @@ class World(
         registerRevenants(this)
         registerEmblemTrader(this)
         registerMaledictus(this)
+        registerDeepWildernessDungeon(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -3463,7 +3465,7 @@ class World(
         // The revenants' shared table hangs on their combat level and the killer's skull (Wilderness step W5.3). A
         // superior's three rolls on its normal counterpart's table come after its own drops.
         val rolled = if (npc.type.id in osrsps.game.content.Revenants.IDS) {
-            val ownsBag = killer != null && osrsps.game.content.RevenantDrops.ownsBag(killer, groundObjs::hasDropped)
+            val ownsBag = killer != null && osrsps.game.content.RevenantDrops.ownsBag(this, killer)
             osrsps.game.content.RevenantDrops.roll(random, npc.type.id, npc.type.combatLevel, (killer?.skullTicks ?: 0) > 0, ownsBag) { objTypes[it] }
         } else {
             npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +

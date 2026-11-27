@@ -74,9 +74,9 @@ class RevenantDropsTest {
     fun `the noted drops come as notes`() {
         // Battlestaves, rune armour and weapons, dragon armour and weapons, bars, ore, hide, planks and the uncut
         // dragonstone by their noted ids; coal, yew and magic logs too.
-        val noted = setOf(1392, 1164, 1128, 1080, 1202, 1348, 4088, 4586, 1216, 1306, 454, 2362, 452, 2364, 1748, 8784, 1516, 1514, 1632)
+        val noted = setOf(1392, 1164, 1128, 1080, 1202, 1348, 4088, 4586, 1216, 1306, 454, 2362, 452, 2364, 1748, 8783, 1516, 1514, 1632)
         assertTrue(noted.all { id -> RevenantDrops.MAIN.any { it.item == id } })
-        val unnoted = setOf(1391, 1163, 1127, 1079, 1201, 1347, 4087, 4585, 1215, 1305, 453, 2361, 451, 2363, 1747, 8783, 1515, 1513, 1631)
+        val unnoted = setOf(1391, 1163, 1127, 1079, 1201, 1347, 4087, 4585, 1215, 1305, 453, 2361, 451, 2363, 1747, 8782, 1515, 1513, 1631)
         assertTrue(RevenantDrops.MAIN.none { it.item in unnoted })
     }
 }
