@@ -54,6 +54,12 @@ class WeaponAnims(private val attackAnim: (AttackStyle) -> Int, val defend: Int)
         /** Zorya's tome's: tfa_human_zorya_tome_attack (its spell plays it, [PoweredStaves.ZORYAS_TOME]); _defend. */
         private val ZORYAS_TOME = WeaponAnims({ 15139 }, 15141)
 
+        /**
+         * The pugel's, on the balance beam: balance_beam_bash for every style, balance_beam_block. GUESSED from the
+         * names, as above; it fights as the unarmed do otherwise ([Weapons.category]).
+         */
+        val PUGEL = WeaponAnims({ 3595 }, 3596)
+
         private val BY_CATEGORY = mapOf(
             Weapons.UNARMED to UNARMED,
             Weapons.STABSWORD to SWORD,

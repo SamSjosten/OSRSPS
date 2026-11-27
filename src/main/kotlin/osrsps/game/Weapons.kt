@@ -138,6 +138,9 @@ object Weapons {
     fun category(weapon: ObjType?): Int {
         if (weapon == null) return UNARMED
         if (weapon.internalName == "abyssal_bludgeon") return BLUNT_BLUDGEON
+        // The house's pugel is in the spears' obj category, but "its attack options are the same as when the player is
+        // unarmed" (OSRS Wiki, Pugel).
+        if (weapon.internalName == PUGEL) return UNARMED
         // The cache puts powered staves in the staves' obj category; the combat tab has their own (Accurate, Accurate,
         // Longrange).
         if (weapon.internalName in POWERED_STAVES) return POWERED_STAFF
@@ -196,10 +199,20 @@ object Weapons {
     /** human_bannerready, human_bannerturnonspot, human_bannerwalk_f/_b/_l/_r, human_bannerrunning. */
     val BANNER_STANCE = Stance(1421, 1426, 1422, 1423, 1424, 1425, 1427)
 
+    /** The house's pugel, worn on the balance beam ([osrsps.game.skill.construction.CombatRoom]). */
+    const val PUGEL = "poh_pugel"
+
+    /**
+     * balance_beam_ready and balance_beam_walk, with the human turn: the pugel's, as only the balance beam gives one to
+     * wear. GUESSED from the cache's names, not seen.
+     */
+    val PUGEL_STANCE = Stance(3594, 823, 3600, 3600, 3600, 3600, 3600)
+
     fun stance(weapon: ObjType?): Stance {
         if (weapon == null) return HUMAN
         val name = weapon.internalName.orEmpty()
         return when {
+            name == PUGEL -> PUGEL_STANCE
             weapon.name.contains("godsword", ignoreCase = true) -> GODSWORD_STANCE
             name.startsWith("granite_maul") -> GRANITE_MAUL_STANCE
             name.startsWith("elder_maul") -> ELDER_MAUL_STANCE

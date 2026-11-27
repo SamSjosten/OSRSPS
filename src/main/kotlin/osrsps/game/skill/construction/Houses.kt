@@ -67,6 +67,10 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val ARENA_KIT = line("arena_kit", "Attack in the boxing or fencing ring wearing what it doesn't allow: armour, jewellery, or a weapon in the boxing ring (the ring pages: not allowed; no source for the words)")
     val ARENA_TARGET_KIT = line("arena_target_kit", "Attack in the boxing or fencing ring on a player wearing what it doesn't allow (the ring pages: not allowed; no source for the words; Codex review on #1017)")
     val ARENA_STYLE = line("arena_style", "Attack in a fighting ring with a style it doesn't allow: ranged or magic in the boxing or fencing ring, melee from a ranging pedestal (the ring pages; no source for the words)")
+    val BEAM_PUGEL = line("beam_pugel", "Stand-on on the balance beam without a pugel (the Balance beam page: a pugel from the extra weapons rack is needed; no source for the words)")
+    val BEAM_HANDS = line("beam_hands", "Stand-on on the balance beam holding something in either hand, where the pugel is wielded (ours; no source yet)")
+    val BEAM_TAKEN = line("beam_taken", "Stand-on on a part of the balance beam another player stands on (ours; no source yet)")
+    val ARENA_PUGEL = line("arena_pugel", "Attack on the balance beam without the pugel wielded, or with ranged or magic (ours; no source yet)")
     val DUMMY_DETACH_FIRST = line("dummy_detach_first", "Upgrade or Remove on an attached combat dummy (the Undead combat dummy page: the sandbag must be detached first; no source for the words)")
     val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
     val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
@@ -334,6 +338,8 @@ class Houses(private val world: World) {
      * goes as its taker does, carried or worn (Codex review on #906).
      */
     private fun dropHouseOnly(player: Player) {
+        // Nothing of theirs is kept for the balance beam once they are gone (Codex review on #1018).
+        world.combatRoom.forget(player)
         for ((slot, obj) in player.inventory.contents()) if (obj.id in HouseOnly.OBJS) player.inventory.remove(slot)
         for ((slot, obj) in player.equipment.contents()) if (obj.id in HouseOnly.OBJS) player.equipment.remove(slot, obj.count)
     }
@@ -617,6 +623,8 @@ class Houses(private val world: World) {
         val instance = house.instance
         val baseX = instance.baseX + (cell.x shl 3)
         val baseZ = instance.baseZ + (cell.z shl 3)
+        // Anyone on a balance beam there comes off it first, with the pugel it gave (Codex review on #1018).
+        world.combatRoom.offBeam(house, cell.x, cell.z, cell.floor)
         world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7, cell.floor)
         // A combat dummy attached there goes with the room it hangs in, its loc laid again below (CON6b).
         house.dummies.values.removeAll { attached ->

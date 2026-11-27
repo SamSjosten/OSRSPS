@@ -239,7 +239,10 @@ class Combat(
     }
 
     /** The animations the player swings and blocks with: their weapon's category's. */
-    fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
+    fun anims(player: Player): WeaponAnims {
+        val weapon = equipment.weapon(player)
+        return if (weapon?.internalName == Weapons.PUGEL) WeaponAnims.PUGEL else WeaponAnims.of(Weapons.category(weapon))
+    }
 
     /**
      * Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when
