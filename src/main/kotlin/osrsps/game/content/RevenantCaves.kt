@@ -51,8 +51,8 @@ object SinglesPlus {
  * GUESSED: the menu before paying and its words, as at the boss lairs ([WildernessLairFee]); the fee from the backpack
  * when it holds it all, else from the bank; whether it is paid kept in a varp of our own ([CustomVars.revenantFeeVarp]).
  * Not built: the members check, the 2-tick teleport delay in combat with a revenant, a death to a revenant counting as
- * a PvP death (items seen by everyone), the Agility pillars (step W5.1b), the cannon refusal, the crevice's one-way
- * warning.
+ * a PvP death (items seen by everyone), the cannon refusal, the crevice's one-way warning. The caves' Agility pillars
+ * are obstacles in skills/agility.json (step W5.1b).
  */
 object RevenantCaves {
     const val FEE = 100_000

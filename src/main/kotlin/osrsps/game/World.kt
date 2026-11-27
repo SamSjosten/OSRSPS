@@ -201,6 +201,7 @@ import osrsps.game.content.registerCallisto
 import osrsps.game.content.RevenantCaves
 import osrsps.game.content.SinglesPlus
 import osrsps.game.content.registerRevenantCaves
+import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -1387,6 +1388,7 @@ class World(
         registerVenenatis(this)
         registerCorporealBeast(this)
         registerRevenantCaves(this)
+        registerRevenants(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
