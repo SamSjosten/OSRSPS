@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import osrsps.game.GameLines
 import osrsps.game.Player
@@ -50,8 +51,15 @@ object DeepWildernessDungeon {
     /** The dungeon: map square 47,161 on the ground level. */
     fun inDungeon(x: Int, z: Int): Boolean = x shr 6 == 47 && z shr 6 == 161
 
-    /** The tick each spider's fight with its target began, and whom it was with. */
-    private class Fight(val player: Player, val start: Long)
+    /**
+     * The tick each spider's fight with its target began, and whom it was with. The player is held weakly: a strong
+     * hold would keep the key spider alive through the player's own `attackedNpc`, so a dead spider's record (its tick
+     * no longer run to clear it) would never leave the map (Codex review on #1039).
+     */
+    private class Fight(player: Player, val start: Long) {
+        private val ref = WeakReference(player)
+        val player: Player? get() = ref.get()
+    }
 
     private val fights = WeakHashMap<Npc, Fight>()
 
