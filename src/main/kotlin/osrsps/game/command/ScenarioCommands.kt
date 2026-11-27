@@ -134,6 +134,7 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     if (player.trade != null) world.trades.interrupt(player)
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    world.cats.startScenario(player)
     world.hunter.tracking.forget(player)
     // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
     // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.

@@ -218,6 +218,62 @@ class HeadlessCatsTest {
     }
 
     @Test
+    fun `a follower with no room in the world when it catches up goes back in the backpack, or under a player whose backpack is full`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val cats = server.world.cats
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.commandReply("item $CAT_OBJ 1") { it.contains("Pet cat") }
+                client.drop(CAT_OBJ)
+                client.await("the cat following") { cats.follower(eve) }
+
+                // A tile in the instances' area with no instance there: no NPC can be put beside them (World.spawnNpc).
+                server.world.npcScripts.later(1) { server.world.teleport(eve, NO_ROOM_X, NO_ROOM_Z, 0) }
+                client.await("the cat back in the backpack") { if (client.count(CAT_OBJ) == 1) Unit else null }
+                assertNull(cats.follower(eve))
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_OBJ])
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_NPC])
+                assertTrue(server.world.npcs.all.none { it.type.id == CAT_NPC }, "no cat left behind")
+
+                // Again with a full backpack: the cat lands under them instead (exploit review 64, R64A-5).
+                server.world.npcScripts.later(1) { server.world.teleport(eve, 3222, 3218, 0) }
+                client.await("back home") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.drop(CAT_OBJ)
+                client.await("the cat following again") { cats.follower(eve) }
+                client.commandReply("item $SARDINE 28") { it.contains("Raw sardine") }
+                client.await("a full backpack") { if (client.count(SARDINE) == 28) Unit else null }
+                server.world.npcScripts.later(1) { server.world.teleport(eve, NO_ROOM_X, NO_ROOM_Z, 0) }
+                client.await("the cat under eve") {
+                    server.world.groundObjs.find(eve, CAT_OBJ, NO_ROOM_X, NO_ROOM_Z, 0)
+                }
+                assertEquals(0L, client.count(CAT_OBJ).toLong())
+                assertNull(cats.follower(eve))
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_OBJ])
+            }
+        }
+    }
+
+    @Test
+    fun `Chase vermin leaves the Rat Pits' rats alone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 3222 3230 0")
+                client.await("away from the test rat") { client.position?.takeIf { it == Coord(3222, 3230, 0) } }
+                server.world.npcScripts.later(1) {
+                    server.world.spawnNpc(NpcSpawn(rat, 3224, 3230, source = osrsps.game.content.RatPits.RAT_SOURCE, respawns = false))
+                }
+                client.await("the pit rat out") { server.world.npcs.all.firstOrNull { it.spawn.source == osrsps.game.content.RatPits.RAT_SOURCE } }
+                client.commandReply("item $CAT_OBJ 1") { it.contains("Pet cat") }
+                client.drop(CAT_OBJ)
+                client.npcOp(client.npcIndex(CAT_NPC), Cats.CHASE)
+                client.message(CatLines.NO_VERMIN)
+            }
+        }
+    }
+
+    @Test
     fun `a reset puts back the cat that followed before the scenario, and a kitten from the scenario goes`(@TempDir dir: Path) {
         server(dir).use { server ->
             val cats = server.world.cats
@@ -230,8 +286,11 @@ class HeadlessCatsTest {
 
                 client.command("scenario bare")
                 client.await("at the scenario's tile") { client.position?.takeIf { it == Coord(3225, 3218, 0) } }
-                client.npcOp(client.npcIndex(CAT_NPC), Cats.PICK_UP)
-                client.await("the cat picked up") { if (cats.follower(cal) == null) Unit else null }
+                // The cat from before stays out of the scenario, so it can't be picked up there and come back twice
+                // (exploit review 64, R64A-1).
+                client.await("the cat gone") { if (server.world.npcs.all.none { it.type.id == CAT_NPC }) Unit else null }
+                assertNull(cats.follower(cal))
+                assertEquals(-1, cal.vars[Cats.FOLLOWER_OBJ])
                 client.commandReply("item $KITTEN_OBJ 1") { it.contains("Pet kitten") }
                 client.drop(KITTEN_OBJ)
                 client.await("the kitten following") { cats.follower(cal)?.takeIf { cats.followerKind(cal)?.stage == Cats.Stage.KITTEN } }
@@ -265,5 +324,7 @@ class HeadlessCatsTest {
         const val RAT_NPC = 2854
         const val SARDINE = 327
         const val NOTED_SARDINE = 328
+        const val NO_ROOM_X = 6_500
+        const val NO_ROOM_Z = 100
     }
 }

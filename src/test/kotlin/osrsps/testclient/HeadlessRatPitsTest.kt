@@ -169,6 +169,47 @@ class HeadlessRatPitsTest {
     }
 
     @Test
+    fun `a match that runs out of rounds is a draw with both bets back, no growth and the rats gone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.ready(CAT_OBJ, 1_000)
+                server.login("bob").use { bob ->
+                    bob.ready(CAT_OBJ, 1_000)
+                    val a = server.world.playerNamed("alice")!!
+                    val b = server.world.playerNamed("bob")!!
+                    // One round, then the cap: no cat can win, flee or die in one (exploit review 64, R64A-2).
+                    server.onTick { server.world.ratPits.maxRounds = 1 }
+                    val growth = server.onTick { server.world.cats.growth(a) to server.world.cats.growth(b) }
+
+                    alice.playerOp(b.index, RatPits.CHALLENGE_OP)
+                    bob.message(RatPitsLines.CHALLENGED, "name" to "alice")
+                    bob.playerOp(a.index, RatPits.CHALLENGE_OP)
+                    for (c in listOf(alice, bob)) c.await("the betting screen") { if (RatPits.BETTING in c.openInterfaces()) Unit else null }
+                    alice.await("alice's opening bet") { alice.text(RatPits.BETTING, RatPits.P1_BET)?.takeIf { it == "100" } }
+                    alice.ifButton(RatPits.BETTING, RatPits.ACCEPT, 1)
+                    bob.ifButton(RatPits.BETTING, RatPits.ACCEPT, 1)
+                    for (c in listOf(alice, bob)) c.await("the confirm screen") { c.text(RatPits.CONFIRM, RatPits.CONFIRM_AMOUNT)?.takeIf { it == "100" } }
+                    alice.ifButton(RatPits.CONFIRM, RatPits.CONFIRM_YES, 1)
+                    bob.ifButton(RatPits.CONFIRM, RatPits.CONFIRM_YES, 1)
+                    for (c in listOf(alice, bob)) c.await("the bet paid") { if (c.coins() == 900) Unit else null }
+                    alice.strategy(1)
+                    bob.strategy(1)
+
+                    for (c in listOf(alice, bob)) c.await("the scores") { if (RatPits.SCORES in c.openInterfaces()) Unit else null }
+                    for (c in listOf(alice, bob)) c.await("the fight over", timeoutMillis = 30_000) { if (RatPits.SCORES !in c.openInterfaces()) Unit else null }
+                    alice.message(RatPitsLines.DRAW)
+                    bob.message(RatPitsLines.DRAW)
+                    for (c in listOf(alice, bob)) c.await("the bet back") { if (c.coins() == 1_000) Unit else null }
+                    assertTrue(server.world.npcs.all.none { it.type.id in RatPits.RAT_TYPES }, "the rats go with the fight")
+                    assertTrue(server.onTick { a.charges[RatPits.STAKE] == 0 && b.charges[RatPits.STAKE] == 0 }, "no stake kept")
+                    assertTrue(!server.world.ratPits.inMatch(a) && !server.world.ratPits.inMatch(b))
+                    assertEquals(growth, server.onTick { server.world.cats.growth(a) to server.world.cats.growth(b) }, "a draw grows neither cat")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a player with no cat or a kitten can't challenge, and the option goes on the way up`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { carol ->
