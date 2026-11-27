@@ -28,7 +28,7 @@ class HeadlessRevenantDropsTest {
         7881, "Revenant imp", ops = listOf(null, "Attack", null, null, null), combatLevel = 7, internalName = "wild_cave_imp",
         stats = NpcStats(attack = 5, strength = 5, defence = 4, hitpoints = 10, ranged = 5, magic = 9),
     )
-    private val types = NpcTypes.of(imp)
+    private val types = NpcTypes.of(imp, NpcType(osrsps.game.combat.Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)))
     private val objs = ObjTypes.of(
         *(listOf(RevenantDrops.ETHER, RevenantDrops.COINS, RevenantDrops.LOOTING_BAG, RevenantDrops.LOOTING_BAG_OPEN) +
             RevenantDrops.MAIN.map { it.item } + RevenantDrops.SECONDARY.map { it.item })
@@ -37,7 +37,7 @@ class HeadlessRevenantDropsTest {
     )
 
     // Four batches of imps, one row each, so each batch's drops lie apart.
-    private val rows = (0 until 4).map { 10060 + it * 2 }
+    private val rows = (0 until 5).map { 10060 + it * 2 }
     private val columns = 3186..3215
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
@@ -98,6 +98,24 @@ class HeadlessRevenantDropsTest {
                 client.await("by the ether") { client.position?.takeIf { it == Coord(ether.first, rows[3], 0) } }
                 client.objOp(RevenantDrops.ETHER, ether.first, rows[3], TAKE)
                 client.await("the ether taken") { Unit.takeIf { abe.inventory.count(RevenantDrops.ETHER) > 0 } }
+
+                // Last, one only in abe's grave: skulled, so the bag is lost with the rest (exploit review R65B-7).
+                abe.bank.clear()
+                abe.inventory.add(bag, 1)
+                client.commandReply("god off") { it.startsWith("You can") }
+                client.commandReply("skull on") { it.startsWith("You're skulled") }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.keepAlive()
+                client.await("the bag in the grave", timeoutMillis = 15_000) {
+                    Unit.takeIf { !abe.dead && (world.deaths.graveOf(abe)?.items?.count(RevenantDrops.LOOTING_BAG) ?: 0L) > 0L }
+                }
+                assertEquals(0L, abe.inventory.count(RevenantDrops.LOOTING_BAG))
+                assertTrue(RevenantDrops.ownsBag(world, abe), "owned through the grave alone")
+                client.commandReply("god on") { it.startsWith("You can") }
+                client.command("tele 3200 10100 0")
+                client.await("back") { client.position?.takeIf { it == Coord(3200, 10100, 0) } }
+                killRow(rows[4])
+                assertEquals(0, lying(rows[4], RevenantDrops.LOOTING_BAG), "a bag in the grave")
             }
         }
     }

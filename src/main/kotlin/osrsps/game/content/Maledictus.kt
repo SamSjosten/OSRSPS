@@ -278,7 +278,7 @@ object Maledictus {
         drops += TOP_UNIQUES[world.random.nextInt(TOP_UNIQUES.size)] to 1
         val skulled = (topPlayer?.skullTicks ?: 0) > 0
         // No looting bag for a top damager who owns one, nor a second from the other roll (Codex review on #1022).
-        var ownsBag = topPlayer != null && RevenantDrops.ownsBag(topPlayer, world.groundObjs::hasDropped)
+        var ownsBag = topPlayer != null && RevenantDrops.ownsBag(world, topPlayer)
         repeat(2) {
             for (drop in RevenantDrops.roll(world.random, DRAGON, DRAGON_COMBAT, skulled, ownsBag) { world.objTypes[it] }) {
                 drops += drop.type.id to drop.count
