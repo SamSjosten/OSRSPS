@@ -1347,9 +1347,14 @@ class HeadlessHouseTest {
 
                     // Bare fists: the punch lands, and nobody is skulled.
                     val before = pia.hitpoints
+                    val xpBefore = Skill.entries.sumOf { ola.skills.xp(it) }
                     a.playerOp(b.index, PlayerOps.ATTACK)
                     a.await("the punch") { Unit.takeIf { pia.hitpoints < before } }
                     assertEquals(0, ola.skullTicks)
+                    // No XP and no kill credit in a ring (exploit review R65A-1, R65A-2); the PJ timer runs inside.
+                    assertEquals(xpBefore, Skill.entries.sumOf { ola.skills.xp(it) })
+                    assertTrue(pia.pvpDamage.isEmpty())
+                    assertTrue(ola.pjUntil > 0)
 
                     // A hat is armour: refused.
                     ola.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
@@ -1378,6 +1383,11 @@ class HeadlessHouseTest {
                     b.await("back in the room") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
                     assertEquals(1, pia.inventory.count(PLANK))
                     assertEquals(0, ola.skullTicks)
+
+                    // Out of the house, the ring's PJ timer goes with her (exploit review R65A-3).
+                    assertTrue(ola.pjUntil > 0)
+                    a.tele(OUTSIDE.x, OUTSIDE.z)
+                    a.await("ola's timer gone") { Unit.takeIf { ola.pjUntil == 0L && ola.pjOpponent == null } }
                 }
             }
         }
