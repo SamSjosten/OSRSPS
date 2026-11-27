@@ -418,7 +418,7 @@ object FurnitureBuilds {
         5636 to ringSpace(720, listOf(RING_EVERY_WALL, PEDESTAL_WALL, PEDESTAL_BEAM_WALL, RING_PEDESTAL_WALL).associateWith { 13145 } + mapOf(FLOOR_NW to 13147, FLOOR_SE to 13147)),
         // The balance beam: its left end, middle and right end (poh_balancebeam_endl, _middle, _endr) along the north row
         // of the floor, railed in by the "agility" walls (poh_agility_rail). INFERRED likewise.
-        5637 to ringSpace(
+        BALANCE_BEAM to ringSpace(
             1000,
             mapOf(FLOOR_NW to 13143, FLOOR_N to 13142, FLOOR_NE to 13144) +
                 listOf(RING_EVERY_WALL, PEDESTAL_BEAM_WALL, BEAM_WALL, RING_BEAM_WALL, RING_BEAM_CORNER).associateWith { 13141 },
@@ -480,6 +480,9 @@ object FurnitureBuilds {
         (RoomType.COMBAT_ROOM to 4) to listOf(5587, 5588, 5589, 6027),
         (RoomType.COMBAT_ROOM to 5) to 5641..5643,
     )
+
+    /** The balance beam's row ([CombatRoom.offBeam]). */
+    const val BALANCE_BEAM = 5637
 
     /** The staircases' rows (the Stair Space page). */
     val STAIRCASES: Set<Int> = setOf(5644, 5647, 5650, 5651, 5654)
@@ -693,6 +696,8 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         // window its curtains.
         fill(room, hotspot.id, build)
         redraw(house, room, hotspot.id)
+        // The balance beam's rails would fence in anyone on its row (round 63, R63A-1).
+        if (piece.row == FurnitureBuilds.BALANCE_BEAM) world.combatRoom.offBeam(house, room)
         logger.info { "${player.username} built ${piece.name} on hotspot ${hotspot.id} for ${build.xp} XP" }
     }
 

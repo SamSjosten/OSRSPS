@@ -133,6 +133,13 @@ class PvpCombat(
      */
     var arenaRefusal: (Player, Player, Boolean) -> List<Line> = { _, _, _ -> emptyList() }
 
+    /**
+     * Set by content: what a non-spell hit of the [Int] damage from the first [Player] does to the second when they stand
+     * in an arena ([inArena]) whose own rules take the hit's place, as the balance beam's knock-off does. True when it
+     * took the hit, which then deals no damage and draws nothing back.
+     */
+    var arenaHit: (Player, Player, Int) -> Boolean = { _, _, _ -> false }
+
     /** The lines refusing [attacker]'s attack on [target]: an arena's ([arenaRefusal]) from one, else the Wilderness's. */
     private fun refusal(attacker: Player, target: Player, spell: Boolean = false): List<Line> =
         if (inArena(attacker)) arenaRefusal(attacker, target, spell) else PvpRules.refusal(attacker, target)
@@ -497,6 +504,11 @@ class PvpCombat(
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
+            if (spell == null && inArena(player) && arenaHit(hit.attacker, player, hit.damage)) {
+                // Out of the fight: the attacker stops going for them.
+                if ((hit.attacker.interaction as? PvpInteraction)?.target === player) hit.attacker.interaction = null
+                continue
+            }
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
                 dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)

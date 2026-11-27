@@ -1,6 +1,7 @@
 package osrsps.game.skill.construction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.InvObj
 import osrsps.game.Player
 import osrsps.game.PlayerEffects
 import osrsps.game.World
@@ -54,7 +55,19 @@ import kotlin.math.max
  * allowed in the fencing ring (the weapons rack gives one); the refusals' words. Left out: the combat ring's ban on
  * teleport spells.
  *
- * Next (CON6d): the balance beam. Left out: the ornate dummy's Swap (its other kinds).
+ * Step CON6d, the balance beam (the Balance beam and Pugel pages, read 2026-11-27): "Using a pugel stick from an extra
+ * weapons rack, a player must climb onto the balance beam and use the pugel stick to try and knock the opponent down";
+ * "when stepping on a balance beam, a second pugel will be wielded while the original remains in the player's
+ * inventory" ([standOn]). The pugel fights as bare hands do ([osrsps.game.Weapons.category]). "The first person to fall
+ * off the balance beam is considered the loser": a hit that lands on someone on the beam knocks them off with no damage
+ * ([beamHit]). The beam's rails fence in its row, so Get-down ([getDown]) and falling both take the player out of it,
+ * to the same tile as a death in a ring ([arenaDeathTile]), and building the beam moves anyone on its row there first
+ * ([offBeam], round 63's R63A-1). GUESSED: a hit of 0 doesn't knock them off; both hands must be empty to step on; one
+ * player to a tile of the beam; only someone on the beam can be hit from it, with the pugel and melee; the getup,
+ * jumpoff and falloff animations and the pugel's stance and attack ([osrsps.game.Weapons.PUGEL_STANCE]) from the
+ * cache's names; the refusals' words.
+ *
+ * Left out: the ornate dummy's Swap (its other kinds).
  */
 class CombatRoom(private val world: World, private val houses: Houses) {
     fun register() {
@@ -76,6 +89,20 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         }
         world.pvpCombat.inArena = { player -> arena(player) != null }
         world.pvpCombat.arenaRefusal = ::arenaRefusal
+        world.pvpCombat.arenaHit = ::beamHit
+        for (beam in BEAMS) {
+            world.handlers.onLoc(beam, STAND_ON) { op ->
+                arriveDelay()
+                standOn(this, op.loc ?: return@onLoc)
+            }
+            world.handlers.onLoc(beam, GET_DOWN) { getDown(player) }
+            // Its rails fence the row in: stepped onto from any tile beside a part, across them, and got down from on it
+            // (GUESSED; the cache's ends approach from outside the row).
+            world.useLocFrom(beam) { player, at ->
+                if (player.x == at.x && player.z == at.z) listOf(Tile(at.x, at.z))
+                else listOf(Tile(at.x - 1, at.z), Tile(at.x + 1, at.z), Tile(at.x, at.z - 1), Tile(at.x, at.z + 1)).filter { tile -> world.locs.at(tile.x, tile.z, at.level).none { it.id in BEAMS } }
+            }
+        }
         val dummyNpcs = DUMMIES.values.toSet()
         world.combat.dummy = { npc -> npc.type.id in dummyNpcs }
         val sureHit = world.combat.sureHit
@@ -155,8 +182,10 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         val cell = Houses.Cell(dx shr 3, dz shr 3, player.level)
         val middleX = instance.baseX + (cell.x shl 3) + 3
         val middleZ = instance.baseZ + (cell.z shl 3) + 3
+        val underfoot = world.locs.at(player.x, player.z, player.level)
         val kind = when {
-            world.locs.at(player.x, player.z, player.level).any { it.id == RANGING_SPOT } -> ArenaKind.PEDESTALS
+            underfoot.any { it.id in BEAMS } -> ArenaKind.BEAM
+            underfoot.any { it.id == RANGING_SPOT } -> ArenaKind.PEDESTALS
             else -> world.locs.at(middleX, middleZ, player.level).firstNotNullOfOrNull { MATS[it.id] } ?: return null
         }
         return Arena(kind, instance, cell)
@@ -183,6 +212,7 @@ class CombatRoom(private val world: World, private val houses: Houses) {
             ArenaKind.BOXING, ArenaKind.FENCING -> if (ranged) listOf(ConstructionLines.ARENA_STYLE) else emptyList()
             ArenaKind.COMBAT -> emptyList()
             ArenaKind.PEDESTALS -> if (ranged) emptyList() else listOf(ConstructionLines.ARENA_STYLE)
+            ArenaKind.BEAM -> if (ranged || attacker.equipment[WearPos.WEAPON]?.id != PUGEL) listOf(ConstructionLines.ARENA_PUGEL) else emptyList()
         }
     }
 
@@ -195,7 +225,68 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         return when (kind) {
             ArenaKind.BOXING -> worn.all { it == WearPos.WEAPON } && player.equipment[WearPos.WEAPON]?.id.let { it == null || it == RED_GLOVES || it == BLUE_GLOVES }
             ArenaKind.FENCING -> worn.all { it == WearPos.WEAPON || it == WearPos.SHIELD }
-            ArenaKind.COMBAT, ArenaKind.PEDESTALS -> true
+            ArenaKind.COMBAT, ArenaKind.PEDESTALS, ArenaKind.BEAM -> true
+        }
+    }
+
+    /**
+     * Stand-on on a part of the balance beam [loc]: up onto it, with a second pugel wielded while the one carried stays
+     * in the pack. Needs a pugel and both hands empty (GUESSED), and nobody else on that part (GUESSED).
+     */
+    private fun standOn(context: ScriptContext, loc: ZoneLoc) {
+        val player = context.player
+        if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc) || onBeam(player)) return
+        if (player.inventory.count(PUGEL) == 0L) return world.message(player, ConstructionLines.BEAM_PUGEL)
+        if (player.equipment[WearPos.WEAPON] != null || player.equipment[WearPos.SHIELD] != null) return world.message(player, ConstructionLines.BEAM_HANDS)
+        if (world.onlinePlayers.any { it !== player && it.x == loc.x && it.z == loc.z && it.level == loc.level }) return world.message(player, ConstructionLines.BEAM_TAKEN)
+        player.waypoints.clear()
+        world.teleport(player, loc.x, loc.z, loc.level)
+        player.equipment[WearPos.WEAPON] = InvObj(PUGEL, 1)
+        player.anim(GETUP_ANIM)
+    }
+
+    /** Get-down from the balance beam: off it, with the pugel it gave. */
+    private fun getDown(player: Player) {
+        val off = beamExit(player) ?: return
+        leaveBeam(player, off, JUMPOFF_ANIM)
+    }
+
+    /**
+     * A hit of [damage] from [attacker] landing on [target]: on the balance beam, any that does damage knocks them off
+     * instead (the Balance beam page: "The first person to fall off the balance beam is considered the loser").
+     */
+    private fun beamHit(attacker: Player, target: Player, damage: Int): Boolean {
+        if (damage <= 0) return false
+        val off = beamExit(target) ?: return false
+        leaveBeam(target, off, FALLOFF_ANIM)
+        logger.info { "${attacker.username} knocked ${target.username} off a balance beam" }
+        return true
+    }
+
+    /** Whether [player] stands on the balance beam. */
+    private fun onBeam(player: Player): Boolean = arena(player)?.kind == ArenaKind.BEAM
+
+    /** Where [player] on the balance beam comes down, or null when they aren't on it: as a death in a ring does. */
+    private fun beamExit(player: Player): Tile? = if (onBeam(player)) arenaDeathTile(player) else null
+
+    private fun leaveBeam(player: Player, to: Tile, anim: Int) {
+        if (player.equipment[WearPos.WEAPON]?.id == PUGEL) player.equipment[WearPos.WEAPON] = null
+        player.waypoints.clear()
+        world.teleport(player, to.x, to.z, player.level)
+        player.anim(anim)
+    }
+
+    /**
+     * After the balance beam is built in [room] of [house]: anyone standing on its row comes off, as its rails would
+     * fence them in (round 63, R63A-1).
+     */
+    fun offBeam(house: Houses.Open, room: HouseRoom) {
+        val baseX = house.instance.baseX + (room.x shl 3)
+        val baseZ = house.instance.baseZ + (room.z shl 3)
+        for (player in world.onlinePlayers.toList()) {
+            if (player.level != room.floor || player.x - baseX !in 0..7 || player.z - baseZ !in 0..7) continue
+            val off = beamExit(player) ?: continue
+            leaveBeam(player, off, JUMPOFF_ANIM)
         }
     }
 
@@ -211,7 +302,7 @@ class CombatRoom(private val world: World, private val houses: Houses) {
     private fun distance(player: Player, tile: Pair<Int, Int>) = max(abs(player.x - tile.first), abs(player.z - tile.second))
 
     /** The house's fighting rings, each with its own rules ([arenaRefusal]). */
-    enum class ArenaKind { BOXING, FENCING, COMBAT, PEDESTALS }
+    enum class ArenaKind { BOXING, FENCING, COMBAT, PEDESTALS, BEAM }
 
     /** A combat dummy attached: the [npc] standing in for its [loc] ([Houses.Open.dummies]). */
     class Attached(val npc: Npc, val loc: ZoneLoc)
@@ -240,6 +331,18 @@ class CombatRoom(private val world: World, private val houses: Houses) {
 
         /** The tiles inside a ring's ropes along each side of the room (the cache's ropes stand between 1 and 2, and 5 and 6). */
         val RING_INSIDE = 2..5
+
+        /** The balance beam's middle, left end and right end (poh_balancebeam_middle, _endl, _endr). */
+        val BEAMS: Set<Int> = setOf(13142, 13143, 13144)
+
+        /** The balance beam's Stand-on (op 1) and Get-down (op 4). */
+        const val STAND_ON = 1
+        const val GET_DOWN = 4
+
+        /** balance_beam_getup, balance_beam_jumpoff, balance_beam_falloff (GUESSED which plays when, from the names). */
+        const val GETUP_ANIM = 3599
+        const val JUMPOFF_ANIM = 3598
+        const val FALLOFF_ANIM = 3597
 
         /** The ranging pedestals' spot (poh_magic_circle_mat). */
         const val RANGING_SPOT = 13147
