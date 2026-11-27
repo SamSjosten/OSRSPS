@@ -587,14 +587,20 @@ class Agility(private val world: World, val data: AgilityData) {
 
     /**
      * Walks [steps] spread evenly over [ticks] ticks, for an obstacle slower than a tile a tick (the Brimhaven arena's
-     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due.
+     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due. A player
+     * no longer on the last step's tile (a teleport mid-walk) is walked no further, or each step left would drag them a
+     * tile through walls toward the obstacle (exploit review R65A-4).
      */
     private suspend fun ScriptContext.pacedWalk(steps: List<Tile>, ticks: Int) {
         val start = world.tick
+        var at = Tile(player.x, player.z)
+        val level = player.level
         for ((i, step) in steps.withIndex()) {
             val due = start + ticks.toLong() * i / steps.size
             while (world.tick < due) delay(1)
+            if (player.x != at.x || player.z != at.z || player.level != level) return
             forcedWalk(listOf(step))
+            at = step
         }
         while (world.tick < start + ticks) delay(1)
     }
