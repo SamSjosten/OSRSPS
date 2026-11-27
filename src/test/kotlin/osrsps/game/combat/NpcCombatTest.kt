@@ -98,6 +98,7 @@ class NpcCombatTest {
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "sourhog_attack_melee" to 8769, "sourhog_attack_ranged" to 8770, "sourhog_death" to 8771,
+            "killerwatt_biped_attack" to 3163, "killerwatt_biped_block" to 3165, "killerwatt_biped_death" to 3162,
             "champions_imp_stab" to 2954, "champions_imp_throw" to 2955, "goblin_update_champion_casting" to 6134, "goblin_block" to 312, "goblin_death" to 313,
             "skeleton_update_champion_attack" to 5512, "skeleton_update_champion_defend" to 5513, "skeleton_update_champion_death" to 5514,
             "zombie_update_attack_champion" to 5581, "champions_zombie_defend" to 2926, "champions_zombie_death" to 2925,
@@ -488,6 +489,26 @@ class NpcCombatTest {
         assertEquals(AttackType.RANGED, spit.type)
         assertEquals(NpcRangedAttack(anim = 8770, projectile = 1817, impact = 1818, maxHit = 6), spit.attack)
         assertEquals(NpcBlinding(setOf(24942, 11864, 11865, 25177, 26674), 20, 30, 90, listOf(Skill.ATTACK, Skill.DEFENCE)), def.blinds)
+    }
+
+    @Test
+    fun `killerwatts in both forms hit 6 in melee every 2 ticks, need Slayer 37 and are weak to air`() {
+        val stats = NpcStats(attack = 50, defence = 40, strength = 50, hitpoints = 51, ranged = 67, magic = 67)
+        val types = NpcTypes.of(
+            NpcType(470, "Killerwatt", internalName = "slayer_killerwatt_ball", stats = stats),
+            NpcType(469, "Killerwatt", internalName = "slayer_killerwatt", stats = stats),
+        )
+        val combat = NpcCombat.load(types, seqs)
+        for (id in listOf(470, 469)) {
+            val def = combat[id]!!
+            assertEquals(CombatMath.npcMaxHit(50, 0), def.maxHit)
+            assertEquals(listOf(2, 6, 30, 37, 30), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.slayerLevel, def.attackBonus))
+            assertEquals(AttackType.CRUSH, def.attackType)
+            assertEquals(NpcCombatAnims(3163, 3165, 3162), def.anims)
+            assertEquals(20, def.defence.against(AttackType.MAGIC))
+            assertEquals(60, def.weakness?.percent)
+            assertNull(def.aggression)
+        }
     }
 
     @Test

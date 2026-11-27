@@ -55,7 +55,7 @@ object AvaLines : Lines("ava", "Transcript:Ava") {
  * opens on her Devices option and from her option 1 (as for a player with no Dizana's quiver).
  *
  * Left out: her locator orbs (option 3 ends after the player's line), Dizana's quiver and the Pandemonium cannonball option (Sailing)
- * aren't built; Oddenstein's portal to the Killerwatt plane isn't spawned. Guessed: every chathead expression, that
+ * aren't built (Oddenstein's portal to the Killerwatt plane is [KillerwattPlane]'s). Guessed: every chathead expression, that
  * Oddenstein still greets the player after the quest, and that "Previous options" goes back to Ava's menu without her
  * greeting again.
  */
