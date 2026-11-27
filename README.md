@@ -79,7 +79,7 @@ A skill built in full trains 1 to 99 by live's main methods; spots outside the b
 until their region is built. Minigames and other regions' extras (Wintertodt, Tempoross, Guardians of the Rift and so
 on) come with their areas.
 
-**Getting around**: lodestones, every fairy ring (with a dramen or lunar staff wielded), every spirit tree and every hot air balloon route (with log storage at the baskets).
+**Getting around**: lodestones, every fairy ring (with a dramen or lunar staff wielded), the spirit trees (not yet the farming-patch, house, Poison Waste or Laguna Aurorae ones) and every hot air balloon route (with log storage at the baskets).
 
 ### Quick start
 
