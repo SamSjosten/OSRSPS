@@ -113,7 +113,7 @@ object GroatsFarm {
 fun registerGroatsFarm(world: World) {
     world.handlers.onNpc(GroatsFarm.GILLIE, GroatsFarm.TALK_TO) { op ->
         // The Ides of Milk counts as done: a player without a cowbell amulet gets one (Transcript:Gillie Groats).
-        if (!CowbellAmulet.anywhere(player)) return@onNpc with(CowbellAmulet) { another(world, op.npc!!) }
+        if (!CowbellAmulet.owned(world, player)) return@onNpc with(CowbellAmulet) { another(world, op.npc!!) }
         world.dialogues.start(this, op.npc) { with(GroatsFarm) { gillie() } }
     }
     for (cow in GroatsFarm.DAIRY_COWS) {

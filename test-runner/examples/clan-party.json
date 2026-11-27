@@ -17,7 +17,7 @@
   {"step": "waitTicks", "ticks": 4, "comment": "into the hall's instance, a new region"},
   {"step": "locOption", "locId": 46248, "option": "Open", "timeoutMs": 30000, "comment": "the party chest in the main room's south-east corner"},
   {"step": "waitTicks", "ticks": 2},
-  {"step": "locOption", "locId": 46249, "option": "Deposit", "timeoutMs": 10000},
+  {"step": "locOption", "locId": 46249, "option": "Deposit", "timeoutMs": 30000, "comment": "the chest opens only once the player has walked there from the hall's entrance (about 24 tiles, longer than 10 s at a walk; nightly 26 Nov)"},
   {"step": "assertInterface", "interfaceId": 783, "timeoutMs": 10000, "comment": "Clan Party Drop Chest"},
   {"step": "assertInterface", "interfaceId": 266, "comment": "and its side panel"},
   {"step": "waitTicks", "ticks": 2},

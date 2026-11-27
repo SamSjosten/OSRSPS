@@ -146,6 +146,8 @@ import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
 import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
+import osrsps.game.content.registerCats
+import osrsps.game.content.Cats
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -549,6 +551,8 @@ class World(
 
     /** Demonic Brutus's, the scoreboard's Read (Demonic). */
     val brutusDemonicRecords = osrsps.game.content.BrutusRecords(clansDir?.resolve(osrsps.game.content.BrutusRecords.DEMONIC_FILE_NAME))
+    /** Pet cats out following their players; see [Cats]. */
+    val cats = Cats(this, collision)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -1340,6 +1344,7 @@ class World(
         registerSourhogCave(this)
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
+        registerCats(this, cats)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -2475,6 +2480,8 @@ class World(
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
         clans.flush()
+        brutusRecords.flush()
+        brutusDemonicRecords.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
@@ -2618,6 +2625,7 @@ class World(
         collectionLog.login(player)
         inferno.login(player)
         tearsOfGuthix.login(player)
+        cats.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -3006,6 +3014,9 @@ class World(
     /** Whether no wall edge stands between [x], [z] and the tile [dx], [dz] from it; what stands on that tile isn't asked. */
     fun noWallBetween(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean =
         osrsps.map.Steps.canStep(collision, level, x, z, dx, dz, block = 0)
+
+    /** Whether [player] could walk to beside a [size] by [size] footprint at [x], [z] (a route that isn't the closest-tile fallback). */
+    fun canWalkBeside(player: Player, x: Int, z: Int, size: Int): Boolean = !movement.find(player, RouteTarget.entity(x, z, size)).alternative
 
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
@@ -3735,6 +3746,7 @@ class World(
                     it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
                 )
             },
+            say = { extendedInfo.setSay(it) },
         )
     }
 
@@ -3934,6 +3946,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

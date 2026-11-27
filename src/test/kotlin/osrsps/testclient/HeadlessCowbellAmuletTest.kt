@@ -189,4 +189,20 @@ class HeadlessCowbellAmuletTest {
             }
         }
     }
+
+    @Test
+    fun `a dropped amulet still on the ground is still hers, so Gillie gives no other`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                val gina = server.world.playerNamed("gina")!!
+                client.commandReply("item ${CowbellAmulet.EMPTY}") { it.contains("Cowbell amulet") }
+                client.await("held") { client.inventory(93).firstOrNull { it?.id == CowbellAmulet.EMPTY } }
+                val slot = gina.inventory.contents().first { it.second.id == CowbellAmulet.EMPTY }.first
+                assertTrue(server.world.groundObjs.drop(gina, slot) != null)
+                assertTrue(!CowbellAmulet.anywhere(gina), "not held, worn or banked")
+                assertTrue(CowbellAmulet.owned(server.world, gina), "but on the ground, hers")
+            }
+        }
+    }
 }
