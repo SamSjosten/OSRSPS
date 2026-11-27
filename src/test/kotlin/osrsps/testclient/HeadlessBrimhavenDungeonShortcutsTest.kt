@@ -102,6 +102,27 @@ class HeadlessBrimhavenDungeonShortcutsTest {
     }
 
     @Test
+    fun `a teleport during a jump isn't undone when the jump ends`(@TempDir dir: Path) {
+        val sure = AgilityData.parse(text.replace(WEST_SUCCESS_TAIL, WEST_SUCCESS_TAIL.replace("225, 255", "256, 256")))
+        server(dir, sure).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel agility 87")
+                client.await("level 87") { client.stat(AGILITY)?.takeIf { it.level == 87 } }
+                val c = crossings.first()
+                client.teleTo(c.from)
+                val moves = client.exactMoveTicks().size
+                client.locOp(c.by.id, c.by.x, c.by.z, 1)
+                client.await("the jump under way") { if (client.exactMoveTicks().size > moves) Unit else null }
+                val away = Triple(2682, 9506, 0)
+                client.teleTo(away)
+                client.awaitTicks(5)
+                assertEquals(away, client.position!!.let { Triple(it.x, it.z, it.level) }, "left where the teleport put them")
+            }
+        }
+    }
+
+    @Test
     fun `the western stones can fail either way, back where the player jumped from for 1 to 3 damage and no XP`(@TempDir dir: Path) {
         val falls = AgilityData.parse(text.replace(WEST_SUCCESS_TAIL, WEST_SUCCESS_TAIL.replace("225, 255", "-1, -1")))
         server(dir, falls).use { server ->

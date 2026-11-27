@@ -86,7 +86,8 @@ class HeadlessAgilityArenaTest {
         // The western planks, ends and middle pieces, and a climbing rope in the pit below their east end.
         PLANKS.flatMap { (z, ids) -> ids.mapIndexed { i, (id, angle) -> ZoneLoc(id, 22, angle, 2764 + i, z, 3) } } +
         ZoneLoc(BrimhavenAgilityArena.CLIMBING_ROPE, 10, 0, 2771, 9557, 0) +
-        ZoneLoc(MONKEY_BARS, 22, 0, 2771, 9570, 3)
+        ZoneLoc(MONKEY_BARS, 22, 0, 2771, 9570, 3) +
+        ZoneLoc(HAND_HOLDS, 22, 0, 2759, 9559, 3)
 
     private fun server(dir: Path, omnishops: Omnishops = this.omnishops) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -419,6 +420,27 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
+    fun `the hand holds' grab is stopped before the steps across, or the client holds the player still`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2759, 9559, 3)
+                client.awaitTicks(2)
+                val from = client.actorEvents().size
+                client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                client.await("across") { client.position?.takeIf { it == Coord(2759, 9566, 3) } }
+                val anims = client.actorEvents(from).filter { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION }.map { it.id }
+                val grab = anims.indexOf(HAND_HOLDS_GRAB)
+                assertTrue(grab >= 0, "the grab played: $anims")
+                assertEquals(-1, anims.getOrNull(grab + 1), "the grab stopped before the walk: $anims")
+            }
+        }
+    }
+
+    @Test
     fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
@@ -692,6 +714,8 @@ class HeadlessAgilityArenaTest {
         const val AGILITY = 16
         const val HITPOINTS = 3
         const val MONKEY_BARS = 3564
+        const val HAND_HOLDS = 3583
+        const val HAND_HOLDS_GRAB = 1117
         const val TOADFLAX = 2998
         const val PIRATES_HOOK = 2997
         const val TICKETS = 620
