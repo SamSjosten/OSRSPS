@@ -4,7 +4,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Player
 import osrsps.game.PlayerEffects
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.SureHit
+import osrsps.game.dialogue.Line
+import osrsps.game.instance.Instance
 import osrsps.game.npc.Direction
 import osrsps.game.npc.MoveRestrict
 import osrsps.game.npc.Npc
@@ -42,8 +45,16 @@ import kotlin.math.max
  * count as any Slayer task for a black mask or Slayer helmet ([ANY_TASK]). Anyone in the house can attach, attack and
  * detach one (INFERRED). Left out: what being undead or demonic does (no salve amulet or demonbane in the game yet).
  *
- * Next (CON6c): fighting in the rings, the pedestals and on the beam. Left out: the ornate dummy's Swap (its other
- * kinds).
+ * Step CON6c, the fights (the Combat room, Boxing ring, Fencing ring, Combat ring and Ranging pedestals pages, read
+ * 2026-11-26): players inside the same ring's ropes, or on the ranging pedestals' spots, may fight each other "without
+ * losing their items" ([arena], [arenaRefusal]; Attack shows there as in the Wilderness). The boxing ring takes boxing
+ * gloves or bare fists, with no armour, jewellery or combat spells; the fencing ring any weapon, but no armour,
+ * jewellery or combat spells; the combat ring "anything goes"; on the pedestals "the player must use Ranged or
+ * Magic". A death in a ring stays in the room ([arenaDeathTile]). GUESSED: no skull; XP as for any fight; a shield is
+ * allowed in the fencing ring (the weapons rack gives one); the refusals' words. Left out: the combat ring's ban on
+ * teleport spells.
+ *
+ * Next (CON6d): the balance beam. Left out: the ornate dummy's Swap (its other kinds).
  */
 class CombatRoom(private val world: World, private val houses: Houses) {
     fun register() {
@@ -63,6 +74,8 @@ class CombatRoom(private val world: World, private val houses: Houses) {
             // must be detached before upgrading"; INFERRED for Remove).
             for (option in listOf(NPC_UPGRADE, NPC_REMOVE)) world.handlers.onNpc(npc, option) { world.message(player, ConstructionLines.DUMMY_DETACH_FIRST) }
         }
+        world.pvpCombat.inArena = { player -> arena(player) != null }
+        world.pvpCombat.arenaRefusal = ::arenaRefusal
         val dummyNpcs = DUMMIES.values.toSet()
         world.combat.dummy = { npc -> npc.type.id in dummyNpcs }
         val sureHit = world.combat.sureHit
@@ -125,7 +138,80 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
     }
 
+    /** A house's fighting ring a player stands in: its [kind], in the room at [cell] of the house in [instance]. */
+    data class Arena(val kind: ArenaKind, val instance: Instance, val cell: Houses.Cell)
+
+    /**
+     * The fighting ring [player] stands in, or null: inside the ropes of a boxing, fencing or combat ring (the 4 by 4
+     * middle of the room, which turning the room leaves where it is), or on a ranging pedestal's spot. Known by the mat
+     * built in the ring's middle, or the ranging spot underfoot.
+     */
+    fun arena(player: Player): Arena? {
+        val house = houses.houseAt(player.x, player.z) ?: return null
+        val instance = house.instance
+        val dx = player.x - instance.baseX
+        val dz = player.z - instance.baseZ
+        if ((dx and 7) !in RING_INSIDE || (dz and 7) !in RING_INSIDE) return null
+        val cell = Houses.Cell(dx shr 3, dz shr 3, player.level)
+        val middleX = instance.baseX + (cell.x shl 3) + 3
+        val middleZ = instance.baseZ + (cell.z shl 3) + 3
+        val kind = when {
+            world.locs.at(player.x, player.z, player.level).any { it.id == RANGING_SPOT } -> ArenaKind.PEDESTALS
+            else -> world.locs.at(middleX, middleZ, player.level).firstNotNullOfOrNull { MATS[it.id] } ?: return null
+        }
+        return Arena(kind, instance, cell)
+    }
+
+    /**
+     * Why [attacker] can't attack [target] from the ring they stand in ([arena]), empty when its rules allow it: both in
+     * the same ring; in the boxing ring, boxing gloves or bare fists and nothing else worn; in the fencing ring, a
+     * weapon (and shield) and nothing else; in the combat ring, anything; on the ranging pedestals, from one spot to the
+     * other with Ranged or Magic. Combat spells only in the combat ring and on the pedestals. [spell] is whether the
+     * attack is a cast from the spellbook.
+     */
+    private fun arenaRefusal(attacker: Player, target: Player, spell: Boolean): List<Line> {
+        val own = arena(attacker) ?: return listOf(ConstructionLines.ARENA_NOT_SAME)
+        val theirs = arena(target)
+        if (theirs == null || theirs.instance !== own.instance || theirs.cell != own.cell || theirs.kind != own.kind) return listOf(ConstructionLines.ARENA_NOT_SAME)
+        // Both fighters keep to the ring's kit, so armour worn into the ropes (or put on mid-fight) protects nobody
+        // (Codex review on #1017).
+        if (!kitAllowed(own.kind, attacker)) return listOf(ConstructionLines.ARENA_KIT)
+        if (!kitAllowed(own.kind, target)) return listOf(ConstructionLines.ARENA_TARGET_KIT)
+        val type = world.combat.style(attacker).type
+        val ranged = spell || type == AttackType.MAGIC || type == AttackType.RANGED
+        return when (own.kind) {
+            ArenaKind.BOXING, ArenaKind.FENCING -> if (ranged) listOf(ConstructionLines.ARENA_STYLE) else emptyList()
+            ArenaKind.COMBAT -> emptyList()
+            ArenaKind.PEDESTALS -> if (ranged) emptyList() else listOf(ConstructionLines.ARENA_STYLE)
+        }
+    }
+
+    /**
+     * Whether what [player] wears is allowed in a ring of [kind]: in the boxing ring boxing gloves or nothing, in the
+     * fencing ring a weapon and shield and nothing else, anything in the combat ring and on the pedestals.
+     */
+    private fun kitAllowed(kind: ArenaKind, player: Player): Boolean {
+        val worn = player.equipment.contents().map { it.first }
+        return when (kind) {
+            ArenaKind.BOXING -> worn.all { it == WearPos.WEAPON } && player.equipment[WearPos.WEAPON]?.id.let { it == null || it == RED_GLOVES || it == BLUE_GLOVES }
+            ArenaKind.FENCING -> worn.all { it == WearPos.WEAPON || it == WearPos.SHIELD }
+            ArenaKind.COMBAT, ArenaKind.PEDESTALS -> true
+        }
+    }
+
+    /**
+     * Where a player who dies in a fighting ring comes back: "they are simply teleported out of it to another place in
+     * the room" (the Combat room page). GUESSED: the tile at 1, 3 of the room, outside the ropes whichever way it is turned.
+     */
+    fun arenaDeathTile(player: Player): Tile? {
+        val arena = arena(player) ?: return null
+        return Tile(arena.instance.baseX + (arena.cell.x shl 3) + 1, arena.instance.baseZ + (arena.cell.z shl 3) + 3)
+    }
+
     private fun distance(player: Player, tile: Pair<Int, Int>) = max(abs(player.x - tile.first), abs(player.z - tile.second))
+
+    /** The house's fighting rings, each with its own rules ([arenaRefusal]). */
+    enum class ArenaKind { BOXING, FENCING, COMBAT, PEDESTALS }
 
     /** A combat dummy attached: the [npc] standing in for its [loc] ([Houses.Open.dummies]). */
     class Attached(val npc: Npc, val loc: ZoneLoc)
@@ -151,6 +237,15 @@ class CombatRoom(private val world: World, private val houses: Houses) {
          * same). INFERRED: whatever task the player has, or none.
          */
         val ANY_TASK: Set<Int> = setOf(7413, 10507)
+
+        /** The tiles inside a ring's ropes along each side of the room (the cache's ropes stand between 1 and 2, and 5 and 6). */
+        val RING_INSIDE = 2..5
+
+        /** The ranging pedestals' spot (poh_magic_circle_mat). */
+        const val RANGING_SPOT = 13147
+
+        /** The rings' middle mats (poh_boxing_mat_middle, poh_fencing_mat_middle, poh_combat_mat_middle) and the ring each is. */
+        val MATS: Map<Int, ArenaKind> = mapOf(13127 to ArenaKind.BOXING, 13136 to ArenaKind.FENCING, 13140 to ArenaKind.COMBAT)
 
         /** Which way an NPC standing in for a loc turned [angle] faces: 0 west, 1 north, 2 east, 3 south (GUESSED). */
         private fun facing(angle: Int): Direction = when (angle and 3) {

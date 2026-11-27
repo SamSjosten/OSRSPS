@@ -10,6 +10,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InvObj
 import osrsps.game.Inventory
+import osrsps.game.PlayerOps
 import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -1292,6 +1293,76 @@ class HeadlessHouseTest {
                 assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(undeadDummyNpc)))
                 assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(ornateDummyNpc)))
                 assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+            }
+        }
+    }
+
+    @Test
+    fun `two players box in the boxing ring, with no skull, nothing worn but gloves, both inside the ropes, and a death stays in the room`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                server.login("pia").use { b ->
+                    a.ready()
+                    b.ready()
+                    a.buyHouse()
+                    val ola = server.world.playerNamed("ola")!!
+                    val pia = server.world.playerNamed("pia")!!
+                    // A combat room east of the parlour with a boxing ring in it.
+                    val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                    val ring = FurnitureBuilds.BUILDS.getValue(BOXING_RING_ROW)
+                    for (id in FurnitureBuilds.siblings(RING_FLOOR_SPACE)) {
+                        val loc = ring.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                        if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                    }
+                    ola.house!!.rooms += room
+                    val at = a.goIn(House.HOME)
+                    val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                    val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                    val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                    a.await("the mat") { if (a.shown(BOXING_MAT, cx + 3, cz + 3)) Unit else null }
+                    for (c in listOf(a, b)) c.commandReply("setlevel strength 99") { true }
+                    a.commandReply("sure max") { it.startsWith("Your attacks") }
+                    // Both inside the ropes (pia is brought in: guests come with step CON11).
+                    a.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    b.command("tele ${cx + 4} ${cz + 4} ${House.GROUND}")
+                    b.await("pia in the ring") { b.position?.takeIf { it == Coord(cx + 4, cz + 4, House.GROUND) } }
+                    a.await("Attack given") { Unit.takeIf { a.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    a.await("pia in view") { a.otherPlayers().takeIf { it.isNotEmpty() } }
+
+                    // Bare fists: the punch lands, and nobody is skulled.
+                    val before = pia.hitpoints
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the punch") { Unit.takeIf { pia.hitpoints < before } }
+                    assertEquals(0, ola.skullTicks)
+
+                    // A hat is armour: refused.
+                    ola.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_kit]" } }
+                    ola.equipment.remove(WearPos.HEAD, 1)
+
+                    // Nor may she wear one: armour on the one attacked is refused too (Codex review on #1017).
+                    pia.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the target's kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_target_kit]" } }
+                    pia.equipment.remove(WearPos.HEAD, 1)
+
+                    // pia outside the ropes: no Attack for her, and ola's attack is refused.
+                    b.command("tele ${cx + 1} ${cz + 3} ${House.GROUND}")
+                    b.await("Attack taken away") { Unit.takeIf { b.playerOps()[PlayerOps.ATTACK] == null } }
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the ring refusal") { a.messages().firstOrNull { it.text == "[construction.arena_not_same]" } }
+
+                    // Back in at 1 hitpoint: the next punch kills her, and she comes back in the room with her things.
+                    b.command("tele ${cx + 4} ${cz + 4} ${House.GROUND}")
+                    b.await("pia back in") { b.position?.takeIf { it == Coord(cx + 4, cz + 4, House.GROUND) } }
+                    pia.inventory[20] = InvObj(PLANK, 1)
+                    pia.hitpoints = 1
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    b.await("back in the room") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertEquals(1, pia.inventory.count(PLANK))
+                    assertEquals(0, ola.skullTicks)
+                }
             }
         }
     }

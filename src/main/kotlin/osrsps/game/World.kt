@@ -1957,9 +1957,11 @@ class World(
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
         player.vars.setVarbitIfKnown(VARBIT_WILDY_HUB_BUFFER, if (inside && player.level == 0 && Wilderness.inFerox(player.x, player.z)) 1 else 0)
-        if (player.attackOp != inside) {
-            player.attackOp = inside
-            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        // A house's fighting ring offers Attack too (Construction CON6c).
+        val attack = inside || pvpCombat.inArena(player)
+        if (player.attackOp != attack) {
+            player.attackOp = attack
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { attack }))
         }
     }
 

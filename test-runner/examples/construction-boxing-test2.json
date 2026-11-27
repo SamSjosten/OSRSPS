@@ -1,0 +1,185 @@
+{
+ "name": "Construction step CON6c, two players (run with construction-boxing-test.json on the other VM at the same time): test2, bare with a bronze med helm worn and auto retaliate off, comes into test's boxing ring with ::teleto, where Attack shows; test's attack is refused for the helmet, then with it off and on 1 hitpoint test's punch kills it and it comes back in the room outside the ropes, the helmet kept",
+ "account": "test2",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "runClientScript",
+   "id": 915,
+   "args": [
+    9
+   ],
+   "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"
+  },
+  {
+   "step": "command",
+   "text": "::clearfriends",
+   "expectMessage": "Friends list emptied"
+  },
+  {
+   "step": "logout",
+   "comment": "so the Friends tab starts empty"
+  },
+  {
+   "step": "waitForLogin",
+   "comment": "auto login"
+  },
+  {
+   "step": "runClientScript",
+   "id": 915,
+   "args": [
+    9
+   ],
+   "comment": "the Friends side tab again"
+  },
+  {
+   "step": "addFriend",
+   "name": "test"
+  },
+  {
+   "step": "assertFriend",
+   "name": "test",
+   "world": 301,
+   "timeoutMs": 180000,
+   "comment": "waits for test on the other VM"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "so test has added us too: private messages are the pair's signs to each other"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "nothing worn or carried; ::reset at the end puts us back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off: we stand still"
+  },
+  {
+   "step": "command",
+   "text": "::item 1139 1",
+   "expectMessage": "Bronze med helm"
+  },
+  {
+   "step": "itemOption",
+   "item": "Bronze med helm",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "head",
+   "item": "Bronze med helm"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "ring ready",
+   "timeoutMs": 600000,
+   "comment": "test has built its ring and stands in it"
+  },
+  {
+   "step": "command",
+   "text": "::teleto test",
+   "expectMessage": "Teleported to test",
+   "comment": "onto test's tile, inside the ropes (guests come with step CON11)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "into the house's instance: the region redraws"
+  },
+  {
+   "step": "assertPlayerOption",
+   "option": "Attack",
+   "timeoutMs": 5000,
+   "comment": "in the ring: Attack on other players"
+  },
+  {
+   "step": "privateMessage",
+   "name": "test",
+   "text": "in with a hat"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "take it off",
+   "timeoutMs": 60000,
+   "comment": "test's attack was refused for the helmet"
+  },
+  {
+   "step": "wornOption",
+   "option": "Remove",
+   "slot": "head"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze med helm",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::hit 98 me",
+   "expectMessage": "Hit yourself for 98",
+   "comment": "down to 1 hitpoint"
+  },
+  {
+   "step": "privateMessage",
+   "name": "test",
+   "text": "hat off"
+  },
+  {
+   "step": "assertPlayerOption",
+   "option": "Attack",
+   "absent": true,
+   "timeoutMs": 60000,
+   "comment": "test's punch kills us and we come back in the room outside the ropes (its tile 1, 3), where Attack is gone"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze med helm",
+   "count": 1,
+   "comment": "nothing lost in a fight in the ring"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 0",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate back on"
+  },
+  {
+   "step": "privateMessage",
+   "name": "test",
+   "text": "back in the room"
+  },
+  {
+   "step": "deleteFriend",
+   "name": "test"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  }
+ ]
+}
