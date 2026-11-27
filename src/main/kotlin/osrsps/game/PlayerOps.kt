@@ -23,13 +23,14 @@ object PlayerOps {
     const val FOLLOW = 3
     const val TRADE = 4
     const val REPORT = 8
+    const val SLOT_5 = 5
 
     /** Slot to text; null clears the slot. */
     val AT_LOGIN: List<Pair<Int, String?>> = listOf(
         ATTACK to null,
         FOLLOW to "Follow",
         TRADE to "Trade with",
-        5 to null,
+        SLOT_5 to null,
         REPORT to "Report",
     )
 
@@ -38,11 +39,15 @@ object PlayerOps {
 
     /**
      * Sends the options [vars]' settings leave on through [queue], with Attack while [attack] (the player is inside the
-     * Wilderness), so a settings toggle that sends them all again keeps it.
+     * Wilderness) and [slot5] in slot 5 (the rat pits' Challenge), so a settings toggle that sends them all again keeps them.
      */
-    fun send(vars: PlayerVars, queue: (OutgoingGameMessage) -> Unit, attack: Boolean = false) {
+    fun send(vars: PlayerVars, queue: (OutgoingGameMessage) -> Unit, attack: Boolean = false, slot5: String? = null) {
         for ((slot, text) in AT_LOGIN) {
-            val shown = if (slot == ATTACK) ATTACK_TEXT.takeIf { attack } else text?.takeIf { shown(vars, slot) }
+            val shown = when (slot) {
+                ATTACK -> ATTACK_TEXT.takeIf { attack }
+                SLOT_5 -> slot5
+                else -> text?.takeIf { shown(vars, slot) }
+            }
             queue(SetPlayerOp(slot, false, shown))
         }
     }

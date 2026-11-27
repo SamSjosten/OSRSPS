@@ -84,7 +84,8 @@
     "NPCs: random events step 15 (2026-11-19): the Pillory Guard (380), from his infobox.",
     "NPCs and locs: random events step 16 (2026-11-19): Flippa (5427 in the room, 6744 the invitation, one examine in his infobox), Tilt (5428) and the pinball posts (8982 and the nine other ids, one examine in their infobox), from each page's infobox.",
     "NPCs: random events step 17 (2026-11-19): the Quiz Master (379 in his studio, 6755 the invitation, one examine in his infobox), from his infobox.",
-    "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175)."
+    "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175).",
+    "The Varrock rat pits (post-quest step 14, RatPits.kt): the ladder up and the pits' rats, the other two under also (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -712,6 +713,7 @@
     {"npc": 4526, "name": "Guard", "wiki": "Guard (H.A.M. Storerooms) page, infobox"},
     {"npc": 4574, "name": "Pox"},
     {"npc": 4588, "name": "Hooknosed Jack"},
+    {"npc": 4610, "name": "Rat", "also": [4611, 4612], "wiki": "Rat (Rat Pits) page, infobox"},
     {"npc": 4626, "name": "Cook", "wiki": "Cook (Lumbridge) page, infobox"},
     {"npc": 4627, "name": "Millie Miller"},
     {"npc": 4628, "name": "Gillie Groats"},
@@ -2221,6 +2223,7 @@
     {"loc": 10159, "name": "Crate"},
     {"loc": 10160, "name": "Crates"},
     {"loc": 10290, "name": "Rat trap"},
+    {"loc": 10309, "name": "Ladder", "wiki": "Rat Pits page (Varrock)"},
     {"loc": 10321, "name": "Manhole"},
     {"loc": 10355, "name": "Bank booth"},
     {"loc": 10362, "name": "Hay Bales", "wiki": "Hay bale page, infobox"},

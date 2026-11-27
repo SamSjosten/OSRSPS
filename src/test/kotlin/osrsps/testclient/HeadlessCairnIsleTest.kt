@@ -98,8 +98,41 @@ class HeadlessCairnIsleTest {
                 val text = client.await("the bridge's end") {
                     client.messages().firstOrNull { it.text == "[cairn_isle.balance]" || it.text == "[cairn_isle.fell]" }?.text
                 }
-                val expected = if (text == "[cairn_isle.balance]") Coord(CairnIsle.WEST_END - 1, CairnIsle.Z, 0) else Coord(CairnIsle.SHORE.x, CairnIsle.SHORE.z, 0)
+                val expected = if (text == "[cairn_isle.balance]") Coord(CairnIsle.WEST_END - 1, CairnIsle.Z, 0) else Coord(CairnIsle.EAST_SHORE.x, CairnIsle.EAST_SHORE.z, 0)
                 assertEquals(expected, client.await("where it ends") { client.position?.takeIf { it == expected } })
+            }
+        }
+    }
+
+    @Test
+    fun `a diagonal step onto the west end checks the balance too, and a fall washes the player back to Cairn Isle`(@TempDir dir: Path) {
+        // Round 61, R61C-2 and R61C-3: from 2770,2980 a step south-east lands on the west end without a straight step
+        // along the bridge. Level 1: falls about seven times in ten, so a fall is waited for.
+        server(dir).use { server ->
+            server.login("dax").use { client ->
+                client.ready()
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                var fell = false
+                for (attempt in 1..20) {
+                    val from = client.messages().size
+                    client.tele(CairnIsle.WEST_END - 1, CairnIsle.Z + 1)
+                    client.awaitTicks(2)
+                    client.walk(CairnIsle.WEST_END, CairnIsle.Z)
+                    val text = client.await("the bridge's end") {
+                        client.messages().drop(from).firstOrNull { it.text == "[cairn_isle.balance]" || it.text == "[cairn_isle.fell]" }?.text
+                    }
+                    if (text == "[cairn_isle.balance]") {
+                        client.await("across") { client.position?.takeIf { it == Coord(CairnIsle.EAST_END + 1, CairnIsle.Z, 0) } }
+                        client.commandReply("setlevel hitpoints 99") { true }
+                        continue
+                    }
+                    val shore = Coord(CairnIsle.WEST_SHORE.x, CairnIsle.WEST_SHORE.z, 0)
+                    assertEquals(shore, client.await("back on Cairn Isle") { client.position?.takeIf { it == shore } })
+                    fell = true
+                    break
+                }
+                assertTrue(fell, "no fall in 20 at level 1")
             }
         }
     }

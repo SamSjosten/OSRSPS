@@ -29,7 +29,39 @@ object PoxLines : Lines("pox", "Transcript:Pox") {
 object HooknosedJackLines : Lines("hooknosed_jack", "Transcript:Hooknosed Jack") {
     val WHERE = line("where", "menu option 1: where to find someone")
     val PITS = line("pits", "menu option 2: about the pits, which the player then says")
-    val PITS_NOT_YET = line("pits_not_yet", "about the pits (the Rat Pits aren't built): his answer, guessed")
+    val TAKE_MANUAL = line("take_manual", "about the pits, no manual held: he hands one over")
+    val HANDED_MANUAL = line("handed_manual", "the box with the manual")
+    val WHAT_KNOW = line("what_know", "about the pits: before the menu")
+    val POINTERS = line("pointers", "pits option 1, which the player then says")
+    val CATSPEAK = line("catspeak", "pointers: his answer")
+    val BEST_TACTIC = line("best_tactic", "pointers: the player asks the best tactic")
+    val DEPENDS = line("depends", "pointers: his answer, before the menu")
+    val NO_RISK = line("no_risk", "tactic option 1, which the player then says")
+    val NO_RISK_1 = line("no_risk_1", "no risk: his first answer")
+    val NO_RISK_2 = line("no_risk_2", "no risk: his second answer")
+    val NO_RISK_3 = line("no_risk_3", "no risk: his third answer")
+    val VERY_DEFENSIVE = line("very_defensive", "no risk, option 1")
+    val VERY_DEFENSIVE_SAID = line("very_defensive_said", "no risk, option 1: what the player says (no full stop, unlike the option)")
+    val VERY_DEFENSIVE_1 = line("very_defensive_1", "very defensive: his answer")
+    val LESS_DEFENSIVE = line("less_defensive", "no risk, option 2, which the player then says")
+    val LESS_DEFENSIVE_1 = line("less_defensive_1", "less defensive: his answer")
+    val RISK = line("risk", "tactic option 2")
+    val RISK_SAID = line("risk_said", "tactic option 2: what the player says (it differs from the option)")
+    val RISK_1 = line("risk_1", "risk: his first answer")
+    val RISK_2 = line("risk_2", "risk: his second answer")
+    val RISK_3 = line("risk_3", "risk: his third answer")
+    val VERY_AGGRESSIVE = line("very_aggressive", "risk, option 1")
+    val VERY_AGGRESSIVE_SAID = line("very_aggressive_said", "risk, option 1: what the player says (no full stop, unlike the option)")
+    val VERY_AGGRESSIVE_1 = line("very_aggressive_1", "very aggressive: his answer")
+    val LESS_AGGRESSIVE = line("less_aggressive", "risk, option 2, which the player then says")
+    val LESS_AGGRESSIVE_1 = line("less_aggressive_1", "less aggressive: his answer")
+    val BENEFITS = line("benefits", "pits option 2, which the player then says")
+    val BENEFITS_1 = line("benefits_1", "benefits: his first answer")
+    val BENEFITS_2 = line("benefits_2", "benefits: his second answer")
+    val THANKS = line("thanks", "the player thanks him for an answer")
+    val OTHER_QUESTIONS = line("other_questions", "after an answer: before the menu")
+    val ASK_YOU = line("ask_you", "other questions, option 1: back to the pits' menu")
+    val NO_THANKS = line("no_thanks", "other questions, option 2, which the player then says")
     val SHOW = line("show", "menu option 3: show me to the rat pits, which the player then says")
     val MANHOLE = line("manhole", "show me: he points out the manhole")
     val GRIMESQUIT = line("grimesquit", "where: option, Grimesquit and Phingspet, which the player then says")
@@ -139,7 +171,7 @@ object MasterSmithingTutorLines : Lines("master_smithing_tutor", "Transcript:Mas
  * - Sani, the Master smithing tutor (16816 since 242, which renamed him; 3225 before), with his level bands (1-20, 21-37, 38-99, 99), a hammer when the player has none.
  * - Jeremy Clerksin (5042), asleep in a church pew, and BigRedJapan (5921) on the rooftops: no options.
  *
- * Left out: Hooknosed Jack's pit topics (the Rat Pits aren't built: a guessed line ends it) and his Rat Pits manual;
+ * Hooknosed Jack's pit topics and manual are post-quest step 14's ([RatPits]). On
  * Anna Jones's pickaxe (she says she gives one; guessed: only when the player carries none). Guessed: every chathead
  * expression.
  */
@@ -174,7 +206,54 @@ object VarrockSweepPeople {
         chatNpc(ChatAnim.NEUTRAL, MEOW)
     }
 
-    internal suspend fun Dialogue.hooknosedJack() = with(HooknosedJackLines) {
+    /** Jack's pits menu, and back to it after each answer while the player has more to ask. */
+    private suspend fun Dialogue.pitsTopics(): Unit = with(HooknosedJackLines) {
+        while (true) {
+            if (choice(POINTERS, BENEFITS) == 1) {
+                chatPlayer(ChatAnim.QUIZ, POINTERS)
+                chatNpc(ChatAnim.NEUTRAL, CATSPEAK)
+                chatPlayer(ChatAnim.QUIZ, BEST_TACTIC)
+                chatNpc(ChatAnim.NEUTRAL, DEPENDS)
+                if (choice(NO_RISK, RISK) == 1) {
+                    chatPlayer(ChatAnim.NEUTRAL, NO_RISK)
+                    chatNpc(ChatAnim.NEUTRAL, NO_RISK_1)
+                    chatNpc(ChatAnim.NEUTRAL, NO_RISK_2)
+                    chatNpc(ChatAnim.NEUTRAL, NO_RISK_3)
+                    if (choice(VERY_DEFENSIVE, LESS_DEFENSIVE) == 1) {
+                        chatPlayer(ChatAnim.NEUTRAL, VERY_DEFENSIVE_SAID)
+                        chatNpc(ChatAnim.NEUTRAL, VERY_DEFENSIVE_1)
+                    } else {
+                        chatPlayer(ChatAnim.NEUTRAL, LESS_DEFENSIVE)
+                        chatNpc(ChatAnim.NEUTRAL, LESS_DEFENSIVE_1)
+                    }
+                } else {
+                    chatPlayer(ChatAnim.NEUTRAL, RISK_SAID)
+                    chatNpc(ChatAnim.NEUTRAL, RISK_1)
+                    chatNpc(ChatAnim.NEUTRAL, RISK_2)
+                    chatNpc(ChatAnim.NEUTRAL, RISK_3)
+                    if (choice(VERY_AGGRESSIVE, LESS_AGGRESSIVE) == 1) {
+                        chatPlayer(ChatAnim.NEUTRAL, VERY_AGGRESSIVE_SAID)
+                        chatNpc(ChatAnim.NEUTRAL, VERY_AGGRESSIVE_1)
+                    } else {
+                        chatPlayer(ChatAnim.NEUTRAL, LESS_AGGRESSIVE)
+                        chatNpc(ChatAnim.NEUTRAL, LESS_AGGRESSIVE_1)
+                    }
+                }
+            } else {
+                chatPlayer(ChatAnim.QUIZ, BENEFITS)
+                chatNpc(ChatAnim.NEUTRAL, BENEFITS_1)
+                chatNpc(ChatAnim.NEUTRAL, BENEFITS_2)
+            }
+            chatPlayer(ChatAnim.HAPPY, THANKS)
+            chatNpc(ChatAnim.NEUTRAL, OTHER_QUESTIONS)
+            if (choice(ASK_YOU, NO_THANKS) == 2) {
+                chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
+                return@with
+            }
+        }
+    }
+
+    internal suspend fun Dialogue.hooknosedJack(world: World) = with(HooknosedJackLines) {
         when (choice(WHERE, PITS, SHOW)) {
             1 -> when (choice(GRIMESQUIT, JIMMY, JOE, FACE, FELKRASH)) {
                 1 -> {
@@ -208,7 +287,13 @@ object VarrockSweepPeople {
             }
             2 -> {
                 chatPlayer(ChatAnim.QUIZ, PITS)
-                chatNpc(ChatAnim.NEUTRAL, PITS_NOT_YET)
+                if (player.inventory.count(RatPits.MANUAL) == 0L && player.inventory.freeSlots > 0) {
+                    chatNpc(ChatAnim.NEUTRAL, TAKE_MANUAL)
+                    world.objTypes[RatPits.MANUAL]?.let { player.inventory.add(it, 1) }
+                    objbox(RatPits.MANUAL, HANDED_MANUAL)
+                }
+                chatNpc(ChatAnim.NEUTRAL, WHAT_KNOW)
+                pitsTopics()
             }
             else -> {
                 chatPlayer(ChatAnim.QUIZ, SHOW)
@@ -328,7 +413,7 @@ fun registerVarrockSweepPeople(world: World) {
         talk(GUIDOR) { guidor() }
         talk(CHANCY) { chancy() }
         talk(POX) { pox() }
-        talk(HOOKNOSED_JACK) { hooknosedJack() }
+        talk(HOOKNOSED_JACK) { hooknosedJack(world) }
         talk(ANNA_JONES) { annaJones(world) }
         talk(MASTER_SMITHING_TUTOR) { masterSmithingTutor(world) }
         talk(JEFF) { chatNpc(ChatAnim.NEUTRAL, MahoganyClientLines.JEFF) }
