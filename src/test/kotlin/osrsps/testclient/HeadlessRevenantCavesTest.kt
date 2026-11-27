@@ -15,6 +15,7 @@ import osrsps.game.PlayerOps
 import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.combat.CombatLines
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.PvpInteraction
 import osrsps.game.combat.PvpLines
@@ -189,8 +190,9 @@ class HeadlessRevenantCavesTest {
                     assertEquals(null, man.target)
                     assertEquals(null, cy.attackedNpc)
 
-                    // The other way round: di, fought by the man, attacks cy; the man gives up on di, and di keeps after
-                    // cy. First the fight over and both PJ timers run out.
+                    // The other way round: di, fighting the man, attacks cy. The priority is the attacked player's,
+                    // so di's own fight bars it and the man stays on di (exploit review R64B-2). First the fight over
+                    // and both PJ timers run out.
                     di.interaction = null
                     b.await("both PJ timers out", timeoutMillis = 20_000) { Unit.takeIf { world.tick > di.pjUntil && world.tick > cy.pjUntil } }
                     val other = world.npcs.all.first { kotlin.math.abs(it.x - 3200) < 5 && kotlin.math.abs(it.z - 10060) < 5 }
@@ -198,14 +200,14 @@ class HeadlessRevenantCavesTest {
                     b.await("the man on di") { Unit.takeIf { di.attackedBy === other && other.target === di } }
                     b.npcOp(other.index, 2)
                     b.await("di on the man") { Unit.takeIf { di.attackedNpc === other } }
-                    // As before its first hit on di: it hasn't struck them yet, and won't before di's attack (Codex
-                    // review on #1002).
+                    // Even before its first hit on di: di's own attack on it is a fight (Codex review on #1002).
                     other.nextAttackTick = world.tick + 1_000
                     di.attackedBy = null
+                    val refused = DialogueText.NONE[CombatLines.ALREADY_UNDER_ATTACK]
                     b.playerOp(a.index, PlayerOps.ATTACK)
-                    b.await("di's attack on cy") { Unit.takeIf { (di.interaction as? PvpInteraction)?.target === cy && di.pjUntil > world.tick && di.pjOpponent === cy } }
-                    b.await("the man gives up on di") { Unit.takeIf { other.target == null } }
-                    assertTrue((di.interaction as? PvpInteraction)?.target === cy, "di still on cy")
+                    b.await("di refused") { b.messages().firstOrNull { it.text == refused } }
+                    assertTrue(world.tick > cy.pjUntil, "no fight with cy")
+                    assertTrue(other.target === di, "the man still on di")
                 }
             }
         }
