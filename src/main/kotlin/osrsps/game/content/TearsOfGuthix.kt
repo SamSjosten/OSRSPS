@@ -121,6 +121,9 @@ class TearsOfGuthix(private val world: World) {
 
     fun isPlaying(player: Player): Boolean = player.saveKey in playing
 
+    /** The ticks left of [player]'s game, or null when they aren't playing; for tests. */
+    internal fun ticksLeft(player: Player): Int? = playing[player.saveKey]?.ticksLeft
+
     /** Each stream's wall, -1 before it is placed: for the tests. */
     internal fun streamWalls(): List<Int> = streams.map { it.wall }
 

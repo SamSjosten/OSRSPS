@@ -12,7 +12,6 @@ import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
-import osrsps.game.bank.getVarbitIfKnown
 import osrsps.game.content.JunaLines
 import osrsps.game.content.TearsLines
 import osrsps.game.content.TearsOfGuthix
@@ -127,9 +126,12 @@ class HeadlessTearsOfGuthixTest {
                 assertTrue(tog.isPlaying(alice))
                 assertEquals(TearsOfGuthix.BOWL_STANCE, alice.stanceOverride)
                 // A second start while playing changes nothing: the game's time isn't reset or doubled.
-                val left = server.onTick { alice.vars.getVarbitIfKnown(TearsOfGuthix.VARBIT_COUNTDOWN) }
+                val (tick0, left0) = server.onTick { server.world.tick to tog.ticksLeft(alice)!! }
                 server.onTick { tog.start(alice) }
-                assertTrue(server.onTick { alice.vars.getVarbitIfKnown(TearsOfGuthix.VARBIT_COUNTDOWN) } <= left)
+                client.awaitTicks(3)
+                val (tick1, left1) = server.onTick { server.world.tick to tog.ticksLeft(alice)!! }
+                assertTrue(left1 < left0, "the time isn't reset: $left0 then $left1")
+                assertTrue(left0 - left1 <= tick1 - tick0, "a tick a tick, not two: ${left0 - left1} in ${tick1 - tick0}")
 
                 // Collect from whichever wall runs blue, and again each time that stream moves on.
                 val attack = alice.skills.tenths(Skill.ATTACK)
