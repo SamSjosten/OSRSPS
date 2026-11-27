@@ -16,15 +16,15 @@
     {"step": "walk", "x": 2772, "y": 9583, "comment": "the pad's landing tile"},
     {"step": "assertLocation", "x": 2772, "y": 9583, "plane": 3, "timeoutMs": 10000, "comment": "dived over the pad"},
     {"step": "waitTicks", "ticks": 2},
-    {"step": "command", "text": "::tele 2782 9575 3", "expectMessage": "Teleported to 2782, 9575, 3", "comment": "north of the spinning blades (3580 at 2782,9573)"},
+    {"step": "command", "text": "::tele 2783 9575 3", "expectMessage": "Teleported to 2783, 9575, 3", "comment": "north of the spinning blades (3580 at 2782,9573): the trap is the corridor's 2783,9574 and 2783,9573"},
     {"step": "waitTicks", "ticks": 2},
-    {"step": "walk", "x": 2782, "y": 9572, "comment": "the blades' landing tile"},
-    {"step": "assertLocation", "x": 2782, "y": 9572, "plane": 3, "timeoutMs": 10000, "comment": "jumped the blades"},
+    {"step": "walk", "x": 2783, "y": 9572, "comment": "the blades' landing tile"},
+    {"step": "assertLocation", "x": 2783, "y": 9572, "plane": 3, "timeoutMs": 10000, "comment": "jumped the blades"},
     {"step": "waitTicks", "ticks": 2},
-    {"step": "command", "text": "::tele 2760 9572 3", "expectMessage": "Teleported to 2760, 9572, 3", "comment": "south-west of the west spikes (2761,9573 and 2761,9574)"},
+    {"step": "command", "text": "::tele 2761 9572 3", "expectMessage": "Teleported to 2761, 9572, 3", "comment": "south of the west spikes (2761,9573 and 2761,9574), in their north-south corridor"},
     {"step": "waitTicks", "ticks": 2},
-    {"step": "walk", "x": 2762, "y": 9573, "comment": "the first step is diagonal onto the spikes; the jump goes straight east across them"},
-    {"step": "assertLocation", "x": 2762, "y": 9573, "plane": 3, "timeoutMs": 10000, "comment": "landed east of the spikes, not diagonally on"},
+    {"step": "walk", "x": 2761, "y": 9575, "comment": "the spikes' landing tile"},
+    {"step": "assertLocation", "x": 2761, "y": 9575, "plane": 3, "timeoutMs": 10000, "comment": "jumped along the corridor"},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

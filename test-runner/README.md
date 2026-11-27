@@ -483,6 +483,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   collecting at a weeping wall, and the drink's skill message by Juna.
 - `cats.json`: post-quest step 13 (with `::keys on`): a pet kitten dropped to follow (varp 448 holding its item),
   stroked from Interact, asked its age from Talk-to and picked up again, with the cat varps cleared at the end.
+- `rat-pits.json`: post-quest step 14 (with `::keys on`): Hooknosed Jack's About the pits topics and the manual he
+  hands over, then down the manhole to the Varrock rat pits and back up their ladder.
 - `sourhog-cave.json`: post-quest step 8: the strange hole east of Draynor Manor climbed down into the Sourhog Cave,
   the blockage climbed over both ways, and the exit rope climbed back up beside the hole.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
@@ -827,6 +829,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   room (look at the five posts, one with glowing rings, and the two trolls), Tilt gives the rules on arrival and again
   on Talk-To, the score window shows Score: 0, and the exit before ten sends the player home with nothing and closes
   it. Tagging the posts, ten points and the gem reward are the headless test's part.
+- `random-events-quiz-master.json`: random events step 17 (with `::keys on`): the Quiz Master takes the player to
+  the black chair in his studio (look at the chair, the spotlight and him facing the player), welcomes them, and the
+  odd-one-out window shows (look at the three spinning items, two of one kind, each with Select); a teleport ends it.
+  Answering, the prizes and opening the mystery box are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

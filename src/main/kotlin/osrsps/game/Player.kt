@@ -524,6 +524,9 @@ class Player(
     /** Whether the client has Attack on other players' menus ([PlayerOps.ATTACK]), given inside the Wilderness. */
     var attackOp: Boolean = false
 
+    /** The text of slot 5 on other players' menus while one is given there (the rat pits' Challenge), else null. */
+    var slot5Op: String? = null
+
     /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
     val heldActions = ArrayDeque<() -> Unit>()
 

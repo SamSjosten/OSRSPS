@@ -18,17 +18,19 @@ object ZaffBarrelLines : Lines("zaff_barrel", "Transcript:Barrel (Zaff's Superio
 }
 
 /**
- * Zaff's barrel of battlestaves (26462, its empty look 30358), the Varrock Diary's daily staves: once a day, by UTC day,
- * 15, 30, 60 or 120 noted battlestaves for 7,000 coins each, by the highest tier done (the Wiki's barrel page and
- * transcript). Varbit `zaff_last_claimed` (4539) is set once they're bought, which turns the barrel empty (the Wiki: its
- * look changes once the day's staves are bought), and cleared at login on a later day.
+ * Zaff's barrel of battlestaves (the multiloc 30357 on the map: full 26462, empty 30358), the Varrock Diary's daily
+ * staves: once a day, by UTC day, 15, 30, 60 or 120 noted battlestaves for 7,000 coins each, by the highest tier done
+ * (the Wiki's barrel page and transcript). Varbit `zaff_last_claimed` (4539) is set once they're bought, which turns the
+ * barrel empty (the Wiki: its look changes once the day's staves are bought), and cleared at login on a later day.
  *
  * Guessed: the highest tier whose tasks are all done counts, claimed or not; the barrel only fills again at a login on a
  * later day (as the Explorer's ring's uses), and a Claim-staves sent while it's empty does nothing.
  */
 class ZaffBarrel(private val world: World, private val today: () -> Long = { LocalDate.now(ZoneOffset.UTC).toEpochDay() }) {
     fun register() {
-        for (loc in listOf(FULL, EMPTY)) {
+        // The map holds the multiloc (fai_varrock_battlestaff_barrel_multi, by zaff_last_claimed), whose id the client
+        // sends; its Claim-staves is the full barrel's op1.
+        for (loc in listOf(MULTI, FULL, EMPTY)) {
             val option = world.locs.types[loc]?.ops?.indexOfFirst { it == "Claim-staves" }?.takeIf { it >= 0 }?.plus(1) ?: 1
             world.handlers.onLoc(loc, option) {
                 val tier = world.diaries.highestDone(player, DiaryArea.VARROCK)
@@ -75,6 +77,8 @@ class ZaffBarrel(private val world: World, private val today: () -> Long = { Loc
     }
 
     companion object {
+        /** fai_varrock_battlestaff_barrel_multi: the barrel on the map, full or empty by varbit 4539. */
+        const val MULTI = 30357
         const val FULL = 26462
         const val EMPTY = 30358
         const val VARBIT_CLAIMED = 4539
