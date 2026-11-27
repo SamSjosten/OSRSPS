@@ -66,14 +66,18 @@ object RevenantDrops {
     )
     const val STATUETTES_SKULLED_OF = 22
 
-    /** The weapons, armour, resources and other drops, of 198; noted counts by their noted ids. */
+    /**
+     * The weapons, armour, resources and other drops, of 198. The template's noted drops by their noted ids (unnoted id
+     * + 1; coal 454, yew logs 1516 and magic logs 1514 are the notes already), so each lands as one stack (Codex review
+     * on #1014). The bracelet of ethereum and the stackables are as they are.
+     */
     val MAIN = listOf(
-        Line(21817, 1, 1, 30), Line(1391, 4, 4, 10),
-        Line(1163, 2, 2, 4), Line(1127, 2, 2, 4), Line(1079, 2, 2, 4), Line(1201, 2, 2, 4), Line(1347, 2, 2, 4),
-        Line(4087, 1, 2, 1), Line(4585, 1, 2, 1), Line(1215, 2, 2, 2), Line(1305, 2, 2, 2),
-        Line(24598, 1, 3, 6), Line(24589, 10, 15, 8), Line(454, 30, 60, 12), Line(2361, 4, 6, 12), Line(451, 2, 4, 8),
-        Line(2363, 2, 3, 6), Line(1747, 4, 4, 8), Line(8783, 8, 16, 6), Line(1516, 20, 40, 8), Line(1514, 8, 16, 4),
-        Line(1631, 2, 5, 2),
+        Line(21817, 1, 1, 30), Line(1392, 4, 4, 10),
+        Line(1164, 2, 2, 4), Line(1128, 2, 2, 4), Line(1080, 2, 2, 4), Line(1202, 2, 2, 4), Line(1348, 2, 2, 4),
+        Line(4088, 1, 2, 1), Line(4586, 1, 2, 1), Line(1216, 2, 2, 2), Line(1306, 2, 2, 2),
+        Line(24598, 1, 3, 6), Line(24589, 10, 15, 8), Line(454, 30, 60, 12), Line(2362, 4, 6, 12), Line(452, 2, 4, 8),
+        Line(2364, 2, 3, 6), Line(1748, 4, 4, 8), Line(8784, 8, 16, 6), Line(1516, 20, 40, 8), Line(1514, 8, 16, 4),
+        Line(1632, 2, 5, 2),
         Line(21802, 1, 5, 10), Line(9193, 20, 40, 6), Line(9194, 3, 6, 6), Line(563, 20, 45, 10), Line(560, 30, 60, 10),
         Line(565, 50, 100, 10),
     )
