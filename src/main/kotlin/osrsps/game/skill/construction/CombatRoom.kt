@@ -173,22 +173,29 @@ class CombatRoom(private val world: World, private val houses: Houses) {
         val own = arena(attacker) ?: return listOf(ConstructionLines.ARENA_NOT_SAME)
         val theirs = arena(target)
         if (theirs == null || theirs.instance !== own.instance || theirs.cell != own.cell || theirs.kind != own.kind) return listOf(ConstructionLines.ARENA_NOT_SAME)
+        // Both fighters keep to the ring's kit, so armour worn into the ropes (or put on mid-fight) protects nobody
+        // (Codex review on #1017).
+        if (!kitAllowed(own.kind, attacker)) return listOf(ConstructionLines.ARENA_KIT)
+        if (!kitAllowed(own.kind, target)) return listOf(ConstructionLines.ARENA_TARGET_KIT)
         val type = world.combat.style(attacker).type
-        val magic = spell || type == AttackType.MAGIC
-        val worn = attacker.equipment.contents().map { it.first }
+        val ranged = spell || type == AttackType.MAGIC || type == AttackType.RANGED
         return when (own.kind) {
-            ArenaKind.BOXING -> when {
-                worn.any { it != WearPos.WEAPON } || attacker.equipment[WearPos.WEAPON]?.id.let { it != null && it != RED_GLOVES && it != BLUE_GLOVES } -> listOf(ConstructionLines.ARENA_KIT)
-                magic || type == AttackType.RANGED -> listOf(ConstructionLines.ARENA_STYLE)
-                else -> emptyList()
-            }
-            ArenaKind.FENCING -> when {
-                worn.any { it != WearPos.WEAPON && it != WearPos.SHIELD } -> listOf(ConstructionLines.ARENA_KIT)
-                magic || type == AttackType.RANGED -> listOf(ConstructionLines.ARENA_STYLE)
-                else -> emptyList()
-            }
+            ArenaKind.BOXING, ArenaKind.FENCING -> if (ranged) listOf(ConstructionLines.ARENA_STYLE) else emptyList()
             ArenaKind.COMBAT -> emptyList()
-            ArenaKind.PEDESTALS -> if (magic || type == AttackType.RANGED) emptyList() else listOf(ConstructionLines.ARENA_STYLE)
+            ArenaKind.PEDESTALS -> if (ranged) emptyList() else listOf(ConstructionLines.ARENA_STYLE)
+        }
+    }
+
+    /**
+     * Whether what [player] wears is allowed in a ring of [kind]: in the boxing ring boxing gloves or nothing, in the
+     * fencing ring a weapon and shield and nothing else, anything in the combat ring and on the pedestals.
+     */
+    private fun kitAllowed(kind: ArenaKind, player: Player): Boolean {
+        val worn = player.equipment.contents().map { it.first }
+        return when (kind) {
+            ArenaKind.BOXING -> worn.all { it == WearPos.WEAPON } && player.equipment[WearPos.WEAPON]?.id.let { it == null || it == RED_GLOVES || it == BLUE_GLOVES }
+            ArenaKind.FENCING -> worn.all { it == WearPos.WEAPON || it == WearPos.SHIELD }
+            ArenaKind.COMBAT, ArenaKind.PEDESTALS -> true
         }
     }
 

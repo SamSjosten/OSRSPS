@@ -1341,6 +1341,12 @@ class HeadlessHouseTest {
                     a.await("the kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_kit]" } }
                     ola.equipment.remove(WearPos.HEAD, 1)
 
+                    // Nor may she wear one: armour on the one attacked is refused too (Codex review on #1017).
+                    pia.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the target's kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_target_kit]" } }
+                    pia.equipment.remove(WearPos.HEAD, 1)
+
                     // pia outside the ropes: no Attack for her, and ola's attack is refused.
                     b.command("tele ${cx + 1} ${cz + 3} ${House.GROUND}")
                     b.await("Attack taken away") { Unit.takeIf { b.playerOps()[PlayerOps.ATTACK] == null } }
