@@ -312,6 +312,9 @@ class PvpCombat(
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
         target.pjAfterKill = false
+        // In singles-plus combat "another player attacking will take priority over fighting the monster" (OSRS Wiki,
+        // Singles-plus combat): the target's monster fight ends, theirs on it and its on them (Codex review on #1002).
+        if (singlesPlus(target.level, target.x, target.z)) melee.leaveNpcFight(target)
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */

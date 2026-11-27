@@ -302,6 +302,21 @@ class MeleeCombat(
         return !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
 
+    /**
+     * [player] is out of any fight with a monster: their attack on one stops, and one fighting them gives up. Their PJ
+     * timer then keeps the monster off them, and them off it, as a player fight does in single-way combat
+     * ([underAttackByAnother]).
+     */
+    internal fun leaveNpcFight(player: Player) {
+        val interaction = player.interaction
+        if (interaction is MeleeInteraction || interaction is RangedInteraction || interaction is MagicInteraction) {
+            player.interaction = null
+            stopFacing(player)
+        }
+        player.attackedNpc = null
+        player.attackedBy?.let { if (it.target === player) giveUp(it) }
+    }
+
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
         player.attackedNpc = npc

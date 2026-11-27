@@ -161,6 +161,9 @@ class HeadlessRevenantCavesTest {
                         val npc = world.npcs.all.first { kotlin.math.abs(it.x - x) < 5 && kotlin.math.abs(it.z - z) < 5 }
                         a.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Man") }
                         a.await("the man on cy") { Unit.takeIf { cy.attackedBy === npc && npc.target === cy } }
+                        // Cy fights it back, a real attack, not just the command's hit.
+                        a.npcOp(npc.index, 2)
+                        a.await("cy on the man") { Unit.takeIf { cy.attackedNpc === npc } }
                         b.playerOp(a.index, PlayerOps.ATTACK)
                     }
 
@@ -169,9 +172,15 @@ class HeadlessRevenantCavesTest {
                     val text = DialogueText.NONE[PvpLines.TARGET_IN_COMBAT]
                     b.await("the refusal") { b.messages().firstOrNull { it.text == text } }
 
-                    // In the caves, singles-plus: di gets at cy.
+                    // In the caves, singles-plus: di gets at cy, and cy's fight with the man ends, theirs on it and
+                    // its on them (Codex review on #1002).
                     fight(3201, 10062)
                     b.await("di on cy") { (di.interaction as? PvpInteraction)?.target?.takeIf { it === cy } }
+                    val man = world.npcs.all.first { kotlin.math.abs(it.x - 3200) < 5 && kotlin.math.abs(it.z - 10060) < 5 }
+                    b.await("di's first attack") { Unit.takeIf { cy.pjOpponent === di } }
+                    a.await("the man gives up") { Unit.takeIf { man.target == null } }
+                    assertTrue(cy.interaction !is osrsps.game.combat.MeleeInteraction, "cy no longer on the man")
+                    assertEquals(null, cy.attackedNpc)
                 }
             }
         }
