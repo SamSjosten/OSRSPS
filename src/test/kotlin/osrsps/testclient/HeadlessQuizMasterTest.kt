@@ -21,7 +21,7 @@ import osrsps.map.CollisionMap
  * Random events step 17 through the headless client: the Quiz Master takes his player to the black chair in his
  * studio, welcomes them, and asks odd-one-out questions until four in a row are right; a wrong one starts the count
  * again. The prize is the player's pick of 1000 coins or a mystery box, and the box opens to one item of its table. A
- * quiz dropped with Esc is asked again. The rl-client script test-runner/examples/random-events-quiz-master.json does
+ * quiz dropped with Esc is asked again, the same question. The rl-client script test-runner/examples/random-events-quiz-master.json does
  * part of it in the real game.
  */
 class HeadlessQuizMasterTest {
@@ -111,6 +111,9 @@ class HeadlessQuizMasterTest {
                 client.question(seen++)
                 // The re-asked question is the next quiz_init the loop below waits for (the window can be shut for a single tick).
                 client.closeModal()
+                // The same three items again, not a fresh question to skip to (exploit review R64C-4).
+                val inits = client.await("the question again") { client.clientScripts().filter { it.id == QuizMaster.INIT_SCRIPT }.takeIf { it.size > seen } }
+                assertEquals(inits[seen - 1].args, inits[seen].args, "the dropped question asked again")
 
                 repeat(QuizMaster.TO_WIN) { n ->
                     client.pick(client.question(seen++))

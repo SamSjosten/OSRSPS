@@ -163,6 +163,8 @@ class HeadlessPilloryTest {
             server.login("dave").use { client ->
                 client.ready(3205, 3210)
                 client.arrested()
+                // A wrong key first: the extra lock is kept through the relog (exploit review R64C-1).
+                client.select(Pillory.stayOf(server.world.onlinePlayers.single())!!, right = false)
                 client.closeModal()
                 client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
@@ -177,10 +179,11 @@ class HeadlessPilloryTest {
                 client.await("the login rebuild") { client.position }
                 client.await("the lock window") { if (Pillory.INTERFACE in client.openInterfaces()) Unit else null }
                 val stay = Pillory.stayOf(server.world.onlinePlayers.single())!!
+                assertEquals(Pillory.START_LOCKS + 1, stay.locks, "the wrong answer's lock kept")
                 repeat(stay.locks) { client.select(stay, right = true) }
                 // The way back is saved with the account (exploit review R63C-3), not Lumbridge.
                 client.await("back where they were") { client.position?.takeIf { it == Coord(3205, 3210, 0) } }
-                assertEquals(0, server.world.onlinePlayers.single().charges[Pillory.ARRESTED], "released")
+                assertEquals(0 to 0, server.world.onlinePlayers.single().charges.let { it[Pillory.ARRESTED] to it[Pillory.LOCKS] }, "released")
 
                 // ::randomevent end lets a prisoner out with nothing.
                 val before = client.inventory(Inventory.INV).filterNotNull()
