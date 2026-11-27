@@ -373,9 +373,11 @@ object DemonicBrutus {
      */
     fun landing(world: World, boss: Npc, run: BrutusPens.Run, target: Player, at: Tile, reach: Set<Tile> = reach(world, run, target)): Tile? {
         val size = boss.type.size
+        // A tile beside him she can walk to, with no wall between it and him (a fence's edge isn't beside him).
+        fun side(x: Int, z: Int, dx: Int, dz: Int) = Tile(x, z) in reach && world.canStep(target.level, x, z, dx, dz)
         fun beside(tile: Tile) = (0 until size).any { i ->
-            Tile(tile.x - 1, tile.z + i) in reach || Tile(tile.x + size, tile.z + i) in reach ||
-                Tile(tile.x + i, tile.z - 1) in reach || Tile(tile.x + i, tile.z + size) in reach
+            side(tile.x - 1, tile.z + i, 1, 0) || side(tile.x + size, tile.z + i, -1, 0) ||
+                side(tile.x + i, tile.z - 1, 0, 1) || side(tile.x + i, tile.z + size, 0, -1)
         }
         fun ok(tile: Tile) = fieldTile(run, tile, size) == tile && world.npcs.canStand(boss, tile.x, tile.z) && beside(tile)
         if (ok(at)) return at
