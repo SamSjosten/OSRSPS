@@ -802,6 +802,7 @@ class World(
             wildernessBosses.damaged(npc, player, dealt)
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
+            osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },

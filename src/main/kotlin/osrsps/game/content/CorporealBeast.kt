@@ -45,19 +45,27 @@ object CorporealBeastLines : Lines("corporeal_beast", "Corporeal Beast") {
  * - **Healing**: drained stats come back a level every [RESTORE_TICKS] (NpcDrains.restoreTicksByType); with no one in its room it heals 75 every
  *   [STOMP_TICKS] and 10 more each time after; left alone [RESET_TICKS] it is whole again; with 8 or more players in its
  *   room it heals 5 for each every [STOMP_TICKS].
+ * - **The dark energy core** (`dark_core` 320, step W4.15b): one time in 8 that a hit of 32 or more lands on it, and
+ *   one in 8 of its attacks below 1,000 hitpoints, it sends out its core and its next attack waits 4 ticks. Every 2
+ *   ticks the core takes 5 to 13 from everyone beside it and heals the beast half of it; with no one beside it, it jumps
+ *   to a player: the northernmost north of the beast, else the easternmost east of it. Poisoned, it hits only every
+ *   [CORE_POISONED_TICKS]. Killed mid-jump, no core comes back for the rest of the fight; it goes when the beast dies.
  * - Only its top damage dealer gets its loot and the kill count (`total_corp_kills`), as [WildernessBosses] gives a
  *   [WildernessBoss.topDamage] boss.
  *
  * GUESSED until recorded: the splash's flight ([SPLASH_FLIGHT] ticks, then [SPLASH_SPREAD] more for the six) and every
  * splash hit rolling 0 to its max without an accuracy roll; which projectile and animation go with which spell (by
  * name: the strong one for the plain bolt, the mid one for the drain, the weak one and corp_magic_splash for the splash);
- * where the cave and the exit put the player; the Passage's tiles either side. Left out: the dark energy core (step
- * W4.15b); the attack sometimes coming a tick early; the ironman room, the 200,000-coin instance, the brazier; no pets
+ * where the cave and the exit put the player; the Passage's tiles either side; one core at a time, coming out north
+ * of the beast, its jump taking [CORE_JUMP_TICKS] and landing beside its player, any player when none is north or
+ * east, and [CORE_POISONED_TICKS]; the core's hits counting as from it. Left out: the attack sometimes coming a tick
+ * early; a stunned core; the ironman room, the 200,000-coin instance, the brazier; no pets
  * in the lair; the 100 cap on a corpbane hit.
  */
 object CorporealBeast {
     const val NAME = "corporeal beast"
     const val BOSS = 319
+    const val CORE = 320
     const val KILL_COUNT_VARP = 1517
 
     const val ENTRANCE = 678
@@ -103,6 +111,16 @@ object CorporealBeast {
     /** Three minutes. */
     const val RESET_TICKS = 300
 
+    const val CORE_ODDS = 8
+    const val CORE_BIG_HIT = 32
+    const val CORE_LOW_HITPOINTS = 1_000
+    const val CORE_DELAY = 4
+    const val CORE_TICKS = 2
+    const val CORE_POISONED_TICKS = 6
+    const val CORE_JUMP_TICKS = 2
+    const val CORE_MIN = 5
+    const val CORE_MAX = 13
+
     /** Item param 701 (`corpbane`), 1 on the weapons that hit it in full on stab. */
     const val PARAM_CORPBANE = 701
 
@@ -122,9 +140,24 @@ object CorporealBeast {
         var emptyHeals = 0
         var lastHitpoints = -1
         var lastFought = Long.MIN_VALUE
+        var core: Npc? = null
+        var coreNext = Long.MIN_VALUE
+        var coreLands = Long.MIN_VALUE
+        var coreDue = false
+        var noMoreCores = false
     }
 
     private val fights = java.util.WeakHashMap<Npc, Fight>()
+
+    /** Its dark energy core now, for tests. */
+    fun core(npc: Npc): Npc? = fights[npc]?.core?.takeIf { !it.dead }
+
+    /** A player's hit of [dealt] on [npc]: one of [CORE_BIG_HIT] or more sends out its core one time in [CORE_ODDS]. */
+    fun damaged(world: World, npc: Npc, dealt: Int) {
+        if (npc.type.id != BOSS || dealt < CORE_BIG_HIT) return
+        val fight = fights[npc] ?: return
+        if (world.random.nextInt(CORE_ODDS) == 0) fight.coreDue = true
+    }
 
     fun def(world: World): EncounterDef? {
         val type = world.npcTypes[BOSS] ?: return null
@@ -146,6 +179,11 @@ object CorporealBeast {
         if (boss.hitpoints < fight.lastHitpoints) fight.lastFought = world.tick
         heal(fight)
         fight.lastHitpoints = boss.hitpoints
+        core(fight)
+        if (fight.coreDue) {
+            fight.coreDue = false
+            sendCore(fight)
+        }
 
         val target = heldTarget()
         if (target == null) {
@@ -158,6 +196,7 @@ object CorporealBeast {
         if (reaches) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
         if (world.tick < boss.nextAttackTick || !world.meleeCombat.sees(boss, target)) return
         boss.nextAttackTick = world.tick + world.combat.npcCombat[boss.type]!!.attackSpeed
+        if (boss.hitpoints < CORE_LOW_HITPOINTS && roll(1, CORE_ODDS) == 1) sendCore(fight)
         val pick = if (reaches) roll(1, 5) else roll(3, 5)
         when (pick) {
             1, 2 -> {
@@ -208,6 +247,61 @@ object CorporealBeast {
             boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + healed)
             log("heals $healed")
         }
+    }
+
+    /** Its core, out north of it, and its next attack 4 ticks off; one core at a time. */
+    private fun EncounterContext.sendCore(fight: Fight) {
+        if (fight.noMoreCores || fight.core?.let { !it.dead && world.npcs[it.index] === it } == true) return
+        val type = world.npcTypes[CORE] ?: return
+        val core = spawnAdd(type, boss.x + boss.type.size / 2, boss.z + boss.type.size) ?: return
+        core.scriptedAttacks = true
+        fight.core = core
+        fight.coreNext = world.tick + CORE_TICKS
+        fight.coreLands = Long.MIN_VALUE
+        boss.nextAttackTick = world.tick + CORE_DELAY
+        log("sends out its core")
+    }
+
+    /** The core's turn: leeching from everyone beside it, or jumping to a player when there is no one. */
+    private fun EncounterContext.core(fight: Fight) {
+        val core = fight.core ?: return
+        if (core.dead || world.npcs[core.index] !== core) {
+            // By the tick it died, not the tick that's noticed, so a death just before landing counts (Codex review on #1000).
+            val died = if (core.diedTick >= 0) core.diedTick else world.tick
+            if (died < fight.coreLands) fight.noMoreCores = true
+            fight.core = null
+            return
+        }
+        if (world.tick < fight.coreLands) return
+        val inRoom = players.filter { !it.dead && it.level == boss.level }
+        val beside = inRoom.filter { abs(it.x - core.x) <= 1 && abs(it.z - core.z) <= 1 }
+        if (beside.isEmpty()) {
+            val to = jumpTarget(core, inRoom) ?: return
+            world.npcs.teleport(core, to.x, to.z)
+            fight.coreLands = world.tick + CORE_JUMP_TICKS
+            // A poisoned core's longer wait holds across a jump (Codex review on #1000).
+            fight.coreNext = maxOf(fight.coreNext, fight.coreLands)
+            log("core jumps to ${to.x},${to.z}")
+            return
+        }
+        if (world.tick < fight.coreNext) return
+        fight.coreNext = world.tick + if (core.poison > 0) CORE_POISONED_TICKS else CORE_TICKS
+        for (player in beside) {
+            // A Retribution from one it kills can kill it or the beast mid-leech: no more once either is dead (Codex review on #1000).
+            if (core.dead || world.npcs[core.index] !== core || boss.dead || boss.hitpoints <= 0) break
+            val dealt = world.meleeCombat.hitPlayer(player, core, roll(CORE_MIN, CORE_MAX), world.tick)
+            if (!boss.dead) boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + dealt / 2)
+            log("core leeches ${player.username} for $dealt")
+        }
+    }
+
+    /** Where the core jumps: beside the northernmost player north of the beast, else the easternmost east of it, else anyone's. */
+    private fun EncounterContext.jumpTarget(core: Npc, inRoom: List<Player>): Tile? {
+        val north = inRoom.filter { it.z >= boss.z + boss.type.size }.maxByOrNull { it.z }
+        val east = inRoom.filter { it.x >= boss.x + boss.type.size }.maxByOrNull { it.x }
+        val player = north ?: east ?: inRoom.firstOrNull() ?: return null
+        val spots = listOf(Tile(player.x, player.z + 1), Tile(player.x + 1, player.z), Tile(player.x - 1, player.z), Tile(player.x, player.z - 1))
+        return spots.firstOrNull { world.npcs.canStand(core, it.x, it.z) && !boss.covers(it.x, it.z) } ?: Tile(player.x, player.z)
     }
 
     /** The draining bolt: when it hits, Magic or Prayer down 1 or 2 and half the damage back to it. */
