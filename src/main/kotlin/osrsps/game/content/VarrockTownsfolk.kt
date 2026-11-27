@@ -208,7 +208,9 @@ object VarrockTownsfolk {
 
     private fun Dialogue.coins() = player.inventory.count(ShopScreen.COINS)
 
-    private fun Dialogue.ownsCat() = OWNED_CATS.any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 }
+    /** A kitten or cat held, banked or following ([Cats.followingCat]). */
+    private fun Dialogue.ownsCat(world: World) =
+        world.cats.followingCat(player) || OWNED_CATS.any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 }
 
     internal suspend fun Dialogue.romeo() = with(RomeoLines) {
         chatNpc(ChatAnim.SAD, DREADFUL)
@@ -251,12 +253,13 @@ object VarrockTownsfolk {
     }
 
     private suspend fun Dialogue.sellKitten(world: World, give: (Int) -> Unit) = with(GertrudeLines) {
-        if (ownsCat()) {
+        if (ownsCat(world)) {
             chatNpc(ChatAnim.NEUTRAL, WAIT)
             return@with
         }
         val kitten = VarrockTownsfolk.KITTENS[world.random.between(0, VarrockTownsfolk.KITTENS.size - 1)]
         if (!AlKharidTraders.pay(player, KITTEN_PRICE)) return@with
+        world.cats.newKitten(player)
         give(kitten)
         objbox(kitten, GIVEN)
     }

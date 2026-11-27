@@ -19,6 +19,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * The clan coffer in the clan hall through the headless client: a member deposits coins from the side panel, the clan's
@@ -129,6 +131,11 @@ class HeadlessClanCofferTest {
                     alice.ifButton(ClanCoffer.MAIN, 8, 1)
                     alice.await("written again") { alice.varClan(Clans.VARCLAN_COFFER)?.takeIf { it == 0 } }
                     assertEquals(0, ClanStore(dir.resolve("data").resolve(ClanStore.FILE_NAME)).byId(clan.id)!!.coffer)
+
+                    // One disk-writing transfer or confirm a tick across every clan (exploit review R60C-1).
+                    assertTrue(server.world.clans.takeDurableWrite(-5))
+                    assertFalse(server.world.clans.takeDurableWrite(-5))
+                    assertTrue(server.world.clans.takeDurableWrite(-4))
                 }
             }
         }

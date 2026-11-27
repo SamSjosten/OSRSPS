@@ -150,7 +150,7 @@ class HeadlessFarmingCompostBinTest {
                 client.useOnBin(ASH)
                 client.seen("[farming.bin_upgraded compost=ultracompost]")
                 client.awaitBin(190)
-                assertEquals(0, client.count(ASH))
+                client.awaitCount(ASH, 0) // the backpack update can reach the client after the bin's varbit
 
                 // Two buckets used on the bin: two ultracompost, then no bucket left.
                 client.give(BUCKET, 2)

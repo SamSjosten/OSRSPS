@@ -750,6 +750,20 @@ class Clans(
      */
     fun mayParty(player: Player, clan: ClanStore.Clan, id: Int): Boolean = has(player, clan, id)
 
+    /** The last tick a coffer transfer or a party chest confirm wrote to the disk. */
+    private var lastDurableWrite = Long.MIN_VALUE
+
+    /**
+     * Whether a coffer transfer or a party chest confirm may write to the disk on tick [tick]; marks the tick when so.
+     * One a tick across every clan, since each rewrites clans.json or a player's save with forced syncs on the game
+     * thread (exploit review R60C-1).
+     */
+    fun takeDurableWrite(tick: Long): Boolean {
+        if (lastDurableWrite == tick) return false
+        lastDurableWrite = tick
+        return true
+    }
+
     /**
      * Puts [amount] coins into [clan]'s coffer, or takes them out when negative, saved at once, and the new sum to every
      * online member. A withdrawal tells every online member who took how much (the Wiki: withdrawing "will always notify

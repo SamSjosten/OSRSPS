@@ -70,7 +70,7 @@ class Churn(private val world: World) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return
         }
-        BottomlessMilkBucket.takeMilk(player)
+        BottomlessMilkBucket.takeMilk(world, player)
         val before = player.skills.baseLevel(Skill.COOKING)
         player.skills.addTenths(Skill.COOKING, recipe.xpTenths)
         player.message(world.textFor(player)[recipe.made])
