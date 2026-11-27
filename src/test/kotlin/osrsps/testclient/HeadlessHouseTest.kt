@@ -19,6 +19,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
 import osrsps.game.Skill
+import osrsps.game.combat.PvpInteraction
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
@@ -1368,6 +1369,27 @@ class HeadlessHouseTest {
                     a.await("the target's kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_target_kit]" } }
                     pia.equipment.remove(WearPos.HEAD, 1)
 
+                    // A punch on its way when its target leaves the ring lands as nothing (exploit review R65A-1): on
+                    // the game thread, pia punches ola, and ola is taken out of the ring before it lands.
+                    val caughtAt = server.onTick {
+                        ola.vars[osrsps.game.EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+                        ola.hitpoints = 99
+                        pia.sureHits = true
+                        pia.sureMaxHits = true
+                        pia.nextAttackTick = 0
+                        val pvp = server.world.pvpCombat
+                        pvp.tryInteract(pia, PvpInteraction(ola, null, pvp))
+                        assertTrue(pvp.incoming(ola), "a punch on its way")
+                        server.world.teleport(ola, cx + 1, cz + 3, House.GROUND)
+                        ola.hitpoints
+                    }
+                    a.await("ola out of the ring") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    repeat(3) { server.onTick { } }
+                    assertEquals(caughtAt, ola.hitpoints)
+                    assertTrue(server.onTick { !server.world.pvpCombat.incoming(ola) })
+                    a.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    a.await("ola back in") { a.position?.takeIf { it == Coord(cx + 3, cz + 4, House.GROUND) } }
+
                     // pia outside the ropes: no Attack for her, and ola's attack is refused.
                     b.command("tele ${cx + 1} ${cz + 3} ${House.GROUND}")
                     b.await("Attack taken away") { Unit.takeIf { b.playerOps()[PlayerOps.ATTACK] == null } }
@@ -1534,6 +1556,13 @@ class HeadlessHouseTest {
 
             }
         }
+    }
+
+    /** Runs [block] on the game thread, at the next tick. */
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = java.util.concurrent.CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     private companion object {
