@@ -18,6 +18,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.content.CatLines
 import osrsps.game.content.Cats
 import osrsps.game.content.RatPits
 import osrsps.game.content.RatPitsLines
@@ -138,6 +139,9 @@ class HeadlessRatPitsTest {
                     // The fight: the scores show until one cat wins, flees or dies.
                     for (c in listOf(alice, bob)) c.await("the scores") { if (RatPits.SCORES in c.openInterfaces()) Unit else null }
                     assertTrue(server.world.npcs.all.count { it.type.id in RatPits.RAT_TYPES } == RatPits.RATS, "the pits' rats out")
+                    // A fighting cat's options wait till the fight gives it back.
+                    server.world.cats.follower(a)?.let { cat -> alice.npcOp(cat.index, TALK_TO_OP) }
+                    alice.message(CatLines.BUSY)
                     for (c in listOf(alice, bob)) c.await("the fight over", timeoutMillis = 60_000) { if (RatPits.SCORES !in c.openInterfaces()) Unit else null }
                     assertTrue(server.world.npcs.all.none { it.type.id in RatPits.RAT_TYPES }, "the rats go with the fight")
                     assertTrue(!server.world.ratPits.inMatch(a) && !server.world.ratPits.inMatch(b))
@@ -229,6 +233,7 @@ class HeadlessRatPitsTest {
     private companion object {
         const val BACKPACK = 93
         const val DROP_BUTTON_OP = 7
+        const val TALK_TO_OP = 3
         const val CAT_OBJ = 1561
         const val KITTEN_OBJ = 1555
         const val CAT_NPC = 1619

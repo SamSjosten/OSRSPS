@@ -15,6 +15,7 @@ import osrsps.game.script.ScriptContext
 object CatLines : Lines("cat", "Transcript:Kitten, Transcript:Cat, Transcript:Overgrown cat, read 2026-11-19") {
     val ALREADY_FOLLOWER = line("already_follower", "dropping a pet with one out already; our own line")
     val NOT_YOURS = line("not_yours", "another player's cat's options; our own line")
+    val BUSY = line("busy", "a cat's options while it fights in the rat pits; our own line")
     val DROPPED = line("dropped", "overhead, a kitten or cat put down")
 
     // Talk-to: the menu and its questions.
@@ -298,6 +299,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             player.message(world.textFor(player)[CatLines.NOT_YOURS])
             return
         }
+        if (busy(player, mine)) return
         val type = world.objTypes[mine.kind.obj] ?: return
         if (player.inventory.add(type, 1) != 1) {
             player.message(world.textFor(player)[GameLines.NO_SPACE])
@@ -463,7 +465,17 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         val mine = out[player.saveKey] ?: return null
         mine.held = true
         world.npcs.stopFollowing(mine.npc)
+        // A Talk-to or Interact open on it now would keep it standing (an engaged NPC doesn't move) or shoo it mid-game.
+        world.scripts.interrupt(player)
+        world.npcs.release(mine.npc)
         return mine.npc
+    }
+
+    /** Whether [mine] is held for a game, with the message: its options wait till the game gives it back. */
+    private fun busy(player: Player, mine: Out): Boolean {
+        if (!mine.held) return false
+        player.message(world.textFor(player)[CatLines.BUSY])
+        return true
     }
 
     /** Gives a held follower back: it follows again from where it stands. */
@@ -488,7 +500,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
 
     private fun ScriptContext.mine(npc: Npc): Out? {
         val mine = out[player.saveKey]
-        if (mine?.npc === npc) return mine
+        if (mine?.npc === npc) return mine.takeUnless { busy(player, it) }
         player.message(world.textFor(player)[CatLines.NOT_YOURS])
         return null
     }
@@ -575,7 +587,10 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
             } else {
                 listOf(CatLines.STROKE, CatLines.CHASE_VERMIN, CatLines.SHOO_AWAY)
             }
-            when (options[choice(*options.toTypedArray(), title = title) - 1]) {
+            val picked = options[choice(*options.toTypedArray(), title = title) - 1]
+            // Taken into a game while the menu was open: nothing to do with it now.
+            if (out[player.saveKey] !== mine || busy(player, mine)) return@start
+            when (picked) {
                 CatLines.STROKE -> stroke(mine)
                 CatLines.CHASE_VERMIN -> {
                     chase(this@interact, mine)
@@ -628,7 +643,7 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         }
         // The kitten's are player, kitten, player; the others' player, cat.
         pages.forEachIndexed { i, line -> if (i == 1) chatNpc(ChatAnim.SAD, line) else chatPlayer(ChatAnim.ANGRY, line) }
-        if (out[player.saveKey] !== mine) return
+        if (out[player.saveKey] !== mine || busy(player, mine)) return
         player.effects.say(text(CatLines.SHOO_CAT))
         mine.npc.effects.say(text(CatLines.MEOW_AWAY))
         runAway(player)
