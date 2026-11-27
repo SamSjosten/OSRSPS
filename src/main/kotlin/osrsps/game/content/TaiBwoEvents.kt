@@ -60,8 +60,8 @@ object TaiBwoEvents {
     /** Ten minutes, the tuber's despawn. */
     const val PLANT_TICKS = 1000
 
-    /** Fifty minutes, as the Wiki gives for a Broodoo victim. */
-    const val CREATURE_TICKS = 3000
+    /** Fifty minutes (600 ms ticks), as the Wiki gives for a Broodoo victim. */
+    const val CREATURE_TICKS = 5000
 
     /** How often an event creature checks its player is still about, and how far off counts as gone. GUESSED. */
     const val WATCH_TICKS = 5
@@ -101,8 +101,8 @@ object TaiBwoEvents {
 
     private val counters = WeakHashMap<Player, Int>()
 
-    /** Who found each tuber plant, by tile. */
-    private val tuberOwners = HashMap<Long, Player>()
+    /** Who found each tuber plant, by tile: their [Player.saveKey], so a logged-out finder isn't kept in memory. */
+    private val tuberOwners = HashMap<Long, String>()
 
     /** The jungle each plant or gem rock came out of, by tile. */
     private val jungleAt = HashMap<Long, TaiBwoCleanup.Jungle>()
@@ -153,8 +153,9 @@ object TaiBwoEvents {
                 val plant = world.locs.replace(loc, TUBER_PLANT)
                 if (plant != null) {
                     world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, PLANT_TICKS)
-                    tuberOwners[key(loc)] = player
+                    tuberOwners[key(loc)] = player.saveKey
                     jungleAt[key(loc)] = jungle
+                    forgetAfter(world, loc, PLANT_TICKS)
                     world.message(player, TaiBwoEventLines.TUBER)
                 }
                 plant != null
@@ -165,6 +166,7 @@ object TaiBwoEvents {
                     world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, PLANT_TICKS)
                     jungleAt[key(loc)] = jungle
                     rockExpiry[key(loc)] = world.tick + PLANT_TICKS
+                    forgetAfter(world, loc, PLANT_TICKS)
                     world.message(player, TaiBwoEventLines.GEMS)
                 }
                 rock != null
@@ -212,19 +214,34 @@ object TaiBwoEvents {
     /** A spade on the plant: the tuber, for its finder (or anyone once they've logged out). */
     private suspend fun osrsps.game.script.ScriptContext.dig(world: World, loc: ZoneLoc) {
         arriveDelay()
-        val owner = tuberOwners[key(loc)]
+        val owner = tuberOwners[key(loc)]?.let { world.playerBySaveKey(it) }
         if (owner != null && owner !== player && !owner.loggedOut) return world.message(player, TaiBwoEventLines.NOT_YOURS)
         val tuber = world.objTypes[GOUT_TUBER] ?: return
         // No room for it: the plant stays (Codex review on #1033).
         if (player.inventory.freeSlots == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
         // Locked to whoever starts digging.
-        tuberOwners[key(loc)] = player
+        tuberOwners[key(loc)] = player.saveKey
         player.anim(DIG_ANIM)
         delay(1)
         if (!world.locs.exists(loc)) return
         if (player.inventory.add(tuber, 1) == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
         world.message(player, TaiBwoEventLines.DUG)
         cleared(world, loc)
+    }
+
+    /**
+     * Once the plant or rock has had its time and the jungle is back, what was kept for its tile goes too (the expiry
+     * doesn't pass through [cleared]; Codex review on #1033). A newer event on the tile keeps its own.
+     */
+    private fun forgetAfter(world: World, loc: ZoneLoc, ticks: Int) {
+        val k = key(loc)
+        world.npcScripts.later(ticks + 1) {
+            if (world.locs.at(loc.x, loc.z, loc.level).none { it.id == TUBER_PLANT || it.id in GEM_ROCKS }) {
+                tuberOwners.remove(k)
+                jungleAt.remove(k)
+                rockExpiry.remove(k)
+            }
+        }
     }
 
     /** The plant dug or the rock mined out: the chopped-away jungle, growing back as after a hack. */
