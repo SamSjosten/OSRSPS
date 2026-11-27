@@ -6,11 +6,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
+import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.content.XpLamp
 import osrsps.game.content.randomevents.RandomEvents
 import osrsps.game.content.randomevents.SurpriseExam
 import osrsps.game.loc.LocType
@@ -23,7 +26,7 @@ import osrsps.map.LocShape
 /**
  * Random events step 18 through the headless client: the dunce takes his player to the classroom, Mr. Mordaut explains
  * the exam and asks what comes next; three right pass, and a door then sends the player home with a Book of Knowledge
- * (another reward when one is owned). A wrong answer gets the same question again; three wrong fail, and the door sends
+ * (another reward when one is owned), and Read on the book gives 15 times the chosen skill's level and uses it up. A wrong answer gets the same question again; three wrong fail, and the door sends
  * the player home with nothing. The window shut, Talk-to on him asks again. The rl-client script
  * test-runner/examples/random-events-surprise-exam.json does part of it in the real game.
  */
@@ -34,7 +37,7 @@ class HeadlessSurpriseExamTest {
         NpcType(SurpriseExam.TEACHER, "Mr. Mordaut", size = 5, ops = listOf("Talk-to", null, null, null, null)),
     )
     private val objs = (SurpriseExam.OTHER_REWARDS.map { it.first } + SurpriseExam.BOOK).distinct()
-        .map { ObjType(it, "Item $it", stackable = it == 995) }
+        .map { if (it == SurpriseExam.BOOK) ObjType(it, "Book of Knowledge", iops = listOf("Read", null, null, null, "Destroy")) else ObjType(it, "Item $it", stackable = it == 995) }
     private val doors = listOf(
         ZoneLoc(9316, LocShape.WALL_STRAIGHT, 2, 1881, 5022, 0), ZoneLoc(9317, LocShape.WALL_STRAIGHT, 2, 1881, 5030, 0),
         ZoneLoc(9318, LocShape.WALL_STRAIGHT, 3, 1886, 5033, 0), ZoneLoc(9319, LocShape.WALL_STRAIGHT, 0, 1891, 5019, 0),
@@ -109,8 +112,18 @@ class HeadlessSurpriseExamTest {
         await("the class ended") { if (server.world.instances.all.isEmpty()) Unit else null }
     }
 
+    /** Every question answered right from the first: three right, and his words for passing. */
+    private fun HeadlessClient.passAll(seenBefore: Int) {
+        var seen = seenBefore
+        repeat(SurpriseExam.TO_PASS) { n ->
+            if (n > 0) chatStarting("[surprise_exam.right_")
+            chat("[surprise_exam.pick_next]")
+            pick(question(seen++))
+        }
+    }
+
     @Test
-    fun `three right pass, a wrong one repeats the question, and the door gives the book`(@TempDir dir: Path) {
+    fun `three right pass, a wrong one repeats the question, the door gives the book, another pass gives something else, and Read uses it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.ready()
@@ -146,6 +159,35 @@ class HeadlessSurpriseExamTest {
                 client.over()
                 client.door(server)
                 client.await("the book") { if (client.count(SurpriseExam.BOOK) == 1) Unit else null }
+                val coinsEtc = SurpriseExam.OTHER_REWARDS.map { it.first }
+                assertTrue(coinsEtc.all { client.count(it) == 0 }, "only the book")
+
+                // Passing again with the book owned: another reward from the list, not a second book.
+                val seenFirst = client.clientScripts().count { it.id == SurpriseExam.SETMODEL_SCRIPT } / 7
+                client.awaitTicks(2)
+                client.intoClass("alice")
+                client.passAll(seenFirst)
+                client.chat("[surprise_exam.well_done]")
+                client.chat("[surprise_exam.already_have]")
+                client.chat("[surprise_exam.to_exit]")
+                client.over()
+                client.door(server)
+                val other = client.await("the other reward") { SurpriseExam.OTHER_REWARDS.firstOrNull { (id, count) -> client.count(id) == count } }
+                val ids = SurpriseExam.OTHER_REWARDS.map { it.first }.distinct()
+                assertEquals(listOf(other.first), ids.filter { client.count(it) > 0 }, "one other reward")
+                assertEquals(1, client.count(SurpriseExam.BOOK), "still one book")
+
+                // Read: the experience window, 15 times the level, and the book used up.
+                client.command("setlevel agility 30")
+                client.await("Agility 30") { client.stat(Skill.AGILITY.id)?.takeIf { it.level == 30 } }
+                val before = client.stat(Skill.AGILITY.id)!!.xp
+                val slot = client.inventory(Inventory.INV).indexOfFirst { it?.id == SurpriseExam.BOOK }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, SurpriseExam.READ + 1, slot, SurpriseExam.BOOK)
+                client.await("the reward window") { if (XpLamp.INTERFACE in client.openInterfaces()) Unit else null }
+                client.resumePause(XpLamp.INTERFACE, XpLamp.UNIVERSE, XpLamp.BY_INDEX.indexOf(Skill.AGILITY))
+                client.await("450 Agility XP") { client.stat(Skill.AGILITY.id)?.takeIf { it.xp == before + 30 * SurpriseExam.BOOK_TIMES } }
+                client.await("the book read") { if (client.count(SurpriseExam.BOOK) == 0) Unit else null }
+                client.await("the message") { client.messages().firstOrNull { it.text == "[xp_lamp.granted xp=450 skill=Agility]" } }
             }
         }
     }
