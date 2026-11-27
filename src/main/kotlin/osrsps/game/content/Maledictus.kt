@@ -162,14 +162,20 @@ object Maledictus {
     /** The tick each maledictus appeared (or, one put out by `::wboss`, was first seen). */
     private val born = WeakHashMap<Npc, Long>()
 
-    /** Its 10 minutes are up and no one has hit it for [CALM_TICKS]. */
+    /**
+     * Its 10 minutes are up and for [CALM_TICKS] no one has hit it, nor has it attacked anyone: a player tanking it
+     * without fighting back keeps it there too (Codex review on #1022).
+     */
     fun expired(world: World, npc: Npc): Boolean =
-        world.tick - born.getOrPut(npc) { world.tick } >= LIFE_TICKS && world.tick - npc.attackedTick >= CALM_TICKS
+        world.tick - born.getOrPut(npc) { world.tick } >= LIFE_TICKS &&
+            world.tick - maxOf(npc.attackedTick, fights[npc]?.firedTick ?: -1) >= CALM_TICKS
 
     /** One fight's state. */
     private class Fight {
         var attacks = 0
         var specials = 0
+        /** The tick of its last attack, standard or special. */
+        var firedTick = -1L
     }
 
     private val fights = WeakHashMap<Npc, Fight>()
@@ -197,6 +203,7 @@ object Maledictus {
         val targets = inRange()
         if (targets.isEmpty() || world.tick < boss.nextAttackTick) return
         boss.nextAttackTick = world.tick + SPEED
+        fight.firedTick = world.tick
         fight.attacks++
         if (fight.attacks % SPECIAL_EVERY != 0) {
             for (player in targets) world.meleeCombat.fireAt(boss, player, world.tick, STANDARD, AttackType.RANGED, PRAYED_PERCENT)
@@ -209,6 +216,9 @@ object Maledictus {
             Special.BLOOD -> {
                 var total = 0
                 spell(targets, ANIM_BLOOD, SPOT_BLOOD, done = {
+                    // Not a dead boss's: a hit that landed may have killed it (Retribution), and a dead body with
+                    // hitpoints back would lose its damage tally, so its loot (Codex review on #1022).
+                    if (boss.dead || boss.hitpoints <= 0) return@spell
                     boss.hitpoints = minOf(boss.maxHitpoints, boss.hitpoints + total / 2)
                     log("heals ${total / 2}")
                 }) { _, dealt -> total += dealt }
@@ -227,6 +237,7 @@ object Maledictus {
         log("casts ${if (anim == ANIM_ICE) "ice" else "blood"} at ${aimed.entries.joinToString(" ") { "${it.key.username}@${it.value.x},${it.value.z}" }}")
         after(SPELL_TICKS) {
             for ((player, tile) in aimed) {
+                if (boss.dead) break
                 world.zones.mapAnim(tile.x, tile.z, boss.level, spot)
                 if (player.dead || players.none { it === player } || player.x != tile.x || player.z != tile.z) continue
                 val rolled = roll(0, SPELL_MAX)
@@ -266,13 +277,19 @@ object Maledictus {
         val drops = ArrayList<Pair<Int, Int>>()
         drops += TOP_UNIQUES[world.random.nextInt(TOP_UNIQUES.size)] to 1
         val skulled = (topPlayer?.skullTicks ?: 0) > 0
+        // No looting bag for a top damager who owns one, nor a second from the other roll (Codex review on #1022).
+        var ownsBag = topPlayer != null && RevenantDrops.ownsBag(topPlayer, world.groundObjs::hasDropped)
         repeat(2) {
-            for (drop in RevenantDrops.roll(world.random, DRAGON, DRAGON_COMBAT, skulled) { world.objTypes[it] }) drops += drop.type.id to drop.count
+            for (drop in RevenantDrops.roll(world.random, DRAGON, DRAGON_COMBAT, skulled, ownsBag) { world.objTypes[it] }) {
+                drops += drop.type.id to drop.count
+                if (drop.type.id == RevenantDrops.LOOTING_BAG) ownsBag = true
+            }
         }
         for ((id, count) in drops) {
             val type = world.objTypes[id] ?: continue
             world.groundObjs.addPrivate(type, count, npc.x, npc.z, npc.level, top, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
-            topPlayer?.let { world.lootNotifications.dropped(it, type, count) }
+            // The collection log's entry too, kept for a top damager who has logged out (Codex review on #1022).
+            world.lootDroppedFor(top, type, count)
         }
         for (key in damage.keys) {
             if (key == top) continue

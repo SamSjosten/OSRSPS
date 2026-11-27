@@ -10,6 +10,8 @@ import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.map.CollisionMap
 
@@ -58,5 +60,23 @@ class MaledictusTest {
     @Test
     fun `its specials come in turn, ice first`() {
         assertEquals(listOf(Maledictus.Special.ICE, Maledictus.Special.BLOOD, Maledictus.Special.SURGE), Maledictus.Special.entries)
+    }
+
+    @Test
+    fun `the top damager's two dragon rolls give one looting bag at most`() {
+        // Only the bag known, so only bags land: each kill's pile is its bags.
+        val bag = ObjType(RevenantDrops.LOOTING_BAG, "Looting bag")
+        val world = World(IntArray(0), CollisionMap(), npcTypes = NpcTypes.of(boss), objTypes = ObjTypes.of(bag), random = GameRandom(2))
+        Maledictus.revenantKilled(world, Maledictus.RATE)
+        val npc = assertNotNull(Maledictus.active(world))
+        var some = 0
+        repeat(300) {
+            Maledictus.loot(world, npc, mapOf("bob" to 100))
+            val bags = world.groundObjs.clear(npc.x, npc.z, npc.level)
+            assertTrue(bags <= 1, "two bags from one kill")
+            some += bags
+        }
+        // 1 in 3 a roll at combat 135: about 5 in 9 kills give one.
+        assertTrue(some in 120..210, "$some")
     }
 }
