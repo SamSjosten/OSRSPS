@@ -255,6 +255,24 @@ class HeadlessDemonicBrutusTest {
                 // Where she can reach him already, he lands as aimed.
                 val open = run.inside(3256, 3270)
                 assertEquals(open, DemonicBrutus.landing(server.world, boss, run, fay, open))
+                // A pen of wall-shaped fence, its edges on the pen's own tiles: the ground just outside it is open,
+                // but the wall stands between it and him.
+                val walled = run.inside(3244, 3280)
+                for (i in 0..2) {
+                    map.add(walled.x, walled.z + i, 0, CollisionFlag.WALL_WEST)
+                    map.add(walled.x - 1, walled.z + i, 0, CollisionFlag.WALL_EAST)
+                    map.add(walled.x + 2, walled.z + i, 0, CollisionFlag.WALL_EAST)
+                    map.add(walled.x + 3, walled.z + i, 0, CollisionFlag.WALL_WEST)
+                    map.add(walled.x + i, walled.z, 0, CollisionFlag.WALL_SOUTH)
+                    map.add(walled.x + i, walled.z - 1, 0, CollisionFlag.WALL_NORTH)
+                    map.add(walled.x + i, walled.z + 2, 0, CollisionFlag.WALL_NORTH)
+                    map.add(walled.x + i, walled.z + 3, 0, CollisionFlag.WALL_SOUTH)
+                }
+                assertTrue(server.world.npcs.canStand(boss, walled.x, walled.z), "he'd fit in it")
+                assertTrue(!server.world.canWalkBeside(fay, walled.x, walled.z, 3), "she can't reach him in it")
+                val outOfWalls = DemonicBrutus.landing(server.world, boss, run, fay, walled)
+                assertTrue(outOfWalls != null && outOfWalls != walled, "not shut in by walls: $outOfWalls")
+                assertTrue(server.world.canWalkBeside(fay, outOfWalls.x, outOfWalls.z, 3))
             }
         }
     }

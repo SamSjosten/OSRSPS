@@ -15,6 +15,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
 import osrsps.game.content.Brutus
 import osrsps.game.content.CowbellAmulet
@@ -52,11 +53,13 @@ class HeadlessCowbellAmuletTest {
         ObjType(CowbellAmulet.EMPTY, "Cowbell amulet", iops = listOf(null, "Wear", "Ring", "Charge", "Drop")),
         ObjType(CowbellAmulet.CHARGED, "Cowbell amulet", iops = listOf("Teleport", "Wear", "Ring", "Check", "Uncharge")),
         ObjType(CowbellAmulet.AIR_RUNE, "Air rune", stackable = true),
+        ObjType(PLATEBODY, "Rune platebody", cost = 65_000),
     )
+    private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
-        val npcTypes = NpcTypes.of(brutus, gillie)
+        val npcTypes = NpcTypes.of(brutus, gillie, grave)
         World(
             crcs, map, random = GameRandom(17), objTypes = objs, locTypes = types,
             staticLocs = StaticLocs().apply { add(ZoneLoc(Brutus.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3262, 3294, 0)) },
@@ -204,5 +207,28 @@ class HeadlessCowbellAmuletTest {
                 assertTrue(CowbellAmulet.owned(server.world, gina), "but on the ground, hers")
             }
         }
+    }
+
+    @Test
+    fun `an amulet in her grave is still hers, so Gillie gives no other`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gwen").use { client ->
+                client.await("the login rebuild") { client.position }
+                val world = server.world
+                val gwen = world.playerNamed("gwen")!!
+                // Three costlier things are kept on death, so the amulet goes to the grave (exploit review R64B-1).
+                for (command in listOf("item $PLATEBODY", "item $PLATEBODY", "item $PLATEBODY", "item ${CowbellAmulet.EMPTY}")) client.command(command)
+                client.await("the bag filled") { client.inventory(93).takeIf { it.count { obj -> obj != null } == 4 } }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                client.await("the respawn", timeoutMillis = 10_000) { world.deaths.graveOf(gwen)?.takeIf { !gwen.dead } }
+                assertTrue(world.deaths.graveOf(gwen)!!.items.count(CowbellAmulet.EMPTY) > 0, "the amulet in the grave")
+                assertTrue(!CowbellAmulet.anywhere(gwen), "not held, worn or banked")
+                assertTrue(CowbellAmulet.owned(world, gwen), "but in her grave, hers")
+            }
+        }
+    }
+
+    private companion object {
+        const val PLATEBODY = 1127
     }
 }
