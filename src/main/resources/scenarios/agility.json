@@ -3,6 +3,7 @@
   "notes": "For the Agility runner scripts (test-runner/examples/agility-*.json) and looking at the courses by hand. Hitpoints are a new account's 10, so a fall's damage shows.",
   "position": { "x": 3103, "z": 3279, "level": 0 },
   "skills": { "agility": 87 },
+  "skills": { "agility": 89 },
   "runEnergy": 10000, "run": true,
   "bank": [
     { "item": "graceful_hood" },

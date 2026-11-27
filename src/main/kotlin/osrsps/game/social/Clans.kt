@@ -750,17 +750,23 @@ class Clans(
      */
     fun mayParty(player: Player, clan: ClanStore.Clan, id: Int): Boolean = has(player, clan, id)
 
-    /** The last tick a coffer transfer or a party chest confirm wrote to the disk. */
-    private var lastDurableWrite = Long.MIN_VALUE
+    /** The tick of the last coffer transfer or party chest confirm that wrote to the disk, and how many wrote in it. */
+    private var durableWriteTick = Long.MIN_VALUE
+    private var durableWrites = 0
 
     /**
-     * Whether a coffer transfer or a party chest confirm may write to the disk on tick [tick]; marks the tick when so.
-     * One a tick across every clan, since each rewrites clans.json or a player's save with forced syncs on the game
-     * thread (exploit review R60C-1).
+     * Whether a coffer transfer or a party chest confirm may write to the disk on tick [tick]; counts it when so.
+     * [DURABLE_WRITES_PER_TICK] a tick across every clan, since each rewrites clans.json or a player's save with forced
+     * syncs on the game thread (exploit review R60C-1), and more than one so that two accounts taking turns can't shut
+     * every other clan out (R64C-3).
      */
     fun takeDurableWrite(tick: Long): Boolean {
-        if (lastDurableWrite == tick) return false
-        lastDurableWrite = tick
+        if (durableWriteTick != tick) {
+            durableWriteTick = tick
+            durableWrites = 0
+        }
+        if (durableWrites >= DURABLE_WRITES_PER_TICK) return false
+        durableWrites++
         return true
     }
 
@@ -1903,6 +1909,9 @@ class Clans(
     private fun runeDay(): Int = ChronoUnit.DAYS.between(RUNE_EPOCH, now().atOffset(ZoneOffset.UTC).toLocalDate()).toInt()
 
     companion object {
+        /** Disk-writing coffer transfers and party confirms a tick, server-wide (R64C-3). Guessed: a few forced syncs. */
+        const val DURABLE_WRITES_PER_TICK = 4
+
         /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
             get() = mapOf(

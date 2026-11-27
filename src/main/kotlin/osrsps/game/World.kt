@@ -58,6 +58,7 @@ import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerTaiBwoCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerRandomEventCommands
 import osrsps.game.content.registerXpLamp
@@ -198,6 +199,12 @@ import osrsps.game.content.registerVenenatis
 import osrsps.game.content.registerCorporealBeast
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
+import osrsps.game.content.RevenantCaves
+import osrsps.game.content.SinglesPlus
+import osrsps.game.content.registerRevenantCaves
+import osrsps.game.content.registerRevenants
+import osrsps.game.content.registerEmblemTrader
+import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -755,6 +762,7 @@ class World(
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.SurpriseExam.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
@@ -808,6 +816,7 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
+            osrsps.game.content.EvilChicken.damaged(this, npc, player)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -839,7 +848,7 @@ class World(
     val pvpCombat = PvpCombat(
         collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
         inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
-        multi = multiCombat, players = { players.asSequence().filterNotNull() },
+        multi = multiCombat, players = { players.asSequence().filterNotNull() }, singlesPlus = SinglesPlus::at,
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
@@ -873,7 +882,8 @@ class World(
                 if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
             }
         },
-        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
+        // And a death on the balance beam takes back the pugel it gave (Codex review on #1018).
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it); combatRoom.dying(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -885,7 +895,8 @@ class World(
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
-        forfeit = WildernessLairFee::forfeit,
+        forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
+        diedUnkilled = RevenantCaves::lose,
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
@@ -1123,6 +1134,8 @@ class World(
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
     val clanParty = osrsps.game.content.ClanParty(this)
+    val clanHallFurniture = osrsps.game.content.ClanHallFurniture(this)
+    val clanHallPeople = osrsps.game.content.ClanHallPeople(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1253,6 +1266,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerTaiBwoCommands()
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
@@ -1380,6 +1394,10 @@ class World(
         registerSpindel(this)
         registerVenenatis(this)
         registerCorporealBeast(this)
+        registerRevenantCaves(this)
+        registerRevenants(this)
+        registerEmblemTrader(this)
+        registerMaledictus(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1494,6 +1512,8 @@ class World(
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
+        clanHallFurniture.register()
+        clanHallPeople.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -1948,9 +1968,11 @@ class World(
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
         player.vars.setVarbitIfKnown(VARBIT_WILDY_HUB_BUFFER, if (inside && player.level == 0 && Wilderness.inFerox(player.x, player.z)) 1 else 0)
-        if (player.attackOp != inside) {
-            player.attackOp = inside
-            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        // A house's fighting ring offers Attack too (Construction CON6c).
+        val attack = inside || pvpCombat.inArena(player)
+        if (player.attackOp != attack) {
+            player.attackOp = attack
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { attack }))
         }
     }
 
@@ -1962,6 +1984,7 @@ class World(
     private fun sendMultiIndicator(player: Player) {
         val multi = if (multiCombat.at(player.level, player.x, player.z)) 1 else 0
         player.vars.setVarbitIfKnown(MultiCombat.VARBIT_INDICATOR, multi)
+        player.vars.setVarbitIfKnown(SinglesPlus.VARBIT_INDICATOR, if (multi == 0 && SinglesPlus.at(player.level, player.x, player.z)) 1 else 0)
     }
 
     /**
@@ -2590,7 +2613,8 @@ class World(
         player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
-        PlayerOps.send(player.vars, player.session::queue)
+        // Challenge in the Rat Pits too (exploit review 64, R64A-3).
+        PlayerOps.send(player.vars, player.session::queue, slot5 = player.slot5Op)
         // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
         player.attackOp = false
         clans.resync(player)
@@ -3430,8 +3454,15 @@ class World(
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
-        // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        // The revenants' shared table hangs on their combat level and the killer's skull (Wilderness step W5.3). A
+        // superior's three rolls on its normal counterpart's table come after its own drops.
+        val rolled = if (npc.type.id in osrsps.game.content.Revenants.IDS) {
+            val ownsBag = killer != null && osrsps.game.content.RevenantDrops.ownsBag(killer, groundObjs::hasDropped)
+            osrsps.game.content.RevenantDrops.roll(random, npc.type.id, npc.type.combatLevel, (killer?.skullTicks ?: 0) > 0, ownsBag) { objTypes[it] }
+        } else {
+            npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
+                osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
+        }
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
@@ -3956,6 +3987,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            clanHallFurniture.forget(player)
             fairyRings.forget(player)
             balloons.forget(player)
             makeoverScreen.forget(player)

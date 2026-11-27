@@ -63,6 +63,15 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val FURNITURE_SKILL_LEVEL = line("furniture_skill_level", "Building furniture above another skill's level it needs, {skill} {level} (the barrels' Cooking; no source yet)", "skill", "level")
     val FURNITURE_CREST = line("furniture_crest", "Building a wall decoration without a family crest (the Dining room page: they need one from Sir Renitee; no source for the words)")
     val TAKE_SUPPLIES = line("take_supplies", "The Make-X box's title on searching a larder or kitchen shelves (no source yet)")
+    val ARENA_NOT_SAME = line("arena_not_same", "Attack on a player who isn't in the same fighting ring of the combat room (ours; no source yet)")
+    val ARENA_KIT = line("arena_kit", "Attack in the boxing or fencing ring wearing what it doesn't allow: armour, jewellery, or a weapon in the boxing ring (the ring pages: not allowed; no source for the words)")
+    val ARENA_TARGET_KIT = line("arena_target_kit", "Attack in the boxing or fencing ring on a player wearing what it doesn't allow (the ring pages: not allowed; no source for the words; Codex review on #1017)")
+    val ARENA_STYLE = line("arena_style", "Attack in a fighting ring with a style it doesn't allow: ranged or magic in the boxing or fencing ring, melee from a ranging pedestal (the ring pages; no source for the words)")
+    val BEAM_PUGEL = line("beam_pugel", "Stand-on on the balance beam without a pugel (the Balance beam page: a pugel from the extra weapons rack is needed; no source for the words)")
+    val BEAM_HANDS = line("beam_hands", "Stand-on on the balance beam holding something in either hand, where the pugel is wielded (ours; no source yet)")
+    val BEAM_TAKEN = line("beam_taken", "Stand-on on a part of the balance beam another player stands on (ours; no source yet)")
+    val ARENA_PUGEL = line("arena_pugel", "Attack on the balance beam without the pugel wielded, or with ranged or magic (ours; no source yet)")
+    val DUMMY_DETACH_FIRST = line("dummy_detach_first", "Upgrade or Remove on an attached combat dummy (the Undead combat dummy page: the sandbag must be detached first; no source for the words)")
     val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
     val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
     val REMOVE_FURNITURE_TITLE = line("remove_furniture_title", "Remove on built furniture: the prompt asking whether to remove it (no source yet)")
@@ -207,6 +216,9 @@ class Houses(private val world: World) {
 
         /** By tile and layer ([slot]), the hotspot the room's template put there, whatever is built over it now. */
         val hotspots = HashMap<Long, ZoneLoc>()
+
+        /** By the dummy's tile and layer ([slot]), each combat dummy attached now, with the loc it stands in for ([CombatRoom]). */
+        val dummies = HashMap<Long, CombatRoom.Attached>()
     }
 
     /** A cell of the house's grid on one of its floors ([House.GROUND] or [House.UPPER]). */
@@ -326,6 +338,8 @@ class Houses(private val world: World) {
      * goes as its taker does, carried or worn (Codex review on #906).
      */
     private fun dropHouseOnly(player: Player) {
+        // Nothing of theirs is kept for the balance beam once they are gone (Codex review on #1018).
+        world.combatRoom.forget(player)
         for ((slot, obj) in player.inventory.contents()) if (obj.id in HouseOnly.OBJS) player.inventory.remove(slot)
         for ((slot, obj) in player.equipment.contents()) if (obj.id in HouseOnly.OBJS) player.equipment.remove(slot, obj.count)
     }
@@ -337,6 +351,8 @@ class Houses(private val world: World) {
      */
     fun deathPlace(player: Player): DeathPlace? {
         val house = houseAt(player.x, player.z) ?: return null
+        // A death in a fighting ring stays in the room (Construction CON6c).
+        world.combatRoom.arenaDeathTile(player)?.let { return DeathPlace(keepItems = true, it.x, it.z, player.level, it.x, it.z, player.level, safe = true) }
         val outside = outside(house.instance)
         return DeathPlace(keepItems = true, outside.x, outside.z, 0, outside.x, outside.z, 0, safe = true)
     }
@@ -607,7 +623,14 @@ class Houses(private val world: World) {
         val instance = house.instance
         val baseX = instance.baseX + (cell.x shl 3)
         val baseZ = instance.baseZ + (cell.z shl 3)
+        // Anyone on a balance beam there comes off it first, with the pugel it gave (Codex review on #1018).
+        world.combatRoom.offBeam(house, cell.x, cell.z, cell.floor)
         world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7, cell.floor)
+        // A combat dummy attached there goes with the room it hangs in, its loc laid again below (CON6b).
+        house.dummies.values.removeAll { attached ->
+            val loc = attached.loc
+            (loc.level == cell.floor && loc.x in baseX..baseX + 7 && loc.z in baseZ..baseZ + 7).also { if (it) world.removeNpc(attached.npc) }
+        }
         house.hotspots.values.removeAll { it.level == cell.floor && it.x in baseX..baseX + 7 && it.z in baseZ..baseZ + 7 }
         if (type == null) {
             world.instances.clear(instance, cell.x, cell.z, cell.floor)

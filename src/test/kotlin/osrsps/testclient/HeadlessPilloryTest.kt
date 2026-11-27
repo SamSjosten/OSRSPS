@@ -158,7 +158,7 @@ class HeadlessPilloryTest {
     }
 
     @Test
-    fun `logging out in a cage keeps the player in, done they go to Lumbridge, and the end command lets one out`(@TempDir dir: Path) {
+    fun `logging out in a cage keeps the player in and their way back, and the end command lets one out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.ready(3205, 3210)
@@ -178,11 +178,11 @@ class HeadlessPilloryTest {
                 client.await("the lock window") { if (Pillory.INTERFACE in client.openInterfaces()) Unit else null }
                 val stay = Pillory.stayOf(server.world.onlinePlayers.single())!!
                 repeat(stay.locks) { client.select(stay, right = true) }
-                client.await("Lumbridge") { client.position?.takeIf { it == Coord(World.SPAWN_X, World.SPAWN_Z, 0) } }
+                // The way back is saved with the account (exploit review R63C-3), not Lumbridge.
+                client.await("back where they were") { client.position?.takeIf { it == Coord(3205, 3210, 0) } }
+                assertEquals(0, server.world.onlinePlayers.single().charges[Pillory.ARRESTED], "released")
 
                 // ::randomevent end lets a prisoner out with nothing.
-                client.command("tele 3205 3210 0")
-                client.await("the teleport") { client.position?.takeIf { it == Coord(3205, 3210, 0) } }
                 val before = client.inventory(Inventory.INV).filterNotNull()
                 client.arrested()
                 client.commandReply("randomevent end") { it == "Ended random event ${Pillory.key}" }
@@ -231,6 +231,42 @@ class HeadlessPilloryTest {
                 client.await("home") { client.position?.takeIf { it == home } }
                 client.awaitTicks(1)
                 assertEquals(null, Pillory.stayOf(erin))
+            }
+        }
+    }
+
+    @Test
+    fun `a player who logs in on a cage tile unarrested gets no window, and no event takes a prisoner`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val cell = Pillory.TOWNS[0][0]
+            server.login("fred").use { client ->
+                client.ready(cell.x, cell.z)
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            val deadline = System.nanoTime() + 10_000_000_000
+            while (server.world.onlinePlayers.isNotEmpty()) {
+                check(System.nanoTime() < deadline) { "fred still online" }
+                Thread.sleep(20)
+            }
+            server.login("fred").use { client ->
+                // Exploit review R63C-1: no arrest, so no puzzle and no reward from a relog on the tile.
+                client.await("the login rebuild") { client.position?.takeIf { it == Coord(cell.x, cell.z, 0) } }
+                client.awaitTicks(Pillory.LOGIN_OPEN_TICKS + 3)
+                assertTrue(Pillory.INTERFACE !in client.openInterfaces(), "no lock window")
+                val fred = server.world.onlinePlayers.single()
+                assertEquals(null, Pillory.stayOf(fred))
+                client.ifButton(Pillory.INTERFACE, Pillory.BUTTONS[0], 1)
+                client.awaitTicks(2)
+                assertEquals(Coord(cell.x, cell.z, 0), client.position, "nothing let out")
+                assertTrue(client.inventory(Inventory.INV).filterNotNull().isEmpty(), "no reward")
+
+                // Exploit review R63C-2: arrested and held, no teleporting event may come for them.
+                client.command("tele 3222 3218 0")
+                client.await("home") { client.position?.takeIf { it == home } }
+                client.arrested()
+                assertTrue(Pillory.held(fred))
+                assertTrue(!server.world.randomEvents.allowedAt(fred, Pillory), "no teleporting event for a prisoner")
             }
         }
     }

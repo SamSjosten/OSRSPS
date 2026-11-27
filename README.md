@@ -63,7 +63,7 @@ in the code. Current RuneLite connects unchanged.
 
 | | |
 |---|---|
-| **Places** | The boat from Port Sarim to Musa Point |
+| **Places** | Musa Point and the boat from Port Sarim, the Karamja Volcano, Brimhaven (town, dungeon, Agility Arena), Cairn Isle, Tai Bwo Wannai, Mor Ul Rek's shops |
 | **Bosses** | The Fight Caves (being built) |
 
 </details>
@@ -239,6 +239,7 @@ related ones.
 | `::locs [radius]` | **everyone.** Locs near you: id, name, tile, shape, angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` / `::delloc` | Puts a loc on your tile, or removes every loc there |
 | `::resetlocs [radius]` | Puts nearby locs back as the cache has them |
+| `::tbwevent <event>` | Makes your next Tai Bwo Wannai jungle event that one |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays to an NPC or tile |
 
 </details>

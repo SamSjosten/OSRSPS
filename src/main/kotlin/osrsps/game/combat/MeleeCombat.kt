@@ -264,10 +264,10 @@ class MeleeCombat(
      * them and is still here. So an NPC held at its max range by a player out of its reach is free again once neither
      * side has fought for that long. Guessed: the Wiki says a single-way NPC stays someone's for a while after their
      * last hit, but not how long, and that only one player or monster can attack one at a time. Never for an NPC
-     * standing in a multi-way area (guessed: by the NPC's tile, not the player's).
+     * standing in a multi-way area (guessed: by the NPC's tile, not the player's), nor for a [Npc.multiTarget] one.
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
-        if (multi.at(npc.level, npc.x, npc.z)) return false
+        if (npc.multiTarget || multi.at(npc.level, npc.x, npc.z)) return false
         val tick = currentTick()
         val target = npc.target
         if (target != null && target !== player && !target.loggedOut && tick - npc.fightTick <= IN_COMBAT_TICKS) return true
@@ -301,6 +301,32 @@ class MeleeCombat(
         val other = player.attackedNpc ?: return false
         return !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
+
+    /**
+     * [player] is out of any fight with a monster: their attack on one stops, and one fighting them gives up, before
+     * its first hit as after. Their PJ
+     * timer then keeps the monster off them, and them off it, as a player fight does in single-way combat
+     * ([underAttackByAnother]).
+     */
+    internal fun leaveNpcFight(player: Player) {
+        val interaction = player.interaction
+        if (interaction is MeleeInteraction || interaction is RangedInteraction || interaction is MagicInteraction) {
+            player.interaction = null
+            stopFacing(player)
+        }
+        // The monster they fight, whether or not it has hit them yet, as well as one hitting them (Codex review on #1002).
+        for (npc in listOfNotNull(player.attackedBy, player.attackedNpc, player.launchedAtNpc)) if (npc.target === player) giveUp(npc)
+        player.attackedNpc = null
+        player.npcFightLeftTick = currentTick()
+    }
+
+    /**
+     * Whether [player]'s attack landing on a monster on [tick] was launched before a singles-plus PvP attack ended their
+     * monster fight, with their PJ timer still running: its damage counts, but it starts no fight with the monster, theirs
+     * or its (Codex review on #1002).
+     */
+    private fun displaced(player: Player, tick: Long): Boolean =
+        player.npcFightLeftTick >= 0 && tick < player.pjUntil && player.launchedAtNpcTick <= player.npcFightLeftTick
 
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
@@ -414,8 +440,10 @@ class MeleeCombat(
         val damage = minOf(armoured(npc, landed, magic = false, player, style.type), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
-        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        if (combat.paysXp(npc)) {
+            for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
+            player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        }
         val poison = PoisonedWeapons.melee(combat.weapon(player))
         attackMade(player, npc, tick)
         landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z), combat.finishes(npc, player, style.type))
@@ -542,16 +570,20 @@ class MeleeCombat(
         val dealt = if (!finishing && combat.immune(npc)) 0
         else damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source, finisher = finisher)).coerceAtLeast(0))
         npc.hitpoints -= dealt
+        // A combat dummy never goes down (Combat.dummy): INFERRED that it is whole again at once.
+        val dummy = combat.dummy(npc)
+        if (dummy) npc.hitpoints = npc.maxHitpoints
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
         if (dealt > 0) npc.effects.hit(from, damageMe(source, dealt, maxHit), HitsplatType.DAMAGE_OTHER, dealt)
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
         npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
-        attacked(npc, source, tick)
+        val displaced = source != null && displaced(source, tick)
+        attacked(npc, source.takeUnless { displaced }, tick)
         if (npc.hitpoints > 0 || npc.holdsAtZero) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
-            if (source != null) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+            if (source != null && !dummy && !displaced) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
         } else {
             die(npc, def, source, tick)
         }
@@ -565,9 +597,9 @@ class MeleeCombat(
      */
     fun splashed(npc: Npc, source: Player, tick: Long, attackedFrom: Tile? = null) {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
-        if (npc.outOfPlay) return
+        if (npc.outOfPlay || displaced(source, tick)) return
         attacked(npc, source, tick)
-        hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+        if (!combat.dummy(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
     }
 
     /**

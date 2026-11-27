@@ -19,7 +19,7 @@ data class PlayerMove(val index: Int, val type: MoveType, val to: Coord)
 enum class ActorEventKind { ANIMATION, SPOTANIM, HITSPLAT }
 
 /**
- * An animation ([id], -1 to stop one), a spotanim ([id]) or a hitsplat ([id] its type, [amount] its damage) on a player
+ * An animation ([id], -1 to stop one; [amount] its delay in client cycles), a spotanim ([id]) or a hitsplat ([id] its type, [amount] its damage) on a player
  * or an NPC by index, and the tick count the client had seen when it came.
  */
 data class ActorEvent(val kind: ActorEventKind, val npc: Boolean, val index: Int, val id: Int, val amount: Int = 0, val ticks: Int = 0)
@@ -195,8 +195,8 @@ class PlayerInfoReader(val localIndex: Int) {
             if (flags and MOVE_SPEED != 0) buf.g1Alt3()
             if (flags and SEQUENCE != 0) {
                 val id = buf.g2()
-                buf.g1Alt3() // delay
-                events += ActorEvent(ActorEventKind.ANIMATION, false, index, if (id == NONE) -1 else id)
+                val delay = buf.g1Alt3()
+                events += ActorEvent(ActorEventKind.ANIMATION, false, index, if (id == NONE) -1 else id, amount = delay)
                 if (index == localIndex) localAnimated = true
             }
             if (flags and HITMARKS != 0) {

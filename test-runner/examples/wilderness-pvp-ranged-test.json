@@ -19,6 +19,9 @@
   {"step": "command", "text": "::wildy 1", "expectMessage": ": level 1 Wilderness", "comment": "away out of range: the fight ends"},
   {"step": "command", "text": "::sure off", "expectMessage": "Your attacks"},
   {"step": "command", "text": "::xprate restore", "expectMessage": "XP rate back to "},
+  {"step": "wornOption", "slot": "weapon", "option": "Remove", "comment": "the bow and arrows off again, so later scripts that attack without a scenario don't fire a bow (nightly 2026-11-27, combat.no_ammo)"},
+  {"step": "wornOption", "slot": "ammo", "option": "Remove"},
+  {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied."},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
  ]
 }

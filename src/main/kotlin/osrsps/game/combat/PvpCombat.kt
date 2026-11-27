@@ -96,6 +96,8 @@ class PvpCombat(
     private val multi: MultiCombat = MultiCombat(),
     /** Everyone in the world, for a Burst or Barrage's other targets. */
     private val players: () -> Sequence<Player> = { emptySequence() },
+    /** Where combat is singles-plus ([osrsps.game.content.SinglesPlus]): a monster's fight bars no player's attack. */
+    private val singlesPlus: (level: Int, x: Int, z: Int) -> Boolean = { _, _, _ -> false },
 ) {
     /**
      * An attack on its way to [target], landing when they are next processed from [landTick]: [damage] of [type], or a
@@ -111,12 +113,53 @@ class PvpCombat(
         val hit: Boolean = true,
         val landed: () -> Unit = {},
         val level: Int = target.level,
+        /** Made on an arena's special ground ([arenaHitQueued]): it lands by [arenaHit] wherever the target is by then. */
+        val arena: Boolean = false,
     ) {
         /** A phoenix necklace's heal before it landed ([dropIncoming]): it lands nowhere, [landed] aside. */
         var cancelled = false
     }
 
     private val hits = ArrayList<Hit>()
+
+    /**
+     * Set by content: whether [Player] stands in a fighting arena outside the Wilderness, a house's fighting ring
+     * ([osrsps.game.skill.construction.CombatRoom]): Attack shows on other players there, an attack gives no skull, and
+     * the arena's own rules ([arenaRefusal]) take the Wilderness's ([PvpRules]) place.
+     */
+    var inArena: (Player) -> Boolean = { false }
+
+    /**
+     * Set by content: the lines refusing [Player]'s attack on another [Player] from an arena ([inArena]), empty when its
+     * rules allow it. The [Boolean] is whether the attack is a cast from the spellbook.
+     */
+    var arenaRefusal: (Player, Player, Boolean) -> List<Line> = { _, _, _ -> emptyList() }
+
+    /**
+     * Set by content: what a melee hit of the [Int] damage from the first [Player] does to the second when it was made on
+     * an arena's own ground ([arenaHitQueued]), whose rules take the hit's place, as the balance beam's knock-off does.
+     * True when it took the hit, which then deals no damage and draws nothing back.
+     */
+    var arenaHit: (Player, Player, Int) -> Boolean = { _, _, _ -> false }
+
+    /**
+     * Set by content: whether a melee hit [Player] makes on [Player] now lands by [arenaHit] instead of as damage, decided
+     * as it is made, so the target leaving the arena before it lands changes nothing (Codex review on #1018).
+     */
+    var arenaHitQueued: (Player, Player) -> Boolean = { _, _ -> false }
+
+    /** The lines refusing [attacker]'s attack on [target]: an arena's ([arenaRefusal]) from one, else the Wilderness's. */
+    private fun refusal(attacker: Player, target: Player, spell: Boolean = false): List<Line> =
+        if (inArena(attacker)) arenaRefusal(attacker, target, spell) else PvpRules.refusal(attacker, target)
+
+    /** Whether the skull prevention setting refuses the attack: never in an arena, which gives no skull. */
+    private fun skullPrevented(attacker: Player, target: Player, tick: Long): Boolean =
+        !inArena(attacker) && Skulls.prevented(attacker, target, tick)
+
+    /** [attacker]'s attack on [target] skulls as [Skulls] says, except in an arena. GUESSED: the Wiki says nothing of skulls there. */
+    private fun skull(attacker: Player, target: Player, tick: Long) {
+        if (!inArena(attacker)) Skulls.attacked(attacker, target, tick)
+    }
 
     /** The hits [land] is landing now, so [dropIncoming] reaches those not landed yet. */
     private var landingNow: List<Hit> = emptyList()
@@ -150,10 +193,10 @@ class PvpCombat(
     }
 
     private fun start(attacker: Player, target: Player, spell: CombatSpell?): List<Line> {
-        val refusal = PvpRules.refusal(attacker, target)
+        val refusal = refusal(attacker, target, spell != null)
         if (refusal.isNotEmpty()) return refusal
         singleWayRefusal(attacker, target, currentTick())?.let { return listOf(it) }
-        if (Skulls.prevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
+        if (skullPrevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
         if (mode(attacker, spell) == null) {
             cantFight(attacker)
             return emptyList()
@@ -186,7 +229,7 @@ class PvpCombat(
     internal fun tryInteract(player: Player, fight: PvpInteraction): Boolean {
         val target = fight.target
         if (!inWorld(target) || target.dead || target.hitpoints <= 0 || target.level != player.level) return true
-        val refusal = PvpRules.refusal(player, target)
+        val refusal = refusal(player, target, fight.spell != null)
         if (refusal.isNotEmpty()) {
             for (line in refusal) message(player, words(player)[line])
             return true
@@ -197,7 +240,7 @@ class PvpCombat(
             return true
         }
         // A skull can run out on the way.
-        if (Skulls.prevented(player, target, currentTick())) {
+        if (skullPrevented(player, target, currentTick())) {
             message(player, words(player)[PvpLines.SKULL_PREVENTED])
             return true
         }
@@ -285,8 +328,15 @@ class PvpCombat(
         return tick < player.pjUntil && opponent.saveKey == other.saveKey
     }
 
-    /** Whether a monster is fighting [player], or they are fighting one. */
-    private fun fightingAnyNpc(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
+    /** Whether a monster is fighting [player], or they are fighting one, outside singles-plus combat ([npcBars]). */
+    private fun fightingAnyNpc(player: Player, tick: Long): Boolean =
+        npcBars(player, tick) || (!singlesPlus(player.level, player.x, player.z) && melee.fightingNpc(player))
+
+    /**
+     * Whether a monster's fight with [player] bars a PvP attack, theirs or on them: not in singles-plus combat, where
+     * "another player attacking will take priority over fighting the monster" (OSRS Wiki, Singles-plus combat).
+     */
+    private fun npcBars(player: Player, tick: Long): Boolean = !singlesPlus(player.level, player.x, player.z) && npcFighting(player, tick)
 
     /** Whether a monster fighting [player] hit them within the monster PJ timer. */
     private fun npcFighting(player: Player, tick: Long): Boolean {
@@ -296,13 +346,17 @@ class PvpCombat(
 
     /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other, and a skull if unprovoked. */
     private fun fought(attacker: Player, target: Player, tick: Long) {
-        Skulls.attacked(attacker, target, tick)
+        skull(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
         attacker.pjAfterKill = false
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
         target.pjAfterKill = false
+        // In singles-plus combat "another player attacking will take priority over fighting the monster" (OSRS Wiki,
+        // Singles-plus combat): each one's monster fight ends, theirs on it and its on them, the attacker's player fight
+        // kept (Codex review on #1002).
+        for (player in arrayOf(attacker, target)) if (singlesPlus(player.level, player.x, player.z)) melee.leaveNpcFight(player)
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
@@ -332,7 +386,7 @@ class PvpCombat(
         player.effects.anim(combat.anims(player).attack(matchup.style), 0)
         val damage = dealt(target, matchup.style.type, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
         styleXp(player, matchup.style, damage)
-        hits += Hit(player, target, damage, tick + late(target, tick))
+        hits += Hit(player, target, damage, tick + late(target, tick), arena = arenaHitQueued(player, target))
         fought(player, target, tick)
     }
 
@@ -383,7 +437,7 @@ class PvpCombat(
                 other.pjUntil = tick + PJ_TICKS
                 other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
-                Skulls.attacked(player, other, tick)
+                skull(player, other, tick)
             }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
@@ -424,8 +478,8 @@ class PvpCombat(
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null &&
-                    !Skulls.prevented(player, it, tick)
+                    refusal(player, it, spell = true).isEmpty() && singleWayRefusal(player, it, tick) == null &&
+                    !skullPrevented(player, it, tick)
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)
@@ -458,6 +512,14 @@ class PvpCombat(
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
+            if (spell == null && hit.arena && arenaHit(hit.attacker, player, hit.damage)) {
+                // Still a hit by a player: the logout lock holds as for one that hurt (Codex review on #1018).
+                player.attackedByPlayer = hit.attacker
+                player.attackedByPlayerTick = tick
+                // Out of the fight: the attacker stops going for them.
+                if ((hit.attacker.interaction as? PvpInteraction)?.target === player) hit.attacker.interaction = null
+                continue
+            }
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
                 dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
@@ -606,8 +668,8 @@ class PvpCombat(
      */
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
-        if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        if (singleWayRefusal(player, attacker, tick) != null || Skulls.prevented(player, attacker, tick)) return
+        if (!inWorld(attacker) || attacker.dead || refusal(player, attacker).isNotEmpty()) return
+        if (singleWayRefusal(player, attacker, tick) != null || skullPrevented(player, attacker, tick)) return
         val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
         player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)

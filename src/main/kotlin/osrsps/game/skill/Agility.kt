@@ -157,6 +157,11 @@ class Obstacle(
     val rigged: Boolean = false,
     /** How many hitsplats of that damage a failure deals, each its own: Cairn Isle's rock slide deals two. */
     val damageHits: Int = 1,
+    /**
+     * For an obstacle a frozen or bound player can't use at all, even from its start: the most ticks of the freeze or
+     * bind that may be left (the Revenant Caves' pillars' 3); -1 for most, which only bar the walk to the start.
+     */
+    val frozenGraceTicks: Int = -1,
 ) {
     /** Whether the loc at [tile] is this obstacle, when its type is several. */
     fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
@@ -277,6 +282,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["damageHpPercent"]?.jsonPrimitive?.int ?: 0,
                 json["rigged"]?.jsonPrimitive?.boolean ?: false,
                 json["damageHits"]?.jsonPrimitive?.int ?: 1,
+                json["frozenGraceTicks"]?.jsonPrimitive?.int ?: -1,
             )
         }
 
@@ -352,6 +358,11 @@ class Agility(private val world: World, val data: AgilityData) {
             player.message(world.textFor(player)[obstacle.levelLine, "level" to level])
             return
         }
+        // Frozen or bound past its grace, no use of it even from its start (Codex review on #1012).
+        if (obstacle.frozenGraceTicks >= 0 && maxOf(player.freezeTicks, player.rootedTicks) > obstacle.frozenGraceTicks) {
+            player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
+            return
+        }
         if (!walkTo(route.from)) return
         val success = when {
             obstacle.rigged -> rigs[obstacle.key]?.invoke(player, loc) ?: true
@@ -360,7 +371,15 @@ class Agility(private val world: World, val data: AgilityData) {
                 SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
             } ?: true
         }
-        for (move in if (success) route.moves else route.fail) play(move)
+        // A teleport partway (::tele, say) ends the obstacle there: the rest isn't played from the new tile, nor
+        // the player pulled back to its end.
+        val moves = if (success) route.moves else route.fail
+        for ((i, move) in moves.withIndex()) {
+            // Only an animation that ends the crossing waits for the walk's last step (nothing after it to overtake
+            // it): one followed by another animation or a teleport, as a fall's, plays at once (Codex review on #1032).
+            val settle = i > 0 && moves[i - 1] is AgilityMove.Walk && moves.drop(i + 1).all { it is AgilityMove.Xp }
+            if (!play(move, settle)) return
+        }
         world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
@@ -484,20 +503,41 @@ class Agility(private val world: World, val data: AgilityData) {
         while (player.forcedSteps.isNotEmpty()) delay(1)
     }
 
-    private suspend fun ScriptContext.play(move: AgilityMove) {
+    /** Plays [move]; false when something else teleported the player meanwhile. */
+    private suspend fun ScriptContext.play(move: AgilityMove, settle: Boolean = false): Boolean {
+        val start = Triple(player.x, player.z, player.level)
         when (move) {
             is AgilityMove.Anim -> {
-                player.anim(move.anim)
+                // Straight after a walk the client is still drawing its last step, and a sequence with no movement
+                // precedence holds the player still until it ends (the hand holds' climb-off, 1121, has a last frame
+                // of 20000 cycles): drawn a tile short on 217, 27 Nov. When it ends the crossing ([settle]), its start
+                // waits until the step is drawn.
+                player.anim(move.anim, if (settle && move.anim >= 0) WALK_END_DELAY else 0)
                 if (move.ticks > 0) delay(move.ticks)
+                return here() == start
             }
             is AgilityMove.Teleport -> world.teleport(player, move.to.x, move.to.z, move.to.level)
-            is AgilityMove.Walk -> walk(move)
-            is AgilityMove.Slide -> slide(move)
+            is AgilityMove.Walk -> {
+                val end = steps(Tile(start.first, start.second), move.path).lastOrNull() ?: return true
+                walk(move)
+                return here() == Triple(end.x, end.z, start.third)
+            }
+            is AgilityMove.Slide -> {
+                slide(move, start)
+                return here() == Triple(move.to.x, move.to.z, move.to.level)
+            }
             is AgilityMove.Xp -> player.skills.addTenths(Skill.AGILITY, move.tenths)
         }
+        return true
     }
 
+    private fun ScriptContext.here() = Triple(player.x, player.z, player.level)
+
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
+        // The move before may have started a sequence the client holds the player still for until it ends (the
+        // hand holds' grab, 1117, has a last frame of 20000 cycles and no movement precedence), so the steps would
+        // never show: it's stopped, and the stance below animates the walk.
+        player.anim(-1)
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
         try {
             val steps = steps(Tile(player.x, player.z), move.path)
@@ -527,12 +567,13 @@ class Agility(private val world: World, val data: AgilityData) {
      * when the slide's ticks are up, so the client keeps showing them where the slide ends until then; RSProt notes the
      * client goes back to the real tile once the move is over.
      */
-    private suspend fun ScriptContext.slide(move: AgilityMove.Slide) {
+    private suspend fun ScriptContext.slide(move: AgilityMove.Slide, start: Triple<Int, Int, Int>) {
         val angle = angle(move.to.x - player.x, move.to.z - player.z)
         player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, move.to.x, move.to.z, move.startCycles, move.endCycles, angle))
         player.anim(move.anim)
         delay(move.ticks)
-        world.teleport(player, move.to.x, move.to.z, move.to.level)
+        // A teleport during the slide (::tele, say) wins: the player isn't pulled back to the slide's end.
+        if (here() == start) world.teleport(player, move.to.x, move.to.z, move.to.level)
     }
 
     companion object {
@@ -549,6 +590,12 @@ class Agility(private val world: World, val data: AgilityData) {
         /** The minutes between marks, and the [osrsps.game.Charges] counter holding the minute of the last one. */
         const val MARK_TIMER_MINUTES = 3
         const val MARK_MINUTE = "agility_mark_minute"
+
+        /**
+         * The client cycles an animation straight after a walk waits: a step at walking speed takes 32 to draw, and a
+         * few more cover a client a little behind. GUESSED.
+         */
+        const val WALK_END_DELAY = 40
 
         /** 20 levels over a course cut its chance of a mark to a fifth. */
         const val OVER_LEVEL = 20

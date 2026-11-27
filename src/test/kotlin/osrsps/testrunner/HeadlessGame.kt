@@ -906,8 +906,8 @@ internal class HeadlessGame(
 
         const val LAYERS = 4
 
-        /** The player options [HeadlessClient.playerOp] has packets for: Recruit, Follow, Trade with, Report. */
-        val SENT_PLAYER_OPS = setOf(1, 3, 4, 8)
+        /** The player options [HeadlessClient.playerOp] has packets for: Recruit, Attack, Follow, Trade with, Report. */
+        val SENT_PLAYER_OPS = setOf(1, 2, 3, 4, 8)
 
         /** Client cycles (20 ms) in a server cycle (600 ms, a tick or a paused cycle). */
         const val CYCLES_PER_TICK = 30

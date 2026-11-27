@@ -1,0 +1,14 @@
+{
+  "name": "Wilderness step W5.2: under ::god, a revenant imp in the Revenant Caves' south attacked, a hitsplat on it, then ::kill (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the caves' south, level 17 and up"},
+    {"step": "command", "text": "::tele 3199 10072 0", "expectMessage": "Teleported to 3199, 10072, 0", "comment": "between the two southern imps at 3197,10070 and 3203,10075"},
+    {"step": "npcOption", "npc": "Revenant imp", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Revenant imp", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Revenant imp #"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

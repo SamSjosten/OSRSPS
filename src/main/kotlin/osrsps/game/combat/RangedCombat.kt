@@ -345,8 +345,10 @@ class RangedCombat(
         val damage = minOf(melee.armoured(npc, rolled, magic = false, player, AttackType.RANGED), (npc.hitpoints - combat.floor(npc, player, AttackType.RANGED) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
-        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        if (combat.paysXp(npc)) {
+            for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
+            player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        }
         return damage
     }
 
@@ -455,7 +457,11 @@ class RangedCombat(
      * rest falls. Guessed: that it comes back as the shot lands rather than as it is fired, and that one with no room
      * there (the player has put on other ammunition, or logged out) falls instead.
      */
-    private fun land(shot: Shot, npc: Npc) = landAmmo(shot.player, shot.ammo, shot.recover, shot.slot, shot.floor, npc.x, npc.z, npc.level)
+    private fun land(shot: Shot, npc: Npc) {
+        // Never kept off a combat dummy (Combat.dummy).
+        if (combat.dummy(npc)) return
+        landAmmo(shot.player, shot.ammo, shot.recover, shot.slot, shot.floor, npc.x, npc.z, npc.level)
+    }
 
     /** What becomes of one piece of [spent]'s ammunition, landed at [x], [z] on [level]; see [land]. */
     internal fun landAmmo(player: Player, spent: Spent, x: Int, z: Int, level: Int) =

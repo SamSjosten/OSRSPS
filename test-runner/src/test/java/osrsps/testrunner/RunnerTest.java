@@ -296,6 +296,28 @@ public class RunnerTest
 	}
 
 	@Test
+	public void walkPassesWhenThePlayerIsCarriedOnFromTheTile() throws Exception
+	{
+		runner.start(script("{\"step\":\"walk\",\"x\":2784,\"y\":2979}"), "file");
+		assertNull(cycle());
+		// On the tile, but drawn a step behind: not yet.
+		game.location = new Tile(2784, 2979, 0);
+		game.drawn = new Tile(2785, 2979, 0);
+		assertNull(cycle());
+		// The bridge walks them on before the client draws them there.
+		game.location = new Tile(2770, 2979, 0);
+		game.drawn = new Tile(2772, 2979, 0);
+		for (int i = 0; i <= Steps.Walk.STILL_TICKS; i++)
+		{
+			runner.gameTick();
+			assertNull(cycle());
+		}
+		assertEquals("never sent back to the tile", List.of("walk 2784 2979"), game.actions);
+		game.drawn = new Tile(2770, 2979, 0);
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void assertLocationWaitsUntilTheClientDrawsThePlayerThere() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100}"), "file");
