@@ -266,7 +266,9 @@ object CorporealBeast {
     private fun EncounterContext.core(fight: Fight) {
         val core = fight.core ?: return
         if (core.dead || world.npcs[core.index] !== core) {
-            if (world.tick < fight.coreLands) fight.noMoreCores = true
+            // By the tick it died, not the tick that's noticed, so a death just before landing counts (Codex review on #1000).
+            val died = if (core.diedTick >= 0) core.diedTick else world.tick
+            if (died < fight.coreLands) fight.noMoreCores = true
             fight.core = null
             return
         }
@@ -277,13 +279,16 @@ object CorporealBeast {
             val to = jumpTarget(core, inRoom) ?: return
             world.npcs.teleport(core, to.x, to.z)
             fight.coreLands = world.tick + CORE_JUMP_TICKS
-            fight.coreNext = fight.coreLands
+            // A poisoned core's longer wait holds across a jump (Codex review on #1000).
+            fight.coreNext = maxOf(fight.coreNext, fight.coreLands)
             log("core jumps to ${to.x},${to.z}")
             return
         }
         if (world.tick < fight.coreNext) return
         fight.coreNext = world.tick + if (core.poison > 0) CORE_POISONED_TICKS else CORE_TICKS
         for (player in beside) {
+            // A Retribution from one it kills can kill it mid-leech: no more from a dead core (Codex review on #1000).
+            if (core.dead || world.npcs[core.index] !== core) break
             val dealt = world.meleeCombat.hitPlayer(player, core, roll(CORE_MIN, CORE_MAX), world.tick)
             if (!boss.dead) boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + dealt / 2)
             log("core leeches ${player.username} for $dealt")
