@@ -39,8 +39,7 @@ object TaiBwoCleanupLines : Lines("tbw_cleanup", "Tai Bwo Wannai Cleanup; Light 
  * spars required" for light and "very good for repairing" for dense); the jungle growing back [REGROW_TICKS] after
  * its last hack and a fence rotting [DECAY_TICKS] after its last repair or reinforcement; a carried machete doing as a
  * wielded one does; the fence's three animations a tick each; the best spar used when Repair is clicked; no message
- * on a success. Left out, for step K4.2b: the events while hacking (their chance counter included), as the Wiki's
- * event tables give them.
+ * on a success. The events while hacking are [TaiBwoEvents]'.
  */
 object TaiBwoCleanup {
     const val HACK = 4
@@ -117,7 +116,13 @@ object TaiBwoCleanup {
         val cycle = hack.cycle
         val elapsed = (tick - hack.start).toInt()
         var next = loc
+        if (elapsed in 1 until cycle - ROLL_BEFORE_END && TaiBwoEvents.roll(world, player, loc, jungle)) {
+            // An event ends the hack; the creature's surprise or the new loc shows instead of the swing.
+            hacks.remove(player.saveKey)
+            return
+        }
         if (elapsed == cycle - ROLL_BEFORE_END) {
+            TaiBwoEvents.skillTick(player)
             val (low, high) = jungle.rates[machete.ordinal]
             if (SuccessRoll.roll(world.random, low, high, level)) {
                 player.anim(HACK_SUCCESS)
@@ -217,6 +222,7 @@ object TaiBwoCleanup {
         world.tickHooks += { tick ->
             if (tick % PRUNE_TICKS == 0L && hacks.isNotEmpty()) hacks.keys.retainAll(world.onlinePlayers.mapTo(HashSet()) { it.saveKey })
         }
+        TaiBwoEvents.register(world)
         for (jungle in Jungle.entries) for (id in jungle.hackable) world.handlers.onLoc(id, HACK) { op -> hack(world, op) }
         for (fence in FENCES) {
             world.handlers.onLoc(fence, REPAIR) { op -> repair(world, op.loc!!, null) }

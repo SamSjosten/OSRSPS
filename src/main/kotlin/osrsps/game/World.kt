@@ -58,6 +58,7 @@ import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerTaiBwoCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerRandomEventCommands
 import osrsps.game.content.registerXpLamp
@@ -1270,6 +1271,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerTaiBwoCommands()
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
