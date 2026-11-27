@@ -203,6 +203,7 @@ import osrsps.game.content.SinglesPlus
 import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
+import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -880,7 +881,8 @@ class World(
                 if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
             }
         },
-        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
+        // And a death on the balance beam takes back the pugel it gave (Codex review on #1018).
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it); combatRoom.dying(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -1393,6 +1395,7 @@ class World(
         registerRevenantCaves(this)
         registerRevenants(this)
         registerEmblemTrader(this)
+        registerMaledictus(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -2608,7 +2611,8 @@ class World(
         player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
-        PlayerOps.send(player.vars, player.session::queue)
+        // Challenge in the Rat Pits too (exploit review 64, R64A-3).
+        PlayerOps.send(player.vars, player.session::queue, slot5 = player.slot5Op)
         // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
         player.attackOp = false
         clans.resync(player)

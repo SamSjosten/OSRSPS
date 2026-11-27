@@ -30,6 +30,8 @@ class WildernessBoss(
     val uniques: Set<Int> = emptySet(),
     val lair: Boolean = false,
     val topDamage: Boolean = false,
+    /** Puts down the loot itself from each player's damage by save key, instead of its drop table (the Revenant maledictus). */
+    val customLoot: ((npc: Npc, damage: Map<String, Int>) -> Unit)? = null,
 )
 
 /**
@@ -178,7 +180,12 @@ class WildernessBosses(private val world: World) {
         val shares = damage[npc]?.atKill ?: shares(npc)
         // The top of those still at the fight at the kill (exploit review rounds 40 and 42).
         val top = shares.firstOrNull()?.key
-        damage.remove(npc)
+        // A custom loot gets everyone's damage: the maledictus's food drops under each who dealt any, wherever they are.
+        val dealt = damage.remove(npc)?.damage.orEmpty()
+        boss.customLoot?.let {
+            it(npc, dealt)
+            return true
+        }
         if (boss.topDamage) {
             val def = world.npcDrops[npc.type] ?: return true
             for (rolled in def.roll(world.random)) {

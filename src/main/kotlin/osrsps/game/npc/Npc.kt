@@ -211,6 +211,12 @@ class Npc(
     var huntsAnywhere: Boolean = false
 
     /**
+     * Any number of players can fight it wherever it stands, as in multi-way combat, though the area is single-way or
+     * singles-plus around it (the Revenant maledictus, Wilderness step W5.4).
+     */
+    var multiTarget: Boolean = false
+
+    /**
      * It walks through other NPCs, and they don't stop it: Dreadnoth and his jellies, which stack on one tile and never
      * block him (tsps capture notes, raid step 20a). Others still can't step onto its tiles.
      */
