@@ -104,15 +104,20 @@ object Revenants {
         val sees = distance <= STALLED_RANGE && world.meleeCombat.sees(npc, player)
         // Held at its leash or by a rock while following, it fires anyway out to a player's own longest reach, so there
         // is no spot just past its range to shoot it from (exploit review R65B-2/3). GUESSED: no source covers it.
+        // Still following while held, so it stays held and fires each time its attack is due (Codex review on #1031);
+        // free to move, it walks on and is no longer held.
         val spot = (npc.x.toLong() shl 32) or npc.z.toLong()
         val stalled = npc.following === player && lastSpot.put(npc, spot) == spot
-        val inShot = sees && (distance in 1..RANGE || (stalled && distance in 1..STALLED_RANGE))
+        val near = sees && distance in 1..RANGE
+        val inShot = near || (sees && stalled && distance in 1..STALLED_RANGE)
         if (!inShot && !beside) {
             if (npc.following !== player) world.npcs.follow(npc, player)
             return
         }
-        lastSpot.remove(npc)
-        if (npc.following === player) world.npcs.stopFollowing(npc)
+        if (near || beside) {
+            lastSpot.remove(npc)
+            if (npc.following === player) world.npcs.stopFollowing(npc)
+        }
         if (world.tick < npc.nextAttackTick) return
         heal(world, npc)
         val bonuses = world.combat.bonuses(player)

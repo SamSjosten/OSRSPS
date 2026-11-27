@@ -85,6 +85,15 @@ class HeadlessRevenantsTest {
                 client.await("its shot from the leash", timeoutMillis = 30_000) { Unit.takeIf { abe.hitpoints < 99 || abe.freezeTicks > 0 } }
                 assertTrue(kotlin.math.abs(npc.x - 3170) <= 7, "it stayed on its leash: ${npc.x}")
                 assertTrue(3186 - npc.x > Revenants.RANGE, "fired from past its range: ${npc.x}")
+                // And again each time its attack is due, not a tick late (Codex review on #1031).
+                client.keepAlive()
+                val first = npc.nextAttackTick
+                client.await("its next shot", timeoutMillis = 20_000) { Unit.takeIf { npc.nextAttackTick > first } }
+                val second = npc.nextAttackTick
+                client.keepAlive()
+                client.await("the one after", timeoutMillis = 20_000) { Unit.takeIf { npc.nextAttackTick > second } }
+                assertEquals(second - first, npc.nextAttackTick - second, "a steady cadence")
+                assertTrue(second - first <= 5, "every ${second - first} ticks")
             }
         }
     }
