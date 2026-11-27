@@ -1130,6 +1130,7 @@ class World(
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
     val clanParty = osrsps.game.content.ClanParty(this)
+    val clanHallFurniture = osrsps.game.content.ClanHallFurniture(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1503,6 +1504,7 @@ class World(
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
+        clanHallFurniture.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -3969,6 +3971,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            clanHallFurniture.forget(player)
             fairyRings.forget(player)
             balloons.forget(player)
             makeoverScreen.forget(player)
