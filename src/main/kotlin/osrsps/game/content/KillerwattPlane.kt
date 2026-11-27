@@ -107,6 +107,9 @@ class KillerwattPlane(private val world: World) {
         }
         val fighting = world.meleeCombat
         val inMelee = melee.getOrPut(npc) {
+            // The fight starts: its first swing comes the tick after, as a retaliation's does (MeleeCombat.retaliate),
+            // not this tick after the hit that started it (Codex review on #1029).
+            npc.nextAttackTick = maxOf(npc.nextAttackTick, world.tick + 1)
             world.npcTypes[BIPED]?.let { world.npcs.transform(npc, it, Npcs.FOREVER) }
             npc.effects.spotanim(0, TRANSFORM_SPOTANIM, 0)
             fighting.reaches(npc, player)

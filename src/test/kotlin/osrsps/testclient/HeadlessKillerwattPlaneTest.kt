@@ -145,6 +145,30 @@ class HeadlessKillerwattPlaneTest {
         }
     }
 
+    @Test
+    fun `a killerwatt's first swing comes the tick after its fight starts`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele ${ORB_X - 1} $ORB_Z 2")
+                client.at(ORB_X - 1, ORB_Z, 2)
+                val world = server.world
+                val cy = world.playerNamed("cy")!!
+                val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                val result = java.util.concurrent.CompletableFuture<Pair<Long, Long>>()
+                world.npcScripts.later(1) {
+                    // Beside it, its attack ready: the tick its fight starts it only gets ready to swing.
+                    killerwatt.nextAttackTick = 0
+                    killerwatt.target = cy
+                    world.killerwattPlane.tick(killerwatt)
+                    result.complete(world.tick to killerwatt.nextAttackTick)
+                }
+                val (tick, next) = result.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                assertEquals(tick + 1, next, "no swing the tick the fight starts")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94
