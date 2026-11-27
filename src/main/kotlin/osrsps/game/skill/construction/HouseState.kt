@@ -105,7 +105,8 @@ enum class RoomType(
         floor == House.DUNGEON -> false
         this == SKILL_HALL_STAIRS || this == QUEST_HALL_STAIRS -> floor == House.UPPER
         floor == House.UPPER -> floors == RoomFloors.ABOVE_GROUND && this != SKILL_HALL && this != QUEST_HALL
-        else -> true
+        // No floor above the upper one (exploit review round 62, A-4).
+        else -> floor == House.GROUND
     }
 
     companion object {
