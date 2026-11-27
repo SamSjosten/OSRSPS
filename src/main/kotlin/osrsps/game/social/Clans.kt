@@ -750,23 +750,24 @@ class Clans(
      */
     fun mayParty(player: Player, clan: ClanStore.Clan, id: Int): Boolean = has(player, clan, id)
 
-    /** The tick of the last coffer transfer or party chest confirm that wrote to the disk, and how many wrote in it. */
+    /** The tick of the last coffer transfer or party chest confirm that wrote to the disk, and the clans that wrote in it. */
     private var durableWriteTick = Long.MIN_VALUE
-    private var durableWrites = 0
+    private val durableWriters = HashSet<Long>()
 
     /**
-     * Whether a coffer transfer or a party chest confirm may write to the disk on tick [tick]; counts it when so.
-     * [DURABLE_WRITES_PER_TICK] a tick across every clan, since each rewrites clans.json or a player's save with forced
-     * syncs on the game thread (exploit review R60C-1), and more than one so that two accounts taking turns can't shut
-     * every other clan out (R64C-3).
+     * Whether a coffer transfer or a party chest confirm for the clan with id [clanId] may write to the disk on tick
+     * [tick]; counts it when so. [DURABLE_WRITES_PER_TICK] a tick across every clan, since each rewrites clans.json or a
+     * player's save with forced syncs on the game thread (exploit review R60C-1), and more than one so that two accounts
+     * taking turns can't shut every other clan out (R64C-3). One of them a tick per clan, coffer and party together, so a
+     * clan's coffer and its chest can't take two, and two clans can't fill the tick for the rest (R65C-2).
      */
-    fun takeDurableWrite(tick: Long): Boolean {
+    fun takeDurableWrite(tick: Long, clanId: Long): Boolean {
         if (durableWriteTick != tick) {
             durableWriteTick = tick
-            durableWrites = 0
+            durableWriters.clear()
         }
-        if (durableWrites >= DURABLE_WRITES_PER_TICK) return false
-        durableWrites++
+        if (durableWriters.size >= DURABLE_WRITES_PER_TICK || clanId in durableWriters) return false
+        durableWriters += clanId
         return true
     }
 
