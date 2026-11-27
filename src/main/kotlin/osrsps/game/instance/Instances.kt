@@ -218,7 +218,11 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
         if (byId.remove(instance.id) == null) return
         val zones = instance.sources.keys.map(::ZoneKey)
         for (zone in zones) staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
-        for ((x, z) in zones.map { it.x to it.z }.distinct()) collision.unloadZone(x, z)
+        // Every zone of its area, not only those with a copied zone: a cleared one has collision of its own (exploit
+        // review round 62, C-1).
+        val zoneX = instance.baseX shr 3
+        val zoneZ = instance.baseZ shr 3
+        for (x in zoneX until zoneX + instance.widthSquares * 8) for (z in zoneZ until zoneZ + instance.heightSquares * 8) collision.unloadZone(x, z)
         mark(instance, false)
     }
 

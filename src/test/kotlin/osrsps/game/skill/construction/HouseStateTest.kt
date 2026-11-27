@@ -109,6 +109,8 @@ class HouseStateTest {
         assertTrue(RoomType.PARLOUR.goesOn(House.GROUND) && RoomType.PARLOUR.goesOn(House.UPPER))
         assertTrue(!RoomType.GARDEN.goesOn(House.UPPER) && !RoomType.THRONE_ROOM.goesOn(House.UPPER))
         assertTrue(!RoomType.DUNGEON_CORRIDOR.goesOn(House.GROUND) && RoomType.DUNGEON_CORRIDOR.goesOn(House.DUNGEON))
+        // Nothing above the upper floor (exploit review round 62, A-4).
+        assertTrue(!RoomType.PARLOUR.goesOn(House.UPPER + 1) && !RoomType.SKILL_HALL_STAIRS.goesOn(House.UPPER + 1))
         assertTrue(!RoomType.SKILL_HALL_STAIRS.goesOn(House.GROUND) && !RoomType.SKILL_HALL.goesOn(House.UPPER))
     }
 

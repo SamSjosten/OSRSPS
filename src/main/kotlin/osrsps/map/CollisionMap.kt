@@ -6,6 +6,9 @@ package osrsps.map
  */
 class CollisionMap {
     private val zones = HashMap<Int, IntArray>()
+
+    /** How many zones hold flags, on any level: an ended instance leaves none of its own behind. */
+    internal val storedZones: Int get() = zones.size
     private val loadedSquares = HashSet<Int>()
 
     /** Zones loaded on their own, in squares that aren't: an instance's copied zones ([osrsps.game.instance.Instances]). */
