@@ -20,7 +20,7 @@ import kotlin.test.assertFalse
 
 /**
  * The clan hall's piano and dummy through the headless client: Play-quietly opens the piano with its script and a key
- * clicked plays for nobody else; Entertain plays it for the others in the hall; Background-music plays Rhapsody; the
+ * clicked plays for nobody else; Entertain plays it for everyone in the hall, the player too; Background-music plays Rhapsody; the
  * dummy gives no experience. The rl-client script test-runner/examples/clan-piano.json does the same on the real map.
  */
 class HeadlessClanHallFurnitureTest {
@@ -87,13 +87,15 @@ class HeadlessClanHallFurnitureTest {
                     alice.ifButton(ClanHallFurniture.WINDOW, ClanHallFurniture.CLOSE, 1)
                     alice.await("closed") { if (ClanHallFurniture.WINDOW in alice.openInterfaces()) null else Unit }
 
-                    // Entertain: the key plays for bob.
+                    // Entertain: no script (the client mustn't play the key itself); the key plays for bob and alice.
+                    val scripts = alice.clientScripts().count { it.id == ClanHallFurniture.SCRIPT_PIANO }
                     alice.locOp(ClanHallFurniture.PIANO, x(PIANO_X), z(PIANO_Z), ClanHallFurniture.ENTERTAIN)
                     alice.await("the piano again") { if (ClanHallFurniture.WINDOW in alice.openInterfaces()) Unit else null }
                     val before = alice.synths()
                     alice.ifButton(ClanHallFurniture.WINDOW, 31, 1)
                     bob.await("bob hears it") { Unit.takeIf { bob.synths() > quiet } }
-                    assertEquals(before, alice.synths())
+                    alice.await("alice hears it") { Unit.takeIf { alice.synths() > before } }
+                    assertEquals(scripts, alice.clientScripts().count { it.id == ClanHallFurniture.SCRIPT_PIANO })
                     alice.closeModal()
 
                     // Background-music: Rhapsody.

@@ -18,9 +18,10 @@ import osrsps.game.World
  * on) with each note's synth in enum_3799's structs (param_1239).
  *
  * - Play-quietly opens the window and runs clan_hall_piano: every note plays on the player's client alone.
- * - Entertain opens the same window; each key clicked also plays, at once, for everyone else in the hall (the player
- *   hears it from their own client already; guessed, against the Wiki's "next tick" for the player too). Keys typed on
- *   the keyboard stay the player's own (the Wiki speaks of clicking for Entertain).
+ * - Entertain opens the same window without clan_hall_piano, so a clicked key isn't played by the client at once but
+ *   sent as the label's own op; the server plays it for everyone in the hall, the player too, in that tick's packets,
+ *   heard on the next tick as the Wiki says (Codex on PR 1005). Without the script, the keyboard and key highlights
+ *   don't work in Entertain (inferred: the Wiki speaks only of clicking for it).
  * - Background-music plays Rhapsody (midi 692) for the player. This server has no music player or track unlocks, so
  *   nothing is unlocked.
  * - The window's close button closes it.
@@ -62,8 +63,7 @@ class ClanHallFurniture(private val world: World) {
     private fun open(player: Player, entertain: Boolean) {
         world.interfaces.closeModals(player)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, WINDOW)
-        world.interfaces.runClientScript(player, SCRIPT_PIANO, emptyList())
-        if (entertain) entertaining += player
+        if (entertain) entertaining += player else world.interfaces.runClientScript(player, SCRIPT_PIANO, emptyList())
     }
 
     private fun play(player: Player, synth: Int) {
@@ -71,7 +71,7 @@ class ClanHallFurniture(private val world: World) {
         val hall = world.instances.at(player.x, player.z) ?: return
         if (world.clanHall.clanAt(player.x, player.z) == null) return
         for (other in world.onlinePlayers) {
-            if (other !== player && world.instances.at(other.x, other.z) === hall) other.session.queue(SynthSound(synth, 1, 0))
+            if (world.instances.at(other.x, other.z) === hall) other.session.queue(SynthSound(synth, 1, 0))
         }
     }
 
