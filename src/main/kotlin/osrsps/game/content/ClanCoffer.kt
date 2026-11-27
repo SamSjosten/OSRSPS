@@ -17,6 +17,7 @@ object ClanCofferLines : Lines("clan_coffer", "Clan Coffer") {
     val NO_COINS = line("no_coins", "depositing with no coins in the inventory (guessed)")
     val FULL = line("full", "depositing into a coffer at its limit (guessed)", "limit")
     val NO_ROOM = line("no_room", "withdrawing with no room for the coins (guessed)")
+    val BUSY = line("busy", "a transfer refused because too many clans wrote to the disk this tick; try again (guessed)")
 }
 
 /**
@@ -76,7 +77,11 @@ class ClanCoffer(private val world: World) {
         val last = lastTransfer[player.saveKey]
         if (last != null && world.tick - last < COOLDOWN_TICKS) return false
         if (lastClanTransfer[clan.id] == world.tick) return false
-        if (!world.clans.takeDurableWrite(world.tick)) return false
+        // Refused by the server-wide cap before any cooldown is marked, and the player is told (R64C-3).
+        if (!world.clans.takeDurableWrite(world.tick)) {
+            world.message(player, ClanCofferLines.BUSY)
+            return false
+        }
         // Only the transfers still cooling down are kept (exploit review R59C-1, the same growth as the party chest's).
         lastTransfer.entries.removeIf { world.tick - it.value >= COOLDOWN_TICKS }
         lastClanTransfer.entries.removeIf { it.value != world.tick }
