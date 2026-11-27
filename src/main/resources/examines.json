@@ -2309,7 +2309,7 @@
     {"loc": 11192, "name": "Rockslide"},
     {"loc": 11193, "name": "Rockslide"},
     {"loc": 11228, "name": "Crate", "wiki": "Crate (Cabin Fever) page, infobox"},
-    {"loc": 11355, "name": "Interdimensional rift", "wiki": "Portal machine page, its Portal version (the map's multiloc, shown as 11354)"},
+    {"loc": 11355, "name": "Interdimensional rift", "also": [11354], "wiki": "Portal machine page, its Portal version (the map's multiloc, shown as 11354)"},
     {"loc": 11356, "name": "Portal Home", "wiki": "Portal Home page, infobox"},
     {"loc": 11357, "name": "Portal machine"},
     {"loc": 11360, "name": "Tin rocks"},
