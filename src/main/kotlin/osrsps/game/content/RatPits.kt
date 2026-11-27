@@ -135,7 +135,11 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
 
     private fun watchArea(player: Player) {
         world.npcScripts.later(1) {
-            if (player.loggedOut) return@later
+            // A player dropped after a lost connection leaves the world without loggedOut set: they're gone all the same.
+            if (player.loggedOut || world.onlinePlayers.none { it === player }) {
+                player.slot5Op = null
+                return@later
+            }
             if (inArea(player.x, player.z, player.level)) return@later watchArea(player)
             forfeit(player)
             player.slot5Op = null
@@ -177,6 +181,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
             startBetting(target, player)
             return
         }
+        challenges.values.removeIf { world.tick - it.second > CHALLENGE_TICKS }
         challenges[player.saveKey] = target.saveKey to world.tick
         target.message(world.textFor(target)[RatPitsLines.CHALLENGED, "name" to player.username])
     }
@@ -397,8 +402,10 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
 
     /** [player] left or logged out: their match, if any, goes to the other side (or ends, before the coins went in). */
     private fun forfeit(player: Player) {
-        val match = matches[player.saveKey] ?: return
         challenges.remove(player.saveKey)
+        // Challenges nobody answered in time go too, so the map holds no more than live ones.
+        challenges.values.removeIf { world.tick - it.second > CHALLENGE_TICKS }
+        val match = matches[player.saveKey] ?: return
         when (match.stage) {
             Stage.BETTING -> decline(player, BETTING)
             Stage.CONFIRM -> decline(player, CONFIRM)
