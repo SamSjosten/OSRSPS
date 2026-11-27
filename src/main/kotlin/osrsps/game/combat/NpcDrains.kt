@@ -46,8 +46,8 @@ class NpcDrains(
     }
 
     /**
-     * Counts [npc]'s restore timer down by a tick: each [RESTORE_TICKS], every drained stat comes back a level. On the
-     * tick of its first drain the timer starts at [RESTORE_TICKS] without counting down, as [Poison]'s does, so the
+     * Counts [npc]'s restore timer down by a tick: each [RESTORE_TICKS] (or its type's [restoreTicksByType]), every
+     * drained stat comes back a level. On the tick of its first drain the timer starts at that without counting down, as [Poison]'s does, so the
      * first level comes back a full minute after the drain.
      */
     fun process(npc: Npc) {
@@ -55,12 +55,12 @@ class NpcDrains(
         // recording shows a drained boss going from sight.
         if (npc.dead) return
         if (npc.drainRestoreTicks < 0) {
-            if (npc.drained.any { it > 0 }) npc.drainRestoreTicks = RESTORE_TICKS
+            if (npc.drained.any { it > 0 }) npc.drainRestoreTicks = restoreTicks(npc)
             return
         }
         if (--npc.drainRestoreTicks > 0) return
         for (i in npc.drained.indices) if (npc.drained[i] > 0) npc.drained[i]--
-        npc.drainRestoreTicks = if (npc.drained.any { it > 0 }) RESTORE_TICKS else -1
+        npc.drainRestoreTicks = if (npc.drained.any { it > 0 }) restoreTicks(npc) else -1
     }
 
     /** What [npc]'s drained stats are, for `::npcs`; null with none drained. */
@@ -72,7 +72,15 @@ class NpcDrains(
     }
 
     /** Ticks until [npc]'s next level comes back; a full [RESTORE_TICKS] before its timer has started. */
-    private fun ticksToRestore(npc: Npc): Int = if (npc.drainRestoreTicks < 0) RESTORE_TICKS else npc.drainRestoreTicks
+    private fun ticksToRestore(npc: Npc): Int = if (npc.drainRestoreTicks < 0) restoreTicks(npc) else npc.drainRestoreTicks
+
+    /**
+     * By NPC type, the ticks between levels coming back where it isn't [RESTORE_TICKS]: the Corporeal Beast's 20 (W4.15),
+     * in place of the minute rather than as well (Codex review on #999).
+     */
+    val restoreTicksByType = HashMap<Int, Int>()
+
+    private fun restoreTicks(npc: Npc): Int = restoreTicksByType[npc.type.id] ?: RESTORE_TICKS
 
     companion object {
         /** A level back each minute. */

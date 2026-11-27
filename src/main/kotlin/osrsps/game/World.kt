@@ -193,6 +193,7 @@ import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerVenenatis
+import osrsps.game.content.registerCorporealBeast
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
 import osrsps.game.content.registerVetion
@@ -801,6 +802,7 @@ class World(
             wildernessBosses.damaged(npc, player, dealt)
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
+            osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -1371,6 +1373,7 @@ class World(
         registerCalvarion(this)
         registerSpindel(this)
         registerVenenatis(this)
+        registerCorporealBeast(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)

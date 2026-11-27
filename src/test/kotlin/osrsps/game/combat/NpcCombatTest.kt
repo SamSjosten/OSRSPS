@@ -75,6 +75,7 @@ class NpcCombatTest {
             "cow_boss_attack" to 13783, "cow_boss_defend" to 13787, "cow_boss_death" to 13784,
             "npc_venenatis_melee_01" to 9991, "npc_venenatis_death_01" to 9992, "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929, "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "corpbeast_swiping_attack" to 1683, "corpbeast_defend" to 1677, "corpbeast_death" to 1676,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
