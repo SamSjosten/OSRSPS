@@ -64,7 +64,7 @@ in the code. Current RuneLite connects unchanged.
 | | |
 |---|---|
 | **Places** | Musa Point and the boat from Port Sarim, the Karamja Volcano, Brimhaven (town, dungeon, Agility Arena), Cairn Isle, Tai Bwo Wannai, Mor Ul Rek's shops |
-| **Bosses** | The Fight Caves (being built) |
+| **Bosses** | The Fight Caves (TzTok-Jad), the Inferno (TzKal-Zuk) |
 
 </details>
 
