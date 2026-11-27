@@ -85,6 +85,21 @@ class HeadlessVenenatisTest {
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
     @Test
+    fun `Check-Fee says paid when her discounts leave nothing to pay`(@TempDir dir: Path) {
+        server(dir, seed = 1, spawn = false).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.command("varbit ${WildernessLairFee.VARBIT_DISCOUNT} 5")
+                client.await("five discounts") { Unit.takeIf { WildernessLairFee.fee(eve) == 0 } }
+                client.tele(3322, 3793, 0)
+                client.locOp(Venenatis.ENTRANCE, 3321, 3794, Venenatis.CHECK_FEE)
+                client.seen("[${WildernessLairLines.FEE_PAID.key}]")
+            }
+        }
+    }
+
+    @Test
     fun `the way in takes the fee and puts the player in the chasm, and the way out leads into the Escape Caves`(@TempDir dir: Path) {
         server(dir, seed = 1, spawn = false).use { server ->
             server.login("abe").use { client ->
