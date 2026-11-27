@@ -82,6 +82,7 @@ class NpcCombatTest {
             "pyrefiend_attack" to 1582, "pyrefiend_defend" to 1581, "pyrefiend_death" to 1580, "ork_update_double_grip_attack" to 4320, "ork_update_defend" to 4322, "ork_update_death" to 4321, "dark_beast_update_attack" to 2731, "dark_beast_update_defend" to 2732, "dark_beast_update_death" to 2733,
             "npc_revenant_superior_attack_melee" to 9277, "npc_revenant_superior_death" to 9280,
             "giant_update_fire_attack" to 4666, "giant_update_fire_defend" to 4664, "giant_update_fire_death" to 4668,
+            "abyssal_attack" to 1537, "abyssal_death" to 1538, "demons_attack" to 1528, "demons_parry" to 1531, "demons_death" to 1530, "dustdevil_attack" to 1557, "dustdevil_defend" to 1555, "dustdevil_death" to 1558, "jelly_defend" to 1585,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
