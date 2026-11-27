@@ -14,7 +14,7 @@
   {"step": "locOption", "locId": 41724, "option": "Enter", "timeoutMs": 20000},
   {"step": "waitTicks", "ticks": 4, "comment": "into the hall's instance, a new region"},
   {"step": "locOption", "locId": 41651, "option": "Play-quietly", "timeoutMs": 30000, "comment": "the piano, south-west in the main room"},
-  {"step": "assertInterface", "interfaceId": 698, "timeoutMs": 10000, "comment": "the piano's window"},
+  {"step": "assertInterface", "interfaceId": 698, "timeoutMs": 30000, "comment": "the piano's window, once the player has walked from the entrance to the south-west corner (longer than 10 s; nightly 27 Nov)"},
   {"step": "waitTicks", "ticks": 2},
   {"step": "clickWidget", "interfaceId": 698, "component": 31, "op": 1, "comment": "Play-c"},
   {"step": "waitTicks", "ticks": 2},

@@ -30,7 +30,7 @@
   {"step": "continueDialogue"},
   {"step": "assertDialogue", "contains": "[cat.kitten_under_a_month]", "timeoutMs": 5000, "comment": "no growth yet"},
   {"step": "continueDialogue"},
-  {"step": "assertDialogue", "contains": "[cat.kitten_age]", "timeoutMs": 5000},
+  {"step": "assertDialogue", "contains": "[cat.kitten_age ", "comment": "the line carries its age and time left, so only the key is matched (nightly Nov 27)", "timeoutMs": 5000},
   {"step": "continueDialogue"},
   {"step": "npcOption", "npcId": 5591, "option": "Pick-up", "timeoutMs": 10000},
   {"step": "assertInventory", "item": "Pet kitten", "count": 1, "timeoutMs": 5000, "comment": "back in the backpack"},
