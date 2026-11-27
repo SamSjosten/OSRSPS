@@ -1132,6 +1132,7 @@ class World(
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
     val clanParty = osrsps.game.content.ClanParty(this)
     val clanHallFurniture = osrsps.game.content.ClanHallFurniture(this)
+    val clanHallPeople = osrsps.game.content.ClanHallPeople(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1507,6 +1508,7 @@ class World(
         clanCoffer.register()
         clanParty.register()
         clanHallFurniture.register()
+        clanHallPeople.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
