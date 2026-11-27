@@ -97,4 +97,30 @@ class LineOfSightTest {
         locs.addLoc(LocCollisionType(blocksProjectile = true), 3213, 3210, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
         assertFalse(LineOfSight.inRange(map, 0, 3210, 3210, 1, 3217, 3210, 1, 1, 7))
     }
+
+    @Test
+    fun `a line clear only one way counts for clearEitherWay`() {
+        // A 3x3 monster at 3210,3210 and one projectile-blocking loc: somewhere within 10 tiles the trace from the
+        // player to it is clear while its own to the player isn't (exploit review R66B-2, the Revenant maledictus).
+        var found: Pair<Int, Int>? = null
+        search@ for (bx in 3200..3222) for (bz in 3200..3222) {
+            if (bx in 3210..3212 && bz in 3210..3212) continue
+            val map = CollisionMap().apply { markLoaded(50, 50) }
+            LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), bx, bz, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+            for (px in 3200..3222) for (pz in 3200..3222) {
+                if ((px in 3210..3212 && pz in 3210..3212) || (px == bx && pz == bz)) continue
+                val its = LineOfSight.clear(map, 0, 3210, 3210, 3, px, pz)
+                val theirs = LineOfSight.clear(map, 0, px, pz, 1, 3210, 3210, 3, 3)
+                if (!its && theirs) {
+                    assertTrue(LineOfSight.clearEitherWay(map, 0, 3210, 3210, 3, px, pz), "seen from $px, $pz past $bx, $bz")
+                    found = px to pz
+                    break@search
+                }
+            }
+        }
+        assertTrue(found != null, "a tile seen only one way")
+        // Blocked both ways stays blocked.
+        locs.addLoc(LocCollisionType(blocksProjectile = true), 3214, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        assertFalse(LineOfSight.clearEitherWay(map, 0, 3210, 3210, 3, 3216, 3211))
+    }
 }
