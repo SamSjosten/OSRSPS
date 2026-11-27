@@ -27,6 +27,8 @@
   {"step": "chooseOption", "text": "[clan_hall_people.raqueel_buy_option]"},
   {"step": "assertInventory", "item": "Beer", "count": 1, "timeoutMs": 10000},
   {"step": "assertInventory", "item": "Coins", "count": 0},
+  {"step": "locOption", "locId": 41651, "option": "Background-music", "timeoutMs": 30000, "comment": "a walk to the piano (1756, 5463), about 8 tiles from Hannibal, so he's in view from the bar wherever Raqueel led (Codex on PR 1019)"},
+  {"step": "waitTicks", "ticks": 2},
   {"step": "npcOption", "npc": "Hannibal", "option": "Pet", "timeoutMs": 30000, "comment": "the cat on his stool in the kitchen"},
   {"step": "assertMessage", "contains": "[clan_hall_people.hannibal_pet_", "timeoutMs": 20000},
   {"step": "npcOption", "npc": "Banker", "option": "Bank", "timeoutMs": 30000, "comment": "a banker behind the booths"},
