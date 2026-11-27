@@ -56,6 +56,12 @@ object Revenants {
     const val FREEZE_TICKS = 5
     const val RANGE = 7
 
+    /** How far it fires when it can't come closer: the longest reach of a player's own attacks. */
+    const val STALLED_RANGE = 10
+
+    /** Where each following revenant stood last tick, to see it held in place. */
+    private val lastSpot = WeakHashMap<Npc, Long>()
+
     const val SPOT_MAGIC = 1415
     const val SPOT_MAGIC_IMPACT = 1454
 
@@ -94,11 +100,18 @@ object Revenants {
         if (lastTarget.put(npc, player) !== player) npc.nextAttackTick = maxOf(npc.nextAttackTick, world.tick + 1)
         if (npc.dead || npc.hidden || player.dead || player.level != npc.level) return
         val beside = world.meleeCombat.reaches(npc, player)
-        val inShot = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z) in 1..RANGE && world.meleeCombat.sees(npc, player)
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+        val sees = distance <= STALLED_RANGE && world.meleeCombat.sees(npc, player)
+        // Held at its leash or by a rock while following, it fires anyway out to a player's own longest reach, so there
+        // is no spot just past its range to shoot it from (exploit review R65B-2/3). GUESSED: no source covers it.
+        val spot = (npc.x.toLong() shl 32) or npc.z.toLong()
+        val stalled = npc.following === player && lastSpot.put(npc, spot) == spot
+        val inShot = sees && (distance in 1..RANGE || (stalled && distance in 1..STALLED_RANGE))
         if (!inShot && !beside) {
             if (npc.following !== player) world.npcs.follow(npc, player)
             return
         }
+        lastSpot.remove(npc)
         if (npc.following === player) world.npcs.stopFollowing(npc)
         if (world.tick < npc.nextAttackTick) return
         heal(world, npc)
