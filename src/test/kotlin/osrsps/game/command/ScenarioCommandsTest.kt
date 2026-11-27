@@ -164,6 +164,16 @@ class ScenarioCommandsTest {
     }
 
     @Test
+    fun `reset doesn't put back poison from before the scenario`() {
+        player.vars[osrsps.game.combat.Poison.VARP] = 20 // a poisoned weapon's severity, set as a hit would
+        run("scenario cows")
+        assertEquals(0, world.poison.value(player))
+        run("reset")
+        assertEquals(0, world.poison.value(player))
+        assertEquals(-1, player.poisonTicks)
+    }
+
+    @Test
     fun `scenario and reset turn god mode and sure hits off, and both take on and off`() {
         run("god on")
         run("sure max")
