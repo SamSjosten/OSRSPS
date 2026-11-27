@@ -15,6 +15,7 @@ object PvpLines : Lines("pvp", "Wilderness") {
     val TARGET_IN_COMBAT = line("target_in_combat", "Attack on a player another player or a monster is fighting, in single-way combat")
     val SKULL_PREVENTED = line("skull_prevented", "Attack refused by the PK Skull Prevention setting, as it would skull you")
     val FROZEN = line("frozen", "A player's ice spell froze you (words from the Wiki's Freeze page)")
+    val MAGICAL_FORCE = line("magical_force", "An Agility obstacle used while frozen or bound (words from the Wiki's Chat Interface changes, 2 June 2016)")
     val TELEBLOCKED = line("teleblocked", "A player's Tele Block landed on you, naming the caster (words from the Wiki's Tele Block page)", "name")
     val TELEBLOCK_REMOVED = line("teleblock_removed", "You were credited with killing the player whose Tele Block was on you, naming them (words from the Wiki's Tele Block page)", "name")
     val TELEBLOCK_ALREADY = line("teleblock_already", "Tele Block cast on a player who is Tele Blocked already (Wiki, Tele Block: immune while it lasts; the words unsourced)")

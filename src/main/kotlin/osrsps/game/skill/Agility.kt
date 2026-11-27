@@ -157,6 +157,11 @@ class Obstacle(
     val rigged: Boolean = false,
     /** How many hitsplats of that damage a failure deals, each its own: Cairn Isle's rock slide deals two. */
     val damageHits: Int = 1,
+    /**
+     * For an obstacle a frozen or bound player can't use at all, even from its start: the most ticks of the freeze or
+     * bind that may be left (the Revenant Caves' pillars' 3); -1 for most, which only bar the walk to the start.
+     */
+    val frozenGraceTicks: Int = -1,
 ) {
     /** Whether the loc at [tile] is this obstacle, when its type is several. */
     fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
@@ -277,6 +282,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["damageHpPercent"]?.jsonPrimitive?.int ?: 0,
                 json["rigged"]?.jsonPrimitive?.boolean ?: false,
                 json["damageHits"]?.jsonPrimitive?.int ?: 1,
+                json["frozenGraceTicks"]?.jsonPrimitive?.int ?: -1,
             )
         }
 
@@ -350,6 +356,11 @@ class Agility(private val world: World, val data: AgilityData) {
         val level = route.level ?: obstacle.level
         if (player.skills.currentLevel(Skill.AGILITY) < level) {
             player.message(world.textFor(player)[obstacle.levelLine, "level" to level])
+            return
+        }
+        // Frozen or bound past its grace, no use of it even from its start (Codex review on #1012).
+        if (obstacle.frozenGraceTicks >= 0 && maxOf(player.freezeTicks, player.rootedTicks) > obstacle.frozenGraceTicks) {
+            player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
             return
         }
         if (!walkTo(route.from)) return
