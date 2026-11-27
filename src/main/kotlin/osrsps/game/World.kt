@@ -1303,6 +1303,13 @@ class World(
         registerLookCommands(this@World)
     }
 
+    /**
+     * Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. Declared
+     * before the init that registers content: set later, its empty start would wipe what registration added (Codex
+     * review on #1042).
+     */
+    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
+
     init {
         replayTradeJournal()
         deaths.register(handlers)
@@ -3456,9 +3463,6 @@ class World(
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
      * they are everyone's from the start (guessed).
      */
-    /** Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. */
-    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
-
     fun dropLoot(npc: Npc, killer: Player?) {
         // A Treasure Trails key step's key goes down with the loot, as the death animation ends.
         trails.fights.dropKey(npc, killer)

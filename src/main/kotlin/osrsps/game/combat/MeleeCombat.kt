@@ -829,12 +829,23 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player, swingType) ?: return
         // A named melee max hit loses to drained Strength as the file's would.
         val max = if (maxHit != null) combat.npcMaxHit(npc, def, maxHit) else roll.maxHit
-        val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
+        val hits = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val damage = if (hits) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         // The caller's share through a prayer, or the definition's own (Scurrius's giant rats).
         val passes = if (prayerPasses > 0) prayerPasses else def.prayerPasses
-        hitPlayer(player, npc, if (!def.typeless && protects(player, swingType)) blocked * passes / 100 else blocked, tick)
+        // Magical and ranged melee are Protect from Melee's, whatever defence they roll against (Codex review on #1042).
+        val prayedAs = if (type == null) def.prayedAs ?: swingType else swingType
+        hitPlayer(player, npc, if (!def.typeless && protects(player, prayedAs)) blocked * passes / 100 else blocked, tick)
+        // A gorak's successful hit drains a random stat other than Hitpoints (OSRS Wiki, Gorak); only such an NPC rolls for it.
+        val drain = def.hitDrain
+        if (drain != null && hits && !player.dead) {
+            val skills = Skill.entries.filter { it != Skill.HITPOINTS }
+            val skill = skills[random.nextInt(skills.size)]
+            val current = player.skills.currentLevel(skill)
+            player.skills.setCurrentLevel(skill, (current - random.between(drain.min, drain.max)).coerceAtLeast(0))
+        }
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)

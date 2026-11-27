@@ -1,6 +1,8 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -14,12 +16,16 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.MultiCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.NpcHitDrain
+import osrsps.game.combat.Prayers
 import osrsps.game.content.WildernessGodWars
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -87,24 +93,43 @@ class HeadlessWildernessGodWarsTest {
         for (id in WildernessGodWars.ALL) assertTrue(drops[id] != null, "NPC $id drops")
         assertTrue(drops[3175]!!.table!!.lines.any { line -> line.item?.type?.id == ADAMANTITE_BAR_NOTED }, "the aviansies' bars noted")
         assertEquals(listOf(532), drops[3141]!!.always.map { it.type.id }, "the gorak's big bones")
+        // Codex review on #1042: magical and ranged melee are Protect from Melee's; the gorak's hit drains a stat; every
+        // follower that attacks unprovoked does so however long the player stays (no timed tolerance), the bloodveld too.
+        for (id in listOf(3140, 3139, 3138, 3166)) assertEquals(AttackType.CRUSH, combat[id]!!.prayedAs, "NPC $id prayed as melee")
+        assertEquals(NpcHitDrain(1, 4), combat[3141]!!.hitDrain)
+        assertTrue(combat[3138]!!.aggression != null, "the bloodveld attacks unprovoked")
+        for (id in WildernessGodWars.ALL) combat[id]!!.aggression?.let { assertTrue(!it.tolerant, "NPC $id never grows tolerant") }
     }
 
     private val ork = NpcType(
         2237, "Ork", ops = listOf(null, "Attack", null, null, null), combatLevel = 107, internalName = "godwars_ancient_ork1",
         stats = NpcStats(attack = 100, strength = 100, defence = 60, hitpoints = 110),
     )
+    private val pyrefiend = NpcType(
+        3139, "Pyrefiend", ops = listOf(null, "Attack", null, null, null), combatLevel = 48, internalName = "godwars_pyrefiend_1",
+        stats = NpcStats(attack = 60, strength = 60, defence = 30, hitpoints = 45, magic = 60),
+    )
+    private val gorak = NpcType(
+        3141, "Gorak", ops = listOf(null, "Attack", null, null, null), combatLevel = 149, internalName = "godwars_gorak",
+        stats = NpcStats(attack = 130, strength = 130, defence = 130, hitpoints = 135),
+    )
     private val boulder = NpcType(WildernessGodWars.BOULDER, "Boulder", size = 2, ops = listOf("Move", null, null, null, null), internalName = "wilderness_gwd_boulder")
 
     private fun server(dir: Path, spawns: List<NpcSpawn> = emptyList()) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
-        val types = NpcTypes.of(ork, boulder)
+        val types = NpcTypes.of(ork, pyrefiend, gorak, boulder)
         val loc = { id: Int, name: String, op: String, w: Int, l: Int -> LocType(id, name, listOf(op, null, null, null, null), LocCollisionType(width = w, length = l, interactType = 0)) }
         val objs = ObjTypes.of(
             ObjType(KEY, "Ecumenical key", iops = listOf(null, null, null, null, "Drop")),
             ObjType(CHESTPLATE, "Bandos chestplate", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.BODY),
+            // Protect from Melee's prayer obj, shaped like the cache's (HeadlessArchiveGuardianTest).
+            ObjType(
+                PROTECT_FROM_MELEE_OBJ, "Null", internalName = "placeholder_xmas16_marionette_blue",
+                params = mapOf(630 to PROTECT_FROM_MELEE_BIT, 1751 to (Prayers.PRAYERBOOK shl 16 or 23), 1752 to "Protect from Melee", 1753 to 43, 1755 to 2676),
+            ),
         )
         World(
             crcs, CollisionMap().apply { markLoaded(47, 58); markLoaded(47, 158) },
-            npcTypes = types, random = GameRandom(3), npcSpawns = spawns, npcCombat = NpcCombat.load(types, SeqNames.NONE), objTypes = objs,
+            npcTypes = types, random = GameRandom(3), npcSpawns = spawns, npcCombat = NpcCombat.load(types, SeqNames.NONE), objTypes = objs, prayerList = Prayers.load(objs),
             locTypes = LocTypes(
                 mapOf(
                     WildernessGodWars.ENTRANCE to loc(WildernessGodWars.ENTRANCE, "Cave", "Enter", 3, 2),
@@ -124,6 +149,12 @@ class HeadlessWildernessGodWarsTest {
             },
             cycleMillis = millis,
         )
+    }
+
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, TimeUnit.SECONDS)
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int, level: Int = 0) {
@@ -245,6 +276,68 @@ class HeadlessWildernessGodWarsTest {
         }
     }
 
+    @Test
+    fun `a follower killed in the dungeon drops an ecumenical key now and then, and one killed outside it never does`(@TempDir dir: Path) {
+        // 300 deaths' loot at 1/60 misses every key about once in 170,000 runs (Codex review on #1042: the loot path itself).
+        val inside = (0 until 5).flatMap { row -> (3010 until 3070).map { x -> NpcSpawn(ork, x, 10120 + row * 2, wander = 0, source = "test") } }
+        val outside = (3010 until 3040).map { x -> NpcSpawn(ork, x, 3744, wander = 0, source = "test") }
+        server(dir, inside + outside).use { server ->
+            server.login("dee").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.tele(3040, 10150)
+                val world = server.world
+                val dee = world.playerNamed("dee")!!
+                val orks = world.npcs.all.filter { it.type.id == ork.id }.toList()
+                // Each body's loot as its death animation ends (MeleeCombat.process), the extra-drop hooks with it.
+                server.onTick { for (npc in orks) world.dropLoot(npc, dee) }
+                fun keys(xs: IntRange, zs: IntRange) = xs.sumOf { x -> zs.sumOf { z -> world.groundObjs.visibleAt(dee, x, z, 0).count { it.id == KEY } } }
+                assertTrue(keys(3008..3071, 10112..10175) > 0, "a key among 300 deaths in the dungeon")
+                assertEquals(0, keys(3000..3060, 3712..3775), "no key from a follower outside the dungeon")
+            }
+        }
+    }
+
+    @Test
+    fun `Protect from Melee blocks a pyrefiend's magical melee, and a gorak's hits drain stats`(@TempDir dir: Path) {
+        val spawns = listOf(NpcSpawn(pyrefiend, 3044, 10150, wander = 0, source = "test"), NpcSpawn(gorak, 3044, 10154, wander = 0, source = "test"))
+        server(dir, spawns).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("attack", "strength", "defence", "magic", "ranged", "prayer")) client.commandReply("setlevel $skill 99") { true }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.tele(3040, 10150)
+                val world = server.world
+                val eve = world.playerNamed("eve")!!
+                val pyre = world.npcs.all.first { it.type.id == pyrefiend.id }
+                val kicker = world.npcs.all.first { it.type.id == gorak.id }
+                // Codex review on #1042: magical melee rolls against Magic defence, but Protect from Melee blocks it.
+                val prayed = server.onTick {
+                    eve.prayersInEffect = 1 shl PROTECT_FROM_MELEE_BIT
+                    val before = eve.hitpoints
+                    repeat(30) { world.meleeCombat.swingAt(pyre, eve, world.tick) }
+                    before - eve.hitpoints
+                }
+                assertEquals(0, prayed, "Protect from Melee blocks every pyrefiend hit")
+                val unprayed = server.onTick {
+                    eve.prayersInEffect = 0
+                    val before = eve.hitpoints
+                    repeat(15) { world.meleeCombat.swingAt(pyre, eve, world.tick) }
+                    before - eve.hitpoints
+                }
+                assertTrue(unprayed > 0, "without the prayer the pyrefiend hits")
+                // A gorak's successful hits each drain a random stat other than Hitpoints by 1 to 4.
+                client.commandReply("setlevel hitpoints 99") { true }
+                val drained = server.onTick {
+                    val before = Skill.entries.filter { it != Skill.HITPOINTS }.sumOf { eve.skills.currentLevel(it) }
+                    repeat(4) { world.meleeCombat.swingAt(kicker, eve, world.tick) }
+                    before - Skill.entries.filter { it != Skill.HITPOINTS }.sumOf { eve.skills.currentLevel(it) }
+                }
+                assertTrue(drained > 0, "the gorak's hits drained a stat")
+            }
+        }
+    }
+
     private companion object {
         const val KEY = WildernessGodWars.KEY
         const val CHESTPLATE = 11832
@@ -257,5 +350,7 @@ class HeadlessWildernessGodWarsTest {
         const val INVENTORY_ITEMS = 0
         const val IOP_WEAR = 3
         const val DROP = 7
+        const val PROTECT_FROM_MELEE_BIT = 14
+        const val PROTECT_FROM_MELEE_OBJ = 20817
     }
 }
