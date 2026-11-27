@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InvObj
@@ -1440,6 +1441,9 @@ class HeadlessHouseTest {
                     a.playerOp(b.index, PlayerOps.ATTACK)
                     b.await("pia knocked off") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
                     assertEquals(before, pia.hitpoints)
+                    // Still a hit by ola: the logout lock holds (Codex review on #1018).
+                    assertSame(ola, pia.attackedByPlayer)
+                    assertTrue(pia.attackedByPlayerTick >= 0)
                     assertNull(pia.equipment[WearPos.WEAPON])
                     assertEquals(1L, pia.inventory.count(CombatRoom.PUGEL))
                     assertEquals(0, ola.skullTicks)

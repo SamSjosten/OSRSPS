@@ -318,11 +318,14 @@ class CombatRoom(private val world: World, private val houses: Houses) {
      * fence them in (round 63, R63A-1). Before it is removed, anyone on it comes off too, with the pugel it gave (Codex
      * review on #1018).
      */
-    fun offBeam(house: Houses.Open, room: HouseRoom) {
-        val baseX = house.instance.baseX + (room.x shl 3)
-        val baseZ = house.instance.baseZ + (room.z shl 3)
+    fun offBeam(house: Houses.Open, room: HouseRoom) = offBeam(house, room.x, room.z, room.floor)
+
+    /** As [offBeam] for the room at cell [x], [z] on [floor], before the room itself is laid again (Codex review on #1018). */
+    fun offBeam(house: Houses.Open, x: Int, z: Int, floor: Int) {
+        val baseX = house.instance.baseX + (x shl 3)
+        val baseZ = house.instance.baseZ + (z shl 3)
         for (player in world.onlinePlayers.toList()) {
-            if (player.level != room.floor || player.x - baseX !in 0..7 || player.z - baseZ !in 0..7) continue
+            if (player.level != floor || player.x - baseX !in 0..7 || player.z - baseZ !in 0..7) continue
             val off = beamExit(player) ?: continue
             leaveBeam(player, off, JUMPOFF_ANIM)
         }

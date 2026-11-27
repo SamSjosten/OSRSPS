@@ -513,6 +513,9 @@ class PvpCombat(
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null && hit.arena && arenaHit(hit.attacker, player, hit.damage)) {
+                // Still a hit by a player: the logout lock holds as for one that hurt (Codex review on #1018).
+                player.attackedByPlayer = hit.attacker
+                player.attackedByPlayerTick = tick
                 // Out of the fight: the attacker stops going for them.
                 if ((hit.attacker.interaction as? PvpInteraction)?.target === player) hit.attacker.interaction = null
                 continue

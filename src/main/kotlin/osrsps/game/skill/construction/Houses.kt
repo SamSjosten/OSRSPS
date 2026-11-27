@@ -623,6 +623,8 @@ class Houses(private val world: World) {
         val instance = house.instance
         val baseX = instance.baseX + (cell.x shl 3)
         val baseZ = instance.baseZ + (cell.z shl 3)
+        // Anyone on a balance beam there comes off it first, with the pugel it gave (Codex review on #1018).
+        world.combatRoom.offBeam(house, cell.x, cell.z, cell.floor)
         world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7, cell.floor)
         // A combat dummy attached there goes with the room it hangs in, its loc laid again below (CON6b).
         house.dummies.values.removeAll { attached ->
