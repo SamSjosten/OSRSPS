@@ -1,0 +1,29 @@
+{
+ "name": "Post-quest step 15: the Killerwatt plane. Oddenstein's warning without insulated boots, through the rift and back by the Portal Home (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::empty", "comment": "the warning needs no insulated boots on, which the runner account never wears"},
+  {"step": "command", "text": "::tele 3110 3364 2", "expectMessage": "Teleported to 3110, 3364, 2", "comment": "Draynor Manor's top floor, before Professor Oddenstein's portal machine"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertVarbit", "id": 1766, "value": 1, "timeoutMs": 5000, "comment": "slayer_killerwatt_portal_check: the rift shows after the quests"},
+  {"step": "locOption", "locId": 11355, "option": "Enter", "x": 3110, "y": 3362, "comment": "the rift (the map's multiloc, shown as 11354)"},
+  {"step": "assertDialogue", "contains": "[killerwatt_plane.err]", "timeoutMs": 10000},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[killerwatt_plane.problem]", "timeoutMs": 5000},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[killerwatt_plane.shocking]", "timeoutMs": 5000},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[killerwatt_plane.not_scared]", "timeoutMs": 5000},
+  {"step": "assertDialogue", "contains": "[killerwatt_plane.not_scared]", "timeoutMs": 5000},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[killerwatt_plane.ok_warned]", "timeoutMs": 5000},
+  {"step": "continueDialogue"},
+  {"step": "assertLocation", "x": 2676, "y": 5214, "plane": 2, "timeoutMs": 10000, "comment": "the Killerwatt plane, beside the Portal Home"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 11356, "option": "Enter", "x": 2678, "y": 5214},
+  {"step": "assertLocation", "x": 3110, "y": 3364, "plane": 2, "timeoutMs": 10000, "comment": "back on the manor's top floor"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}
