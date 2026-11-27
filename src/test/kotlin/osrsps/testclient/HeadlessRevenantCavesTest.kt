@@ -181,6 +181,20 @@ class HeadlessRevenantCavesTest {
                     a.await("the man gives up") { Unit.takeIf { man.target == null } }
                     assertTrue(cy.interaction !is osrsps.game.combat.MeleeInteraction, "cy no longer on the man")
                     assertEquals(null, cy.attackedNpc)
+
+                    // The other way round: di, fought by the man, attacks cy; the man gives up on di, and di keeps after
+                    // cy. First the fight over and both PJ timers run out.
+                    di.interaction = null
+                    b.await("both PJ timers out", timeoutMillis = 20_000) { Unit.takeIf { world.tick > di.pjUntil && world.tick > cy.pjUntil } }
+                    val other = world.npcs.all.first { kotlin.math.abs(it.x - 3200) < 5 && kotlin.math.abs(it.z - 10060) < 5 }
+                    b.commandReply("hit 1 ${other.index}") { it.startsWith("Hit Man") }
+                    b.await("the man on di") { Unit.takeIf { di.attackedBy === other && other.target === di } }
+                    b.npcOp(other.index, 2)
+                    b.await("di on the man") { Unit.takeIf { di.attackedNpc === other } }
+                    b.playerOp(a.index, PlayerOps.ATTACK)
+                    b.await("di's attack on cy") { Unit.takeIf { (di.interaction as? PvpInteraction)?.target === cy && di.pjUntil > world.tick && di.pjOpponent === cy } }
+                    b.await("the man gives up on di") { Unit.takeIf { other.target == null } }
+                    assertTrue((di.interaction as? PvpInteraction)?.target === cy, "di still on cy")
                 }
             }
         }
