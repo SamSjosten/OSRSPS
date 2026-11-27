@@ -218,6 +218,43 @@ class HeadlessCatsTest {
     }
 
     @Test
+    fun `a follower with no room in the world when it catches up goes back in the backpack, or under a player whose backpack is full`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val cats = server.world.cats
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.commandReply("item $CAT_OBJ 1") { it.contains("Pet cat") }
+                client.drop(CAT_OBJ)
+                client.await("the cat following") { cats.follower(eve) }
+
+                // A tile in the instances' area with no instance there: no NPC can be put beside them (World.spawnNpc).
+                server.world.npcScripts.later(1) { server.world.teleport(eve, NO_ROOM_X, NO_ROOM_Z, 0) }
+                client.await("the cat back in the backpack") { if (client.count(CAT_OBJ) == 1) Unit else null }
+                assertNull(cats.follower(eve))
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_OBJ])
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_NPC])
+                assertTrue(server.world.npcs.all.none { it.type.id == CAT_NPC }, "no cat left behind")
+
+                // Again with a full backpack: the cat lands under them instead (exploit review 64, R64A-5).
+                server.world.npcScripts.later(1) { server.world.teleport(eve, 3222, 3218, 0) }
+                client.await("back home") { client.position?.takeIf { it == Coord(3222, 3218, 0) } }
+                client.drop(CAT_OBJ)
+                client.await("the cat following again") { cats.follower(eve) }
+                client.commandReply("item $SARDINE 28") { it.contains("Raw sardine") }
+                client.await("a full backpack") { if (client.count(SARDINE) == 28) Unit else null }
+                server.world.npcScripts.later(1) { server.world.teleport(eve, NO_ROOM_X, NO_ROOM_Z, 0) }
+                client.await("the cat under eve") {
+                    server.world.groundObjs.find(eve, CAT_OBJ, NO_ROOM_X, NO_ROOM_Z, 0)
+                }
+                assertEquals(0L, client.count(CAT_OBJ).toLong())
+                assertNull(cats.follower(eve))
+                assertEquals(-1, eve.vars[Cats.FOLLOWER_OBJ])
+            }
+        }
+    }
+
+    @Test
     fun `Chase vermin leaves the Rat Pits' rats alone`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dan").use { client ->
@@ -287,5 +324,7 @@ class HeadlessCatsTest {
         const val RAT_NPC = 2854
         const val SARDINE = 327
         const val NOTED_SARDINE = 328
+        const val NO_ROOM_X = 6_500
+        const val NO_ROOM_Z = 100
     }
 }

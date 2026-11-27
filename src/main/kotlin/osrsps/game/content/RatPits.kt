@@ -66,6 +66,9 @@ object RatPitsLines : Lines("rat_pits", "Rat Pits, Transcript:Kitten (Rat Pits),
  * cats), the jingles, ironman refusals, and reading the manual.
  */
 class RatPits(private val world: World, private val collision: osrsps.map.CollisionMap) {
+    /** The rounds a match runs before it is a draw; [MAX_ROUNDS], lowered by tests. */
+    internal var maxRounds = MAX_ROUNDS
+
     /** Guessed numbers on the Wiki's trade-offs: Attack, the cat's max hit, Defence and Hitpoints, and whether it flees. */
     enum class Strategy(val attack: Int, val maxHit: Int, val defence: Int, val hitpoints: Int, val flees: Boolean) {
         CAREFUL(-2, 1, 4, 4, true),
@@ -339,7 +342,7 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         if (match.stage != Stage.FIGHT) return
         // A match that can't finish (no rats left to kill, with the NPC table full) ends with the bets back, so the
         // stakes aren't held for good (exploit review 64, R64A-2).
-        if (++match.rounds > MAX_ROUNDS) return end(match, null, refund = true)
+        if (++match.rounds > maxRounds) return end(match, null, refund = true)
         match.rats.removeAll { world.npcs[it.index] !== it }
         match.ratHp.keys.retainAll(match.rats.toSet())
         for (i in match.rats.size until RATS) spawnRat(match, i)
@@ -538,8 +541,8 @@ class RatPits(private val world: World, private val collision: osrsps.map.Collis
         const val KILLS_TO_WIN = 5
         const val ATTACK_TICKS = 4
         const val RATS = 3
-        /** Guessed: about ten minutes of rounds, after which the match is a draw. */
-        const val MAX_ROUNDS = 150
+        /** Guessed: ten minutes (1,000 ticks) of rounds, one every [ATTACK_TICKS], after which the match is a draw. */
+        const val MAX_ROUNDS = 1_000 / ATTACK_TICKS
         const val FLEE_AT = 2
         const val CHALLENGE_TICKS = 100
         const val STRATEGY_TICKS = 50
