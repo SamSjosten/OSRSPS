@@ -203,10 +203,13 @@ object TaiBwoEvents {
         }
     }
 
-    /** The first tile beside [player] that can be stood on, west, east, south then north; their own when none. */
+    /**
+     * The first tile beside [player] that a step from their tile reaches, west, east, south then north; their own when
+     * none. A step, not just a standable tile, so no creature turns up across a fence or wall (exploit review R66A-2).
+     */
     private fun besidePlayer(world: World, player: Player): Pair<Int, Int> {
         for ((dx, dz) in listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)) {
-            if (world.canStand(player.x + dx, player.z + dz, player.level)) return player.x + dx to player.z + dz
+            if (world.canStep(player.level, player.x, player.z, dx, dz)) return player.x + dx to player.z + dz
         }
         return player.x to player.z
     }
@@ -221,11 +224,13 @@ object TaiBwoEvents {
         val tuber = world.objTypes[GOUT_TUBER] ?: return
         // No room for it: the plant stays (Codex review on #1033).
         if (player.inventory.freeSlots == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
-        // Locked to whoever starts digging.
-        tuberOwners[key(loc)] = player.saveKey
         player.anim(DIG_ANIM)
         delay(1)
         if (!world.locs.exists(loc)) return
+        // Locked to whoever finishes the dig, so starting one and walking off locks no one out (exploit review R66A-3).
+        val holder = tuberOwners[key(loc)]?.let { world.playerBySaveKey(it) }
+        if (holder != null && holder !== player && !holder.loggedOut) return world.message(player, TaiBwoEventLines.NOT_YOURS)
+        tuberOwners[key(loc)] = player.saveKey
         if (player.inventory.add(tuber, 1) == 0) return world.message(player, TaiBwoEventLines.NO_ROOM)
         world.message(player, TaiBwoEventLines.DUG)
         cleared(world, loc)
