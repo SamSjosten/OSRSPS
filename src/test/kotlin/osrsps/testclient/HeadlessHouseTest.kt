@@ -1457,6 +1457,14 @@ class HeadlessHouseTest {
                     a.await("ola down") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
                     assertNull(ola.equipment[WearPos.WEAPON])
                     assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // ola back on, then out of the house without Get-down: nothing is kept for her (Codex review on #1018).
+                    assertEquals(0, server.world.combatRoom.tracked())
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on again") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    assertEquals(1, server.world.combatRoom.tracked())
+                    a.tele(OUTSIDE.x, OUTSIDE.z)
+                    a.await("out of the house") { if (server.world.combatRoom.tracked() == 0) Unit else null }
                 }
             }
         }
@@ -1501,6 +1509,7 @@ class HeadlessHouseTest {
                 client.await("off the removed beam") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
                 assertNull(player.equipment[WearPos.WEAPON])
                 assertEquals(1L, player.inventory.count(CombatRoom.PUGEL))
+
             }
         }
     }

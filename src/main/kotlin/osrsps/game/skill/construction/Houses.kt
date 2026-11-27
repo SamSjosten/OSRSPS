@@ -338,6 +338,8 @@ class Houses(private val world: World) {
      * goes as its taker does, carried or worn (Codex review on #906).
      */
     private fun dropHouseOnly(player: Player) {
+        // Nothing of theirs is kept for the balance beam once they are gone (Codex review on #1018).
+        world.combatRoom.forget(player)
         for ((slot, obj) in player.inventory.contents()) if (obj.id in HouseOnly.OBJS) player.inventory.remove(slot)
         for ((slot, obj) in player.equipment.contents()) if (obj.id in HouseOnly.OBJS) player.equipment.remove(slot, obj.count)
     }

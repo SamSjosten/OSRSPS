@@ -233,6 +233,14 @@ class CombatRoom(private val world: World, private val houses: Houses) {
     /** The pugels each player on the balance beam carried as they stood on it ([leaveBeam]). */
     private val carried = HashMap<Player, Long>()
 
+    /** [player] has left the house or logged out: what was kept for them on the beam goes (Codex review on #1018). */
+    fun forget(player: Player) {
+        carried.remove(player)
+    }
+
+    /** How many players the beam keeps a pugel count for (tests). */
+    internal fun tracked(): Int = carried.size
+
     /**
      * Stand-on on a part of the balance beam [loc]: up onto it, with a second pugel wielded while the one carried stays
      * in the pack. Needs a pugel and both hands empty (GUESSED), and nobody else on that part (GUESSED).
