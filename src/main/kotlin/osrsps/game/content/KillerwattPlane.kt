@@ -37,18 +37,18 @@ object KillerwattPlaneLines : Lines("killerwatt_plane", "Transcript:Professor Od
  *   Portal Home (11356) there back. Without insulated boots on, Oddenstein warns them first, and they go through or
  *   stay as they choose.
  * - **Killerwatts**: passive orbs (470) until one fights; then it grows limbs (469) for the fight. Attacked from beside
- *   it, it fights in melee and walks after the player; attacked from further off, it stays where it is and shoots its
- *   magical ranged attack from up to 13 tiles. Both attack every 2 ticks, for up to 6 in melee or 8 at range, or 15
+ *   it, it fights in melee; with the player further off but within 13 tiles and in its sight, it stays where it is and
+ *   shoots its magical ranged attack; out of both it walks after them. It chooses afresh each tick. Both attack every 2 ticks, for up to 6 in melee or 8 at range, or 15
  *   either way at a player without insulated boots (the Wiki's Killerwatt).
  * - **Storm clouds** (488) wander and do nothing (the spawn file).
  *
  * Guessed: the landing tiles either side; no animation going through; that a killerwatt picks melee or range by
- * whether the player is beside it when it starts fighting back; that it turns back into an orb once it stops
+ * whether the player is beside it, each tick; that it turns back into an orb once it stops
  * fighting; the transformation's spotanim; and the ranged attack rolling against Ranged defence.
  */
 class KillerwattPlane(private val world: World) {
-    /** The killerwatts fighting, and whether each fights in melee (true) or at range. */
-    private val melee = HashMap<Npc, Boolean>()
+    /** The killerwatts fighting, with their limbs grown. */
+    private val inFight = HashSet<Npc>()
 
     fun insulated(player: Player): Boolean = player.equipment.count(INSULATED_BOOTS) > 0
 
@@ -108,34 +108,40 @@ class KillerwattPlane(private val world: World) {
         npc.scriptedAttacks = true
         val player = npc.target
         if (player == null) {
-            if (melee.remove(npc) != null) world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
+            if (inFight.remove(npc)) world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
             return
         }
         val fighting = world.meleeCombat
-        val inMelee = melee.getOrPut(npc) {
+        if (inFight.add(npc)) {
             // The fight starts: its first swing comes the tick after, as a retaliation's does (MeleeCombat.retaliate),
             // not this tick after the hit that started it (Codex review on #1029).
             npc.nextAttackTick = maxOf(npc.nextAttackTick, world.tick + 1)
             world.npcTypes[BIPED]?.let { world.npcs.transform(npc, it, Npcs.FOREVER) }
             npc.effects.spotanim(0, TRANSFORM_SPOTANIM, 0)
-            fighting.reaches(npc, player)
         }
         val tick = world.tick
-        if (inMelee) {
+        // Melee or range is chosen afresh each tick, so no spot keeps the player safe from both: beside them it swings;
+        // within 13 tiles and in sight it stands and shoots; otherwise it walks after them (exploit review 66, R66C-1).
+        if (fighting.reaches(npc, player)) {
             if (npc.following !== player) world.npcs.follow(npc, player)
-            if (tick < npc.nextAttackTick || !fighting.reaches(npc, player)) return
+            if (tick < npc.nextAttackTick) return
             fighting.swingAt(npc, player, tick, maxHit = meleeMaxHit(player))
-        } else {
-            npc.face(player)
-            val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
-            if (tick < npc.nextAttackTick || distance !in 1..RANGE || !fighting.sees(npc, player)) return
-            val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
-            fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
+            return
         }
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+        if (distance !in 1..RANGE || !fighting.sees(npc, player)) {
+            if (npc.following !== player) world.npcs.follow(npc, player)
+            return
+        }
+        if (npc.following === player) world.npcs.stopFollowing(npc)
+        npc.face(player)
+        if (tick < npc.nextAttackTick) return
+        val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
+        fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
     }
 
     internal fun died(npc: Npc) {
-        melee.remove(npc)
+        inFight.remove(npc)
     }
 
     companion object {

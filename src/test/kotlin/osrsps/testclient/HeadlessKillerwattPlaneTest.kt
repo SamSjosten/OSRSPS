@@ -227,6 +227,40 @@ class HeadlessKillerwattPlaneTest {
         }
     }
 
+    @Test
+    fun `a killerwatt that took a player on in melee shoots once they step away, rather than only walking after them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eli").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { it.isNotEmpty() }
+                client.command("tele ${ORB_X - 1} $ORB_Z 2")
+                client.at(ORB_X - 1, ORB_Z, 2)
+                val world = server.world
+                val eli = world.playerNamed("eli")!!
+                val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                // Taken on from beside it, then 5 tiles off on the next tick (exploit review 66, R66C-1): all on the game
+                // thread, its next attack tick and its tile each tick for 6.
+                val samples = java.util.concurrent.CompletableFuture<List<Pair<Long, Int>>>()
+                fun sample(into: MutableList<Pair<Long, Int>>) {
+                    world.npcScripts.later(1) {
+                        into += killerwatt.nextAttackTick to maxOf(kotlin.math.abs(killerwatt.x - eli.x), kotlin.math.abs(killerwatt.z - eli.z))
+                        if (into.size == 6) samples.complete(into) else sample(into)
+                    }
+                }
+                world.npcScripts.later(1) {
+                    world.meleeCombat.aggress(killerwatt, eli, world.tick)
+                    world.npcScripts.later(1) {
+                        world.teleport(eli, ORB_X - 6, ORB_Z, 2)
+                        sample(ArrayList())
+                    }
+                }
+                val seen = samples.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                assertTrue(seen.all { it.second > 1 }, "it never comes to melee: $seen")
+                assertTrue(seen.map { it.first }.distinct().size >= 2, "it shoots from where it is: $seen")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94
