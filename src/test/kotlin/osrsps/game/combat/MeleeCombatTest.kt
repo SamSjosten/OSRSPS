@@ -241,6 +241,30 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a combat dummy takes every punch at the max, pays no XP, never fights back and never goes down`() {
+        combat.dummy = { true }
+        combat.sureHit = { _, _, _ -> SureHit.MAX }
+        val npc = spawn()
+        val hitpoints = alice.skills.currentLevel(Skill.HITPOINTS)
+        val hitpointsXp = alice.skills.tenths(Skill.HITPOINTS)
+        attack(alice, npc)
+        val hits = ArrayList<Int>()
+        repeat(30) {
+            tick()
+            npc.effects.pendingHits.singleOrNull()?.let { hits += it.value }
+            npc.effects.flush({}, {}, {})
+        }
+        // Eight punches of 1 at a man with 7 hitpoints: still whole, still there, and never swung at Alice.
+        assertEquals(List(8) { 1 }, hits)
+        assertEquals(npc.maxHitpoints, npc.hitpoints)
+        assertFalse(npc.dead)
+        assertNull(npc.target)
+        assertEquals(hitpoints, alice.skills.currentLevel(Skill.HITPOINTS))
+        assertEquals(0, alice.skills.tenths(Skill.ATTACK))
+        assertEquals(hitpointsXp, alice.skills.tenths(Skill.HITPOINTS))
+    }
+
+    @Test
     fun `content can take what a swing rolled before it lands, by its style`() {
         combat.sureHit = { _, _, _ -> SureHit.MAX }
         val seen = ArrayList<AttackType>()

@@ -193,6 +193,17 @@ class Combat(
     var noCooldown: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
+     * Set by content: whether [Npc] is a max hit dummy, the house's combat dummy ([osrsps.game.skill.construction.CombatRoom];
+     * OSRS Wiki, Combat dummy: "no experience will be granted for hitting it. Any ammunition fired at it will always be
+     * lost"): no XP for hitting it, it never fights back or goes down, and no ammunition fired at it is kept. That every
+     * hit is the max one is its [sureHit].
+     */
+    var dummy: (Npc) -> Boolean = { false }
+
+    /** Whether hitting [npc] gives XP: anything but a [dummy]. */
+    fun paysXp(npc: Npc): Boolean = !dummy(npc)
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC. [weapon] false leaves out what the wielded weapon bars ([weaponBarred]), for damage
