@@ -148,6 +148,8 @@ import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerCats
 import osrsps.game.content.Cats
+import osrsps.game.content.RatPits
+import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -196,6 +198,9 @@ import osrsps.game.content.registerVenenatis
 import osrsps.game.content.registerCorporealBeast
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
+import osrsps.game.content.RevenantCaves
+import osrsps.game.content.SinglesPlus
+import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -554,6 +559,9 @@ class World(
     /** Pet cats out following their players; see [Cats]. */
     val cats = Cats(this, collision)
 
+    /** Varrock's rat pits under the manhole east of the city; see [RatPits]. */
+    val ratPits = RatPits(this, collision)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -750,6 +758,7 @@ class World(
                 it in osrsps.game.content.randomevents.EvilTwin.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Maze.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Pinball.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.SurpriseExam.INSTANCE_LOCS ||
                 // The clan hall's are common locs (a Varrock bank booth, a deposit box, an oven): only in a clan's hall
                 // (exploit review R55C-3).
                 ((it in osrsps.game.content.ClanHall.INSTANCE_LOCS || it == PollBooths.CLAN_HALL_BOOTH) && clanHall.clanAt(x, z) != null)
@@ -803,6 +812,7 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
+            osrsps.game.content.EvilChicken.damaged(this, npc, player)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -834,7 +844,7 @@ class World(
     val pvpCombat = PvpCombat(
         collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
         inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
-        multi = multiCombat, players = { players.asSequence().filterNotNull() },
+        multi = multiCombat, players = { players.asSequence().filterNotNull() }, singlesPlus = SinglesPlus::at,
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
@@ -880,7 +890,8 @@ class World(
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
-        forfeit = WildernessLairFee::forfeit,
+        forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
+        diedUnkilled = RevenantCaves::lose,
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
@@ -1345,6 +1356,7 @@ class World(
         registerChampionsChallenge(this, championsChallenge)
         registerTearsOfGuthix(this, tearsOfGuthix)
         registerCats(this, cats)
+        registerRatPits(this, ratPits)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1374,6 +1386,7 @@ class World(
         registerSpindel(this)
         registerVenenatis(this)
         registerCorporealBeast(this)
+        registerRevenantCaves(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1956,6 +1969,7 @@ class World(
     private fun sendMultiIndicator(player: Player) {
         val multi = if (multiCombat.at(player.level, player.x, player.z)) 1 else 0
         player.vars.setVarbitIfKnown(MultiCombat.VARBIT_INDICATOR, multi)
+        player.vars.setVarbitIfKnown(SinglesPlus.VARBIT_INDICATOR, if (multi == 0 && SinglesPlus.at(player.level, player.x, player.z)) 1 else 0)
     }
 
     /**
@@ -2626,6 +2640,7 @@ class World(
         inferno.login(player)
         tearsOfGuthix.login(player)
         cats.login(player)
+        ratPits.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         randomEvents.login(player)
@@ -2748,6 +2763,12 @@ class World(
             // nothing else here uses option 1 (Attack, in PvP areas, isn't built).
             val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
             clans.inviteOrAccept(player, target)
+            return
+        }
+        if (option == RatPits.CHALLENGE_OP && ratPits.inArea(player.x, player.z, player.level)) {
+            // The rat pits' "Challenge", set while the player is down there.
+            val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
+            ratPits.challenge(player, target)
             return
         }
         if (option == PlayerOps.ATTACK && player.attackOp) {
@@ -3418,7 +3439,8 @@ class World(
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
+            osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
@@ -3948,6 +3970,7 @@ class World(
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             randomEvents.leaving(player)
+            ratPits.logout(player)
             cats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)

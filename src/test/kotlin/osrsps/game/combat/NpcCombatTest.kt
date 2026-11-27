@@ -47,6 +47,7 @@ class NpcCombatTest {
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
             "chicken_attack" to 55, "chicken_block" to 56, "chicken_death" to 57,
+            "roostermagic" to 2302, "roosterparry" to 2300, "roosterdeath" to 2301,
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,

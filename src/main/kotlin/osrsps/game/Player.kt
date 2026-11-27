@@ -426,6 +426,13 @@ class Player(
     var launchedAtNpc: Npc? = null
     var launchedAtNpcTick: Long = -1
 
+    /**
+     * The tick a singles-plus PvP attack last ended their monster fight ([osrsps.game.combat.MeleeCombat.leaveNpcFight]),
+     * -1 for never: an attack on the monster launched before it still lands while their PJ timer runs, without starting
+     * that fight again. Not saved.
+     */
+    var npcFightLeftTick: Long = -1
+
     /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
     val tolerance = osrsps.game.combat.Tolerance()
 
@@ -523,6 +530,9 @@ class Player(
 
     /** Whether the client has Attack on other players' menus ([PlayerOps.ATTACK]), given inside the Wilderness. */
     var attackOp: Boolean = false
+
+    /** The text of slot 5 on other players' menus while one is given there (the rat pits' Challenge), else null. */
+    var slot5Op: String? = null
 
     /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
     val heldActions = ArrayDeque<() -> Unit>()

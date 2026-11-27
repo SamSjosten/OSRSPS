@@ -96,6 +96,8 @@ class PvpCombat(
     private val multi: MultiCombat = MultiCombat(),
     /** Everyone in the world, for a Burst or Barrage's other targets. */
     private val players: () -> Sequence<Player> = { emptySequence() },
+    /** Where combat is singles-plus ([osrsps.game.content.SinglesPlus]): a monster's fight bars no player's attack. */
+    private val singlesPlus: (level: Int, x: Int, z: Int) -> Boolean = { _, _, _ -> false },
 ) {
     /**
      * An attack on its way to [target], landing when they are next processed from [landTick]: [damage] of [type], or a
@@ -285,8 +287,15 @@ class PvpCombat(
         return tick < player.pjUntil && opponent.saveKey == other.saveKey
     }
 
-    /** Whether a monster is fighting [player], or they are fighting one. */
-    private fun fightingAnyNpc(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
+    /** Whether a monster is fighting [player], or they are fighting one, outside singles-plus combat ([npcBars]). */
+    private fun fightingAnyNpc(player: Player, tick: Long): Boolean =
+        npcBars(player, tick) || (!singlesPlus(player.level, player.x, player.z) && melee.fightingNpc(player))
+
+    /**
+     * Whether a monster's fight with [player] bars a PvP attack, theirs or on them: not in singles-plus combat, where
+     * "another player attacking will take priority over fighting the monster" (OSRS Wiki, Singles-plus combat).
+     */
+    private fun npcBars(player: Player, tick: Long): Boolean = !singlesPlus(player.level, player.x, player.z) && npcFighting(player, tick)
 
     /** Whether a monster fighting [player] hit them within the monster PJ timer. */
     private fun npcFighting(player: Player, tick: Long): Boolean {
@@ -303,6 +312,10 @@ class PvpCombat(
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
         target.pjAfterKill = false
+        // In singles-plus combat "another player attacking will take priority over fighting the monster" (OSRS Wiki,
+        // Singles-plus combat): each one's monster fight ends, theirs on it and its on them, the attacker's player fight
+        // kept (Codex review on #1002).
+        for (player in arrayOf(attacker, target)) if (singlesPlus(player.level, player.x, player.z)) melee.leaveNpcFight(player)
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
