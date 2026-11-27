@@ -43,14 +43,24 @@ class BrutusRecords(private val file: Path? = null) {
         }
     }
 
+    /** Changes not yet in [file]: written by [flush], with the autosave and at shutdown, not in the tick (R60A-5). */
+    private var dirty = false
+
     fun killed(ticks: Long?) {
         kills++
         if (ticks != null && ticks > 0 && (bestTicks == 0L || ticks < bestTicks)) bestTicks = ticks
-        save()
+        dirty = true
     }
 
     fun died() {
         deaths++
+        dirty = true
+    }
+
+    /** Writes the records to [file] if they changed since the last write. */
+    fun flush() {
+        if (!dirty) return
+        dirty = false
         save()
     }
 
@@ -67,6 +77,7 @@ class BrutusRecords(private val file: Path? = null) {
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
         } catch (e: Exception) {
             logger.warn(e) { "Couldn't save Brutus's global records to $file" }
+            dirty = true
         }
     }
 

@@ -28,9 +28,11 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
+import osrsps.map.Tile
 
 /**
  * Brutus step 6 through the headless client: the abyssal potato plucked and eaten, fed to Brutus on release for a field
@@ -65,8 +67,8 @@ class HeadlessDemonicBrutusTest {
     )
     private val ghost = NpcType(DemonicBrutus.GHOST, "Demonic Brutus", size = 3, combatLevel = 1224, internalName = "cowboss_hardmode_ghost")
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val map = CollisionMap().apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
+    private fun server(dir: Path, map: CollisionMap = CollisionMap()) = TestServer(dir) { crcs, millis ->
+        map.apply { for (x in (3240 shr 6)..(3271 shr 6)) for (z in (3256 shr 6)..(3303 shr 6)) markLoaded(x, z) }
         val npcTypes = NpcTypes.of(brutus, demonic, ghost)
         val objs = ObjTypes.of(
             ObjType(DemonicBrutus.POTATO, "Abyssal potato", iops = listOf("Eat", null, null, null, "Drop")),
@@ -184,6 +186,75 @@ class HeadlessDemonicBrutusTest {
                 assertEquals(0, alice.vars[Brutus.KILL_COUNT_VARP], "not Brutus's count")
                 client.awaitTicks(50)
                 assertTrue(server.world.npcs.all.none { !it.dead && it.type.id == DemonicBrutus.BOSS && run.instance.contains(it.x, it.z) }, "no respawn")
+            }
+        }
+    }
+
+    @Test
+    fun `out of his reach for 15 ticks he comes on with a special anyway, so there's no safespot`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                val run = client.feedIn(server, "dave", 3262, 3270)
+                val boss = run.boss!!
+                val fight = DemonicBrutus.fight(boss)
+                val encounter = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }
+                // Counted only once she has attacked him (her auto-retaliate does, after his first butt).
+                client.await("she's attacked him", timeoutMillis = 30_000) { run.fightStart.takeIf { it >= 0 } }
+                // Held where he is, with her well off: he can't reach her, and no butts count down.
+                server.world.npcs.freeze(boss, 200)
+                val off = Tile(boss.x + 6, boss.z)
+                client.command("tele ${off.x} ${off.z} 0")
+                client.await("away from him") { client.position?.takeIf { it == Coord(off.x, off.z, 0) } }
+                client.await("out of reach", timeoutMillis = 30_000) { encounter.lines.firstOrNull { it.contains("out of reach") } }
+                client.await("a special", timeoutMillis = 10_000) { fight.specials.firstOrNull() }
+                assertEquals(DemonicBrutus.BASICS, fight.basicsLeft, "the butts before the next start again")
+            }
+        }
+    }
+
+    @Test
+    fun `his bulls stay in his field, and his fight ends with the field, taking him wherever he stands`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                val run = client.feedIn(server, "erin", 3262, 3270)
+                val boss = run.boss!!
+                val low = run.inside(Brutus.FIELD_X, Brutus.FIELD_Z)
+                // A slam from the south-west of a player on the field's south-west corner would stand him off it.
+                assertEquals(low, DemonicBrutus.fieldTile(run, DemonicBrutus.slamFrom(low.x, low.z, DemonicBrutus.CORNERS[0]), 3))
+                // He stands on the field, but the slam is still aimed from where he'd have been: it lands on her.
+                assertTrue(low in DemonicBrutus.slamTiles(DemonicBrutus.slamFrom(low.x, low.z, DemonicBrutus.CORNERS[0]), DemonicBrutus.CORNERS[0]))
+                val highX = low.x + Brutus.FIELD_WIDTH_ZONES * 8 - 3
+                assertEquals(Tile(highX, low.z + 5), DemonicBrutus.fieldTile(run, Tile(highX + 4, low.z + 5), 3))
+                val encounter = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === boss } }
+                // Stood off the field anyway (as a bull could before), then the field ends.
+                server.world.npcs.teleport(boss, run.instance.maxX + 10, run.instance.baseZ)
+                server.world.endInstance(run.instance)
+                client.await("his fight called off") { if (encounter.ended) Unit else null }
+                client.await("him gone") { if (server.world.npcs[boss.index] !== boss) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a bull doesn't land where the player can't walk to him, as shut in behind a fence`(@TempDir dir: Path) {
+        val map = CollisionMap()
+        server(dir, map).use { server ->
+            server.login("fay").use { client ->
+                val run = client.feedIn(server, "fay", 3262, 3270)
+                val boss = run.boss!!
+                val fay = server.world.playerNamed("fay")!!
+                // A pen of fence round a 3 by 3 spot in the field, as his own pen behind its gate.
+                val inside = run.inside(3250, 3264)
+                for (x in inside.x - 1..inside.x + 3) for (z in inside.z - 1..inside.z + 3) {
+                    if (x == inside.x - 1 || x == inside.x + 3 || z == inside.z - 1 || z == inside.z + 3) map.add(x, z, 0, CollisionFlag.LOC)
+                }
+                assertTrue(server.world.npcs.canStand(boss, inside.x, inside.z), "he'd fit in it")
+                val landed = DemonicBrutus.landing(server.world, boss, run, fay, inside)
+                assertTrue(landed != null && landed != inside, "not shut in: $landed")
+                assertTrue(server.world.canWalkBeside(fay, landed.x, landed.z, 3))
+                // Where she can reach him already, he lands as aimed.
+                val open = run.inside(3256, 3270)
+                assertEquals(open, DemonicBrutus.landing(server.world, boss, run, fay, open))
             }
         }
     }
