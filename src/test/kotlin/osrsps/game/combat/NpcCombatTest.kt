@@ -52,6 +52,7 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "tbw_mosquito_attack" to 2397, "tbw_mosquito_defend" to 2399, "tbw_mosquito_death" to 2398,
+            "tbw_broodoo_dance" to 2401, "tbw_broodoo_shield_block" to 2403,
             "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
             "monkey_attack" to 220, "monkey_block" to 221, "monkey_death" to 223,
             "dog_update_small_dog_attack" to 6562, "dog_update_medium_dog_defend" to 6563, "dog_update_medium_dog_death" to 6564,
