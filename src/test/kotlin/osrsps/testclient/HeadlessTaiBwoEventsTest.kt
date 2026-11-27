@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -115,10 +116,14 @@ class HeadlessTaiBwoEventsTest {
                 client.locOp(LIGHT_JUNGLE, 2768, 3061, TaiBwoCleanup.HACK)
                 client.message("[tbw_event.gems]")
                 client.shown(TaiBwoEvents.GEM_ROCKS[0], 2768, 3061)
+                fun rockDue() = server.world.locs.at(2768, 3061, 0).firstOrNull { it.id in TaiBwoEvents.GEM_ROCKS }?.let { server.world.locs.revertDue(it) }
+                val due = assertNotNull(rockDue(), "the rock's ten minutes")
                 for (stage in 1..3) {
                     val id = TaiBwoEvents.GEM_ROCKS[stage - 1]
                     client.locOp(id, 2768, 3061, 1)
                     client.await("gem $stage", timeoutMillis = 30_000) { if (GEMS.sumOf { client.count(it) } == stage.toLong()) Unit else null }
+                    // The next stage keeps what was left of the ten minutes.
+                    if (stage < 3) client.await("stage ${stage + 1}'s expiry") { rockDue()?.takeIf { it == due } }
                 }
                 client.shown(LIGHT_JUNGLE + 4, 2768, 3061)
 

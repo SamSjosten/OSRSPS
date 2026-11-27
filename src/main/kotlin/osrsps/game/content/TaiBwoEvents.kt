@@ -107,6 +107,9 @@ object TaiBwoEvents {
     /** The jungle each plant or gem rock came out of, by tile. */
     private val jungleAt = HashMap<Long, TaiBwoCleanup.Jungle>()
 
+    /** The tick each gem rock goes back to jungle, by tile, carried across its stages. */
+    private val rockExpiry = HashMap<Long, Long>()
+
     /** Events forced by `::tbwevent`, for the next roll of each player's. */
     private val forced = WeakHashMap<Player, Event>()
 
@@ -161,6 +164,7 @@ object TaiBwoEvents {
                 if (rock != null) {
                     world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, PLANT_TICKS)
                     jungleAt[key(loc)] = jungle
+                    rockExpiry[key(loc)] = world.tick + PLANT_TICKS
                     world.message(player, TaiBwoEventLines.GEMS)
                 }
                 rock != null
@@ -226,6 +230,7 @@ object TaiBwoEvents {
     /** The plant dug or the rock mined out: the chopped-away jungle, growing back as after a hack. */
     private fun cleared(world: World, loc: ZoneLoc) {
         tuberOwners.remove(key(loc))
+        rockExpiry.remove(key(loc))
         val jungle = jungleAt.remove(key(loc))
         if (jungle == null) {
             world.locs.remove(loc)
@@ -240,6 +245,9 @@ object TaiBwoEvents {
         val stage = GEM_ROCKS.indexOf(loc.id)
         if (stage in 0 until GEM_ROCKS.size - 1) {
             world.locs.replace(loc, GEM_ROCKS[stage + 1]) ?: return
+            // The replace drops the rock's expiry: what was left of it carries on (Codex review on #1033).
+            val left = ((rockExpiry[key(loc)] ?: (world.tick + PLANT_TICKS)) - world.tick).coerceAtLeast(1)
+            world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, left.toInt())
         } else {
             cleared(world, loc)
         }
