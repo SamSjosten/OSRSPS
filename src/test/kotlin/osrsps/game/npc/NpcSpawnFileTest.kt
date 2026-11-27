@@ -349,7 +349,7 @@ class NpcSpawnFileTest {
             2672 to "farming_gardener_hops_3", 2680 to "farming_gardener_tree_3", 2681 to "farming_gardener_tree_4", 0 to "farming_tools_leprechaun",
             1351 to "favour_seth_groats", 3017 to "giantspider1", 5007 to "imp", 5731 to "master_farmer_2", 1262 to "ramunsheered", 1263 to "ramunsheered2",
             1264 to "ramunsheered3", 2693 to "sheepunsheered", 2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 2694 to "sheepunsheeredg",
-            2695 to "sheepunsheeredw", 4158 to "surok_rat", 1831 to "swan", 2837 to "unicorn",
+            2695 to "sheepunsheeredw", 4158 to "surok_rat", 1831 to "swan", 2837 to "unicorn", 6739 to "evil_chicken",
         ) + listOf(3029, 3030, 3031, 3033, 3034, 3035, 3036).associateWith { "goblin_unarmed_melee_${it - 3028}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("misthalin-farms-roads.json"), types, "misthalin-farms-roads.json")
@@ -367,6 +367,8 @@ class NpcSpawnFileTest {
         assertEquals(3, pen.count { it.type.internalName?.startsWith("ramunsheered") == true })
         assertEquals(listOf(4, 5, 1, 1, 2, 2, 3, 3), listOf(intArrayOf(2674, 2672, 2681, 2680), intArrayOf(0), intArrayOf(1323), intArrayOf(5731), intArrayOf(2837), intArrayOf(3245, 3250), intArrayOf(5007), intArrayOf(2069, 2070, 2071)).map { count(*it) })
         assertEquals(listOf(1, 1, 1, 1, 2), listOf(4158, 1351, 2839, 3073, 1831).map { count(it) })
+        // The Evil Chicken in the Champions' Guild coop, never moving, not even in combat (random events step 19; Codex on #1011).
+        assertEquals(listOf(Triple(3198, 3359, MoveRestrict.NOMOVE)), spawns.filter { it.type.id == 6739 }.map { Triple(it.x, it.z, it.restrict) })
         // Ducks and swans swim; every other NPC walks.
         assertTrue(spawns.all { (it.restrict == MoveRestrict.BLOCKED) == (it.type.id in setOf(1838, 1839, 1831)) })
         // The cows and goblins keep to the land between the three towns, west of the Varrock road.
