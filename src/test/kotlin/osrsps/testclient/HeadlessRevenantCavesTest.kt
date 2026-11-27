@@ -181,6 +181,13 @@ class HeadlessRevenantCavesTest {
                     a.await("the man gives up") { Unit.takeIf { man.target == null } }
                     assertTrue(cy.interaction !is osrsps.game.combat.MeleeInteraction, "cy no longer on the man")
                     assertEquals(null, cy.attackedNpc)
+                    // A hit of cy's launched before landing now (as an arrow in flight): it counts, but the man stays
+                    // off cy and cy off it while their PJ timer runs (Codex review on #1002).
+                    val before = man.hitpoints
+                    a.commandReply("hit 1 ${man.index}") { it.startsWith("Hit Man") }
+                    a.await("the late hit") { Unit.takeIf { man.hitpoints < before } }
+                    assertEquals(null, man.target)
+                    assertEquals(null, cy.attackedNpc)
 
                     // The other way round: di, fought by the man, attacks cy; the man gives up on di, and di keeps after
                     // cy. First the fight over and both PJ timers run out.
