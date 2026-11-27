@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -181,6 +182,8 @@ class HeadlessBrutusScoreboardTest {
             killed(40)
             killed(null)
             died()
+            assertFalse(java.nio.file.Files.exists(file), "written with the autosave, not in the tick")
+            flush()
         }
         val again = BrutusRecords(file)
         assertEquals(3L to 1L, again.kills to again.deaths)
