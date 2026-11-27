@@ -321,6 +321,7 @@ class Houses(private val world: World) {
             world.poison.curePoison(player)
             setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
             dropHouseOnly(player)
+            world.pvpCombat.leftHouse(player)
         }
     }
 
