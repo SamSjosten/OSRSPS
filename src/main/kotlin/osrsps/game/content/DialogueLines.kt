@@ -412,6 +412,7 @@ object DialogueLines {
         CatLines,
         RatPitsLines,
         KillerwattPlaneLines,
+        PostQuestLeftoversLines,
         TearsLines,
         ExamCentreLines,
         TerryLines,

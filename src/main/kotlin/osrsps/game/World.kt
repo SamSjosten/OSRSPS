@@ -152,6 +152,7 @@ import osrsps.game.content.Cats
 import osrsps.game.content.RatPits
 import osrsps.game.content.KillerwattPlane
 import osrsps.game.content.registerKillerwattPlane
+import osrsps.game.content.registerPostQuestLeftovers
 import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
@@ -1372,6 +1373,7 @@ class World(
         registerCats(this, cats)
         registerRatPits(this, ratPits)
         registerKillerwattPlane(this, killerwattPlane)
+        registerPostQuestLeftovers(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
