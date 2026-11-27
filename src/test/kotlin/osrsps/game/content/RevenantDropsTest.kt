@@ -27,7 +27,7 @@ class RevenantDropsTest {
     fun `ether every kill, in even counts up to the level's most`() {
         val random = GameRandom(1)
         repeat(2_000) {
-            val ether = RevenantDrops.roll(random, 7940, 135, false, types).filter { it.type.id == RevenantDrops.ETHER }
+            val ether = RevenantDrops.roll(random, 7940, 135, false, types = types).filter { it.type.id == RevenantDrops.ETHER }
             assertEquals(1, ether.size)
             assertTrue(ether[0].count % 2 == 0 && ether[0].count in 2..24, "${ether[0].count}")
         }
@@ -37,14 +37,14 @@ class RevenantDropsTest {
     fun `an imp mostly drops coins, a dragon never, and a dragon's uniques come about as often as the Wiki says`() {
         val random = GameRandom(2)
         val kills = 200_000
-        val imp = (1..kills).count { RevenantDrops.roll(random, 7881, 7, false, types).any { it.type.id == RevenantDrops.COINS } }
+        val imp = (1..kills).count { RevenantDrops.roll(random, 7881, 7, false, types = types).any { it.type.id == RevenantDrops.COINS } }
         // (A - B) / A = 1063 / 1100.
         assertTrue(imp in (kills * 0.955).toInt()..(kills * 0.977).toInt(), "$imp")
         var coins = 0
         var uniques = 0
         val ids = setOf(RevenantDrops.AVARICE, RevenantDrops.CRAWS_BOW, RevenantDrops.THAMMARONS_SCEPTRE, RevenantDrops.VIGGORAS_CHAINMACE)
         repeat(kills) {
-            val drops = RevenantDrops.roll(random, 7940, 135, true, types)
+            val drops = RevenantDrops.roll(random, 7940, 135, true, types = types)
             if (drops.any { it.type.id == RevenantDrops.COINS }) coins++
             if (drops.any { it.type.id in ids }) uniques++
         }
@@ -56,6 +56,17 @@ class RevenantDropsTest {
     @Test
     fun `skulled, no dragon med helm`() {
         val random = GameRandom(3)
-        repeat(100_000) { assertTrue(RevenantDrops.roll(random, 7940, 135, true, types).none { it.type.id == 1149 }) }
+        repeat(100_000) { assertTrue(RevenantDrops.roll(random, 7940, 135, true, types = types).none { it.type.id == 1149 }) }
+    }
+
+    @Test
+    fun `a looting bag now and then, never for a killer who owns one`() {
+        val random = GameRandom(4)
+        val bags = (1..2_000).count { RevenantDrops.roll(random, 7881, 7, false, types = types).any { it.type.id == RevenantDrops.LOOTING_BAG } }
+        // An imp, combat 7: 1 in 15, so about 133 in 2,000.
+        assertTrue(bags in 90..180, "$bags")
+        repeat(2_000) {
+            assertTrue(RevenantDrops.roll(random, 7881, 7, false, ownsBag = true, types = types).none { it.type.id == RevenantDrops.LOOTING_BAG })
+        }
     }
 }

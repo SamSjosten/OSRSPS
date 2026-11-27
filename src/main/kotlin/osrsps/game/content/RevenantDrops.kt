@@ -3,6 +3,7 @@ package osrsps.game.content
 import kotlin.math.sqrt
 import osrsps.game.GameRandom
 import osrsps.game.ObjType
+import osrsps.game.Player
 import osrsps.game.combat.Drop
 
 /**
@@ -35,6 +36,14 @@ object RevenantDrops {
     const val THAMMARONS_SCEPTRE = 22552
     const val VIGGORAS_CHAINMACE = 22542
     const val LOOTING_BAG = 11941
+    const val LOOTING_BAG_OPEN = 22586
+
+    /**
+     * Whether [player] has a looting bag, closed or open, in the backpack or bank, or one dropped for them still on the
+     * ground (so kills before a pickup don't pile them up: Codex review on #1014).
+     */
+    fun ownsBag(player: Player, dropped: (Player, Int) -> Boolean): Boolean =
+        listOf(LOOTING_BAG, LOOTING_BAG_OPEN).any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 || dropped(player, it) }
 
     const val ANCIENT_EMBLEM = 21807
     const val ANCIENT_TOTEM = 21810
@@ -86,8 +95,12 @@ object RevenantDrops {
 
     fun b(combat: Int): Int = 15 + (combat + 60) * (combat + 60) / 200
 
-    /** One kill's drops of a revenant of [typeId] and [combat] level, for a killer [skulled] or not; [types] names the items. */
-    fun roll(random: GameRandom, typeId: Int, combat: Int, skulled: Boolean, types: (Int) -> ObjType?): List<Drop> {
+    /**
+     * One kill's drops of a revenant of [typeId] and [combat] level, for a killer [skulled] or not; [types] names the
+     * items. No looting bag for a killer who [ownsBag] (OSRS Wiki, Looting bag: "Only one looting bag can be in a
+     * player's possession at a time").
+     */
+    fun roll(random: GameRandom, typeId: Int, combat: Int, skulled: Boolean, ownsBag: Boolean = false, types: (Int) -> ObjType?): List<Drop> {
         val out = ArrayList<Drop>()
         fun add(id: Int, count: Int) {
             types(id)?.let { out += Drop(it, count) }
@@ -120,7 +133,7 @@ object RevenantDrops {
             combat > 50 -> 3
             else -> 150 / combat
         }
-        if (random.chance(1, bag)) add(LOOTING_BAG, 1)
+        if (random.chance(1, bag) && !ownsBag) add(LOOTING_BAG, 1)
         CHAMPION_SCROLLS[typeId]?.let { if (random.chance(1, CHAMPION_SCROLL_ODDS)) add(it, 1) }
         return out
     }
