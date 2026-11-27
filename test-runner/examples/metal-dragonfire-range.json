@@ -4,6 +4,7 @@
   "steps": [
     {"step": "waitForLogin"},
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "the bow and arrows go with the scenario: ::reset at the end takes them off again, so later scripts that attack without one don't fire a bow with no arrows (nightly 2026-11-27, combat.no_ammo in callisto, calvarion, chaos-elemental, brimhaven-fighters)"},
     {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
     {"step": "command", "text": "::item shortbow", "expectMessage": "Added 1 x Shortbow"},
     {"step": "command", "text": "::item bronze arrow 20", "expectMessage": "Added 20 x Bronze arrow"},
@@ -17,6 +18,7 @@
     {"step": "assertMessage", "contains": "[dragonfire.", "timeoutMs": 120000, "comment": "a breath from range (8 tiles, GUESSED); before the fix it couldn't reach the player at all"},
     {"step": "assertLocation", "x": 2709, "y": 9472, "plane": 0, "comment": "still in the corridor, out of its melee reach"},
     {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "away before ::god goes off"},
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }
