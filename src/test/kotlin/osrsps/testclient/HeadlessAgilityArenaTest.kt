@@ -465,6 +465,31 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
+    fun `a fall from the hand holds plays at once, so the drop that follows doesn't overtake it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds3").use { client ->
+                client.ready()
+                client.command("setlevel agility 20")
+                client.await("level 20") { client.stat(AGILITY)?.takeIf { it.level == 20 } }
+                val from = client.actorEvents().size
+                // About a third of crossings fail at level 20; 30 tries all crossing is under one in a million.
+                for (attempt in 1..30) {
+                    client.tele(2759, 9559, 3)
+                    client.awaitTicks(2)
+                    client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                    val end = client.await("off the hand holds") { client.position?.takeIf { it == Coord(2759, 9566, 3) || it.level == 0 } }
+                    client.awaitTicks(2)
+                    if (end.level == 0) break
+                }
+                val fall = client.actorEvents(from).firstOrNull { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_FALL }
+                assertTrue(fall != null, "a fall in 30 tries")
+                assertEquals(0, fall.amount, "the fall's delay")
+            }
+        }
+    }
+
+    @Test
     fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
@@ -741,6 +766,7 @@ class HeadlessAgilityArenaTest {
         const val HAND_HOLDS = 3583
         const val HAND_HOLDS_GRAB = 1117
         const val HAND_HOLDS_OFF = 1121
+        const val HAND_HOLDS_FALL = 1119
         const val TOADFLAX = 2998
         const val PIRATES_HOOK = 2997
         const val TICKETS = 620

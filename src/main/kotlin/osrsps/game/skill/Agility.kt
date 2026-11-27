@@ -373,10 +373,12 @@ class Agility(private val world: World, val data: AgilityData) {
         }
         // A teleport partway (::tele, say) ends the obstacle there: the rest isn't played from the new tile, nor
         // the player pulled back to its end.
-        var afterWalk = false
-        for (move in if (success) route.moves else route.fail) {
-            if (!play(move, afterWalk)) return
-            afterWalk = move is AgilityMove.Walk
+        val moves = if (success) route.moves else route.fail
+        for ((i, move) in moves.withIndex()) {
+            // Only an animation that ends the crossing waits for the walk's last step (nothing after it to overtake
+            // it): one followed by another animation or a teleport, as a fall's, plays at once (Codex review on #1032).
+            val settle = i > 0 && moves[i - 1] is AgilityMove.Walk && moves.drop(i + 1).all { it is AgilityMove.Xp }
+            if (!play(move, settle)) return
         }
         world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
@@ -502,14 +504,15 @@ class Agility(private val world: World, val data: AgilityData) {
     }
 
     /** Plays [move]; false when something else teleported the player meanwhile. */
-    private suspend fun ScriptContext.play(move: AgilityMove, afterWalk: Boolean = false): Boolean {
+    private suspend fun ScriptContext.play(move: AgilityMove, settle: Boolean = false): Boolean {
         val start = Triple(player.x, player.z, player.level)
         when (move) {
             is AgilityMove.Anim -> {
                 // Straight after a walk the client is still drawing its last step, and a sequence with no movement
                 // precedence holds the player still until it ends (the hand holds' climb-off, 1121, has a last frame
-                // of 20000 cycles): drawn a tile short on 217, 27 Nov. Its start waits until the step is drawn.
-                player.anim(move.anim, if (afterWalk && move.anim >= 0) WALK_END_DELAY else 0)
+                // of 20000 cycles): drawn a tile short on 217, 27 Nov. When it ends the crossing ([settle]), its start
+                // waits until the step is drawn.
+                player.anim(move.anim, if (settle && move.anim >= 0) WALK_END_DELAY else 0)
                 if (move.ticks > 0) delay(move.ticks)
                 return here() == start
             }
