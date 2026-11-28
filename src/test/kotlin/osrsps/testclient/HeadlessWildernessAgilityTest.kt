@@ -131,6 +131,27 @@ class HeadlessWildernessAgilityTest {
     }
 
     @Test
+    fun `frozen, an obstacle clicked from beside it but off its start is refused, and from its start goes ahead`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("wren").use { client ->
+                client.ready(99)
+                val player = server.world.onlinePlayers.single { it.username == "wren" }
+                // Exploit review round 35, R35A-6: the walk to an obstacle is forced, which a freeze didn't stop.
+                client.tele(3003, 3938)
+                player.freezeTicks = 50
+                client.locOp(PIPE, 3004, 3938, 1)
+                client.await("the magical force") { client.messages().firstOrNull { it.text == "[pvp.magical_force]" } }
+                client.awaitTicks(3)
+                assertEquals(Coord(3003, 3938, 0), client.position, "still beside the pipe, not walked round to its start")
+                player.freezeTicks = 0
+                client.tele(3004, 3937)
+                player.freezeTicks = 50
+                client.cross(PIPE, 3004, 3938, 3004, 3950)
+            }
+        }
+    }
+
+    @Test
     fun `a ropeswing fall lands in the pit for 15 percent of hitpoints plus 1, and a lap without the swing doesn't count`(@TempDir dir: Path) {
         server(dir, seed = 11).use { server ->
             server.login("wren").use { client ->
