@@ -222,17 +222,30 @@ class Combat(
     fun paysXp(npc: Npc): Boolean = !dummy(npc)
 
     /**
-     * Set by content: the share, in thousandths, of the usual combat XP that hitting [Npc] gives, with no Hitpoints XP
-     * when it is under 1000: the house's attack stones give 25 (OSRS Wiki, Clay attack stone: XP for "2.5% of the damage
-     * dealt", in the skill of the attack style, and no Hitpoints XP).
+     * Set by content: for an [Npc] whose hits pay XP by the damage alone, in place of the usual combat XP, the XP for a
+     * point of damage in thousandths; null for the usual XP. The house's attack stones give 25 (OSRS Wiki, Clay attack
+     * stone: "Players gain experience for only 2.5% of the damage dealt, in the skill of their attack style", and "no
+     * Hitpoints experience is rewarded for hitting the stone").
      */
-    var xpPermille: (Npc) -> Int = { 1000 }
+    var damageXpPermille: (Npc) -> Int? = { null }
 
-    /** [tenths] of combat XP for hitting [npc], cut to its [xpPermille]. */
-    fun xpOn(npc: Npc, tenths: Int): Int = xpPermille(npc).let { if (it >= 1000) tenths else tenths * it / 1000 }
+    /** What each player has toward the next tenth of XP by [damageXpPermille], in thousandths of a tenth. */
+    private val damageXpLeft = java.util.WeakHashMap<Player, Int>()
 
-    /** Whether hitting [npc] gives Hitpoints XP: it [paysXp] in full ([xpPermille]). */
-    fun paysHitpointsXp(npc: Npc): Boolean = paysXp(npc) && xpPermille(npc) >= 1000
+    /**
+     * Pays [player] for [damage] on [npc] by [damageXpPermille], shared evenly among [skills] (the first takes what
+     * doesn't divide), with a part of a tenth kept for the next hit; false, paying nothing, for an NPC that pays the usual XP.
+     */
+    fun damageXp(player: Player, npc: Npc, skills: List<Skill>, damage: Int): Boolean {
+        val permille = damageXpPermille(npc) ?: return false
+        val total = damage * permille * 10 + (damageXpLeft[player] ?: 0)
+        damageXpLeft[player] = total % 1000
+        val tenths = total / 1000
+        if (tenths > 0 && skills.isNotEmpty()) {
+            skills.forEachIndexed { i, skill -> player.skills.addTenths(skill, tenths / skills.size + if (i == 0) tenths % skills.size else 0) }
+        }
+        return true
+    }
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level

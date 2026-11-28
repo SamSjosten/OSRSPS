@@ -1367,7 +1367,7 @@ class HeadlessHouseTest {
                 val hp = ola.hitpoints
                 val hpXp = ola.skills.xp(Skill.HITPOINTS)
                 val piaHpXp = pia.skills.xp(Skill.HITPOINTS)
-                val combatXp = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) }
+                val combatXp = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) + pia.skills.xp(it) }
                 var chipped = false
                 a.npcOp(stone.index, 2)
                 a.await("ola's first hit") { Unit.takeIf { stone.hitpoints < 40 } }
@@ -1383,9 +1383,9 @@ class HeadlessHouseTest {
                 assertEquals(hp, ola.hitpoints)
                 assertEquals(hpXp, ola.skills.xp(Skill.HITPOINTS))
                 assertEquals(piaHpXp, pia.skills.xp(Skill.HITPOINTS))
-                // 40 damage at 4 XP each is 160, and 2.5% of it is 4, shared between them here.
-                val gained = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) } - combatXp
-                assertTrue(gained in 0..4, "combat XP $gained")
+                // 2.5% of the 40 damage dealt is 1 XP, shared between them here, not 2.5% of the usual 160 (Codex review on #1051).
+                val gained = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) + pia.skills.xp(it) } - combatXp
+                assertTrue(gained in 0..1, "combat XP $gained")
                 // The stone is back on its place.
                 a.await("the stone back") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
                 }

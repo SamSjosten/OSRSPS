@@ -345,9 +345,9 @@ class RangedCombat(
         val damage = minOf(melee.armoured(npc, rolled, magic = false, player, AttackType.RANGED), (npc.hitpoints - combat.floor(npc, player, AttackType.RANGED) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
-        if (combat.paysXp(npc)) {
-            for (skill in style.xp) player.skills.addTenths(skill, combat.xpOn(npc, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus)))
-            if (combat.paysHitpointsXp(npc)) player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
+        if (combat.paysXp(npc) && !combat.damageXp(player, npc, style.xp, damage)) {
+            for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
+            player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         }
         return damage
     }

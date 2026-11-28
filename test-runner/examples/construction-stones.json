@@ -202,8 +202,8 @@
    "step": "assertStat",
    "skill": "Attack",
    "level": 99,
-   "xp": 13034435,
-   "comment": "99's 13,034,431 and 2.5% of 4 XP for each of the clay stone's 40 hitpoints (the cache's): 4"
+   "xp": 13034432,
+   "comment": "99's 13,034,431 and 2.5% of the 40 damage dealt to the clay stone (its 40 hitpoints, the cache's): 1"
   },
   {
    "step": "assertStat",

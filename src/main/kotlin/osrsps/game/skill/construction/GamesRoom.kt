@@ -27,7 +27,7 @@ import osrsps.game.zone.ZoneLoc
  * the combat stone (the cache's poh_tbt_* NPCs, whose op is Hit, with the cache's hitpoints: 40 for the clay one) in the stone's place ([setUp]). "The
  * player who deals the most damage wins the game" once it breaks ([broken]); it never fights back ([osrsps.game.combat.Combat.passive]);
  * hitting it gives XP for "2.5% of the damage dealt" in the attack style's skill and no Hitpoints XP
- * ([osrsps.game.combat.Combat.xpPermille]). INFERRED: the cache's 64 looks of each stone (poh_tbt_clay_000 to _333)
+ * ([osrsps.game.combat.Combat.damageXpPermille]). INFERRED: the cache's 64 looks of each stone (poh_tbt_clay_000 to _333)
  * are its chips; GUESSED: they come off one at a time as it loses hitpoints ([CHIPS]); a tie goes to whoever got there
  * first; the stone is back on its place 3 ticks after it breaks; the words. Left out: the chips that "may chip off and
  * deal damage to the player" (how often and how much is not on the pages), and the refusal of stat-lowering spells.
@@ -58,8 +58,8 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         val baseTypes = looks.values.map { it.first().id }.toSet()
         val attacksBy = world.npcInteractions.attacksBy
         world.npcInteractions.attacksBy = { type, op -> (op == HIT && type.id in stoneTypes) || attacksBy(type, op) }
-        val xpPermille = world.combat.xpPermille
-        world.combat.xpPermille = { npc -> if (npc.spawn.type.id in baseTypes) STONE_XP_PERMILLE else xpPermille(npc) }
+        val damageXpPermille = world.combat.damageXpPermille
+        world.combat.damageXpPermille = { npc -> if (npc.spawn.type.id in baseTypes) STONE_XP_PERMILLE else damageXpPermille(npc) }
         val passive = world.combat.passive
         world.combat.passive = { npc -> npc.spawn.type.id in baseTypes || passive(npc) }
         world.npcScripts.onDeath(baseTypes) { broken(it) }
@@ -150,7 +150,7 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         const val SET_UP = 1
         const val HIT = "Hit"
 
-        /** 2.5% of the usual combat XP (the attack stone pages). */
+        /** XP for a point of damage on an attack stone, in thousandths: 2.5% of the damage dealt (the attack stone pages). */
         const val STONE_XP_PERMILLE = 25
 
         /** GUESSED: how long after breaking a stone is back on its place. */
