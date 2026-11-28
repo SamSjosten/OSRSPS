@@ -136,6 +136,7 @@ class HeadlessWildernessGodWarsTest {
                     WildernessGodWars.CREVICE to loc(WildernessGodWars.CREVICE, "Crevice", "Use", 1, 1),
                     WildernessGodWars.CREVICE_BACK to loc(WildernessGodWars.CREVICE_BACK, "Crevice", "Use", 1, 1),
                     WildernessGodWars.JUTTING_WALL to loc(WildernessGodWars.JUTTING_WALL, "Jutting wall", "Pass", 2, 1),
+                    WildernessGodWars.BLOCKER to LocType(WildernessGodWars.BLOCKER, "null", listOf(null, null, null, null, null), LocCollisionType(width = 1, length = 1)),
                 ),
             ),
             staticLocs = StaticLocs().apply {
@@ -218,6 +219,24 @@ class HeadlessWildernessGodWarsTest {
                 client.awaitTicks(2)
                 client.locOp(WildernessGodWars.CREVICE_BACK, 3062, 10131, 1)
                 client.arrive(3066, 10143, 3, "back behind the jutting wall")
+            }
+        }
+    }
+
+    @Test
+    fun `below Strength 60 the boulder can't be walked through, only moved`(@TempDir dir: Path) {
+        server(dir, listOf(NpcSpawn(boulder, 3053, 10165, level = 3, wander = 0, source = "test"))).use { server ->
+            server.login("fay").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Exploit review R67A-1: an NPC blocks only NPCs, so blocking locs hold its tiles shut.
+                for (dx in 0..1) for (dz in 0..1) {
+                    assertTrue(server.world.locs.find(WildernessGodWars.BLOCKER, 3053 + dx, 10165 + dz, 3) != null, "blocked at ${3053 + dx}, ${10165 + dz}")
+                }
+                client.level(STRENGTH, 1, "strength")
+                client.tele(3055, 10165, 3)
+                client.walk(3054, 10165)
+                client.awaitTicks(4)
+                assertEquals(Coord(3055, 10165, 3), client.position, "not onto the boulder's tile")
             }
         }
     }

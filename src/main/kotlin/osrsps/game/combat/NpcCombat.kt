@@ -356,6 +356,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 prayedAs = entry["prayedAs"]?.jsonPrimitive?.content?.let {
                     require(it == "melee") { "\"prayedAs\": \"$it\"" }
                     require(attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "prayed as melee on a $attackType NPC" }
+                    // Only the melee swing reads it (exploit review R67A-4): a shooting NPC's shots keep their own prayer.
+                    require((entry["range"]?.jsonPrimitive?.int ?: 1) == 1) { "prayed as melee on an NPC with range above 1" }
                     AttackType.CRUSH
                 },
                 hitDrain = entry["hitDrain"]?.jsonObject?.let { drain ->
