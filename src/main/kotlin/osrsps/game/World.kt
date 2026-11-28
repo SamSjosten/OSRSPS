@@ -827,6 +827,7 @@ class World(
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
             osrsps.game.content.EvilChicken.damaged(this, npc, player)
+            gamesRoom.damaged(npc, player, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },

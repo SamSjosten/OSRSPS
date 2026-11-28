@@ -440,7 +440,7 @@ class MeleeCombat(
         val damage = minOf(armoured(npc, landed, magic = false, player, style.type), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
-        if (combat.paysXp(npc)) {
+        if (combat.paysXp(npc) && !combat.damageXp(player, npc, style.xp, damage)) {
             for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
             player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         }
@@ -583,7 +583,7 @@ class MeleeCombat(
         if (npc.hitpoints > 0 || npc.holdsAtZero) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
-            if (source != null && !dummy && !displaced) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+            if (source != null && !dummy && !displaced && !combat.passive(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
         } else {
             die(npc, def, source, tick)
         }
@@ -599,7 +599,7 @@ class MeleeCombat(
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.outOfPlay || displaced(source, tick)) return
         attacked(npc, source, tick)
-        if (!combat.dummy(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+        if (!combat.passive(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
     }
 
     /**
