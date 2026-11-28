@@ -243,6 +243,9 @@ class Player(
     /** The collection log's record: each item logged and its count, in the order first logged; see [osrsps.game.collection.CollectionLog]. Saved. */
     val collectionLog = LinkedHashMap<Int, Int>()
 
+    /** The costume room's storage, item to count: one store across the room's pieces (step CON7e). */
+    val costumes = LinkedHashMap<Int, Int>()
+
     /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
     var priceCheckSearching = false
 

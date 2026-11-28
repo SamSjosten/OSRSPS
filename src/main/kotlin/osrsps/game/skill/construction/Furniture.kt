@@ -878,6 +878,8 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         if (loc.id == House.EXIT_PORTAL && portals(player) <= 1) return world.message(player, ConstructionLines.REMOVE_ONLY_PORTAL)
         // A staircase to the other floor stays while the room at its top does (step CON5; GUESSED), so nobody is left upstairs.
         if (connects(player, room)) return world.message(player, ConstructionLines.STAIRS_CONNECTED)
+        // Costume room storage is removed only when empty (the Costume room page).
+        if (world.costumeRoom.holdsAny(player, loc.id)) return world.message(player, CostumeLines.NOT_EMPTY)
         var pick = 0
         world.dialogues.start(context) {
             pick = choice(ConstructionLines.REMOVE_FURNITURE_YES, ConstructionLines.REMOVE_FURNITURE_NO, title = text(ConstructionLines.REMOVE_FURNITURE_TITLE))

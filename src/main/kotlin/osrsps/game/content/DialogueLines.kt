@@ -64,6 +64,7 @@ import osrsps.game.skill.EssencePouchLines
 import osrsps.game.skill.ArceuusRunecraftLines
 import osrsps.game.skill.OuraniaLines
 import osrsps.game.skill.construction.ConstructionLines
+import osrsps.game.skill.construction.CostumeLines
 import osrsps.game.skill.construction.EstateAgentLines
 import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SlayerHelmetLines
@@ -191,6 +192,7 @@ object DialogueLines {
         ClimbLines,
         CombatLines,
         ConstructionLines,
+        CostumeLines,
         CookLines,
         CookingLines,
         CookingMixLines,

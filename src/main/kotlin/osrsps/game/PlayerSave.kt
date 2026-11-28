@@ -115,6 +115,8 @@ class PlayerSave(
     val trails: TrailProgress = TrailProgress(),
     /** The collection log's record, item to count, in the order first logged ([Player.collectionLog]). */
     val collectionLog: Map<Int, Int> = emptyMap(),
+    /** The costume room's storage, item to count ([Player.costumes]). */
+    val costumes: Map<Int, Int> = emptyMap(),
     /** How the player looks ([Player.look]); in the header, as ::reset doesn't change it. */
     val look: PlayerLook = PlayerLook.DEFAULT,
 ) {
@@ -174,6 +176,7 @@ class PlayerSave(
         player.bank.clear()
         player.archiveChest.clear()
         player.collectionLog.clear()
+        player.costumes.clear()
         player.charges.clear()
         player.sessionCharges.clear()
         player.ge.clear()
@@ -226,6 +229,7 @@ class PlayerSave(
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((slot, obj) in archiveChest) player.archiveChest[slot] = obj
         player.collectionLog.putAll(collectionLog)
+        player.costumes.putAll(costumes)
         // Pick timers older saves kept, now in Player.sessionCharges, are left behind.
         for ((name, count) in charges) if (name !in NO_LONGER_SAVED) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
@@ -333,6 +337,7 @@ class PlayerSave(
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
         if (collectionLog.isNotEmpty()) putJsonObject("collectionLog") { for ((item, count) in collectionLog) put(item.toString(), count) }
+        if (costumes.isNotEmpty()) putJsonObject("costumes") { for ((item, count) in costumes) put(item.toString(), count) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
         if (!farming.isUntouched) put("farming", FarmingSaves.toJson(farming))
         house?.let { put("house", HouseSaves.toJson(it)) }
@@ -456,6 +461,7 @@ class PlayerSave(
                 house = player.house?.copy(),
                 trails = player.trails.copy(),
                 collectionLog = LinkedHashMap(player.collectionLog),
+                costumes = LinkedHashMap(player.costumes),
                 look = player.look,
             )
         }
@@ -545,6 +551,7 @@ class PlayerSave(
                     house = state.house,
                     trails = state.trails,
                     collectionLog = state.collectionLog,
+                    costumes = state.costumes,
                     look = readLook(root),
                 )
             } catch (e: IllegalArgumentException) {
@@ -646,6 +653,8 @@ class PlayerSave(
                 trails = root["trails"]?.jsonObject?.let(TrailSaves::fromJson) ?: TrailProgress(),
                 // Optional: saves from before the collection log, and saves of players who logged nothing, have none.
                 collectionLog = readCollectionLog(root),
+                // Optional: saves from before the costume room's storage, and saves of players who stored nothing, have none.
+                costumes = readItemCounts(root, "costumes", "Costume room"),
             )
         }
 
@@ -669,6 +678,17 @@ class PlayerSave(
                 log[item] = count
             }
             return log
+        }
+
+        private fun readItemCounts(root: JsonObject, key: String, what: String): Map<Int, Int> {
+            val counts = LinkedHashMap<Int, Int>()
+            for ((id, value) in root[key]?.jsonObject.orEmpty()) {
+                val item = requireNotNull(id.toIntOrNull()) { "$what item $id isn't a number" }
+                val count = value.jsonPrimitive.int
+                require(item >= 0 && count > 0) { "$what item $item has count $count" }
+                counts[item] = count
+            }
+            return counts
         }
 
         /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
