@@ -23,7 +23,9 @@
     {"step": "continueDialogue"},
     {"comment": "The question: look that the chatbox says Pick the odd one out. over three spinning items, two of one kind and one of another, each with Select. Answering, the prizes and the mystery box are the headless test's part.", "step": "assertInterface", "interfaceId": 191, "timeoutMs": 20000},
     {"step": "waitTicks", "ticks": 5},
-    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
-    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000}
+    {"comment": "The question window takes the chatbox, so no command can be typed until it is answered (nightly 2026-11-28 stalled on ::tele here). A logout leaves the studio: the relog is back on the tile the invitation was taken from.", "step": "logout"},
+    {"step": "waitForLogin"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000},
+    {"step": "assertNoDialogue"}
   ]
 }

@@ -139,8 +139,8 @@ class HeadlessSurpriseExamTest {
                 val scripts = client.clientScripts().filter { it.id == SurpriseExam.SETMODEL_SCRIPT }.map { it.args[1] }
                 assertEquals(scripts.subList(0, 7), scripts.subList(7, 14), "the same question again")
 
-                // Shut the window: Talk-to on him asks it again.
-                client.closeModal()
+                // Shut the window with its close button (exploit review R64C-5): Talk-to on him asks it again.
+                client.ifButton(SurpriseExam.INTERFACE, SurpriseExam.CLOSE, 1)
                 client.await("the window shut") { if (SurpriseExam.INTERFACE !in client.openInterfaces()) Unit else null }
                 client.awaitTicks(1)
                 val teacher = client.npcs().first { it.id == SurpriseExam.TEACHER }
