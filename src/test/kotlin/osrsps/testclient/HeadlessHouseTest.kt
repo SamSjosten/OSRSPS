@@ -45,6 +45,7 @@ import osrsps.game.skill.construction.Houses
 import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.skill.construction.Stairs
+import osrsps.game.skill.construction.Study
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -130,6 +131,8 @@ class HeadlessHouseTest {
         LocType(GamesRoom.DARTBOARD, "Dartboard", ops = listOf("Throw-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GamesRoom.ARCHERY_TARGET, "Archery target", ops = listOf("Shoot-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GamesRoom.HOOP_AND_STICK, "Hoop and stick", ops = listOf("Hoop", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(ELEMENTAL_SPHERE, "Elemental sphere", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(MAHOGANY_TELESCOPE, "Telescope", ops = listOf("Observe", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -149,6 +152,8 @@ class HeadlessHouseTest {
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
         objs[SHORTBOW] = ObjType(SHORTBOW, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
         objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
+        for (id in listOf(AIR_STAFF, FIRE_STAFF, AIR_BATTLESTAFF, FIRE_BATTLESTAFF, MYSTIC_AIR_STAFF)) objs[id] = ObjType(id, "Staff", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON)
+        objs[FIRE_RUNE] = ObjType(FIRE_RUNE, "Fire rune", stackable = true)
         objs[PLANK] = ObjType(PLANK, "Plank")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
@@ -1444,6 +1449,55 @@ class HeadlessHouseTest {
     }
 
     @Test
+    fun `the elemental sphere changes a staff or battlestaff for runes but not a mystic staff, and a telescope is looked through`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // An elemental sphere and a mahogany telescope beside her in the garden (the study isn't in this fixture).
+                server.onTick {
+                    server.world.locs.add(ZoneLoc(ELEMENTAL_SPHERE, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                    server.world.locs.add(ZoneLoc(MAHOGANY_TELESCOPE, LocShape.CENTREPIECE_STRAIGHT, 0, at.x - 1, at.z, House.GROUND))
+                    ola.inventory.add(server.world.objTypes[AIR_STAFF]!!, 1)
+                    ola.inventory.add(server.world.objTypes[AIR_BATTLESTAFF]!!, 1)
+                    ola.inventory.add(server.world.objTypes[MYSTIC_AIR_STAFF]!!, 1)
+                }
+                a.await("the staves") { a.slotOf(MYSTIC_AIR_STAFF).takeIf { it >= 0 } }
+
+                // A mystic staff is beyond the elemental sphere.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(MYSTIC_AIR_STAFF), MYSTIC_AIR_STAFF)
+                a.await("the staff refusal") { a.messages().firstOrNull { it.text == "[construction.crystal_ball_staff]" } }
+
+                // A staff is changed free: the menu offers the other three elements, fire last.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_STAFF), AIR_STAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the fire staff") { Unit.takeIf { a.count(FIRE_STAFF) == 1 && a.count(AIR_STAFF) == 0 } }
+
+                // A battlestaff needs 100 runes of the new element: refused without, changed with them taken.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_BATTLESTAFF), AIR_BATTLESTAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the runes refusal") { a.messages().firstOrNull { it.text.startsWith("[construction.crystal_ball_runes") } }
+                assertEquals(1, a.count(AIR_BATTLESTAFF))
+                server.onTick { ola.inventory.add(server.world.objTypes[FIRE_RUNE]!!, 150) }
+                a.await("the runes") { Unit.takeIf { a.count(FIRE_RUNE) == 150 } }
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_BATTLESTAFF), AIR_BATTLESTAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the fire battlestaff") { Unit.takeIf { a.count(FIRE_BATTLESTAFF) == 1 && a.count(AIR_BATTLESTAFF) == 0 } }
+                assertEquals(50, a.count(FIRE_RUNE))
+
+                // Observe on the telescope shows what it sees in a message box.
+                a.locOp(MAHOGANY_TELESCOPE, at.x - 1, at.z, Study.OBSERVE)
+                a.awaitDialogue("the telescope's view") { it is DialogueView.Message }
+            }
+        }
+    }
+
+    @Test
     fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ola").use { a ->
@@ -1733,6 +1787,14 @@ class HeadlessHouseTest {
         const val BRONZE_DART = 806
         const val SHORTBOW = 841
         const val BRONZE_ARROW = 882
+        const val AIR_STAFF = 1381
+        const val FIRE_STAFF = 1387
+        const val AIR_BATTLESTAFF = 1397
+        const val FIRE_BATTLESTAFF = 1393
+        const val MYSTIC_AIR_STAFF = 1405
+        const val FIRE_RUNE = 554
+        const val ELEMENTAL_SPHERE = 13660
+        const val MAHOGANY_TELESCOPE = 13658
         const val UNDEAD_DUMMY_NPC = 7413
         const val ORNATE_DUMMY_NPC = 10507
         const val SLAYER_HELMET = 11864

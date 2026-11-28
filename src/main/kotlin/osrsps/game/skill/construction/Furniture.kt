@@ -187,6 +187,15 @@ object FurnitureBuilds {
         15344 to Hotspot(RoomType.GAMES_ROOM, 4),
         15345 to Hotspot(RoomType.GAMES_ROOM, 5),
         15346 to Hotspot(RoomType.GAMES_ROOM, 6),
+        // The study (step CON7a): its lectern space (poh_study_1, 3 by 3), globe space (_2, 3 by 3), crystal ball space
+        // (_4), wall chart spaces (_5), telescope space (_6) and bookcase spaces (_7), its first, second and fourth to
+        // seventh places.
+        15420 to Hotspot(RoomType.STUDY, 0),
+        15421 to Hotspot(RoomType.STUDY, 1),
+        15422 to Hotspot(RoomType.STUDY, 3),
+        15423 to Hotspot(RoomType.STUDY, 4),
+        15424 to Hotspot(RoomType.STUDY, 5),
+        15425 to Hotspot(RoomType.STUDY, 6),
     )
 
     // The combat ring space's tiles, by their loc names: poh_gr_1_wall_combat, _bluecorner, _cobat_corner, _everything,
@@ -464,6 +473,37 @@ object FurnitureBuilds {
         5630 to Build(13398, 120),
         5631 to Build(13400, 290),
         5632 to Build(13402, 600),
+        // The study (the pieces' Wiki pages' XP). Lecterns: oak, eagle, demon, teak eagle, teak demon, mahogany eagle,
+        // mahogany demon (poh_lectern_1 to _7) and marble (_8).
+        5769 to Build(13642, 60),
+        5770 to Build(13643, 120),
+        5771 to Build(13644, 120),
+        5772 to Build(13645, 180),
+        5773 to Build(13646, 180),
+        5774 to Build(13647, 580),
+        5775 to Build(13648, 580),
+        5776 to Build(37349, 1800),
+        // Globe, ornamental, lunar and celestial globes, armillary sphere, small and large orrery (poh_globe_1 to _7).
+        5777 to Build(13649, 180),
+        5778 to Build(13650, 270),
+        5779 to Build(13651, 570),
+        5780 to Build(13652, 570),
+        5781 to Build(13653, 960),
+        5782 to Build(13654, 1320),
+        5783 to Build(13655, 1420),
+        // Crystal ball, elemental sphere, crystal of power (poh_crystalball_1 to _3).
+        5784 to Build(13659, 280),
+        5785 to Build(13660, 580),
+        5786 to Build(13661, 890),
+        // Alchemical, astronomical and infernal charts (poh_wallchart_1 to _3) and the S.T.A.S.H. chart (_4).
+        5787 to Build(13662, 30),
+        5788 to Build(13663, 45),
+        5789 to Build(13664, 60),
+        5790 to Build(41434, 16),
+        // Oak, teak and mahogany telescopes (poh_telescope_1 to _3).
+        5791 to Build(13656, 121),
+        5792 to Build(13657, 181),
+        5793 to Build(13658, 281),
     )
 
     /**
@@ -516,6 +556,12 @@ object FurnitureBuilds {
         (RoomType.GAMES_ROOM to 4) to 5624..5626,
         (RoomType.GAMES_ROOM to 5) to 5627..5629,
         (RoomType.GAMES_ROOM to 6) to 5630..5632,
+        (RoomType.STUDY to 0) to 5769..5776,
+        (RoomType.STUDY to 1) to 5777..5783,
+        (RoomType.STUDY to 3) to 5784..5786,
+        (RoomType.STUDY to 4) to 5787..5790,
+        (RoomType.STUDY to 5) to 5791..5793,
+        (RoomType.STUDY to 6) to 5529..5531,
     )
 
     /** The balance beam's row ([CombatRoom.offBeam]). */
