@@ -26,6 +26,7 @@
     {"step": "command", "text": "::tele 3342 10162 0", "expectMessage": "Teleported to 3342, 10162, 0", "comment": "among the abyssal demons in the north-west"},
     {"step": "npcOption", "npc": "Abyssal demon", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "[peeve.woo]", "timeoutMs": 20000, "comment": "Peeve's chat, wherever he is in the cave"},
+    {"step": "finishDialogue", "comment": "Peeve's chat closed, so the chatbox is free for the next command (nightly 2026-11-28, s25)"},
     {"step": "command", "text": "::tele 3441 10086 0", "expectMessage": "Teleported to 3441, 10086, 0", "comment": "the hellhounds"},
     {"step": "npcOption", "npc": "Hellhound", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Hellhound", "timeoutMs": 30000},
