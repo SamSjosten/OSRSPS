@@ -27,6 +27,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 
@@ -50,7 +51,7 @@ class HeadlessTaiBwoEventsTest {
     private fun type(id: Int, op: Int, option: String?) =
         LocType(id, "Loc", List(5) { if (option != null && it == op - 1) option else null }, LocCollisionType(width = 1, length = 1, interactType = 0))
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path, fence: Boolean = false) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val npcTypes = NpcTypes.of(spider)
         val objTypes = ObjTypes.of(
             ObjType(MACHETE, "Machete"), ObjType(TaiBwoEvents.SPADE, "Spade"), ObjType(RUNE_PICKAXE, "Rune pickaxe"),
@@ -58,7 +59,16 @@ class HeadlessTaiBwoEventsTest {
             *GEMS.map { ObjType(it, "Uncut gem") }.toTypedArray(),
         )
         World(
-            crcs, CollisionMap().apply { markLoaded(2770 shr 6, 3061 shr 6) }, random = GameRandom(11),
+            crcs,
+            CollisionMap().apply {
+                markLoaded(2770 shr 6, 3061 shr 6)
+                // A fence along the west edge of 2766,3060: the tile past it can be stood on but not stepped to.
+                if (fence) {
+                    add(2766, 3060, 0, CollisionFlag.WALL_WEST)
+                    add(2765, 3060, 0, CollisionFlag.WALL_EAST)
+                }
+            },
+            random = GameRandom(11),
             objTypes = objTypes, npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes),
             locTypes = LocTypes(
                 (LIGHT_JUNGLE..LIGHT_JUNGLE + 3).associateWith { type(it, TaiBwoCleanup.HACK, "Hack") } +
@@ -181,6 +191,29 @@ class HeadlessTaiBwoEventsTest {
                 client.await("the spider gone", timeoutMillis = 20_000) {
                     if (server.world.npcs.all.none { it.type.id == spider.id && !it.dead }) Unit else null
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `a creature leaps out on the player's side of a fence, not across it`(@TempDir dir: Path) {
+        server(dir, fence = true).use { server ->
+            server.login("cai").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.command("varp tbw_cleanup 31")
+                client.command("setlevel woodcutting 99")
+                client.command("god on")
+                client.command("item $MACHETE 1")
+                client.await("the machete") { if (client.count(MACHETE) == 1L) Unit else null }
+                client.tele(2766, 3060)
+                client.commandReply("tbwevent spider") { it.endsWith("spider") }
+                client.locOp(LIGHT_JUNGLE, 2766, 3061, TaiBwoCleanup.HACK)
+                client.message("[tbw_event.monster]")
+                client.await("the spider") { client.npcs().firstOrNull { it.id == spider.id } }
+                val npc = server.world.npcs.all.single { it.type.id == spider.id }
+                // West is first in line but behind the fence (exploit review R66A-2): east instead.
+                assertEquals(2767 to 3060, npc.x to npc.z)
             }
         }
     }

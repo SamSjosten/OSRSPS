@@ -11,6 +11,7 @@
     {"step": "locOption", "locId": 2231, "option": "Climb", "x": 2794, "y": 2979},
     {"step": "assertLocation", "x": 2791, "y": 2979, "plane": 0, "timeoutMs": 10000, "comment": "on the promontory"},
     {"step": "waitTicks", "ticks": 2},
+    {"step": "walk", "x": 2787, "y": 2979, "comment": "the promontory's west end first: the bridge's far tile can be off screen from the slide"},
     {"step": "walk", "x": 2784, "y": 2979},
     {"step": "assertMessage", "contains": "[cairn_isle.", "timeoutMs": 20000, "comment": "balance across to 2770,2979, or a fall to the shore"},
     {"step": "waitTicks", "ticks": 2},
