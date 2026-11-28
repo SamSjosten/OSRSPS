@@ -27,7 +27,7 @@ object RevenantCavesLines : Lines("revenant_caves", "Revenant Caves") {
 object SinglesPlus {
     const val VARBIT_INDICATOR = 5961
 
-    fun at(level: Int, x: Int, z: Int): Boolean = level == 0 && RevenantCaves.inCaves(x, z)
+    fun at(level: Int, x: Int, z: Int): Boolean = level == 0 && (RevenantCaves.inCaves(x, z) || WildernessAgility.onCourse(x, z))
 }
 
 /**

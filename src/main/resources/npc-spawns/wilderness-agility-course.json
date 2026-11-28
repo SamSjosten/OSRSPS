@@ -1,0 +1,13 @@
+{
+  "about": "The Wilderness Agility Course Dungeon below the course (Wilderness step W6.4): its eight level 25 skeletons, which the OSRS Wiki's page counts (read 2026-11-15), at the tiles mejrs' NPC list gives. Wander ranges are guessed until recorded. Not built: its four bones spawns, and the surface skeletons the April 2024 update added (no tiles).",
+  "spawns": [
+    {"npc": "skeleton_armed2", "x": 2994, "z": 10346, "wander": 3, "source": "Skeleton (skeleton_armed2), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed", "x": 2998, "z": 10342, "wander": 3, "source": "Skeleton (skeleton_armed), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed4", "x": 2998, "z": 10350, "wander": 3, "source": "Skeleton (skeleton_armed4), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed", "x": 3002, "z": 10356, "wander": 3, "source": "Skeleton (skeleton_armed), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed3", "x": 3003, "z": 10347, "wander": 3, "source": "Skeleton (skeleton_armed3), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed3", "x": 3004, "z": 10362, "wander": 3, "source": "Skeleton (skeleton_armed3), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed5", "x": 3006, "z": 10352, "wander": 3, "source": "Skeleton (skeleton_armed5), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "skeleton_armed2", "x": 3006, "z": 10357, "wander": 3, "source": "Skeleton (skeleton_armed2), the Wilderness Agility Course Dungeon. mejrs NPCList_OSRS; wander guessed"}
+  ]
+}

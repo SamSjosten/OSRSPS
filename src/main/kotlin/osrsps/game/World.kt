@@ -210,6 +210,7 @@ import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerDeepWildernessDungeon
 import osrsps.game.content.registerWildernessGodWars
+import osrsps.game.content.registerWildernessAgility
 import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
@@ -1138,6 +1139,7 @@ class World(
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
     /** The combat room's racks and ropes; see [osrsps.game.skill.construction.CombatRoom]. */
     val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
+    val gamesRoom = osrsps.game.skill.construction.GamesRoom(this, houses)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
@@ -1420,6 +1422,7 @@ class World(
         registerDeepWildernessDungeon(this)
         registerWildernessSlayerCave(this)
         registerWildernessGodWars(this)
+        registerWildernessAgility(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1530,6 +1533,7 @@ class World(
         kitchen.register()
         workshop.register()
         combatRoom.register()
+        gamesRoom.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
