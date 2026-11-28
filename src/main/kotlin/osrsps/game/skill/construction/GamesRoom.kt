@@ -133,12 +133,12 @@ class GamesRoom(private val world: World, private val houses: Houses) {
             player.skills.addTenths(Skill.RANGED, game.xpTenths)
         }
         nextThrow[player] = world.tick + speed
-        if (shot < THROWS) {
-            queue(QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) speed - 1 else speed) { rangingShot(loc, game, shot + 1, score, false) }
-            return
+        // The score comes after the last shot's interval too, as every shot's wait did before (Codex review on #1066).
+        queue(QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) speed - 1 else speed) {
+            if (shot < THROWS) return@queue rangingShot(loc, game, shot + 1, score, false)
+            world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+            logger.info { "${player.username} scored $score of $THROWS at ${game.name.lowercase()}" }
         }
-        world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
-        logger.info { "${player.username} scored $score of $THROWS at ${game.name.lowercase()}" }
     }
 
     /** The ranging games with weapons: what each refuses with when the weapon is wrong, and the XP of a hit. */
