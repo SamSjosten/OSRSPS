@@ -208,7 +208,8 @@ class WildernessBosses(private val world: World) {
         val def = world.npcDrops[npc.type] ?: return true
         val drops = split(shares, boss.uniques, world.random) { def.roll(world.random) }
         for ((key, items) in drops) {
-            for (drop in items) {
+            for (rolled in items) {
+                val drop = clueChecked(key, rolled) ?: continue
                 world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, key, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
                 world.lootDroppedFor(key, drop.type, drop.count)
             }
@@ -216,7 +217,10 @@ class WildernessBosses(private val world: World) {
         return true
     }
 
-    /** [rolled] as the looter saved under [key] gets it: a clue scroll as its scroll box, or null past their clue cap. */
+    /**
+     * [rolled] as its looter [key] gets it: a clue scroll as its tier's scroll box, or nothing past the clue cap, as a
+     * solo kill's drop goes through [osrsps.game.trail.TreasureTrails.dropFor] (exploit review round 55, R55B-5).
+     */
     private fun clueChecked(key: String?, rolled: osrsps.game.combat.Drop): osrsps.game.combat.Drop? {
         val player = key?.let { k -> world.onlinePlayers.firstOrNull { it.saveKey == k && !it.loggedOut } }
         val type = world.trails.dropFor(player, rolled.type) ?: return null
