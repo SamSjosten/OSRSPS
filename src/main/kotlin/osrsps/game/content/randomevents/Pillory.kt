@@ -84,6 +84,15 @@ object Pillory : RandomEvent("pillory", 380) {
      */
     const val ARRESTED = "pillory_arrested"
 
+    /** Saved with [ARRESTED]: the locks to undo, so a relog keeps a wrong answer's extra lock (exploit review R64C-1). */
+    const val LOCKS = "pillory_locks"
+
+    /** The stay is over: neither charge is kept. */
+    private fun forget(player: Player) {
+        player.charges[ARRESTED] = 0
+        player.charges[LOCKS] = 0
+    }
+
     private fun pack(tile: Tile, level: Int): Int = 1 + ((level shl 28) or (tile.x shl 14) or tile.z)
 
     private fun unpack(packed: Int): Pair<Tile, Int> {
@@ -134,7 +143,7 @@ object Pillory : RandomEvent("pillory", 380) {
     fun moving(player: Player, x: Int, z: Int, level: Int) {
         if (level != 0 || Tile(x, z) !in CELLS) {
             stays.remove(player)
-            player.charges[ARRESTED] = 0
+            forget(player)
         }
     }
 
@@ -148,6 +157,7 @@ object Pillory : RandomEvent("pillory", 380) {
         val stay = Stay(Tile(player.x, player.z), player.level)
         stays[player] = stay
         player.charges[ARRESTED] = pack(stay.back, stay.backLevel)
+        player.charges[LOCKS] = stay.locks
         world.teleport(player, cell.x, cell.z, 0)
         newLock(world, stay)
         open(world, player, stay)
@@ -187,6 +197,7 @@ object Pillory : RandomEvent("pillory", 380) {
             if (stay.undone >= stay.locks) return free(world, player, stay)
         } else {
             stay.locks = (stay.locks + 1).coerceAtMost(MAX_LOCKS)
+            player.charges[LOCKS] = stay.locks
             stay.undone = 0
         }
         newLock(world, stay)
@@ -207,7 +218,7 @@ object Pillory : RandomEvent("pillory", 380) {
 
     private fun letOut(world: World, player: Player, stay: Stay) {
         stays.remove(player)
-        player.charges[ARRESTED] = 0
+        forget(player)
         world.interfaces.closeModals(player)
         val (x, z, level) = if (world.canStand(stay.back.x, stay.back.z, stay.backLevel)) Triple(stay.back.x, stay.back.z, stay.backLevel)
         else Triple(World.SPAWN_X, World.SPAWN_Z, 0)
@@ -227,18 +238,19 @@ object Pillory : RandomEvent("pillory", 380) {
     }
 
     /**
-     * A player who logged out in a cage is still locked in, with the way back they had. Only an arrested one: anyone
+     * A player who logged out in a cage is still locked in, with the way back and the locks they had. Only an arrested one: anyone
      * else on a cage tile gets no window and no reward (exploit review R63C-1).
      */
     override fun loggedIn(world: World, player: Player) {
         val packed = player.charges[ARRESTED]
         if (packed == 0) return
         if (player.level != 0 || Tile(player.x, player.z) !in CELLS) {
-            player.charges[ARRESTED] = 0
+            forget(player)
             return
         }
         val (back, backLevel) = unpack(packed)
-        val stay = stays.getOrPut(player) { Stay(back, backLevel).also { newLock(world, it) } }
+        val locks = player.charges[LOCKS].takeIf { it in START_LOCKS..MAX_LOCKS } ?: START_LOCKS
+        val stay = stays.getOrPut(player) { Stay(back, backLevel).also { it.locks = locks; newLock(world, it) } }
         // After the game frame is up, which login sends later in the same tick.
         world.npcScripts.later(LOGIN_OPEN_TICKS) { if (stays[player] === stay && player in world.onlinePlayers) open(world, player, stay) }
     }
