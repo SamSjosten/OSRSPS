@@ -52,10 +52,13 @@ class Study(private val world: World, private val houses: Houses) {
         for (lectern in LECTERNS.keys) {
             world.handlers.onLoc(lectern, STUDY) { op -> arriveDelay(); studyLectern(this, op.loc ?: return@onLoc) }
             world.handlers.onLoc(lectern, CREATE_LAST) { op ->
+                // Beside it already, this runs in the movement phase; one who stepped there waits a tick and runs in the
+                // script phase, as WaterAndDummies' fill decides (Codex review on #1057).
+                val fromMovement = player.lastMoveTick != tick
                 arriveDelay()
                 val at = op.loc ?: return@onLoc
                 val (spell, count) = lastMade[player]?.get(at.id) ?: return@onLoc studyLectern(this, at)
-                makeTablets(this, at, spell, count, fromMovement = true)
+                makeTablets(this, at, spell, count, fromMovement)
             }
         }
         for ((loc, tier) in BALLS) {
