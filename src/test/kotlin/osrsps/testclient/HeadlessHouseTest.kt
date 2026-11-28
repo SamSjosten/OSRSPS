@@ -46,6 +46,8 @@ import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.skill.construction.Stairs
 import osrsps.game.skill.construction.Study
+import osrsps.game.skill.construction.PortalChamber
+import osrsps.game.skill.construction.PortalDestinations
 import osrsps.game.skill.magic.TeleportObjs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -135,6 +137,9 @@ class HeadlessHouseTest {
         LocType(ELEMENTAL_SPHERE, "Elemental sphere", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(MAHOGANY_TELESCOPE, "Telescope", ops = listOf("Observe", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(TEAK_EAGLE_LECTERN, "Lectern", ops = listOf("Study", "Create-last", null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(PortalChamber.FOCI.first(), "Teleportation focus", ops = listOf("Direct-portal", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 2)),
+        LocType(PortalDestinations.FRAMES.first(), "Portal frame", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
+        LocType(TEAK_LUMBRIDGE_PORTAL, "Lumbridge Portal", ops = listOf("Enter", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -151,6 +156,9 @@ class HeadlessHouseTest {
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         // The teleport spells and their tablets, for the lecterns.
         for (type in osrsps.game.skill.magic.TeleportObjs.all) objs[type.id] = type
+        // The banana with its noted form, for Ape Atoll's portal.
+        objs[TeleportObjs.BANANA] = ObjType(TeleportObjs.BANANA, "Banana", certlink = NOTED_BANANA)
+        objs[NOTED_BANANA] = ObjType(NOTED_BANANA, "Banana", stackable = true, certlink = TeleportObjs.BANANA, certtemplate = 799)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
         // The ranging games' weapons (CON6g), with the Wiki's ranged numbers from the resources.
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
@@ -1620,6 +1628,99 @@ class HeadlessHouseTest {
     }
 
     @Test
+    fun `the teleport focus directs a portal for 100 times the spell's runes and 5 times its XP, and the portal is entered to the place`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A portal chamber east of the garden with a teak frame on portal 1, and its focus laid by hand (the
+                // chamber's template isn't in this fixture).
+                val house = server.world.houses.houseAt(at.x, at.z)!!
+                val chamber = HouseRoom(RoomType.PORTAL_CHAMBER, House.STARTER_X + 1, House.STARTER_Z)
+                val fx = house.instance.baseX + (chamber.x shl 3) + 3
+                val fz = house.instance.baseZ + (chamber.z shl 3) + 3
+                server.onTick {
+                    chamber.built[PortalChamber.PORTAL_SPACES[0]] = PortalDestinations.FRAMES[0]
+                    ola.house!!.rooms += chamber
+                    server.world.locs.add(ZoneLoc(PortalChamber.FOCI.first(), LocShape.CENTREPIECE_STRAIGHT, 0, fx, fz, House.GROUND))
+                    server.world.teleport(ola, fx - 1, fz, House.GROUND)
+                }
+                a.await("beside the focus") { Unit.takeIf { ola.x == fx - 1 } }
+                a.commandReply("setlevel magic 31") { true }
+
+                // Portal 2 has no frame: refused.
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(2)
+                a.await("the frame refusal") { a.messages().firstOrNull { it.text == "[construction.portal_no_frame]" } }
+
+                // Portal 1 to Lumbridge (the second place, after Varrock): refused without the runes, then directed.
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                a.awaitDialogue("the places") { it is DialogueView.Menu && (it as DialogueView.Menu).options.size == 5 }
+                a.chooseOption(2)
+                a.await("the runes refusal") { a.messages().firstOrNull { it.text == "[construction.portal_runes]" } }
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 100)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 300)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.EARTH]!!, 100)
+                }
+                a.await("the runes") { Unit.takeIf { a.count(TeleportObjs.EARTH) == 100 } }
+                val before = ola.skills.xp(Skill.MAGIC)
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                a.awaitDialogue("the places again") { it is DialogueView.Menu && (it as DialogueView.Menu).options.size == 5 }
+                a.chooseOption(2)
+                a.await("the portal directed") { a.messages().firstOrNull { it.text == "[construction.portal_directed]" } }
+                assertEquals(TEAK_LUMBRIDGE_PORTAL, chamber.built[PortalChamber.PORTAL_SPACES[0]])
+                assertEquals(0, a.count(TeleportObjs.LAW) + a.count(TeleportObjs.AIR) + a.count(TeleportObjs.EARTH))
+                assertEquals(205, ola.skills.xp(Skill.MAGIC) - before)
+
+                // A removed frame keeps the place: a frame built again shows it.
+                server.onTick {
+                    chamber.built[PortalChamber.PORTAL_SPACES[0]] = PortalDestinations.FRAMES[2]
+                    PortalDestinations.apply(chamber, PortalChamber.PORTAL_SPACES[0])
+                }
+                a.await("the marble portal") { Unit.takeIf { chamber.built[PortalChamber.PORTAL_SPACES[0]] == MARBLE_LUMBRIDGE_PORTAL } }
+
+                // Ape Atoll takes 100 bananas, which only fit noted: 80 noted and the 20 unnoted are all taken (Codex review on #1059).
+                a.commandReply("setlevel magic 64") { true }
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.WATER]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 200)
+                    ola.inventory.add(server.world.objTypes[NOTED_BANANA]!!, 80)
+                    repeat(20) { ola.inventory.add(server.world.objTypes[TeleportObjs.BANANA]!!, 1) }
+                }
+                a.await("the bananas") { Unit.takeIf { a.count(NOTED_BANANA) == 80 && a.count(TeleportObjs.BANANA) == 20 } }
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                // Page on with More until Ape Atoll shows.
+                var ape = -1
+                repeat(4) {
+                    if (ape >= 0) return@repeat
+                    val shown = a.awaitDialogue("a page of places") { it is DialogueView.Menu } as DialogueView.Menu
+                    val at = shown.options.indexOfFirst { "Ape Atoll" in it }
+                    if (at >= 0) { ape = at; a.chooseOption(at + 1) } else a.chooseOption(shown.options.size)
+                }
+                assertTrue(ape >= 0, "Ape Atoll is offered")
+                a.await("Ape Atoll directed") { Unit.takeIf { chamber.built[-PortalChamber.PORTAL_SPACES[0]] == TeleportObjs.APE_ATOLL } }
+                assertEquals(0, a.count(NOTED_BANANA) + a.count(TeleportObjs.BANANA))
+
+                // Enter on the directed portal: to Lumbridge.
+                server.onTick { server.world.locs.add(ZoneLoc(TEAK_LUMBRIDGE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, fx - 3, fz, House.GROUND)) }
+                a.locOp(TEAK_LUMBRIDGE_PORTAL, fx - 3, fz, PortalChamber.ENTER)
+                a.await("Lumbridge") { Unit.takeIf { ola.x in 3219..3223 && ola.z in 3216..3220 } }
+            }
+        }
+    }
+
+    @Test
     fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ola").use { a ->
@@ -1918,6 +2019,8 @@ class HeadlessHouseTest {
         const val ELEMENTAL_SPHERE = 13660
         const val MAHOGANY_TELESCOPE = 13658
         const val TEAK_EAGLE_LECTERN = 13645
+        const val TEAK_LUMBRIDGE_PORTAL = 13616
+        const val MARBLE_LUMBRIDGE_PORTAL = 13630
         const val UNDEAD_DUMMY_NPC = 7413
         const val ORNATE_DUMMY_NPC = 10507
         const val SLAYER_HELMET = 11864
@@ -1991,6 +2094,7 @@ class HeadlessHouseTest {
         const val WOOD_TABLE = 13293
         const val GREENMAN = 57012
         const val OAK_PLANK = 8778
+        const val NOTED_BANANA = 1964
         const val GREENMAN_ITEM = 31024
         const val STOVE_SPACE = 15398
         const val SHELF_SPACE = 15399

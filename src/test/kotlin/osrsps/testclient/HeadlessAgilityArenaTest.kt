@@ -490,6 +490,28 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
+    fun `a teleport off the monkey bars ends the walk there, with no drag back toward them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("mo").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2771, 9570, 3)
+                client.awaitTicks(2)
+                client.locOp(MONKEY_BARS, 2771, 9570, 1)
+                client.await("on the bars") { client.position?.takeIf { it.z > 9570 } }
+                // Away mid-walk: none of the walk's steps left pulls them a tile a tick back toward the bars (exploit
+                // review R65A-4).
+                client.command("tele 2771 9560 3")
+                client.await("away") { client.position?.takeIf { it == Coord(2771, 9560, 3) } }
+                client.awaitTicks(15)
+                assertEquals(Coord(2771, 9560, 3), client.position)
+            }
+        }
+    }
+
+    @Test
     fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
