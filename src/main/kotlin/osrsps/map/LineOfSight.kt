@@ -46,6 +46,14 @@ object LineOfSight {
     }
 
     /**
+     * Whether a [srcSize] entity at [srcX], [srcZ] and a one-tile one at [x], [z] see each other either way: the trace
+     * isn't always the same both ways, so for a monster that never moves, a tile from which only the player has a line
+     * would be safe for good (exploit review R66B-2, the Revenant maledictus).
+     */
+    fun clearEitherWay(collision: CollisionMap, level: Int, srcX: Int, srcZ: Int, srcSize: Int, x: Int, z: Int): Boolean =
+        clear(collision, level, srcX, srcZ, srcSize, x, z) || clear(collision, level, x, z, 1, srcX, srcZ, srcSize, srcSize)
+
+    /**
      * The Chebyshev distance between the edges of two entities: 1 when they touch (diagonally too), 0 when they overlap.
      * Attack range is measured this way (Wiki, Attack range).
      */
