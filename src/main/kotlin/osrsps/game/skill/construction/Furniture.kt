@@ -180,6 +180,13 @@ object FurnitureBuilds {
         15296 to Hotspot(RoomType.COMBAT_ROOM, 3),
         15297 to Hotspot(RoomType.COMBAT_ROOM, 4),
         29335 to Hotspot(RoomType.COMBAT_ROOM, 5),
+        // The games room (step CON6e): its game space (poh_games_room_2, 2 by 2), prize chest space (_4), stone space
+        // (_5), elemental balance space (_6) and ranging game space (_7), the second and fourth to seventh of its places.
+        15342 to Hotspot(RoomType.GAMES_ROOM, 1),
+        15343 to Hotspot(RoomType.GAMES_ROOM, 3),
+        15344 to Hotspot(RoomType.GAMES_ROOM, 4),
+        15345 to Hotspot(RoomType.GAMES_ROOM, 5),
+        15346 to Hotspot(RoomType.GAMES_ROOM, 6),
     )
 
     // The combat ring space's tiles, by their loc names: poh_gr_1_wall_combat, _bluecorner, _cobat_corner, _everything,
@@ -432,6 +439,31 @@ object FurnitureBuilds {
         5641 to Build(29336, 660),
         5642 to Build(29337, 220),
         5643 to Build(9355, 300),
+        // The games room (the pieces' Wiki pages' XP). The game space: Jacky Jester (poh_mime_jester), the Treasure Hunt
+        // Fairy House (poh_fairy_house) and the Hangman game (poh_hangman_chest).
+        5618 to Build(13390, 360),
+        5619 to Build(13379, 800),
+        5620 to Build(13404, 1200),
+        // The oak, teak and mahogany prize chests, shut (poh_prize_chest_oak_closed, _teak_, _mag_).
+        5621 to Build(13385, 240),
+        5622 to Build(13387, 660),
+        5623 to Build(13389, 860),
+        // The clay, limestone and marble attack stones (poh_tbt_clay_new, _limestone_new, _marble_new: the clay one's
+        // recolour is the Clay attack stone's menu icon's; the Wiki's infoboxes have 13392 and 13393 the other way).
+        5624 to Build(13393, 100),
+        5625 to Build(13392, 200),
+        5626 to Build(13394, 2000),
+        // The elemental balances 1 to 3 (poh_elemental_orb_1 to _3).
+        5627 to Build(13395, 176),
+        5628 to Build(13396, 252),
+        5629 to Build(13397, 356),
+        // Hoop and stick, dartboard, archery target: the first of each pair (poh_stick+hoop1, poh_dartboard1,
+        // poh_archery_target1). INFERRED: the stick alone is the one built, as the menu icon's model is the stick's
+        // alone, and "Stick and hoop" (poh_stick+hoop2) is a hoop landed on it; the Dartboard page has the second
+        // dartboard "darted".
+        5630 to Build(13398, 120),
+        5631 to Build(13400, 290),
+        5632 to Build(13402, 600),
     )
 
     /**
@@ -479,6 +511,11 @@ object FurnitureBuilds {
         (RoomType.COMBAT_ROOM to 3) to 5638..5640,
         (RoomType.COMBAT_ROOM to 4) to listOf(5587, 5588, 5589, 6027),
         (RoomType.COMBAT_ROOM to 5) to 5641..5643,
+        (RoomType.GAMES_ROOM to 1) to 5618..5620,
+        (RoomType.GAMES_ROOM to 3) to 5621..5623,
+        (RoomType.GAMES_ROOM to 4) to 5624..5626,
+        (RoomType.GAMES_ROOM to 5) to 5627..5629,
+        (RoomType.GAMES_ROOM to 6) to 5630..5632,
     )
 
     /** The balance beam's row ([CombatRoom.offBeam]). */
