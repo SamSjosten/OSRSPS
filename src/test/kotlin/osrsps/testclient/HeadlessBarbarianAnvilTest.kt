@@ -76,7 +76,8 @@ class HeadlessBarbarianAnvilTest {
                 from = client.messages().size
                 client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
                 client.seen("[barbarian_anvil.made item=item ${bronze.hasta}]", from)
-                assertEquals(1, client.count(bronze.hasta))
+                // The message can reach the client a moment before the inventory update of the same tick.
+                assertEquals(1, client.await("the hasta") { client.count(bronze.hasta).takeIf { it > 0 } })
                 assertEquals(0, client.count(bronze.bar) + client.count(bronze.logs))
                 assertEquals(xp + 25, client.await("the XP") { client.stat(Skill.SMITHING.ordinal)?.takeIf { it.xp > xp } }.xp)
 
