@@ -37,7 +37,10 @@ class Study(private val world: World, private val houses: Houses) {
         }
         for ((loc, tier) in BALLS) {
             for (staff in STAVES.keys) {
-                world.handlers.onObjOnLoc(loc, staff) { op -> changeStaff(this, op.loc ?: return@onObjOnLoc, tier, op.sub, op.obj) }
+                world.handlers.onObjOnLoc(loc, staff) { op ->
+                    arriveDelay()
+                    changeStaff(this, op.loc ?: return@onObjOnLoc, tier, op.sub, op.obj)
+                }
             }
         }
     }
