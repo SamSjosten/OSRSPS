@@ -137,7 +137,10 @@ class KillerwattPlane(private val world: World) {
             // spawn, so no tile past one keeps them safe from it (exploit reviews 66 and 67, R66C-1 and R67B-1).
             val inMelee = fighting.reaches(npc, player)
             melee[npc] = inMelee
-            npc.unleashed = inMelee
+            // Away from home (left there by a melee fight), a ranged fight stays unleashed too: on its leash, its fight
+            // would end each tick before it could shoot, for anyone more than 18 tiles from its spawn (exploit review
+            // round 68, R68C-1). Such a fight ends below once they're out of its range instead.
+            npc.unleashed = inMelee || !home(npc)
             // And past the 32 tiles an NPC follows a player to (Npcs.FOLLOW_RANGE; Codex review on #1044).
             npc.huntsAnywhere = inMelee
         }
@@ -149,6 +152,12 @@ class KillerwattPlane(private val world: World) {
         } else {
             npc.face(player)
             val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+            if (npc.unleashed && distance > RANGE) {
+                // Unleashed away from home, it doesn't move in a ranged fight, so a player out of its range has left it:
+                // the fight ends and it walks home. Inferred, as the leash would end it at home.
+                npc.target = null
+                return
+            }
             if (tick < npc.nextAttackTick || distance !in 1..RANGE || !fighting.sees(npc, player)) return
             val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
             fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
