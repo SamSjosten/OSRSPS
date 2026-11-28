@@ -46,6 +46,7 @@ import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.skill.construction.Stairs
 import osrsps.game.skill.construction.Study
+import osrsps.game.skill.magic.TeleportObjs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -133,6 +134,7 @@ class HeadlessHouseTest {
         LocType(GamesRoom.HOOP_AND_STICK, "Hoop and stick", ops = listOf("Hoop", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(ELEMENTAL_SPHERE, "Elemental sphere", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(MAHOGANY_TELESCOPE, "Telescope", ops = listOf("Observe", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(TEAK_EAGLE_LECTERN, "Lectern", ops = listOf("Study", "Create-last", null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -147,6 +149,8 @@ class HeadlessHouseTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
+        // The teleport spells and their tablets, for the lecterns.
+        for (type in osrsps.game.skill.magic.TeleportObjs.all) objs[type.id] = type
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
         // The ranging games' weapons (CON6g), with the Wiki's ranged numbers from the resources.
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
@@ -155,6 +159,7 @@ class HeadlessHouseTest {
         for (id in listOf(AIR_STAFF, FIRE_STAFF, AIR_BATTLESTAFF, FIRE_BATTLESTAFF, MYSTIC_AIR_STAFF)) objs[id] = ObjType(id, "Staff", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON)
         objs[FIRE_RUNE] = ObjType(FIRE_RUNE, "Fire rune", stackable = true)
         objs[PLANK] = ObjType(PLANK, "Plank")
+        objs[Study.SOFT_CLAY] = ObjType(Study.SOFT_CLAY, "Soft clay")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
         objs[TEA_LEAVES] = ObjType(TEA_LEAVES, "Tea leaves")
@@ -1498,6 +1503,123 @@ class HeadlessHouseTest {
     }
 
     @Test
+    fun `a teak eagle lectern makes the teleport tablets it has, from soft clay and the spell's runes, for the spell's XP, and Create-last makes them again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A teak eagle lectern beside her in the garden (the study isn't in this fixture).
+                server.onTick { server.world.locs.add(ZoneLoc(TEAK_EAGLE_LECTERN, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND)) }
+                a.commandReply("setlevel magic 40") { true }
+
+                // Study: the Make-X box shows Varrock, Lumbridge, Falador and Camelot, Kourend Castle and Ardougne.
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                val box = a.await("the Make-X box") { a.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                val shown = listOf(TeleportObjs.VARROCK_TABLET, TeleportObjs.LUMBRIDGE_TABLET, TeleportObjs.FALADOR_TABLET, TeleportObjs.CAMELOT_TABLET, TeleportObjs.KOUREND_TABLET, TeleportObjs.ARDOUGNE_TABLET)
+                for (id in shown) assertTrue(id in box.args, "the box shows $id: ${box.args}")
+                assertTrue(TeleportObjs.WATCHTOWER_TABLET !in box.args, "no Watchtower tablet on a teak eagle lectern")
+                // Without soft clay: refused.
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                a.await("the clay refusal") { a.messages().firstOrNull { it.text == "[construction.lectern_clay]" } }
+
+                // Three clay and the runes for two Varrock tablets: two made, 35 XP each, then the runes run out.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 2)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 6)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 2)
+                }
+                a.await("the clay") { Unit.takeIf { a.count(Study.SOFT_CLAY) == 3 } }
+                val before = ola.skills.xp(Skill.MAGIC)
+                val boxes = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box again") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                a.await("the runes refusal", timeoutMillis = 30_000) { a.messages().firstOrNull { it.text == "[construction.lectern_runes]" } }
+                assertEquals(2, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(1, a.count(Study.SOFT_CLAY))
+                assertEquals(0, a.count(TeleportObjs.LAW))
+                assertEquals(70, ola.skills.xp(Skill.MAGIC) - before)
+
+                // Create-last: Varrock again.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 1)
+                }
+                a.await("the law rune") { Unit.takeIf { a.count(TeleportObjs.LAW) == 1 } }
+                val clayRefusals = a.messages().count { it.text == "[construction.lectern_clay]" }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                // One made (3 asked for last time), then the clay runs out.
+                a.await("the clay running out", timeoutMillis = 30_000) { Unit.takeIf { a.messages().count { it.text == "[construction.lectern_clay]" } > clayRefusals } }
+                assertEquals(3, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(0, a.count(Study.SOFT_CLAY))
+
+                // Camelot needs Magic 45.
+                server.onTick { ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 1) }
+                val boxes2 = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box a third time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes2 } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 3, 1)
+                a.await("the level refusal") { a.messages().firstOrNull { it.text.startsWith("[construction.lectern_level") } }
+
+                // Walking off stops a batch (Codex review on #1057): runes and clay for three, one made, then a step away.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 2)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 9)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 3)
+                }
+                a.await("the runes for three") { Unit.takeIf { a.count(TeleportObjs.LAW) == 3 && a.count(Study.SOFT_CLAY) == 3 } }
+                val boxes3 = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box a fourth time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes3 } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                a.await("the first of three") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 4 } }
+                a.walk(ola.x, ola.z - 1)
+                val stepped = server.world.tick
+                a.await("three tablets' time", timeoutMillis = 30_000) { Unit.takeIf { server.world.tick >= stepped + 3 * Study.TABLET_TICKS } }
+                assertEquals(4, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(2, a.count(Study.SOFT_CLAY))
+
+                // Create-last clicked again and again can't beat the 4 ticks (Codex review on #1057). She steps back first.
+                a.walk(at.x, at.z)
+                a.await("back beside it") { Unit.takeIf { ola.x == at.x && ola.z == at.z } }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the fifth") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 5 } }
+                val fifth = server.world.tick
+                while (server.world.tick < fifth + Study.TABLET_TICKS - 1) {
+                    val tick = server.world.tick
+                    a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                    a.await("a tick on") { Unit.takeIf { server.world.tick > tick } }
+                    if (server.world.tick < fifth + Study.TABLET_TICKS) assertEquals(5, a.count(TeleportObjs.VARROCK_TABLET), "no tablet before 4 ticks")
+                }
+                a.await("the sixth, in its time", timeoutMillis = 30_000) { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 6 } }
+                assertTrue(server.world.tick >= fifth + Study.TABLET_TICKS)
+
+                // A full stack of the tablet: nothing taken (Codex review on #1057).
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.VARROCK_TABLET]!!, Int.MAX_VALUE - 6)
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 1)
+                }
+                a.await("the full stack") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == Int.MAX_VALUE } }
+                val clay = a.count(Study.SOFT_CLAY)
+                val laws = a.count(TeleportObjs.LAW)
+                val noSpace = a.messages().count { it.text == "[make.no_space]" }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the no-space message", timeoutMillis = 30_000) { Unit.takeIf { a.messages().count { it.text == "[make.no_space]" } > noSpace } }
+                assertEquals(clay, a.count(Study.SOFT_CLAY))
+                assertEquals(laws, a.count(TeleportObjs.LAW))
+            }
+        }
+    }
+
+    @Test
     fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ola").use { a ->
@@ -1795,6 +1917,7 @@ class HeadlessHouseTest {
         const val FIRE_RUNE = 554
         const val ELEMENTAL_SPHERE = 13660
         const val MAHOGANY_TELESCOPE = 13658
+        const val TEAK_EAGLE_LECTERN = 13645
         const val UNDEAD_DUMMY_NPC = 7413
         const val ORNATE_DUMMY_NPC = 10507
         const val SLAYER_HELMET = 11864
