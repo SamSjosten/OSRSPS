@@ -157,6 +157,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `tai-bwo-wannai-broodoo.json` (Karamja step K4.2c, for test on 215: under `::god`, `::tbwevent broodoo_poison` before a hack on the light jungle at 2770,3061 and `::kill` on the green Broodoo victim (6409) for its tribal mask; the runner has no step for using an item on an NPC, so the weakness items are only the headless test's) needs 0.5.0 for `assertGroundItem`.
 
+`tai-bwo-wannai-parcels.json` (Karamja step K4.2d, for test on 215: 25 trading sticks, 100 coins and 5 logs, Rionasta's Send-parcel (6432, wandering by 2782,3094) opening the parcel service on the deposit box screen (192), whose deposit-inventory button sends 2 logs for 20 sticks and refuses the coins; the screen is a guess, so a failure there may only mean live has its own) needs 0.6.1 for `assertInterface` and `clickWidget`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 

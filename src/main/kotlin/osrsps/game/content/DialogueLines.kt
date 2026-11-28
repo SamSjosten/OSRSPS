@@ -453,6 +453,7 @@ object DialogueLines {
         HardwoodGroveLines,
         TaiBwoCleanupLines,
         TaiBwoEventLines,
+        TaiBwoParcelLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
