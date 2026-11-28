@@ -7,6 +7,8 @@ import osrsps.game.combat.Drop
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.skill.AgilityLines
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /** The Wilderness God Wars Dungeon's words, in the dialogue file. */
@@ -61,6 +63,14 @@ object WildernessGodWars {
     val EXIT_CREVICE = Tile(3065, 10160)
     val SURFACE = Tile(3017, 3740)
     val BOULDER_EAST = Tile(3055, 10165)
+    /** The boulder's 2x2 tiles (its spawn's): an NPC blocks only NPCs, so [BLOCKER] holds them shut for players. */
+    val BOULDER_AT = Tile(3053, 10165)
+    /**
+     * The invisible blocking loc a fight puts under a boss that never moves (Xarth's footprint), here under the
+     * boulder: without it a player under Strength 60 could walk past (exploit review R67A-1). INFERRED: live's map has
+     * the boulder's tiles blocked one way or another, as the Wiki's "Move" is the only way past.
+     */
+    const val BLOCKER = 26209
     val BOULDER_WEST = Tile(3052, 10165)
     val WALL_AT = Tile(3066, 10148)
     val WALL_NORTH = Tile(3066, 10149)
@@ -166,10 +176,18 @@ fun registerWildernessGodWars(world: World) {
             world.teleport(player, to.x, to.z, 3)
             if (inward) player.skills.addTenths(Skill.AGILITY, XP_TENTHS)
         }
+        if (world.locs.types[BLOCKER] != null) {
+            for (dx in 0..1) for (dz in 0..1) {
+                val loc = ZoneLoc(BLOCKER, LocShape.CENTREPIECE_STRAIGHT, 0, BOULDER_AT.x + dx, BOULDER_AT.z + dz, 3)
+                // Never over a loc the map already has there.
+                if (world.locs.cached(loc.x, loc.z, loc.level, loc.layer) == null) world.locs.addPermanent(loc)
+            }
+        }
         world.handlers.onNpc(BOULDER, 1) { op ->
-            val npc = op.npc ?: return@onNpc
+            if (op.npc == null) return@onNpc
             if (player.skills.currentLevel(Skill.STRENGTH) < LEVEL) return@onNpc world.message(player, WildernessGodWarsLines.BOULDER_STRENGTH, "level" to LEVEL)
-            val inward = player.x > npc.x
+            // Which side they are on by the fixed tiles, not the boulder's (exploit review R67A-1).
+            val inward = player.x >= BOULDER_EAST.x
             val to = if (inward) BOULDER_WEST else BOULDER_EAST
             player.anim(ANIM_BOULDER)
             delay(CROSS_TICKS)
