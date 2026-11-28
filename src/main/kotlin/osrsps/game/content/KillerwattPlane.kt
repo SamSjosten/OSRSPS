@@ -114,6 +114,7 @@ class KillerwattPlane(private val world: World) {
         if (player == null) {
             if (melee.remove(npc) != null) {
                 npc.unleashed = false
+                npc.huntsAnywhere = false
                 world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
             }
             return
@@ -131,6 +132,8 @@ class KillerwattPlane(private val world: World) {
             val inMelee = fighting.reaches(npc, player)
             melee[npc] = inMelee
             npc.unleashed = inMelee
+            // And past the 32 tiles an NPC follows a player to (Npcs.FOLLOW_RANGE; Codex review on #1044).
+            npc.huntsAnywhere = inMelee
         }
         val tick = world.tick
         if (melee.getValue(npc)) {
@@ -153,6 +156,7 @@ class KillerwattPlane(private val world: World) {
     internal fun died(npc: Npc) {
         melee.remove(npc)
         npc.unleashed = false
+        npc.huntsAnywhere = false
     }
 
     companion object {

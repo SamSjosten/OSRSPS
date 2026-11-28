@@ -47,7 +47,7 @@ class HeadlessKillerwattPlaneTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val types = NpcTypes.of(orb, biped, oddenstein)
         World(
-            crcs, CollisionMap().apply { markLoaded(3110 shr 6, 3362 shr 6); markLoaded(2660 shr 6, 5214 shr 6) },
+            crcs, CollisionMap().apply { markLoaded(3110 shr 6, 3362 shr 6); markLoaded(2660 shr 6, 5214 shr 6); markLoaded(FAR_X shr 6, 5214 shr 6) },
             random = GameRandom(9),
             npcTypes = types,
             npcCombat = NpcCombat.load(types, SeqNames.NONE),
@@ -279,6 +279,19 @@ class HeadlessKillerwattPlaneTest {
     }
 
     @Test
+    fun `a killerwatt taken on in melee keeps walking after a player more than 32 tiles off`(@TempDir dir: Path) {
+        // Past Npcs.FOLLOW_RANGE (Codex review on #1044): it still comes after them, closer each tick, and keeps the fight.
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                val seen = fought(server, client, "ida", fromX = ORB_X - 1, toX = FAR_X, ticks = 6)
+                assertTrue(seen.first().distance > 32, "they start past its follow range: $seen")
+                assertTrue(seen.all { it.fighting }, "it never gives up on them: $seen")
+                assertTrue(seen.last().distance <= seen.first().distance - 3, "it walks after them: $seen")
+            }
+        }
+    }
+
+    @Test
     fun `a killerwatt taken on from range keeps shooting when the player comes beside it`(@TempDir dir: Path) {
         // As the Wiki's strategy has it: from range it shoots for the whole fight, Protect from Missiles' to block, and
         // doesn't come to melee (exploit review 67, R67B-2, is live).
@@ -314,5 +327,6 @@ class HeadlessKillerwattPlaneTest {
         const val ORB_X = 2660
         const val ORB_Z = 5214
         const val RANGED_SPEED = 2L
+        const val FAR_X = ORB_X - 40
     }
 }
