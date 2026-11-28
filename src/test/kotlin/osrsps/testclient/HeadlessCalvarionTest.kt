@@ -222,6 +222,10 @@ class HeadlessCalvarionTest {
                 client.await("his calm-down") { fight.lines.firstOrNull { it.endsWith("calms down") } }
                 assertEquals(Calvarion.BOSS, npc.type.id)
                 assertEquals(npc.maxHitpoints - 10, npc.hitpoints)
+                // His damage from before his calm-down no longer counts; the shot that landed as it ran out does
+                // (exploit review round 63, R63B-1).
+                assertEquals(1, server.world.wildernessBosses.tallies)
+                assertEquals(mapOf(ed.saveKey to 10), server.world.wildernessBosses.dealt(npc))
                 client.commandReply("hit 140 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 65: 75/150") }
             }
         }

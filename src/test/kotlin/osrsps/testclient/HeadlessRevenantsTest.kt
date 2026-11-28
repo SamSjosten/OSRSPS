@@ -25,7 +25,11 @@ class HeadlessRevenantsTest {
         7881, "Revenant imp", ops = listOf(null, "Attack", null, null, null), combatLevel = 7, internalName = "wild_cave_imp",
         stats = NpcStats(attack = 5, strength = 5, defence = 4, hitpoints = 10, ranged = 5, magic = 9),
     )
-    private val types = NpcTypes.of(imp)
+    private val demon = NpcType(
+        7936, "Revenant demon", size = 3, ops = listOf(null, "Attack", null, null, null), combatLevel = 98, internalName = "wild_cave_demon",
+        stats = NpcStats(attack = 85, strength = 85, defence = 80, hitpoints = 80, ranged = 80, magic = 80),
+    )
+    private val types = NpcTypes.of(imp, demon)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -94,6 +98,33 @@ class HeadlessRevenantsTest {
                 client.await("the one after", timeoutMillis = 20_000) { Unit.takeIf { npc.nextAttackTick > second } }
                 assertEquals(second - first, npc.nextAttackTick - second, "a steady cadence")
                 assertTrue(second - first <= 5, "every ${second - first} ticks")
+            }
+        }
+    }
+
+    @Test
+    fun `a big revenant's leash counts its size, so its far side has no safe spot either`(@TempDir dir: Path) {
+        val server = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3170 shr 6, 10070 shr 6) }, npcTypes = types, random = GameRandom(9),
+                npcSpawns = listOf(NpcSpawn(demon, 3170, 10070, wander = 0, source = "test")), npcCombat = NpcCombat.load(types, SeqNames.NONE),
+                cycleMillis = millis,
+            )
+        }
+        server.use {
+            server.login("abe").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                // 19 tiles east of its spawn's corner, 17 past its 3-wide footprint: inside the chase range measured from
+                // the footprint, 10 from where its leash stops it (exploit review R66B-1).
+                client.command("tele 3189 10071 0")
+                client.await("there") { client.position?.takeIf { it == Coord(3189, 10071, 0) } }
+                val abe = server.world.playerNamed("abe")!!
+                val npc = server.world.npcs.all.first { it.type.id == demon.id }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Revenant demon") }
+                client.keepAlive()
+                client.await("its shot from the leash", timeoutMillis = 30_000) { Unit.takeIf { abe.hitpoints < 99 || abe.freezeTicks > 0 } }
+                assertTrue(npc.x - 3170 <= 7, "it stayed on its leash: ${npc.x}")
             }
         }
     }

@@ -1,6 +1,6 @@
 {
   "about": [
-    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, failLine (the message a failure gives), safeAtHp (the hitpoints at or below which it can't fail), alsoAt (more such tiles, for an obstacle of several locs of one type), and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river, the Al Kharid tropical tree behind the roof's edge wall and the Varrock wall with no floor beside it on the 241 map: a click walks to the nearest route's start).",
+    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, failLine (the message a failure gives), failHpPercent (a failure's damage as a percentage of the current hitpoints, plus 1, in place of damage), startLine and successLine (the messages on starting and getting across), safeAtHp (the hitpoints at or below which it can't fail), alsoAt (more such tiles, for an obstacle of several locs of one type), and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river, the Al Kharid tropical tree behind the roof's edge wall and the Varrock wall with no floor beside it on the 241 map: a click walks to the nearest route's start).",
     "A route: from ([x, z, level], where the player starts), at (the [x, z, level] tiles of the locs this route is for, when the obstacle is several locs; none for every loc), moves, fail (the moves of a failure, for an obstacle that can fail), and level (the Agility level this way needs, when not the obstacle's: 1 for the free way back of a shortcut that asks a level one way only). Of the routes for the loc clicked, the one starting nearest the player is taken.",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick), xp (tenths: XP partway across, with no wait).",
     "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
@@ -21,7 +21,9 @@
     "The Brimhaven Agility Arena's obstacles (Karamja step K3.4b): locs and tiles from the 242 cache's map (the platforms on level 3, the pit below them on level 0), levels, XP and speeds from the OSRS Wiki's Brimhaven Agility Arena page and each obstacle's page (read 2026-11-19): the balancing ropes, log balances, balancing ledges, monkey bars, pillars, rope swings and low walls from level 1, the hand holds from 20; a fall lands in the pit below the start and deals HP * 5 / 100 + 2 (Mod Ash, on the obstacle pages), the low wall's stumble none; the planks are rigged (the smooth one always holds, a broken one only at 99 Agility, BrimhavenAgilityArena.kt). Guessed: the success pairs (easy obstacles 200/256 to 255/256, the hand holds 160/256, the low wall 230/256: the Wiki gives only that each tier shares one and none fails at 99), every anim but the walks', the slides' cycles and the fall's tiles; the crossings walk at a tile a tick but the monkey bars, paced to the Wiki's 13 ticks across (a fall's 3 tiles over 6 ticks, GUESSED at the same pace).",
     "Cairn Isle's rock slide (Karamja step K4.1): loc 2231 and its six tiles from the 242 cache's map, climbed from in front (east or west) across to the promontory and its bridge; level 15, 1 XP and the fall's two hits of HP * 5 / 100 + 1 and its message from the OSRS Wiki's Rock slide (Cairn Isle) page (read 2026-11-19). The success pair from that page's Jagex-supported chart (171/256 at 1, 183/256 at 15, 254/256 at 99: low 170, high 253). Guessed: the climbing anim, and a fall leaving the player where they started.",
     "Revenant Caves pillars (Wilderness step W5.1b): the five Jump-to pillars (loc 31561, one type for all) at their tiles from the 242 cache's map, each jumped 2 tiles onto the pillar and 2 off along its turn; levels 65, 75 and 89, XP 6.5, 7.5 and 8.9, failure XP 3.5, 3.8 and 4.5 (the Wiki marks these as unconfirmed) and 4 to 11 damage on a failure that still crosses, from the OSRS Wiki's Pillar (Revenant Caves) page (read 2026-11-15); which pillar is easy, medium or hard by its map on that page. GUESSED: the jump's animation and slide (the stepping stones'), the 150/256 to 255/256 cross chance. No jump while frozen or bound until 3 ticks of it are left (the same page), with the words of a frozen player's other refusals.",
-    "Deep Wilderness Dungeon crevice (Wilderness step W6.1): loc 19043, Use, at 3046,10327 by the stairs and 3048,10335 by the fire giants (the 242 cache's map); level 46, no XP, from the OSRS Wiki's Crevice (Deep Wilderness Dungeon) page (read 2026-11-15). Live it also needs the medium Wilderness Diary, which isn't built; it is open here, as the diary-gated lairs are (Sam, 9 Nov). INFERRED from the map: each side's tile, 3046,10326 and 3048,10336, beside each crevice's wall. GUESSED: the hole_squeeze animation and its 3 ticks."
+    "Deep Wilderness Dungeon crevice (Wilderness step W6.1): loc 19043, Use, at 3046,10327 by the stairs and 3048,10335 by the fire giants (the 242 cache's map); level 46, no XP, from the OSRS Wiki's Crevice (Deep Wilderness Dungeon) page (read 2026-11-15). Live it also needs the medium Wilderness Diary, which isn't built; it is open here, as the diary-gated lairs are (Sam, 9 Nov). INFERRED from the map: each side's tile, 3046,10326 and 3048,10336, beside each crevice's wall. GUESSED: the hole_squeeze animation and its 3 ticks.",
+    "Wilderness Slayer Cave crevices (Wilderness step W6.2): loc 53259 wilderness_slayer_cave_crevice, Squeeze-Through, four crevices of two locs each, one either side of a wall (3334,10119/10121, 3342,10149/10153, 3434,10091/10093, 3435,10112/10115; the 242 cache's map); level 77, 10 XP, from the OSRS Wiki's Crevice (Wilderness Slayer Cave) page (read 2026-11-15). INFERRED from the map: each side's tile beside the wall. GUESSED: the hole_squeeze animation and its 3 ticks. Not built: its message.",
+    "Wilderness Agility Course (Wilderness step W6.4): locs, tiles and options from the 242 cache's map (the log and the stones stand on bridge tiles, so on the ground level); levels 52 at the way-in door and 49 at the pipe, each obstacle's XP (12.5 for the pipe, 20 each for the ropeswing, stones and log) and the 498.9 lap bonus that comes only on the rocks after every other obstacle (571.4 a lap), the falls' damage (of the current hitpoints, rounded down: 15% plus 1 for the ropeswing and log, 20% plus 1 for the stones) and the success chances (Mod Ash's 78%-98%, 71%-98%, as the Wiki's charts give them: 200-250 and 180-250 out of 256) from the OSRS Wiki (read 2026-11-15); no marks of grace. Inferred from 2004Scape's wilderness_course script and the 242 map: each start, path, exact move and landing tile, the pit landings below the ropeswing (3004,10357) and log (2998,10346), a stones fall landing at 3002,3963, a log fall only on its first four tiles, a stones fall only after the third stone. Guessed until recorded: every tick count and exact move timing; the way-in door and the gates back out giving no XP, never failing and the gates out needing no level."
   ],
   "obstacles": [
     {
@@ -3613,6 +3615,924 @@
           ]
         }
       ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_west_south",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3334,
+        10119,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3334,
+            10118,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3334,
+                10122,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3334,
+            10122,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3334,
+                10118,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_west_north",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3334,
+        10121,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3334,
+            10118,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3334,
+                10122,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3334,
+            10122,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3334,
+                10118,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_north_west_south",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3342,
+        10149,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3342,
+            10148,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3342,
+                10154,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3342,
+            10154,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3342,
+                10148,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_north_west_north",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3342,
+        10153,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3342,
+            10148,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3342,
+                10154,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3342,
+            10154,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3342,
+                10148,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_east_south",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3434,
+        10091,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3434,
+            10090,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3434,
+                10094,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3434,
+            10094,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3434,
+                10090,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_east_north",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3434,
+        10093,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3434,
+            10090,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3434,
+                10094,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3434,
+            10094,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3434,
+                10090,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_north_east_south",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3435,
+        10112,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3435,
+            10111,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3435,
+                10116,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3435,
+            10116,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3435,
+                10111,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_slayer_cave_crevice_north_east_north",
+      "loc": 53259,
+      "option": "Squeeze-Through",
+      "level": 77,
+      "xpTenths": 100,
+      "at": [
+        3435,
+        10115,
+        0
+      ],
+      "routes": [
+        {
+          "from": [
+            3435,
+            10111,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3435,
+                10116,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3435,
+            10116,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 3835,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3435,
+                10111,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_gate_in",
+      "loc": 23555,
+      "option": "Open",
+      "level": 52,
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            2998,
+            3916,
+            0
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2998,
+                  3931
+                ]
+              ],
+              "anim": 762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_gate_out",
+      "loc": 23552,
+      "alsoLocs": [
+        23554
+      ],
+      "option": "Open",
+      "level": 1,
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            2998,
+            3931,
+            0
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2998,
+                  3916
+                ]
+              ],
+              "anim": 762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_pipe",
+      "loc": 23137,
+      "option": "Squeeze-through",
+      "level": 49,
+      "xpTenths": 125,
+      "routes": [
+        {
+          "from": [
+            3004,
+            3937,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3004,
+                3940,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 30,
+              "endCycles": 126,
+              "ticks": 4
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3004,
+                3947,
+                0
+              ]
+            },
+            {
+              "type": "slide",
+              "to": [
+                3004,
+                3950,
+                0
+              ],
+              "anim": 749,
+              "startCycles": 30,
+              "endCycles": 126,
+              "ticks": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_ropeswing",
+      "loc": 23132,
+      "option": "Swing-on",
+      "level": 1,
+      "xpTenths": 200,
+      "success": [
+        200,
+        250
+      ],
+      "failHpPercent": 15,
+      "successLine": "agility.wilderness_ropeswing",
+      "failLine": "agility.wilderness_ropeswing_fail",
+      "routes": [
+        {
+          "from": [
+            3005,
+            3953,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3005,
+                3958,
+                0
+              ],
+              "anim": 751,
+              "startCycles": 45,
+              "endCycles": 70,
+              "ticks": 2
+            }
+          ],
+          "fail": [
+            {
+              "type": "teleport",
+              "to": [
+                3004,
+                10357,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_stepping_stone",
+      "loc": 23556,
+      "option": "Cross",
+      "level": 1,
+      "xpTenths": 200,
+      "success": [
+        180,
+        250
+      ],
+      "failHpPercent": 20,
+      "fromStart": true,
+      "startLine": "agility.wilderness_stones_start",
+      "successLine": "agility.wilderness_stones",
+      "failLine": "agility.wilderness_stones_fail",
+      "routes": [
+        {
+          "from": [
+            3002,
+            3960,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3001,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3000,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                2999,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                2998,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                2997,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                2996,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3001,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3000,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                2999,
+                3960,
+                0
+              ],
+              "anim": 741,
+              "startCycles": 15,
+              "endCycles": 30,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3002,
+                3963,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_log_balance",
+      "loc": 23542,
+      "option": "Walk-across",
+      "level": 1,
+      "xpTenths": 200,
+      "success": [
+        200,
+        250
+      ],
+      "failHpPercent": 15,
+      "startLine": "agility.wilderness_log_start",
+      "successLine": "agility.wilderness_log",
+      "failLine": "agility.wilderness_log_fail",
+      "routes": [
+        {
+          "from": [
+            3002,
+            3945,
+            0
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2994,
+                  3945
+                ]
+              ],
+              "anim": 762
+            }
+          ],
+          "fail": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2998,
+                  3945
+                ]
+              ],
+              "anim": 762
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                2998,
+                10346,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "wilderness_rocks",
+      "loc": 23640,
+      "option": "Climb",
+      "level": 1,
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            2993,
+            3937,
+            0
+          ],
+          "at": [
+            [
+              2993,
+              3936,
+              0
+            ]
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2993,
+                  3933
+                ]
+              ],
+              "anim": 737
+            }
+          ]
+        },
+        {
+          "from": [
+            2994,
+            3937,
+            0
+          ],
+          "at": [
+            [
+              2994,
+              3936,
+              0
+            ]
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2994,
+                  3933
+                ]
+              ],
+              "anim": 737
+            }
+          ]
+        },
+        {
+          "from": [
+            2995,
+            3937,
+            0
+          ],
+          "at": [
+            [
+              2995,
+              3936,
+              0
+            ]
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  2995,
+                  3933
+                ]
+              ],
+              "anim": 737
+            }
+          ]
+        }
+      ]
     }
   ],
   "courses": [
@@ -3777,6 +4697,19 @@
         2,
         6
       ]
+    },
+    {
+      "key": "wilderness",
+      "obstacles": [
+        "wilderness_pipe",
+        "wilderness_ropeswing",
+        "wilderness_stepping_stone",
+        "wilderness_log_balance",
+        "wilderness_rocks"
+      ],
+      "lapXpTenths": 4989,
+      "lapLine": "agility.wilderness_laps",
+      "level": 52
     }
   ]
 }

@@ -169,7 +169,7 @@ class MeleeCombat(
         combat.npcCombat[npc.type] ?: return false
         val barred = combat.barred(player, npc)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             return true
         }
         if (combat.bulwarkBlock(player)) {
@@ -217,7 +217,7 @@ class MeleeCombat(
         // leave where the NPC is fought.
         val barred = combat.barred(player, npc)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             stopFacing(player)
             return true
         }
@@ -440,7 +440,7 @@ class MeleeCombat(
         val damage = minOf(armoured(npc, landed, magic = false, player, style.type), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
-        if (combat.paysXp(npc)) {
+        if (combat.paysXp(npc) && !combat.damageXp(player, npc, style.xp, damage)) {
             for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
             player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         }
@@ -583,7 +583,7 @@ class MeleeCombat(
         if (npc.hitpoints > 0 || npc.holdsAtZero) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
-            if (source != null && !dummy && !displaced) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+            if (source != null && !dummy && !displaced && !combat.passive(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
         } else {
             die(npc, def, source, tick)
         }
@@ -599,7 +599,7 @@ class MeleeCombat(
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.outOfPlay || displaced(source, tick)) return
         attacked(npc, source, tick)
-        if (!combat.dummy(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+        if (!combat.passive(npc)) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
     }
 
     /**
@@ -829,12 +829,23 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player, swingType) ?: return
         // A named melee max hit loses to drained Strength as the file's would.
         val max = if (maxHit != null) combat.npcMaxHit(npc, def, maxHit) else roll.maxHit
-        val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
+        val hits = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val damage = if (hits) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         // The caller's share through a prayer, or the definition's own (Scurrius's giant rats).
         val passes = if (prayerPasses > 0) prayerPasses else def.prayerPasses
-        hitPlayer(player, npc, if (!def.typeless && protects(player, swingType)) blocked * passes / 100 else blocked, tick)
+        // Magical and ranged melee are Protect from Melee's, whatever defence they roll against (Codex review on #1042).
+        val prayedAs = if (type == null) def.prayedAs ?: swingType else swingType
+        hitPlayer(player, npc, if (!def.typeless && protects(player, prayedAs)) blocked * passes / 100 else blocked, tick)
+        // A gorak's successful hit drains a random stat other than Hitpoints (OSRS Wiki, Gorak); only such an NPC rolls for it.
+        val drain = def.hitDrain
+        if (drain != null && hits && !player.dead) {
+            val skills = Skill.entries.filter { it != Skill.HITPOINTS }
+            val skill = skills[random.nextInt(skills.size)]
+            val current = player.skills.currentLevel(skill)
+            player.skills.setCurrentLevel(skill, (current - random.between(drain.min, drain.max)).coerceAtLeast(0))
+        }
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
@@ -891,6 +902,10 @@ class MeleeCombat(
     /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
     fun sees(npc: Npc, player: Player): Boolean =
         npc.level == player.level && LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
+
+    /** Whether [npc] sees [player] or [player] sees it ([LineOfSight.clearEitherWay]): for a monster that never moves. */
+    fun seesEitherWay(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && LineOfSight.clearEitherWay(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
 
     /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
     fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
@@ -1134,9 +1149,17 @@ class MeleeCombat(
         shots.removeAll { area(it.npc.x, it.npc.z) }
     }
 
-    /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
-    private fun outOfRange(npc: Npc, player: Player): Boolean =
-        !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)
+    /**
+     * Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn footprint on either axis (its size counted, as
+     * [Aggression.inAggressionRange] does, so a big NPC's far side isn't short: exploit review R66B-1); never for an
+     * unleashed one.
+     */
+    private fun outOfRange(npc: Npc, player: Player): Boolean {
+        if (npc.unleashed) return false
+        val far = npc.spawn.x + npc.type.size - 1
+        val top = npc.spawn.z + npc.type.size - 1
+        return player.x < npc.spawn.x - CHASE_RANGE || player.x > far + CHASE_RANGE || player.z < npc.spawn.z - CHASE_RANGE || player.z > top + CHASE_RANGE
+    }
 
     /**
      * [player] takes [damage] from [source] (null for none), capped at their hitpoints and 0 under `::god`, on [tick]:

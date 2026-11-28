@@ -152,6 +152,7 @@ import osrsps.game.content.Cats
 import osrsps.game.content.RatPits
 import osrsps.game.content.KillerwattPlane
 import osrsps.game.content.registerKillerwattPlane
+import osrsps.game.content.registerPostQuestLeftovers
 import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
@@ -208,6 +209,9 @@ import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerDeepWildernessDungeon
+import osrsps.game.content.registerWildernessGodWars
+import osrsps.game.content.registerWildernessAgility
+import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -823,6 +827,7 @@ class World(
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
             osrsps.game.content.EvilChicken.damaged(this, npc, player)
+            gamesRoom.damaged(npc, player, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -899,6 +904,7 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        supply = { id -> id in foods.all || id in potions.all || id == objTypes.find("jewl_necklace_of_phoenix")?.id },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
         forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
@@ -1134,6 +1140,9 @@ class World(
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
     /** The combat room's racks and ropes; see [osrsps.game.skill.construction.CombatRoom]. */
     val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
+    val gamesRoom = osrsps.game.skill.construction.GamesRoom(this, houses)
+    val study = osrsps.game.skill.construction.Study(this, houses)
+    val portalChamber = osrsps.game.skill.construction.PortalChamber(this, houses)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
@@ -1301,6 +1310,13 @@ class World(
         registerLookCommands(this@World)
     }
 
+    /**
+     * Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. Declared
+     * before the init that registers content: set later, its empty start would wipe what registration added (Codex
+     * review on #1042).
+     */
+    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
+
     init {
         replayTradeJournal()
         deaths.register(handlers)
@@ -1372,6 +1388,7 @@ class World(
         registerCats(this, cats)
         registerRatPits(this, ratPits)
         registerKillerwattPlane(this, killerwattPlane)
+        registerPostQuestLeftovers(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1406,6 +1423,9 @@ class World(
         registerEmblemTrader(this)
         registerMaledictus(this)
         registerDeepWildernessDungeon(this)
+        registerWildernessSlayerCave(this)
+        registerWildernessGodWars(this)
+        registerWildernessAgility(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1516,6 +1536,9 @@ class World(
         kitchen.register()
         workshop.register()
         combatRoom.register()
+        gamesRoom.register()
+        study.register()
+        portalChamber.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
@@ -3470,7 +3493,7 @@ class World(
         } else {
             npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
                 osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
-        }
+        } + extraDrops(npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,

@@ -78,7 +78,7 @@ class ClanCoffer(private val world: World) {
         if (last != null && world.tick - last < COOLDOWN_TICKS) return false
         if (lastClanTransfer[clan.id] == world.tick) return false
         // Refused by the server-wide cap before any cooldown is marked, and the player is told (R64C-3).
-        if (!world.clans.takeDurableWrite(world.tick)) {
+        if (!world.clans.takeDurableWrite(world.tick, clan.id)) {
             world.message(player, ClanCofferLines.BUSY)
             return false
         }

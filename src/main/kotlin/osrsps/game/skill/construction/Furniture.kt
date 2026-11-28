@@ -180,6 +180,37 @@ object FurnitureBuilds {
         15296 to Hotspot(RoomType.COMBAT_ROOM, 3),
         15297 to Hotspot(RoomType.COMBAT_ROOM, 4),
         29335 to Hotspot(RoomType.COMBAT_ROOM, 5),
+        // The games room (step CON6e): its game space (poh_games_room_2, 2 by 2), prize chest space (_4), stone space
+        // (_5), elemental balance space (_6) and ranging game space (_7), the second and fourth to seventh of its places.
+        15342 to Hotspot(RoomType.GAMES_ROOM, 1),
+        15343 to Hotspot(RoomType.GAMES_ROOM, 3),
+        15344 to Hotspot(RoomType.GAMES_ROOM, 4),
+        15345 to Hotspot(RoomType.GAMES_ROOM, 5),
+        15346 to Hotspot(RoomType.GAMES_ROOM, 6),
+        // The costume room (step CON7d): its cape rack, magic wardrobe (1 by 3), toy box, treasure chest, fancy dress box
+        // (2 by 2) and armour case spaces (poh_cos_room_*_hotspot), its first, second and fourth to seventh places in the
+        // cache's table (each place's pieces say which space it is).
+        18810 to Hotspot(RoomType.COSTUME_ROOM, 0),
+        18811 to Hotspot(RoomType.COSTUME_ROOM, 1),
+        18812 to Hotspot(RoomType.COSTUME_ROOM, 3),
+        18813 to Hotspot(RoomType.COSTUME_ROOM, 4),
+        18814 to Hotspot(RoomType.COSTUME_ROOM, 5),
+        18815 to Hotspot(RoomType.COSTUME_ROOM, 6),
+        // The portal chamber (step CON7c): its three portal spaces (poh_teleroom_1 to _3, 2 by 1) and centrepiece space
+        // (_7, 2 by 2), its fourth to seventh places in the cache's table (its first three are empty).
+        15406 to Hotspot(RoomType.PORTAL_CHAMBER, 3),
+        15407 to Hotspot(RoomType.PORTAL_CHAMBER, 4),
+        15408 to Hotspot(RoomType.PORTAL_CHAMBER, 5),
+        15409 to Hotspot(RoomType.PORTAL_CHAMBER, 6),
+        // The study (step CON7a): its lectern space (poh_study_1, 3 by 3), globe space (_2, 3 by 3), crystal ball space
+        // (_4), wall chart spaces (_5), telescope space (_6) and bookcase spaces (_7), its first, second and fourth to
+        // seventh places.
+        15420 to Hotspot(RoomType.STUDY, 0),
+        15421 to Hotspot(RoomType.STUDY, 1),
+        15422 to Hotspot(RoomType.STUDY, 3),
+        15423 to Hotspot(RoomType.STUDY, 4),
+        15424 to Hotspot(RoomType.STUDY, 5),
+        15425 to Hotspot(RoomType.STUDY, 6),
     )
 
     // The combat ring space's tiles, by their loc names: poh_gr_1_wall_combat, _bluecorner, _cobat_corner, _everything,
@@ -432,6 +463,100 @@ object FurnitureBuilds {
         5641 to Build(29336, 660),
         5642 to Build(29337, 220),
         5643 to Build(9355, 300),
+        // The games room (the pieces' Wiki pages' XP). The game space: Jacky Jester (poh_mime_jester), the Treasure Hunt
+        // Fairy House (poh_fairy_house) and the Hangman game (poh_hangman_chest).
+        5618 to Build(13390, 360),
+        5619 to Build(13379, 800),
+        5620 to Build(13404, 1200),
+        // The oak, teak and mahogany prize chests, shut (poh_prize_chest_oak_closed, _teak_, _mag_).
+        5621 to Build(13385, 240),
+        5622 to Build(13387, 660),
+        5623 to Build(13389, 860),
+        // The clay, limestone and marble attack stones (poh_tbt_clay_new, _limestone_new, _marble_new: the clay one's
+        // recolour is the Clay attack stone's menu icon's; the Wiki's infoboxes have 13392 and 13393 the other way).
+        5624 to Build(13393, 100),
+        5625 to Build(13392, 200),
+        5626 to Build(13394, 2000),
+        // The elemental balances 1 to 3 (poh_elemental_orb_1 to _3).
+        5627 to Build(13395, 176),
+        5628 to Build(13396, 252),
+        5629 to Build(13397, 356),
+        // Hoop and stick, dartboard, archery target: the first of each pair (poh_stick+hoop1, poh_dartboard1,
+        // poh_archery_target1). INFERRED: the stick alone is the one built, as the menu icon's model is the stick's
+        // alone, and "Stick and hoop" (poh_stick+hoop2) is a hoop landed on it; the Dartboard page has the second
+        // dartboard "darted".
+        5630 to Build(13398, 120),
+        5631 to Build(13400, 290),
+        5632 to Build(13402, 600),
+        // The costume room (the pieces' Wiki pages' XP; poh_cos_room_*, closed). Armour cases: oak, teak, mahogany.
+        5946 to Build(18778, 180),
+        5947 to Build(18780, 270),
+        5948 to Build(18782, 420),
+        // Cape racks: oak, teak, mahogany, gilded, marble, magical.
+        5924 to Build(18766, 240),
+        5925 to Build(18767, 360),
+        5926 to Build(18768, 560),
+        5927 to Build(18769, 860),
+        5928 to Build(18770, 500),
+        5929 to Build(18771, 1000),
+        // Fancy dress boxes (the cache's "costume box"): oak, teak, mahogany.
+        5943 to Build(18772, 120),
+        5944 to Build(18774, 180),
+        5945 to Build(18776, 280),
+        // Magic wardrobes: oak, carved oak, teak, carved teak, mahogany, gilded, marble.
+        5930 to Build(18784, 240),
+        5931 to Build(18786, 360),
+        5932 to Build(18788, 360),
+        5933 to Build(18790, 540),
+        5934 to Build(18792, 560),
+        5935 to Build(18794, 860),
+        5936 to Build(18796, 500),
+        // Toy boxes and treasure chests: oak, teak, mahogany.
+        5937 to Build(18798, 120),
+        5938 to Build(18800, 180),
+        5939 to Build(18802, 280),
+        5940 to Build(18804, 120),
+        5941 to Build(18806, 180),
+        5942 to Build(18808, 280),
+        // The portal chamber (the pieces' Wiki pages' XP): teak, mahogany and marble portal frames (poh_portal_teak_empty,
+        // _mag_empty, _marble_empty), then the teleport focus, greater teleport focus and scrying pool.
+        5794 to Build(13636, 270),
+        5795 to Build(13637, 420),
+        5796 to Build(13638, 1500),
+        5798 to Build(13640, 40),
+        5799 to Build(13641, 500),
+        5800 to Build(13639, 2000),
+        // The study (the pieces' Wiki pages' XP). Lecterns: oak, eagle, demon, teak eagle, teak demon, mahogany eagle,
+        // mahogany demon (poh_lectern_1 to _7) and marble (_8).
+        5769 to Build(13642, 60),
+        5770 to Build(13643, 120),
+        5771 to Build(13644, 120),
+        5772 to Build(13645, 180),
+        5773 to Build(13646, 180),
+        5774 to Build(13647, 580),
+        5775 to Build(13648, 580),
+        5776 to Build(37349, 1800),
+        // Globe, ornamental, lunar and celestial globes, armillary sphere, small and large orrery (poh_globe_1 to _7).
+        5777 to Build(13649, 180),
+        5778 to Build(13650, 270),
+        5779 to Build(13651, 570),
+        5780 to Build(13652, 570),
+        5781 to Build(13653, 960),
+        5782 to Build(13654, 1320),
+        5783 to Build(13655, 1420),
+        // Crystal ball, elemental sphere, crystal of power (poh_crystalball_1 to _3).
+        5784 to Build(13659, 280),
+        5785 to Build(13660, 580),
+        5786 to Build(13661, 890),
+        // Alchemical, astronomical and infernal charts (poh_wallchart_1 to _3) and the S.T.A.S.H. chart (_4).
+        5787 to Build(13662, 30),
+        5788 to Build(13663, 45),
+        5789 to Build(13664, 60),
+        5790 to Build(41434, 16),
+        // Oak, teak and mahogany telescopes (poh_telescope_1 to _3).
+        5791 to Build(13656, 121),
+        5792 to Build(13657, 181),
+        5793 to Build(13658, 281),
     )
 
     /**
@@ -479,6 +604,27 @@ object FurnitureBuilds {
         (RoomType.COMBAT_ROOM to 3) to 5638..5640,
         (RoomType.COMBAT_ROOM to 4) to listOf(5587, 5588, 5589, 6027),
         (RoomType.COMBAT_ROOM to 5) to 5641..5643,
+        (RoomType.GAMES_ROOM to 1) to 5618..5620,
+        (RoomType.GAMES_ROOM to 3) to 5621..5623,
+        (RoomType.GAMES_ROOM to 4) to 5624..5626,
+        (RoomType.GAMES_ROOM to 5) to 5627..5629,
+        (RoomType.GAMES_ROOM to 6) to 5630..5632,
+        (RoomType.COSTUME_ROOM to 0) to 5924..5929,
+        (RoomType.COSTUME_ROOM to 1) to 5930..5936,
+        (RoomType.COSTUME_ROOM to 3) to 5937..5939,
+        (RoomType.COSTUME_ROOM to 4) to 5940..5942,
+        (RoomType.COSTUME_ROOM to 5) to 5943..5945,
+        (RoomType.COSTUME_ROOM to 6) to 5946..5948,
+        (RoomType.PORTAL_CHAMBER to 3) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 4) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 5) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 6) to 5798..5800,
+        (RoomType.STUDY to 0) to 5769..5776,
+        (RoomType.STUDY to 1) to 5777..5783,
+        (RoomType.STUDY to 3) to 5784..5786,
+        (RoomType.STUDY to 4) to 5787..5790,
+        (RoomType.STUDY to 5) to 5791..5793,
+        (RoomType.STUDY to 6) to 5529..5531,
     )
 
     /** The balance beam's row ([CombatRoom.offBeam]). */
@@ -497,8 +643,10 @@ object FurnitureBuilds {
     val WATERING_CANS: List<Int> = (5333..5340).toList() + 13353
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
-    fun buildsOn(hotspot: Int, loc: Int): Boolean {
-        if (loc == NONE) return false
+    fun buildsOn(hotspot: Int, built: Int): Boolean {
+        if (built == NONE) return false
+        // A directed portal is its frame (step CON7c).
+        val loc = PortalDestinations.frame(built)
         val spot = HOTSPOTS[hotspot] ?: return false
         val rows = PLACES[spot.room to spot.index] ?: return false
         return rows.any { row -> BUILDS[row]?.locFor(spot.variant) == loc }
@@ -526,15 +674,18 @@ object FurnitureBuilds {
         if (ids.none { it in built }) return null
         return PLACES[spot.room to spot.index]?.firstOrNull { row ->
             val build = BUILDS[row] ?: return@firstOrNull false
-            ids.all { id -> (built[id] ?: NONE) == build.locFor(HOTSPOTS.getValue(id).variant) }
+            ids.all { id -> PortalDestinations.frame(built[id] ?: NONE) == build.locFor(HOTSPOTS.getValue(id).variant) }
         }
     }
 
     /**
      * Built locs with Upgrade as their op 4: `poh_tools1` to `4`, the steel framed bench and the bench with a vice,
-     * crafting tables 1 to 3, and the combat dummy and undead combat dummy. Each opens the creation menu with what builds over it.
+     * crafting tables 1 to 3, the combat dummy and undead combat dummy, and the costume room's armour cases, cape racks,
+     * fancy dress boxes, magic wardrobes and treasure chests short of the top one (step CON7d; the toy boxes have none).
+     * Each opens the creation menu with what builds over it.
      */
-    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798, 29336, 29337)
+    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798, 29336, 29337) +
+        setOf(18778, 18780, 18766, 18767, 18768, 18769, 18770, 18772, 18774, 18784, 18786, 18788, 18790, 18792, 18794, 18804, 18806)
 
     /**
      * The oak, teak and gilded wall decorations: each shows the player's family crest (poh_decor_oak_arrav and the
@@ -553,7 +704,7 @@ object FurnitureBuilds {
     }
 
     /** Every built loc type, each with Remove as its op 5. */
-    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc } - NONE
+    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc } + PortalDestinations.DIRECTED - NONE
 
     /** Hotspots and what is built on them: the house's locs that need handlers in its instance. */
     val INSTANCE_LOCS: Set<Int> get() = HOTSPOTS.keys + BUILT_LOCS
@@ -706,6 +857,8 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         for (id in FurnitureBuilds.siblings(hotspot, room.type)) {
             val loc = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
             if (loc == FurnitureBuilds.NONE) room.built.remove(id) else room.built[id] = loc
+            // A portal frame shows the place its space keeps (step CON7c).
+            PortalDestinations.apply(room, id)
         }
     }
 
@@ -747,7 +900,7 @@ class Furniture(private val world: World, private val houses: Houses, internal v
     private fun portals(player: Player): Int = player.house?.rooms?.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } } ?: 0
 
     /** Shows what is built now on every tile of [room] holding [hotspot] or one of its siblings, or the hotspot itself. */
-    private fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
+    internal fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
         val ids = FurnitureBuilds.siblings(hotspot, room.type)
         val baseX = house.instance.baseX + (room.x shl 3)
         val baseZ = house.instance.baseZ + (room.z shl 3)

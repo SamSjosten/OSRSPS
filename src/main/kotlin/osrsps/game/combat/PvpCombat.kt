@@ -304,7 +304,7 @@ class PvpCombat(
      */
     fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
         if (!multi.at(attacker.level, attacker.x, attacker.z) &&
-            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && fightingAnyNpc(attacker, tick)))
+            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && ownNpcFight(attacker, tick)))
         ) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
@@ -337,6 +337,14 @@ class PvpCombat(
         return tick < player.pjUntil && opponent.saveKey == other.saveKey
     }
 
+    /**
+     * Whether an attacker's own monster fight bars their PvP attack: a monster fighting them, or one they are fighting,
+     * in singles-plus combat too. The Wiki's priority ("another player attacking will take priority over fighting the
+     * monster", OSRS Wiki, Singles-plus combat) is the attacked player's, so someone losing to a monster can't splash an
+     * alt to be let go (exploit review R64B-2). Guessed: no source says what an attacker's own fight does there.
+     */
+    private fun ownNpcFight(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
+
     /** Whether a monster is fighting [player], or they are fighting one, outside singles-plus combat ([npcBars]). */
     private fun fightingAnyNpc(player: Player, tick: Long): Boolean =
         npcBars(player, tick) || (!singlesPlus(player.level, player.x, player.z) && melee.fightingNpc(player))
@@ -363,9 +371,9 @@ class PvpCombat(
         target.pjUntil = tick + PJ_TICKS
         target.pjAfterKill = false
         // In singles-plus combat "another player attacking will take priority over fighting the monster" (OSRS Wiki,
-        // Singles-plus combat): each one's monster fight ends, theirs on it and its on them, the attacker's player fight
-        // kept (Codex review on #1002).
-        for (player in arrayOf(attacker, target)) if (singlesPlus(player.level, player.x, player.z)) melee.leaveNpcFight(player)
+        // Singles-plus combat): the target's monster fight ends, theirs on it and its on them (Codex review on #1002).
+        // The attacker has none: [ownNpcFight] refused the attack (exploit review R64B-2).
+        if (singlesPlus(target.level, target.x, target.z)) melee.leaveNpcFight(target)
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */

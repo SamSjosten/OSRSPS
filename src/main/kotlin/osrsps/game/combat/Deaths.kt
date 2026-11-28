@@ -177,6 +177,8 @@ class Deaths(
     private val forfeit: (Player) -> Int = { 0 },
     /** A death with no player killer, where the player fell: a Revenant Caves death takes the fee ([osrsps.game.content.RevenantCaves.lose]). */
     private val diedUnkilled: (Player) -> Unit = {},
+    /** Whether an item is a supply lost for good in a Wilderness death with no player killer: food, a potion dose, a phoenix necklace. */
+    private val supply: (Int) -> Boolean = { false },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -276,7 +278,11 @@ class Deaths(
         player.deathKiller = null
         player.pvpDamage.clear()
         val forKiller = ArrayList<InvObj>()
-        val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        // A death in the Wilderness with no player killer deletes the food, potions and phoenix necklaces it loses, rather
+        // than putting them in the grave (OSRS Wiki, Grave: "while in the Wilderness or on a PvP world, food, potions, and
+        // phoenix necklaces cannot be sent to a grave or dropped, and are instead deleted"; exploit review R65X-1).
+        val graved = if (killer == null && !keep && pvpDeath(player)) (lost + charges).filterNot { supply(it.id) } else lost + charges
+        val buried = if (killer == null) graved else toKiller(player, lost + charges, forKiller)
         // Guessed: fragments lost with their obj are gone, not put in the grave as anything. Checked after toKiller,
         // which can hand a deep-Wilderness death's fragments obj back to the backpack (exploit review round 42, R42A-1).
         if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0

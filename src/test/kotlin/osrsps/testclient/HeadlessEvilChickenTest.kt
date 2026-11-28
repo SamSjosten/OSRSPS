@@ -77,7 +77,7 @@ class HeadlessEvilChickenTest {
                 client.npcOp(view.index, ATTACK_OP)
 
                 // Its hits on the player: one cast every 4 ticks (a splash shows no hitsplat), none over 21.
-                val hits = client.await("four of its hits", timeoutMillis = 20_000) {
+                val hits = client.await("four of its hits", timeoutMillis = 60_000) {
                     client.actorEvents(events).filter { !it.npc && it.index == client.index && it.kind == ActorEventKind.HITSPLAT }.takeIf { it.size >= 4 }
                 }
                 assertTrue(hits.all { it.amount in 0..21 }, "hits $hits")
@@ -85,8 +85,10 @@ class HeadlessEvilChickenTest {
                 assertTrue(gaps.all { it > 0 && it % 4 == 0 } && 4 in gaps, "hits $hits")
                 assertEquals(home, chicken.x to chicken.z, "it stands where it was")
 
-                // Attack XP for damage on it at 2.5%: 4 a point becomes a tenth a point.
-                val dealt = client.await("a hit on it", timeoutMillis = 20_000) {
+                // Attack XP for damage on it at 2.5%: 4 a point becomes a tenth a point. Unarmed against its 126 defence about
+                // two swings in three miss or roll 0, so the wait is long enough for many swings on a loaded CI runner (it
+                // timed out once in CI at 20 s, server-tests (4), 27 Nov).
+                val dealt = client.await("a hit on it", timeoutMillis = 60_000) {
                     client.npcHits().filter { it.index == view.index }.sumOf { it.value }.takeIf { it > 0 }
                 }
                 client.walk(player.x - 3, player.z)

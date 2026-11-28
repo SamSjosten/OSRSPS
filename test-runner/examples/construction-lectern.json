@@ -1,0 +1,276 @@
+{
+ "name": "Construction step CON7b: a study added off the garden takes an oak lectern (60 XP); Study makes a Varrock teleport tablet from soft clay and its runes, and Create-last makes another (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 47",
+   "expectMessage": "47",
+   "comment": "the study needs 40, the oak lectern 47"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 50000",
+   "expectMessage": "50,000",
+   "comment": "the study's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 25,
+   "comment": "the study's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 8778 5",
+   "expectMessage": "Oak plank",
+   "comment": "the oak lectern's planks, and spare"
+  },
+  {
+   "step": "command",
+   "text": "::item 1539 5",
+   "expectMessage": "Steel nails",
+   "comment": "and nails"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15420,
+   "option": "Build",
+   "comment": "the lectern space (poh_study_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the oak lectern"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 75187,
+   "timeoutMs": 5000,
+   "comment": "level 47's XP (75,127) and the oak lectern's 60"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 25",
+   "expectMessage": "25",
+   "comment": "Varrock Teleport's level"
+  },
+  {
+   "step": "command",
+   "text": "::item 1761 2",
+   "expectMessage": "Soft clay"
+  },
+  {
+   "step": "command",
+   "text": "::item 563 1",
+   "expectMessage": "Law rune",
+   "comment": "one tablet's runes: 1 law, 3 air, 1 fire"
+  },
+  {
+   "step": "command",
+   "text": "::item 556 3",
+   "expectMessage": "Air rune"
+  },
+  {
+   "step": "command",
+   "text": "::item 554 1",
+   "expectMessage": "Fire rune"
+  },
+  {
+   "step": "locOption",
+   "locId": 13642,
+   "option": "Study",
+   "comment": "the oak lectern makes the Varrock tablet"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "timeoutMs": 10000,
+   "comment": "the Make-X box (guessed: live has its own interface)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "its only tablet"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 4067,
+   "timeoutMs": 5000,
+   "comment": "poh_create_magic_tablet (inferred)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Varrock teleport",
+   "count": 1,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Law rune",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::item 563 1",
+   "expectMessage": "Law rune",
+   "comment": "runes for one more"
+  },
+  {
+   "step": "command",
+   "text": "::item 556 3",
+   "expectMessage": "Air rune"
+  },
+  {
+   "step": "command",
+   "text": "::item 554 1",
+   "expectMessage": "Fire rune"
+  },
+  {
+   "step": "locOption",
+   "locId": 13642,
+   "option": "Create-last",
+   "comment": "the last tablet picked at this lectern, again"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Varrock teleport",
+   "count": 2,
+   "timeoutMs": 8000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Soft clay",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

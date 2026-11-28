@@ -94,6 +94,14 @@ class NpcInteractions(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /**
+     * Set by content: whether an NPC's op of another name than Attack attacks it, as the house's attack stones' Hit
+     * does ([osrsps.game.skill.construction.GamesRoom]).
+     */
+    var attacksBy: (NpcType, String?) -> Boolean = { _, _ -> false }
+
+    private fun attacks(type: NpcType, op: String?): Boolean = op == ATTACK || attacksBy(type, op)
+
+    /**
      * The player clicked option [option] (1 to 5) of NPC [index], with sub-option [sub] (-1 for none). [invertRun] is the
      * ctrl key.
      */
@@ -105,7 +113,7 @@ class NpcInteractions(
             logger.debug { "${player.username} clicked option $option (sub $sub) of $npc, which has no such option" }
             return
         }
-        if (type.op(option) { readVar(player, it) } == ATTACK) {
+        if (attacks(type, type.op(option) { readVar(player, it) })) {
             scripts.interrupt(player)
             npcs.leave(player, scripts::busy)
             player.interaction = null
@@ -296,7 +304,7 @@ class NpcInteractions(
         }
         // Sent again on arrival, in case the client dropped the turn while the player walked; a re-run is still turned.
         if (!interaction.repeat) face(player, npc)
-        if (!interaction.usesObj && type.op(interaction.option) { readVar(player, it) } == ATTACK && attack(player, npc)) return true
+        if (!interaction.usesObj && attacks(type, type.op(interaction.option) { readVar(player, it) }) && attack(player, npc)) return true
         val op = if (interaction.usesObj) {
             Op.objOnNpc(type.id, interaction.obj, interaction.slot, npc)
         } else {
