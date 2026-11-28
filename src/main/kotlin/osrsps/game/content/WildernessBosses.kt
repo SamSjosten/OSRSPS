@@ -121,6 +121,17 @@ class WildernessBosses(private val world: World) {
         bodyGoing = if (tally != null && npc.hitpoints <= 0) npc to tally else null
     }
 
+    /**
+     * [npc] is back to full and starting over (the Corporeal Beast's reset, Vet'ion calming down): the damage dealt so
+     * far no longer counts toward its kill (exploit review round 63, R63B-1).
+     */
+    fun reset(npc: Npc) {
+        damage.remove(npc)
+    }
+
+    /** The damage dealt to [npc] so far by player save key, for tests. */
+    internal fun dealt(npc: Npc): Map<String, Int> = damage[npc]?.damage.orEmpty().toMap()
+
     /** How many boss NPCs have a damage tally, for tests: none once each has died or gone. */
     internal val tallies: Int get() = damage.size
 
