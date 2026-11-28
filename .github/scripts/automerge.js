@@ -51,7 +51,9 @@ const BAD = ['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 's
 const NOTICE = '<!-- automerge:review-again -->';
 const APPROVE = '<!-- automerge:approve-runs';
 // This workflow's own jobs: GitHub files them on the pull request's head too, and the queue mustn't wait on itself.
-const OWN = ['automerge-gate', 'automerge-queue'];
+// wake-queue is build.yml's job that starts this workflow after a dispatched build (it is still running when the queue
+// looks).
+const OWN = ['automerge-gate', 'automerge-queue', 'wake-queue'];
 const BUILD = 'build'; // build.yml's main job: no check of that name on a head means no CI ran on it
 const BATCH = 'automerge/batch';
 const BATCH_MAX = 6;
