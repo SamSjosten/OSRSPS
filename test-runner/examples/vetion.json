@@ -5,6 +5,9 @@
     {"step": "waitForLogin"},
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 34 outside, 35 inside"},
+    {"step": "command", "text": "::item 1333", "comment": "a melee weapon of its own: a bow left worn with no ammo by an earlier script fights with no hitsplat (nightly 2026-11-27)"},
+    {"step": "itemOption", "item": "Rune scimitar", "option": "Wield"},
+    {"step": "waitTicks", "ticks": 1},
     {"step": "command", "text": "::tele 3220 3788 0", "expectMessage": "Teleported to 3220, 3788, 0", "comment": "west of the crevice at 3221,3787"},
     {"step": "locOption", "locId": 46995, "option": "Check-Fee", "x": 3221, "y": 3787},
     {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
@@ -24,6 +27,7 @@
     {"step": "locOption", "locId": 46925, "option": "Exit", "x": 3294, "y": 10190},
     {"step": "waitTicks", "ticks": 8},
     {"step": "command", "text": "::pos", "comment": "one of the Escape Caves' three cave mouths: 3341,10254, 3362,10297 or 3377,10256"},
+    {"step": "command", "text": "::tele 3094 3493 0", "expectMessage": "Teleported to 3094, 3493, 0", "comment": "out of the Escape Caves first: their monsters killed the account after ::god off (nightly 2026-11-27)"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }
