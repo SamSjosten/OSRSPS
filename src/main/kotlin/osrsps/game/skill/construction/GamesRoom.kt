@@ -72,6 +72,8 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         if (slot in house.dummies || world.locs[loc.x, loc.z, loc.level, loc.layer] != loc) return
         val type = looks[stone]?.first() ?: return
         val npc = world.spawnNpc(NpcSpawn(type, loc.x, loc.z, loc.level, restrict = MoveRestrict.NOMOVE, source = "house attack stone", respawns = false)) ?: return
+        // Everyone in the room may hit it at once, for the most-damage win (Codex review on #1051; a house isn't multi-way).
+        npc.multiTarget = true
         world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, null)
         house.dummies[slot] = CombatRoom.Attached(npc, loc)
         games.keys.removeAll { world.npcs[it.index] !== it }
@@ -103,10 +105,21 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         house.dummies.remove(slot)
         world.npcScripts.later(BACK_TICKS) {
             val loc = attached.loc
-            if (houses.houseAt(loc.x, loc.z) === house && slot !in house.dummies && world.locs[loc.x, loc.z, loc.level, loc.layer] == null) {
+            if (houses.houseAt(loc.x, loc.z) === house && slot !in house.dummies && world.locs[loc.x, loc.z, loc.level, loc.layer] == null && stillBuilt(house, loc)) {
                 world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
             }
         }
+    }
+
+    /**
+     * Whether the room [loc] stood in is still laid with that attack stone built in it: one removed in the 3 ticks before
+     * the stone comes back leaves no stone to put back (Codex review on #1051).
+     */
+    private fun stillBuilt(house: Houses.Open, loc: ZoneLoc): Boolean {
+        val state = world.playerBySaveKey(house.owner)?.house ?: return false
+        val instance = house.instance
+        val room = state.room((loc.x - instance.baseX) shr 3, (loc.z - instance.baseZ) shr 3, loc.level) ?: return false
+        return loc.id in room.built.values
     }
 
     /** The attack stones: their gameval kind and the loc each is built as. */

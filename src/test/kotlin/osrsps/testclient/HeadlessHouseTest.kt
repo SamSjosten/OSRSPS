@@ -1328,17 +1328,33 @@ class HeadlessHouseTest {
     fun `an attack stone is set up, never fights back, chips as it goes down, pays 2,5 percent XP and none for Hitpoints, and the most damage wins`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ola").use { a ->
+                server.login("pia").use { b ->
                 a.ready()
+                b.ready()
                 a.buyHouse()
                 val ola = server.world.playerNamed("ola")!!
+                val pia = server.world.playerNamed("pia")!!
                 val at = a.goIn(House.HOME)
-                // A clay attack stone beside her in the garden (the games room's stone space isn't in this fixture).
+                // A clay attack stone beside her in the garden, built there as far as the house knows (the games room's
+                // stone space isn't in this fixture).
                 val clay = GamesRoom.Stone.CLAY.loc
-                server.onTick { server.world.locs.add(ZoneLoc(clay, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND)) }
+                server.onTick {
+                    ola.house!!.room(House.STARTER_X, House.STARTER_Z)!!.built[-1] = clay
+                    server.world.locs.add(ZoneLoc(clay, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                }
                 a.await("the stone") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
-                a.commandReply("setlevel attack 99") { true }
-                a.commandReply("setlevel strength 99") { true }
+                for (c in listOf(a, b)) {
+                    c.commandReply("setlevel attack 99") { true }
+                    c.commandReply("setlevel strength 99") { true }
+                }
                 a.commandReply("sure max") { it.startsWith("Your attacks") }
+                server.onTick {
+                    pia.sureHits = true
+                    pia.sureMaxHits = true
+                }
+                // pia is brought in on the stone's other side (guests come with step CON11).
+                b.command("tele ${at.x + 2} ${at.z} ${House.GROUND}")
+                b.await("pia in the garden") { b.position?.takeIf { it == Coord(at.x + 2, at.z, House.GROUND) } }
 
                 // Set-up: the loc gives way to the combat stone, 40 hitpoints, on its tile.
                 a.locOp(clay, at.x + 1, at.z, GamesRoom.SET_UP)
@@ -1346,24 +1362,33 @@ class HeadlessHouseTest {
                 assertEquals(40, stone.maxHitpoints)
                 a.await("the loc gone") { if (!a.shown(clay, at.x + 1, at.z)) Unit else null }
 
-                // Hit until it breaks: it never hits back, it chips on the way, and the XP is 2.5% with none for Hitpoints.
+                // Both hit it until it breaks: it never hits back, it chips on the way, and the XP is 2.5% with none for
+                // Hitpoints. ola's fight doesn't lock pia out (Codex review on #1051).
                 val hp = ola.hitpoints
                 val hpXp = ola.skills.xp(Skill.HITPOINTS)
+                val piaHpXp = pia.skills.xp(Skill.HITPOINTS)
                 val combatXp = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) }
                 var chipped = false
                 a.npcOp(stone.index, 2)
+                a.await("ola's first hit") { Unit.takeIf { stone.hitpoints < 40 } }
+                b.await("the stone in view") { b.npcs().takeIf { n -> n.any { it.index == stone.index } } }
+                b.npcOp(stone.index, 2)
                 a.await("the win", timeoutMillis = 60_000) {
                     if ((stone.transformedTo?.id ?: CLAY_STONE_NPC) != CLAY_STONE_NPC) chipped = true
                     a.messages().firstOrNull { it.text.startsWith("[construction.stone_winner") }
                 }
+                // Everyone who hit it is told: pia landed hits on it too.
+                b.await("pia told") { b.messages().firstOrNull { it.text.startsWith("[construction.stone_winner") } }
                 assertTrue(chipped, "a chip came off")
                 assertEquals(hp, ola.hitpoints)
                 assertEquals(hpXp, ola.skills.xp(Skill.HITPOINTS))
-                // 40 damage at 4 XP each is 160, and 2.5% of it is 4 (3 if the tenths before it round that way).
+                assertEquals(piaHpXp, pia.skills.xp(Skill.HITPOINTS))
+                // 40 damage at 4 XP each is 160, and 2.5% of it is 4, shared between them here.
                 val gained = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) } - combatXp
-                assertTrue(gained in 3..4, "combat XP $gained")
+                assertTrue(gained in 0..4, "combat XP $gained")
                 // The stone is back on its place.
                 a.await("the stone back") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
+                }
             }
         }
     }
