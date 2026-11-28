@@ -8,6 +8,7 @@
     {"step": "command", "text": "::tele 3196 10222 0", "expectMessage": "Teleported to 3196, 10222, 0", "comment": "by the Emblem Trader's patch round 3196,10224"},
     {"step": "npcOption", "npc": "Emblem Trader", "option": "Rewards", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "[emblem_trader.no_rewards]", "timeoutMs": 10000},
+    {"step": "finishDialogue", "comment": "his reply closed, so the chatbox is free for the next command (nightly 2026-11-28, s7)"},
     {"step": "command", "text": "::skull off", "expectMessage": "Your skull is gone.", "comment": "a known start: no skull, so Skull opens the warning menu"},
     {"step": "npcOption", "npc": "Emblem Trader", "option": "Skull", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "[emblem_trader.skull_warning]", "timeoutMs": 10000},
