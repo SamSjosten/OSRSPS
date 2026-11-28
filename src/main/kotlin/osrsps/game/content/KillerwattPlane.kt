@@ -36,19 +36,20 @@ object KillerwattPlaneLines : Lines("killerwatt_plane", "Transcript:Professor Od
  *   after the quests in [osrsps.game.Quests]) on Draynor Manor's top floor takes the player to the plane, and the
  *   Portal Home (11356) there back. Without insulated boots on, Oddenstein warns them first, and they go through or
  *   stay as they choose.
- * - **Killerwatts**: passive orbs (470) until one fights; then it grows limbs (469) for the fight. Attacked from beside
- *   it, it fights in melee; with the player further off but within 13 tiles and in its sight, it stays where it is and
- *   shoots its magical ranged attack; out of both it walks after them. It chooses afresh each tick. Both attack every 2 ticks, for up to 6 in melee or 8 at range, or 15
- *   either way at a player without insulated boots (the Wiki's Killerwatt).
+ * - **Killerwatts**: passive orbs (470) until one fights; then it grows limbs (469) for the fight. Taken on from beside
+ *   it, it fights in melee to the end and walks after the player wherever they go on the plane; taken on from further
+ *   off, it stays where it is and shoots its magical ranged attack from up to 13 tiles, never coming to melee (the
+ *   Wiki's Killerwatt, its strategy section: two ways to fight one, each beaten by one protection prayer; in melee it
+ *   keeps after the player until the fight ends). Both attack every 2 ticks, for up to 6 in melee or 8 at range, or 15 either way at a player without
+ *   insulated boots.
  * - **Storm clouds** (488) wander and do nothing (the spawn file).
  *
- * Guessed: the landing tiles either side; no animation going through; that a killerwatt picks melee or range by
- * whether the player is beside it, each tick; that it turns back into an orb once it stops
+ * Guessed: the landing tiles either side; no animation going through; the plane's bounds ([onPlane]); that it turns back into an orb once it stops
  * fighting; the transformation's spotanim; and the ranged attack rolling against Ranged defence.
  */
 class KillerwattPlane(private val world: World) {
-    /** The killerwatts fighting, with their limbs grown. */
-    private val inFight = HashSet<Npc>()
+    /** The killerwatts fighting, with their limbs grown, and whether each fights in melee (true) or at range. */
+    private val melee = HashMap<Npc, Boolean>()
 
     fun insulated(player: Player): Boolean = player.equipment.count(INSULATED_BOOTS) > 0
 
@@ -106,42 +107,52 @@ class KillerwattPlane(private val world: World) {
     /** Each tick, for each killerwatt: its fight, which this drives ([Npc.scriptedAttacks]). */
     internal fun tick(npc: Npc) {
         npc.scriptedAttacks = true
+        // Off the plane (home through the portal, on the same level as it), the fight is over: it's unleashed in melee, so
+        // nothing else ends it there.
+        npc.target?.let { if (!onPlane(it.x, it.z)) { npc.target = null; world.npcs.stopFollowing(npc) } }
         val player = npc.target
         if (player == null) {
-            if (inFight.remove(npc)) world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
+            if (melee.remove(npc) != null) {
+                npc.unleashed = false
+                world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
+            }
             return
         }
         val fighting = world.meleeCombat
-        if (inFight.add(npc)) {
+        if (npc !in melee) {
             // The fight starts: its first swing comes the tick after, as a retaliation's does (MeleeCombat.retaliate),
             // not this tick after the hit that started it (Codex review on #1029).
             npc.nextAttackTick = maxOf(npc.nextAttackTick, world.tick + 1)
             world.npcTypes[BIPED]?.let { world.npcs.transform(npc, it, Npcs.FOREVER) }
             npc.effects.spotanim(0, TRANSFORM_SPOTANIM, 0)
+            // Melee for good when taken on from beside it, else range for good (the Wiki's Killerwatt). In melee it keeps
+            // after the player until the fight ends (it or they die, they leave the plane or log out): no leash to its
+            // spawn, so no tile past one keeps them safe from it (exploit reviews 66 and 67, R66C-1 and R67B-1).
+            val inMelee = fighting.reaches(npc, player)
+            melee[npc] = inMelee
+            npc.unleashed = inMelee
         }
         val tick = world.tick
-        // Melee or range is chosen afresh each tick, so no spot keeps the player safe from both: beside them it swings;
-        // within 13 tiles and in sight it stands and shoots; otherwise it walks after them (exploit review 66, R66C-1).
-        if (fighting.reaches(npc, player)) {
+        if (melee.getValue(npc)) {
             if (npc.following !== player) world.npcs.follow(npc, player)
-            if (tick < npc.nextAttackTick) return
+            if (tick < npc.nextAttackTick || !fighting.reaches(npc, player)) return
             fighting.swingAt(npc, player, tick, maxHit = meleeMaxHit(player))
-            return
+        } else {
+            npc.face(player)
+            val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
+            if (tick < npc.nextAttackTick || distance !in 1..RANGE || !fighting.sees(npc, player)) return
+            val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
+            fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
         }
-        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z)
-        if (distance !in 1..RANGE || !fighting.sees(npc, player)) {
-            if (npc.following !== player) world.npcs.follow(npc, player)
-            return
-        }
-        if (npc.following === player) world.npcs.stopFollowing(npc)
-        npc.face(player)
-        if (tick < npc.nextAttackTick) return
-        val attack = NpcRangedAttack(anim = CAST_ANIM, maxHit = rangedMaxHit(player))
-        fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
     }
 
+    /** Within [PLANE_REACH] of the plane's landing on both axes: the plane's map squares, with a margin. Guessed. */
+    private fun onPlane(x: Int, z: Int): Boolean =
+        kotlin.math.abs(x - PLANE_LANDING.x) <= PLANE_REACH && kotlin.math.abs(z - PLANE_LANDING.z) <= PLANE_REACH
+
     internal fun died(npc: Npc) {
-        inFight.remove(npc)
+        melee.remove(npc)
+        npc.unleashed = false
     }
 
     companion object {
@@ -156,6 +167,7 @@ class KillerwattPlane(private val world: World) {
         /** The Wiki's Killerwatt: its magical ranged attack's max hit and range, killerwatt_biped_cast its animation. */
         const val RANGED_MAX_HIT = 8
         const val RANGE = 13
+        const val PLANE_REACH = 128
         const val CAST_ANIM = 3164
 
         /** The Wiki's Killerwatt: 15 either way without insulated boots. */

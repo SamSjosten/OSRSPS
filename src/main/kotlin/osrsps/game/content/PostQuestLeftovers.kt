@@ -81,6 +81,9 @@ fun registerPostQuestLeftovers(world: World) = with(PostQuestLeftovers) {
     world.doors.addClosedType(LUCIEN_DOOR, LUCIEN_DOOR_OPEN)
     world.handlers.onLoc(LUCIEN_DOOR, OPEN) { op ->
         val door = op.loc!!
+        // As the Champions' Guild's door: on the tile first, and only if nobody opened it meanwhile (exploit review 67, R67B-4).
+        arriveDelay()
+        if (!world.locs.exists(door)) return@onLoc
         world.doors.openAs(door, LUCIEN_DOOR_OPEN, shutAfter = DOOR_TICKS)
         val to: Tile = DraynorManor.otherSide(door, player.x, player.z)
         player.waypoints.clear()
