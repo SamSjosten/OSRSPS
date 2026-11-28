@@ -34,6 +34,10 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.CombatRoom
+import osrsps.game.skill.construction.CostumeData
+import osrsps.game.skill.construction.CostumeList
+import osrsps.game.skill.construction.CostumeRoom
+import osrsps.game.skill.construction.CostumeSet
 import osrsps.game.skill.construction.EstateAgent
 import osrsps.game.skill.construction.Furniture
 import osrsps.game.skill.construction.FurnitureBuilds
@@ -143,6 +147,7 @@ class HeadlessHouseTest {
         hotspot(CHEST_SPACE, "Treasure chest space"),
         LocType(OAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(TEAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(OAK_TREASURE_CHEST + 1, "Treasure chest", ops = listOf("Search", "Close", null, null, null), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -300,6 +305,13 @@ class HeadlessHouseTest {
                     RoomType.COMBAT_ROOM.id to listOf(rings, emptyList(), emptyList(), racks),
                     RoomType.COSTUME_ROOM.id to List(4) { emptyList<FurnitureOption>() } + listOf(treasureChests),
                 ),
+            ),
+            // The treasure chest's first three lists, a set of one item each (the cache's hold reward sets).
+            costumeData = CostumeData(
+                listOf(TEAK_PLANK, HAMMER, OAK_PLANK).mapIndexed { i, plank ->
+                    val id = CostumeRoom.TREASURE_LISTS[i]
+                    id to CostumeList(id, listOf(CostumeSet(plank, listOf(listOf(plank)))))
+                }.toMap(),
             ),
         )
     }
@@ -1073,6 +1085,72 @@ class HeadlessHouseTest {
 
                 // The mahogany chest is the top one: nothing upgrades it, so it has no Upgrade handler.
                 assertTrue(18808 !in FurnitureBuilds.UPGRADABLE && TEAK_TREASURE_CHEST in FurnitureBuilds.UPGRADABLE)
+            }
+        }
+    }
+
+    @Test
+    fun `a costume room's treasure chest opens, stores its tiers' sets for the owner, takes them back, and holds the chest while full`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("vera").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("vera")!!
+                server.onTick {
+                    player.house!!.rooms += HouseRoom(RoomType.COSTUME_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1).also { it.built[CHEST_SPACE] = OAK_TREASURE_CHEST }
+                }
+                for (plank in listOf(TEAK_PLANK, HAMMER, OAK_PLANK)) client.command("item $plank 1")
+                client.await("the planks") { if (client.count(TEAK_PLANK) + client.count(HAMMER) + client.count(OAK_PLANK) == 3) Unit else null }
+                val at = client.goIn(House.HOME)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3) + 4
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                fun slot(id: Int) = server.onTick { player.inventory.contents().first { it.second.id == id }.first }
+                fun shownList(before: Int) = client.await("the window's list") {
+                    client.clientScripts().drop(before).lastOrNull { it.id == CostumeRoom.INIT_SCRIPT }?.args
+                }
+                fun stored() = client.inventory(CostumeRoom.STORE_INV + HeadlessClient.OTHER_INV).filterNotNull().map { it.id }
+
+                // Open swaps in the open chest; Search shows the window on the beginner list, with the owner's ops.
+                client.locOp(OAK_TREASURE_CHEST, cx, cz, CostumeRoom.OPEN)
+                client.await("the open chest") { if (client.shown(OAK_TREASURE_CHEST + 1, cx, cz)) Unit else null }
+                var before = client.clientScripts().size
+                client.locOp(OAK_TREASURE_CHEST + 1, cx, cz, CostumeRoom.SEARCH)
+                client.await("the window") { if (CostumeRoom.MAIN in client.openInterfaces()) Unit else null }
+                assertEquals(listOf<Any>(CostumeRoom.TREASURE_LISTS[0], 1, 1), shownList(before))
+
+                // The beginner set stores from the inventory; the easy set isn't on this list.
+                client.ifButton(CostumeRoom.SIDE, CostumeRoom.SIDE_ITEMS, 1, slot(TEAK_PLANK), TEAK_PLANK)
+                client.await("the teak plank stored") { if (stored() == listOf(TEAK_PLANK) && client.count(TEAK_PLANK) == 0) Unit else null }
+                client.ifButton(CostumeRoom.SIDE, CostumeRoom.SIDE_ITEMS, 1, slot(HAMMER), HAMMER)
+                client.await("the refusal") { client.messages().firstOrNull { it.text == "[construction_costume.cant_store]" } }
+                assertEquals(1, client.count(HAMMER))
+
+                // Tiers: the oak chest shows easy, and stores its set there; medium is beyond it.
+                before = client.clientScripts().size
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.TIERS, 3)
+                assertEquals(listOf<Any>(CostumeRoom.TREASURE_LISTS[1], 1, 1), shownList(before))
+                client.ifButton(CostumeRoom.SIDE, CostumeRoom.SIDE_ITEMS, 1, slot(HAMMER), HAMMER)
+                client.await("the hammer stored") { if (stored().toSet() == setOf(TEAK_PLANK, HAMMER)) Unit else null }
+                before = client.clientScripts().size
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.TIERS, 4)
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.TIERS, 3)
+                assertEquals(listOf<Any>(CostumeRoom.TREASURE_LISTS[1], 1, 1), shownList(before))
+                assertEquals(1, client.clientScripts().drop(before).count { it.id == CostumeRoom.INIT_SCRIPT })
+
+                // Take puts one back; a chest still holding something can't be removed.
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.ITEMS, 1, 1, HAMMER)
+                client.await("the hammer back") { if (client.count(HAMMER) == 1 && stored() == listOf(TEAK_PLANK)) Unit else null }
+                assertEquals(mapOf(TEAK_PLANK to 1), server.onTick { player.costumes.toMap() })
+                assertTrue(server.onTick { server.world.costumeRoom.holdsAny(player, OAK_TREASURE_CHEST) })
+
+                // Set on the beginner row (its sub is the set's index times 44) takes the whole set back.
+                before = client.clientScripts().size
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.TIERS, 2)
+                shownList(before)
+                client.ifButton(CostumeRoom.MAIN, CostumeRoom.ITEMS, 1, 0)
+                client.await("the teak plank back") { if (client.count(TEAK_PLANK) == 1 && stored().isEmpty()) Unit else null }
+                assertTrue(!server.onTick { server.world.costumeRoom.holdsAny(player, OAK_TREASURE_CHEST) })
             }
         }
     }

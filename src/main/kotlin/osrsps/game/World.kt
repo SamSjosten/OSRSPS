@@ -483,6 +483,7 @@ class World(
     starCycle: Boolean = false,
     /** Construction's furniture, from the cache ([osrsps.cache.FurnitureLoader]); tests that build pass their own. */
     furnitureData: osrsps.game.skill.construction.FurnitureData = osrsps.game.skill.construction.FurnitureData.NONE,
+    costumeData: osrsps.game.skill.construction.CostumeData = osrsps.game.skill.construction.CostumeData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
     /** The cache's identity kits, which ::look and the makeover screens check kits against. */
@@ -765,6 +766,7 @@ class World(
                 it in osrsps.game.content.Brutus.INSTANCE_LOCS ||
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
+                it in osrsps.game.skill.construction.CostumeRoom.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
@@ -1144,6 +1146,7 @@ class World(
     val gamesRoom = osrsps.game.skill.construction.GamesRoom(this, houses)
     val study = osrsps.game.skill.construction.Study(this, houses)
     val portalChamber = osrsps.game.skill.construction.PortalChamber(this, houses)
+    val costumeRoom = osrsps.game.skill.construction.CostumeRoom(this, houses, costumeData)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
@@ -1541,6 +1544,7 @@ class World(
         gamesRoom.register()
         study.register()
         portalChamber.register()
+        costumeRoom.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
@@ -3179,6 +3183,7 @@ class World(
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (clanParty.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (costumeRoom.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
