@@ -19,6 +19,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
 import osrsps.game.Skill
+import osrsps.game.skill.construction.GamesRoom
 import osrsps.game.combat.PvpInteraction
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
@@ -121,6 +122,7 @@ class HeadlessHouseTest {
         LocType(BEAM_LEFT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(BEAM_RIGHT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(GamesRoom.HOOP_AND_STICK, "Hoop and stick", ops = listOf("Hoop", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -1310,6 +1312,30 @@ class HeadlessHouseTest {
                 assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(undeadDummyNpc)))
                 assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(ornateDummyNpc)))
                 assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+            }
+        }
+    }
+
+    @Test
+    fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A hoop and stick beside her in the garden (the games room's ranging game space isn't in this fixture).
+                server.onTick { server.world.locs.add(ZoneLoc(GamesRoom.HOOP_AND_STICK, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND)) }
+                a.commandReply("setlevel ranged 99") { true }
+                val before = ola.skills.xp(Skill.RANGED)
+                val animsBefore = a.animationTicks().size
+                a.locOp(GamesRoom.HOOP_AND_STICK, at.x + 1, at.z, GamesRoom.HOOP)
+                a.await("the score", timeoutMillis = 30_000) { a.messages().firstOrNull { it.text.startsWith("[construction.hoop_score") } }
+                // Ten throws, each with its animation.
+                assertEquals(GamesRoom.THROWS, a.animationTicks().size - animsBefore)
+                // 2.5 XP a landing, at most ten; at level 99 almost all land (241 in 256 each).
+                val gained = ola.skills.xp(Skill.RANGED) - before
+                assertTrue(gained in 1..GamesRoom.THROWS * GamesRoom.LAND_XP_TENTHS / 10, "Ranged XP $gained")
             }
         }
     }

@@ -56,6 +56,7 @@ class ClanHallFurniture(private val world: World) {
         // the live server's own close isn't seen; nightly 27 Nov, a stuck chatbox after Play-quietly).
         world.interfaces.onClose(WINDOW) {
             entertaining.remove(it)
+            lastNote.remove(it)
             world.interfaces.runClientScript(it, SCRIPT_SMITHING_CLOSE, emptyList())
         }
         world.handlers.onLoc(DUMMY, ATTACK) { hitDummy(world, xp = false) }
@@ -64,6 +65,7 @@ class ClanHallFurniture(private val world: World) {
     /** Drops [player] on leaving: closing a modal doesn't run its close hook when the player is removed (Codex on PR 1005). */
     fun forget(player: Player) {
         entertaining.remove(player)
+        lastNote.remove(player)
     }
 
     private fun open(player: Player, entertain: Boolean) {
@@ -72,12 +74,30 @@ class ClanHallFurniture(private val world: World) {
         if (entertain) entertaining += player else world.interfaces.runClientScript(player, SCRIPT_PIANO, emptyList())
     }
 
+    /** The notes each entertaining player has had heard by the hall this tick, and that tick. */
+    private class Played(var tick: Long, val synths: HashSet<Int> = HashSet())
+
+    private val lastNote = HashMap<Player, Played>()
+
+    /**
+     * A key pressed while entertaining: the note to everyone in the hall. Each key at most once a tick per player, so a
+     * tick's keys play together as a chord, as the Wiki's "played in a group on the next tick" has it, but a client
+     * sending the same key many times a tick sends it once (24 keys bound it). The hall's own bounds are checked for
+     * each listener rather than a search of every instance (exploit review R65C-4; chords, round 67 R67C-3).
+     */
     private fun play(player: Player, synth: Int) {
         if (player.modals[FrameSlot.MAINMODAL] != WINDOW || player !in entertaining) return
+        val played = lastNote.getOrPut(player) { Played(world.tick) }
+        if (played.tick != world.tick) {
+            played.tick = world.tick
+            played.synths.clear()
+        }
+        if (synth in played.synths) return
         val hall = world.instances.at(player.x, player.z) ?: return
         if (world.clanHall.clanAt(player.x, player.z) == null) return
+        played.synths += synth
         for (other in world.onlinePlayers) {
-            if (world.instances.at(other.x, other.z) === hall) other.session.queue(SynthSound(synth, 1, 0))
+            if (hall.contains(other.x, other.z)) other.session.queue(SynthSound(synth, 1, 0))
         }
     }
 
