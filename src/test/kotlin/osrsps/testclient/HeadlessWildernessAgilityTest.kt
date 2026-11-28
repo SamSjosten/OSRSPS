@@ -131,22 +131,55 @@ class HeadlessWildernessAgilityTest {
     }
 
     @Test
-    fun `frozen, an obstacle clicked from beside it but off its start is refused, and from its start goes ahead`(@TempDir dir: Path) {
+    fun `frozen, no course obstacle is used even from its start, and a freeze on the way stops the walk`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("wren").use { client ->
                 client.ready(99)
                 val player = server.world.onlinePlayers.single { it.username == "wren" }
+                val force = "[pvp.magical_force]"
+                fun refusals() = client.messages().count { it.text == force }
                 // Exploit review round 35, R35A-6: the walk to an obstacle is forced, which a freeze didn't stop.
                 client.tele(3003, 3938)
                 player.freezeTicks = 50
                 client.locOp(PIPE, 3004, 3938, 1)
-                client.await("the magical force") { client.messages().firstOrNull { it.text == "[pvp.magical_force]" } }
+                client.await("the magical force") { Unit.takeIf { refusals() == 1 } }
                 client.awaitTicks(3)
                 assertEquals(Coord(3003, 3938, 0), client.position, "still beside the pipe, not walked round to its start")
+                // Round 68, R68A-1: from its start the pipe would carry a frozen player 13 tiles, and the gate 15 tiles
+                // out of the course, so neither goes.
                 player.freezeTicks = 0
                 client.tele(3004, 3937)
                 player.freezeTicks = 50
-                client.cross(PIPE, 3004, 3938, 3004, 3950)
+                client.locOp(PIPE, 3004, 3938, 1)
+                client.await("the pipe refused") { Unit.takeIf { refusals() == 2 } }
+                player.freezeTicks = 0
+                client.tele(2998, 3931)
+                player.freezeTicks = 50
+                client.locOp(GATE_LEFT, 2998, 3931, 1)
+                client.await("the gate refused") { Unit.takeIf { refusals() == 3 } }
+                client.awaitTicks(3)
+                assertEquals(Coord(2998, 3931, 0), client.position, "still inside the gate")
+                // R68A-3: a freeze landing on the walk to the start stops it there.
+                player.freezeTicks = 0
+                client.tele(3004, 3941)
+                // On the game thread, the first tick the walk to the start (2 tiles round the pipe) is under way.
+                val frozeOnWay = java.util.concurrent.CompletableFuture<Unit>()
+                fun watch() {
+                    server.world.npcScripts.later(1) {
+                        if (player.forcedSteps.isNotEmpty()) {
+                            player.freezeTicks = 50
+                            frozeOnWay.complete(Unit)
+                        } else if (!frozeOnWay.isDone) {
+                            watch()
+                        }
+                    }
+                }
+                watch()
+                client.locOp(PIPE, 3004, 3938, 1)
+                frozeOnWay.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                client.await("stopped on the way") { Unit.takeIf { refusals() == 4 } }
+                client.awaitTicks(3)
+                assertTrue(client.position != Coord(3004, 3937, 0) && client.position!!.z < 3940, "short of the pipe: ${client.position}")
             }
         }
     }
