@@ -99,15 +99,17 @@ class HeadlessClanHallFurnitureTest {
                     alice.await("alice hears it") { Unit.takeIf { alice.synths() > before } }
                     assertEquals(scripts, alice.clientScripts().count { it.id == ClanHallFurniture.SCRIPT_PIANO })
 
-                    // Five keys in one tick play one note for the hall (exploit review R65C-4).
+                    // Three keys in one tick play together as a chord, but a key pressed again that tick isn't sent
+                    // again (exploit review R65C-4, round 67 R67C-3).
                     alice.awaitTicks(1)
                     val heard = bob.synths()
                     alice.commandReply("pause") { it.startsWith("Paused after tick") }
-                    repeat(5) { alice.ifButton(ClanHallFurniture.WINDOW, 32 + it, 1) }
+                    repeat(3) { alice.ifButton(ClanHallFurniture.WINDOW, 32 + it, 1) }
+                    repeat(4) { alice.ifButton(ClanHallFurniture.WINDOW, 32, 1) }
                     alice.commandReply("resume") { it.startsWith("Resumed") }
-                    bob.await("bob hears the tick's note") { Unit.takeIf { bob.synths() > heard } }
+                    bob.await("bob hears the tick's chord") { Unit.takeIf { bob.synths() >= heard + 3 } }
                     alice.awaitTicks(2)
-                    assertEquals(heard + 1, bob.synths(), "one note a tick")
+                    assertEquals(heard + 3, bob.synths(), "each key once a tick")
                     alice.closeModal()
 
                     // Background-music: Rhapsody.
