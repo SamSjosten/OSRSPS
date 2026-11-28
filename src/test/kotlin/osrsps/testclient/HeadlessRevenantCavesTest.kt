@@ -48,7 +48,7 @@ class HeadlessRevenantCavesTest {
         val loc = { id: Int, name: String, op: String, w: Int, l: Int -> LocType(id, name, listOf(op, null, null, null, null), LocCollisionType(width = w, length = l)) }
         World(
             crcs,
-            CollisionMap().apply { for ((sx, sz) in listOf(48 to 57, 47 to 58, 48 to 59, 49 to 157, 50 to 157, 49 to 158, 50 to 159, 49 to 159)) markLoaded(sx, sz) },
+            CollisionMap().apply { for ((sx, sz) in listOf(46 to 61, 48 to 57, 47 to 58, 48 to 59, 49 to 157, 50 to 157, 49 to 158, 50 to 159, 49 to 159)) markLoaded(sx, sz) },
             objTypes = objTypes, npcTypes = types, random = GameRandom(5), varTypes = varTypes, customVars = vars,
             npcSpawns = spawns, npcCombat = NpcCombat.load(types, SeqNames.NONE),
             locTypes = LocTypes(
@@ -206,6 +206,38 @@ class HeadlessRevenantCavesTest {
                     b.await("di's attack on cy") { Unit.takeIf { (di.interaction as? PvpInteraction)?.target === cy && di.pjUntil > world.tick && di.pjOpponent === cy } }
                     b.await("the man gives up on di") { Unit.takeIf { other.target == null } }
                     assertTrue((di.interaction as? PvpInteraction)?.target === cy, "di still on cy")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the Wilderness Agility Course is singles-plus too, the ridge outside its gates isn't`(@TempDir dir: Path) {
+        assertTrue(SinglesPlus.at(0, 3001, 3947) && SinglesPlus.at(0, 2998, 3931) && SinglesPlus.at(0, 3005, 3963))
+        assertTrue(!SinglesPlus.at(0, 2998, 3930) && !SinglesPlus.at(0, 3005, 10362) && !SinglesPlus.at(1, 3001, 3947))
+        server(dir, listOf(NpcSpawn(man, 3000, 3945, wander = 0, source = "test"))).use { server ->
+            server.login("ed").use { a ->
+                server.login("flo").use { b ->
+                    for (c in listOf(a, b)) {
+                        c.await("the login rebuild") { c.position }
+                        c.commandReply("setlevel hitpoints 99") { true }
+                        c.command("varp 172 1")
+                    }
+                    val world = server.world
+                    val ed = world.playerNamed("ed")!!
+                    val flo = world.playerNamed("flo")!!
+                    a.tele(3001, 3947)
+                    b.tele(3003, 3947)
+                    b.await("ed in view") { b.otherPlayers().takeIf { it.isNotEmpty() } }
+                    val npc = world.npcs.all.first()
+                    a.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Man") }
+                    a.await("the man on ed") { Unit.takeIf { ed.attackedBy === npc && npc.target === ed } }
+                    a.npcOp(npc.index, 2)
+                    a.await("ed on the man") { Unit.takeIf { ed.attackedNpc === npc } }
+                    b.playerOp(a.index, PlayerOps.ATTACK)
+                    // Single-way would refuse flo here (the test above); singles-plus lets them at ed (Codex review on #1043).
+                    b.await("flo's first attack on ed") { Unit.takeIf { ed.pjOpponent === flo } }
+                    a.await("the man gives up") { Unit.takeIf { npc.target == null } }
                 }
             }
         }

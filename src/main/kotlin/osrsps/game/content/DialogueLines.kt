@@ -237,6 +237,7 @@ object DialogueLines {
         MaledictusLines,
         PeeveLines,
         WildernessGodWarsLines,
+        WildernessAgilityLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
