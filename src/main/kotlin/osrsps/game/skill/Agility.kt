@@ -386,6 +386,13 @@ class Agility(private val world: World, val data: AgilityData) {
             player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
             return
         }
+        // Frozen or bound, no walk to the obstacle's start: the walk there is a forced one, which a freeze doesn't stop
+        // (exploit review round 35, R35A-6). From its start tile it goes ahead, as the Wiki's Freeze page has forced
+        // movement through an adjacent object (a ladder, a cave entrance) unaffected.
+        if ((player.freezeTicks > 0 || player.rootedTicks > 0) && (player.x != route.from.x || player.z != route.from.z)) {
+            player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
+            return
+        }
         if (!walkTo(route.from)) return
         val success = when {
             obstacle.rigged -> rigs[obstacle.key]?.invoke(player, loc) ?: true
