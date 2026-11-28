@@ -135,7 +135,8 @@ class Study(private val world: World, private val houses: Houses) {
             for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
             return player.message(world.textFor(player)[osrsps.game.skill.MakeLines.NO_SPACE])
         }
-        player.anim(if (provided.isNotEmpty()) CREATE_ANIM_STAFF else CREATE_ANIM)
+        // The staff form for any staff wielded, by its category, as MagicCombat.pay picks (Codex review on #1057).
+        player.anim(if (world.combat.weaponCategory(player) == osrsps.game.Weapons.STAFF) CREATE_ANIM_STAFF else CREATE_ANIM)
         player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
         nextTablet[player] = world.tick + TABLET_TICKS
         if (left > 1) {
