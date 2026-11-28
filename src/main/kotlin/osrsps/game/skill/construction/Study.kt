@@ -2,7 +2,11 @@ package osrsps.game.skill.construction
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.InvObj
+import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.Spellbook
+import osrsps.game.skill.magic.TeleportSpell
 import osrsps.game.content.Ned
 import osrsps.game.content.arriveDelay
 import osrsps.game.content.message
@@ -22,7 +26,17 @@ import osrsps.game.zone.ZoneLoc
  *   staves here. GUESSED: the element is picked from a menu of the other three; the words.
  * - Globes, orreries and charts are for looks (the Small orrery page: "no practical use ... except for ornamentation").
  *
- * Next (CON7b): the lecterns' magic tablets. Left out: the charts' Study and the S.T.A.S.H. chart's View (no S.T.A.S.H.
+ * - Lecterns (step CON7b; the Magic tablet, Oak, Demon and Marble lectern pages, read 2026-11-28): Study shows the
+ *   tablets the lectern makes ([LECTERNS]) in a Make-X box, and Create-last makes the last tablet and quantity picked at
+ *   that kind of lectern again ([makeTablets]). A tablet takes soft clay and "the same quantity of runes as for casting
+ *   the spell", which a wielded elemental staff stands in for; it "requires the same Magic level (and active spellbook)
+ *   as casting the spell", but the marble lectern makes them off the standard spellbook; one takes 4 ticks; its Magic XP
+ *   is the spell's. Only the teleport tablets this server breaks ([osrsps.game.skill.magic.Teleports]) are made: the
+ *   enchantment, bones-to and house, boat tablets wait on their effects. INFERRED: the `poh_create_magic_tablet` seq (with
+ *   its `_withstaff` one while a staff is wielded) each tablet. GUESSED: the Make-X box (live has its own interface);
+ *   the boosted Magic level counts; anyone in a house may use it; Create-last forgotten on logout; the words.
+ *
+ * Next (CON7c): the portal chamber. Left out: the charts' Study and the S.T.A.S.H. chart's View (no S.T.A.S.H.
  * units yet).
  */
 class Study(private val world: World, private val houses: Houses) {
@@ -35,6 +49,15 @@ class Study(private val world: World, private val houses: Houses) {
                 with(world.shootingStars) { lookThrough(telescope) }
             }
         }
+        for (lectern in LECTERNS.keys) {
+            world.handlers.onLoc(lectern, STUDY) { op -> arriveDelay(); studyLectern(this, op.loc ?: return@onLoc) }
+            world.handlers.onLoc(lectern, CREATE_LAST) { op ->
+                arriveDelay()
+                val at = op.loc ?: return@onLoc
+                val (spell, count) = lastMade[player]?.get(at.id) ?: return@onLoc studyLectern(this, at)
+                makeTablets(this, at, spell, count)
+            }
+        }
         for ((loc, tier) in BALLS) {
             for (staff in STAVES.keys) {
                 world.handlers.onObjOnLoc(loc, staff) { op ->
@@ -42,6 +65,51 @@ class Study(private val world: World, private val houses: Houses) {
                     changeStaff(this, op.loc ?: return@onObjOnLoc, tier, op.sub, op.obj)
                 }
             }
+        }
+    }
+
+    /** The last tablet and quantity each player picked, by the kind of lectern (Create-last). */
+    private val lastMade = java.util.WeakHashMap<osrsps.game.Player, MutableMap<Int, Pair<TeleportSpell, Int>>>()
+
+    /** The teleport spells whose tablets [lectern] makes, lowest level first. */
+    fun tablets(lectern: Int): List<TeleportSpell> {
+        val levels = LECTERNS[lectern] ?: return emptyList()
+        return world.teleports.data.spells.filter { it.tablet >= 0 && it.level in levels }.sortedBy { it.level }
+    }
+
+    /** Study on [loc]: the Make-X box of its tablets, then that many made. */
+    private suspend fun studyLectern(context: ScriptContext, loc: ZoneLoc) {
+        val player = context.player
+        if (houses.houseAt(loc.x, loc.z) == null) return
+        val offered = tablets(loc.id)
+        if (offered.isEmpty()) return
+        var picked = 0 to 0
+        world.dialogues.start(context) { picked = makeX(ConstructionLines.LECTERN_TITLE, offered.map { it.tablet }, player.inventory.count(SOFT_CLAY).toInt().coerceAtLeast(1)) }
+        world.interfaces.closeChatModal(player)
+        val spell = offered.getOrNull(picked.first) ?: return
+        if (picked.second <= 0) return
+        lastMade.getOrPut(player) { HashMap() }[loc.id] = spell to picked.second
+        makeTablets(context, loc, spell, picked.second)
+    }
+
+    /** Makes up to [count] of [spell]'s tablet at the lectern [loc], one each [TABLET_TICKS], while it all lasts. */
+    private suspend fun makeTablets(context: ScriptContext, loc: ZoneLoc, spell: TeleportSpell, count: Int) {
+        val player = context.player
+        repeat(count) {
+            if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
+            if (loc.id != MARBLE_LECTERN && Spellbook.of(player) != Spellbook.STANDARD) return world.message(player, ConstructionLines.LECTERN_SPELLBOOK)
+            if (player.skills.currentLevel(Skill.MAGIC) < spell.level) return world.message(player, ConstructionLines.LECTERN_LEVEL, "level" to spell.level)
+            if (player.inventory.count(SOFT_CLAY) < 1) return world.message(player, ConstructionLines.LECTERN_CLAY)
+            val weapon = player.equipment[WearPos.WEAPON]?.id
+            val provided = world.spells.runesFrom(weapon)
+            val costs = spell.runes.filter { it.rune !in provided } + listOfNotNull(spell.extra)
+            if (costs.any { player.inventory.count(it.rune) < it.count }) return world.message(player, ConstructionLines.LECTERN_RUNES)
+            for (cost in costs) Ned.take(player.inventory, cost.rune, cost.count)
+            Ned.take(player.inventory, SOFT_CLAY, 1)
+            player.inventory.add(world.objTypes[spell.tablet] ?: return, 1)
+            player.anim(if (provided.isNotEmpty()) CREATE_ANIM_STAFF else CREATE_ANIM)
+            player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
+            context.delay(TABLET_TICKS)
         }
     }
 
@@ -79,6 +147,29 @@ class Study(private val world: World, private val houses: Houses) {
         /** The telescopes (poh_telescope_1 to _3) and their Observe (op 1). */
         val TELESCOPES: Map<Int, Telescope> = mapOf(13656 to Telescope.OAK, 13657 to Telescope.TEAK, 13658 to Telescope.MAHOGANY)
         const val OBSERVE = 1
+
+        /**
+         * The lecterns (poh_lectern_1 to _8) and the levels of the teleport spells whose tablets each makes (the Magic
+         * tablet page's table): oak Varrock; eagle Lumbridge and Falador too; teak eagle Camelot, Kourend Castle and
+         * Ardougne too; mahogany eagle Civitas illa Fortis and Watchtower too; the demon ones Varrock (their other tablets
+         * are enchantments and bones-to); marble all of them.
+         */
+        val LECTERNS: Map<Int, Set<Int>> = run {
+            val oak = setOf(25)
+            val eagle = oak + setOf(31, 37)
+            val teakEagle = eagle + setOf(45, 48, 51)
+            val mahoganyEagle = teakEagle + setOf(54, 58)
+            mapOf(13642 to oak, 13643 to eagle, 13644 to oak, 13645 to teakEagle, 13646 to oak, 13647 to mahoganyEagle, 13648 to oak, MARBLE_LECTERN to mahoganyEagle)
+        }
+        const val MARBLE_LECTERN = 37349
+        const val STUDY = 1
+        const val CREATE_LAST = 2
+        const val SOFT_CLAY = 1761
+
+        /** A tablet's time (the Magic tablet page: "taking 4 ticks"), and the seqs poh_create_magic_tablet and its _withstaff. */
+        const val TABLET_TICKS = 4
+        const val CREATE_ANIM = 4067
+        const val CREATE_ANIM_STAFF = 4068
 
         /** The crystal ball, elemental sphere and crystal of power (poh_crystalball_1 to _3), and the staves each changes: 0 basic, 1 battle, 2 mystic. */
         val BALLS: Map<Int, Int> = mapOf(13659 to 0, 13660 to 1, 13661 to 2)
