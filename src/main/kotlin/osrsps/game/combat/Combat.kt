@@ -229,20 +229,25 @@ class Combat(
      */
     var damageXpPermille: (Npc) -> Int? = { null }
 
-    /** What each player has toward the next tenth of XP by [damageXpPermille], in thousandths of a tenth. */
-    private val damageXpLeft = java.util.WeakHashMap<Player, Int>()
+    /**
+     * What each player has toward the next tenth of each skill's XP by [damageXpPermille], in sixths of a thousandth of a
+     * tenth, so a share among two or three skills divides exactly.
+     */
+    private val damageXpLeft = java.util.WeakHashMap<Player, IntArray>()
 
     /**
-     * Pays [player] for [damage] on [npc] by [damageXpPermille], shared evenly among [skills] (the first takes what
-     * doesn't divide), with a part of a tenth kept for the next hit; false, paying nothing, for an NPC that pays the usual XP.
+     * Pays [player] for [damage] on [npc] by [damageXpPermille], shared evenly among [skills], each skill keeping its own
+     * part of a tenth for the next hit (Codex review on #1051); false, paying nothing, for an NPC that pays the usual XP.
      */
     fun damageXp(player: Player, npc: Npc, skills: List<Skill>, damage: Int): Boolean {
         val permille = damageXpPermille(npc) ?: return false
-        val total = damage * permille * 10 + (damageXpLeft[player] ?: 0)
-        damageXpLeft[player] = total % 1000
-        val tenths = total / 1000
-        if (tenths > 0 && skills.isNotEmpty()) {
-            skills.forEachIndexed { i, skill -> player.skills.addTenths(skill, tenths / skills.size + if (i == 0) tenths % skills.size else 0) }
+        if (skills.isEmpty()) return true
+        val left = damageXpLeft.getOrPut(player) { IntArray(Skill.entries.size) }
+        val share = damage * permille * 10 * DAMAGE_XP_SIXTHS / skills.size
+        for (skill in skills) {
+            val total = share + left[skill.ordinal]
+            left[skill.ordinal] = total % (1000 * DAMAGE_XP_SIXTHS)
+            if (total >= 1000 * DAMAGE_XP_SIXTHS) player.skills.addTenths(skill, total / (1000 * DAMAGE_XP_SIXTHS))
         }
         return true
     }
@@ -612,6 +617,9 @@ class Combat(
     }
 
     companion object {
+        /** [Combat.damageXp]'s parts of a thousandth of a tenth: six, so one, two or three skills share a hit exactly. */
+        private const val DAMAGE_XP_SIXTHS = 6
+
         /**
          * The styles of a player autocasting ([style]), on varp 43's [Autocast.COM_MODE]. The XP is what [MagicCombat]
          * gives, Defence too when defensive (OSRS Wiki, Autocast). Guessed: no stance bonus to the player's Defence
