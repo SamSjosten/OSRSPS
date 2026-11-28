@@ -98,7 +98,8 @@
     "Locs and NPCs: Karamja (step K4.2b): the Cleanup's event creatures (the spider and tribesman under the wild ones' entries) and its gem rock (the 242 cache, 2026-11-19). None yet for the Gout Tuber Plant (9033), which has no Wiki text.",
     "Locs and NPCs: Karamja (step K4.2c): the three Broodoo victims (the 242 cache, 2026-11-19).",
     "Locs and NPCs: Karamja (step K4.3): Shilo Village's bankers, Mosol Rei, Obli, Fernahei, the undead ones at the gate, the river's fishing spot (under the Lum's), the broken cart and the stepping stone (the 242 cache, 2026-11-19). None yet for the metal and wooden gates (2259 to 2262) or the timber defences (1864), which have no Wiki text.",
-    "The Killerwatt plane (post-quest step 15, KillerwattPlane.kt): the rift on Draynor Manor's top floor, the Portal Home back, both killerwatt forms and the storm clouds (the 242 cache, 2026-11-19)."
+    "The Killerwatt plane (post-quest step 15, KillerwattPlane.kt): the rift on Draynor Manor's top floor, the Portal Home back, both killerwatt forms and the storm clouds (the 242 cache, 2026-11-19).",
+    "Locs and NPCs: Karamja (step K4.3b): Kaleb Paramaya, Yohnus, Seravel, Yanni Salika and Yohnus's furnace (the 242 cache, 2026-11-19)."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -829,6 +830,10 @@
     {"npc": 5300, "name": "Mawrth"},
     {"npc": 5346, "name": "Undead one", "also": [5347, 5348], "wiki": "Undead one page, infobox (Level 68 (Zombie))"},
     {"npc": 5349, "name": "Undead one", "also": [5350, 5351], "wiki": "Undead one page, infobox (Level 73)"},
+    {"npc": 5358, "name": "Kaleb Paramaya", "wiki": "Kaleb Paramaya page, infobox"},
+    {"npc": 5359, "name": "Yohnus", "wiki": "Yohnus page, infobox"},
+    {"npc": 5360, "name": "Seravel", "wiki": "Seravel page, infobox"},
+    {"npc": 5361, "name": "Yanni Salika", "wiki": "Yanni Salika page, infobox"},
     {"npc": 5362, "name": "Obli", "wiki": "Obli page, infobox"},
     {"npc": 5363, "name": "Fernahei", "wiki": "Fernahei page, infobox"},
     {"npc": 5418, "name": "Guard"},
@@ -3517,6 +3522,7 @@
     {"loc": 29495, "name": "Fairy ring"},
     {"loc": 29560, "name": "Fairy ring"},
     {"loc": 30108, "name": "Rowboat"},
+    {"loc": 30158, "name": "Furnace", "also": [29662, 30157], "wiki": "Furnace page, infobox (Shilo Village)"},
     {"loc": 30180, "name": "Cave", "wiki": "Cave (Kalphite Cave) page, infobox"},
     {"loc": 30266, "name": "Hot vent door", "wiki": "Hot vent door page, infobox"},
     {"loc": 30267, "name": "Bank chest"},

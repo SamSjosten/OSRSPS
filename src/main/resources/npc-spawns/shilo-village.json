@@ -1,11 +1,15 @@
 {
-  "about": "Shilo Village (Karamja step K4.3), open as after the Shilo Village quest, as every quest is here: Mosol Rei outside the gate, the two bankers, Obli and Fernahei with their shops, the undead ones between the broken cart and the wooden gate, and the river's fishing spots (the Wiki says four, mejrs's list has three). Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live). Duradel and Kuradal are in slayer-masters.json. Left for step K4.3b: Kaleb Paramaya, Yanni Salika, Yohnus and Seravel; for K4.3c: Vigroy and Hajedy's carts. Left out: the jungle foresters (Legends' Quest only).",
+  "about": "Shilo Village (Karamja step K4.3), open as after the Shilo Village quest, as every quest is here: Mosol Rei outside the gate, the two bankers, Obli and Fernahei with their shops, the undead ones between the broken cart and the wooden gate, and the river's fishing spots (the Wiki says four, mejrs's list has three). Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live). Duradel and Kuradal are in slayer-masters.json. Step K4.3b adds Kaleb Paramaya, Yanni Salika, Yohnus and Seravel. Left for K4.3c: Vigroy and Hajedy's carts. Left out: the jungle foresters (Legends' Quest only).",
   "spawns": [
     {"npc": "mosol_rei_multi", "x": 2883, "z": 2951, "wander": 3, "source": "Mosol Rei, outside Shilo Village's gate (shown as mosol_rei_complete, as every quest is done). mejrs NPCList_OSRS; the Wiki's map gives him a radius of 3"},
     {"npc": "shilobanker", "x": 2851, "z": 2954, "wander": 0, "source": "Banker, Shilo Village bank. mejrs NPCList_OSRS"},
     {"npc": "shilobanker", "x": 2853, "z": 2955, "wander": 0, "source": "Banker, Shilo Village bank. mejrs NPCList_OSRS"},
     {"npc": "shilogeneralstore", "x": 2824, "z": 2959, "wander": 2, "source": "Obli, Obli's General Store. mejrs NPCList_OSRS; wander guessed"},
     {"npc": "shilofishowner", "x": 2870, "z": 2972, "wander": 2, "source": "Fernahei, Fernahei's Fishing Hut. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "shiloinnowner", "x": 2863, "z": 2997, "level": 1, "wander": 2, "source": "Kaleb Paramaya, upstairs in the Paramaya Inn (step K4.3b). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "shilofurnaceowner", "x": 2857, "z": 2963, "wander": 4, "source": "Yohnus, by his smithery's furnace (step K4.3b). mejrs NPCList_OSRS; the Wiki's map gives him a radius of 4"},
+    {"npc": "shiloshiptickets", "x": 2870, "z": 2974, "level": 1, "wander": 2, "source": "Seravel, upstairs in Fernahei's Fishing Hut (step K4.3b). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "shiloantiques", "x": 2835, "z": 2985, "wander": 2, "source": "Yanni Salika, in his house (step K4.3b). mejrs NPCList_OSRS; wander guessed"},
     {"npc": "zqzombie_unarmed", "x": 2871, "z": 2951, "wander": 3, "source": "Undead one, Shilo Village's gate. mejrs NPCList_OSRS (the Wiki's nine pins agree); wander guessed"},
     {"npc": "zqzombie_unarmed", "x": 2876, "z": 2957, "wander": 3, "source": "Undead one, Shilo Village's gate. mejrs NPCList_OSRS (the Wiki's nine pins agree); wander guessed"},
     {"npc": "zqzombie_unarmed2", "x": 2872, "z": 2954, "wander": 3, "source": "Undead one, Shilo Village's gate. mejrs NPCList_OSRS (the Wiki's nine pins agree); wander guessed"},

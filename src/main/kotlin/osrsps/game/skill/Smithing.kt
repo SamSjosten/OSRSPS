@@ -56,6 +56,18 @@ class Smithing(private val world: World) {
         var animated = false
     }
 
+    /**
+     * Furnaces that charge for each bar, by loc type: [FurnaceFee.pay] takes the fee before each bar and says false when
+     * the player can't pay, and [FurnaceFee.refuse] tells them so (Shilo Village's, [osrsps.game.content.ShiloFurnace]).
+     */
+    val fees = HashMap<Int, FurnaceFee>()
+
+    interface FurnaceFee {
+        fun canPay(player: Player): Boolean
+        fun pay(player: Player): Boolean
+        suspend fun refuse(context: ScriptContext)
+    }
+
     /** What each player is smelting or smithing. */
     private val jobs = WeakHashMap<Player, Job>()
 
@@ -97,6 +109,7 @@ class Smithing(private val world: World) {
 
     /** The loc's option called [name], 1 to 5; 1 when the cache doesn't say (tests). */
     private fun optionOf(locId: Int, name: String): Int {
+        OPTIONS[locId]?.let { return it }
         val ops = world.locs.types[locId]?.ops ?: return 1
         val index = ops.indexOfFirst { it == name }
         return if (index >= 0) index + 1 else 1
@@ -106,6 +119,8 @@ class Smithing(private val world: World) {
 
     /** Smelt, or ore used on a furnace: the bar and how many, from the Make-X box. */
     private suspend fun ScriptContext.chooseBar(loc: ZoneLoc, option: Int) {
+        val fee = fees[loc.id]
+        if (fee != null && !fee.canPay(player)) return fee.refuse(this)
         var picked = 0 to 1
         // Guessed: every free-to-play bar shows, whatever the player holds, and the box suggests All.
         world.dialogues.start(this) { picked = makeX(SmithingLines.SMELT_TITLE, BARS.map { it.obj }, MAX_QUANTITY) }
@@ -266,6 +281,8 @@ class Smithing(private val world: World) {
         when (step) {
             ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
+                // Paid as each bar is made (Shilo Village's: 20 coins a smelt, the Wiki's Yohnus).
+                if (job.item == null && fees[loc.id]?.pay(player) == false) return finish()
                 if (job.item == null) smeltOne(job.bar, job.loc) else smithOne(job.bar, job.item)
                 job.left--
                 // The next one's animation comes with the clock starting again next tick.
@@ -352,7 +369,16 @@ class Smithing(private val world: World) {
          * forge page calls it a furnace; Smelt is its op2). Anvils: the rusted anvil north of Lumbridge Castle and the plain anvil.
          */
         const val FURNACE = 24009
-        val FURNACES = setOf(FURNACE, 2030, 16469, LAVA_FORGE)
+        val FURNACES = setOf(FURNACE, 2030, 16469, LAVA_FORGE, SHILO_FURNACE)
+
+        /**
+         * Shilo Village's furnace (`zqfurnace`, 29662): a multiloc on the Shilo Village quest's var, shown as
+         * `zqfurnace_lit` (30158, Smelt op2, Coffer op3) once the quest is done. The map's type has no options of its own.
+         */
+        const val SHILO_FURNACE = 29662
+
+        /** Smelt's option where the map's type doesn't name it. */
+        private val OPTIONS = mapOf(SHILO_FURNACE to 2)
         const val LAVA_FORGE = 11978
         const val RUSTED_ANVIL = 39620
         const val ANVIL = 2097
