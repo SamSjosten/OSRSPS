@@ -187,6 +187,15 @@ object FurnitureBuilds {
         15344 to Hotspot(RoomType.GAMES_ROOM, 4),
         15345 to Hotspot(RoomType.GAMES_ROOM, 5),
         15346 to Hotspot(RoomType.GAMES_ROOM, 6),
+        // The costume room (step CON7d): its cape rack, magic wardrobe (1 by 3), toy box, treasure chest, fancy dress box
+        // (2 by 2) and armour case spaces (poh_cos_room_*_hotspot), its first, second and fourth to seventh places in the
+        // cache's table (each place's pieces say which space it is).
+        18810 to Hotspot(RoomType.COSTUME_ROOM, 0),
+        18811 to Hotspot(RoomType.COSTUME_ROOM, 1),
+        18812 to Hotspot(RoomType.COSTUME_ROOM, 3),
+        18813 to Hotspot(RoomType.COSTUME_ROOM, 4),
+        18814 to Hotspot(RoomType.COSTUME_ROOM, 5),
+        18815 to Hotspot(RoomType.COSTUME_ROOM, 6),
         // The portal chamber (step CON7c): its three portal spaces (poh_teleroom_1 to _3, 2 by 1) and centrepiece space
         // (_7, 2 by 2), its fourth to seventh places in the cache's table (its first three are empty).
         15406 to Hotspot(RoomType.PORTAL_CHAMBER, 3),
@@ -479,6 +488,36 @@ object FurnitureBuilds {
         5630 to Build(13398, 120),
         5631 to Build(13400, 290),
         5632 to Build(13402, 600),
+        // The costume room (the pieces' Wiki pages' XP; poh_cos_room_*, closed). Armour cases: oak, teak, mahogany.
+        5946 to Build(18778, 180),
+        5947 to Build(18780, 270),
+        5948 to Build(18782, 420),
+        // Cape racks: oak, teak, mahogany, gilded, marble, magical.
+        5924 to Build(18766, 240),
+        5925 to Build(18767, 360),
+        5926 to Build(18768, 560),
+        5927 to Build(18769, 860),
+        5928 to Build(18770, 500),
+        5929 to Build(18771, 1000),
+        // Fancy dress boxes (the cache's "costume box"): oak, teak, mahogany.
+        5943 to Build(18772, 120),
+        5944 to Build(18774, 180),
+        5945 to Build(18776, 280),
+        // Magic wardrobes: oak, carved oak, teak, carved teak, mahogany, gilded, marble.
+        5930 to Build(18784, 240),
+        5931 to Build(18786, 360),
+        5932 to Build(18788, 360),
+        5933 to Build(18790, 540),
+        5934 to Build(18792, 560),
+        5935 to Build(18794, 860),
+        5936 to Build(18796, 500),
+        // Toy boxes and treasure chests: oak, teak, mahogany.
+        5937 to Build(18798, 120),
+        5938 to Build(18800, 180),
+        5939 to Build(18802, 280),
+        5940 to Build(18804, 120),
+        5941 to Build(18806, 180),
+        5942 to Build(18808, 280),
         // The portal chamber (the pieces' Wiki pages' XP): teak, mahogany and marble portal frames (poh_portal_teak_empty,
         // _mag_empty, _marble_empty), then the teleport focus, greater teleport focus and scrying pool.
         5794 to Build(13636, 270),
@@ -570,6 +609,12 @@ object FurnitureBuilds {
         (RoomType.GAMES_ROOM to 4) to 5624..5626,
         (RoomType.GAMES_ROOM to 5) to 5627..5629,
         (RoomType.GAMES_ROOM to 6) to 5630..5632,
+        (RoomType.COSTUME_ROOM to 0) to 5924..5929,
+        (RoomType.COSTUME_ROOM to 1) to 5930..5936,
+        (RoomType.COSTUME_ROOM to 3) to 5937..5939,
+        (RoomType.COSTUME_ROOM to 4) to 5940..5942,
+        (RoomType.COSTUME_ROOM to 5) to 5943..5945,
+        (RoomType.COSTUME_ROOM to 6) to 5946..5948,
         (RoomType.PORTAL_CHAMBER to 3) to 5794..5796,
         (RoomType.PORTAL_CHAMBER to 4) to 5794..5796,
         (RoomType.PORTAL_CHAMBER to 5) to 5794..5796,
@@ -635,9 +680,12 @@ object FurnitureBuilds {
 
     /**
      * Built locs with Upgrade as their op 4: `poh_tools1` to `4`, the steel framed bench and the bench with a vice,
-     * crafting tables 1 to 3, and the combat dummy and undead combat dummy. Each opens the creation menu with what builds over it.
+     * crafting tables 1 to 3, the combat dummy and undead combat dummy, and the costume room's armour cases, cape racks,
+     * fancy dress boxes, magic wardrobes and treasure chests short of the top one (step CON7d; the toy boxes have none).
+     * Each opens the creation menu with what builds over it.
      */
-    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798, 29336, 29337)
+    val UPGRADABLE: Set<Int> = setOf(6786, 6787, 6788, 6789, 6793, 6794, 6796, 6797, 6798, 29336, 29337) +
+        setOf(18778, 18780, 18766, 18767, 18768, 18769, 18770, 18772, 18774, 18784, 18786, 18788, 18790, 18792, 18794, 18804, 18806)
 
     /**
      * The oak, teak and gilded wall decorations: each shows the player's family crest (poh_decor_oak_arrav and the

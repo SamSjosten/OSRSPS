@@ -140,6 +140,9 @@ class HeadlessHouseTest {
         LocType(PortalChamber.FOCI.first(), "Teleportation focus", ops = listOf("Direct-portal", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 2)),
         LocType(PortalDestinations.FRAMES.first(), "Portal frame", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
         LocType(TEAK_LUMBRIDGE_PORTAL, "Lumbridge Portal", ops = listOf("Enter", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
+        hotspot(CHEST_SPACE, "Treasure chest space"),
+        LocType(OAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(TEAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -180,6 +183,7 @@ class HeadlessHouseTest {
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         objs[STEEL_BAR] = ObjType(STEEL_BAR, "Steel bar")
         objs[OAK_PLANK] = ObjType(OAK_PLANK, "Oak plank")
+        objs[TEAK_PLANK] = ObjType(TEAK_PLANK, "Teak plank")
         objs[GREENMAN_ITEM] = ObjType(GREENMAN_ITEM, "Greenman carving")
         objs[KETTLE] = ObjType(KETTLE, "Kettle")
         objs[CLAY_TEAPOT] = ObjType(CLAY_TEAPOT, "Teapot")
@@ -207,6 +211,7 @@ class HeadlessHouseTest {
         val hall = RoomType.SKILL_HALL
         val hallTop = RoomType.SKILL_HALL_STAIRS
         val combat = RoomType.COMBAT_ROOM
+        val costume = RoomType.COSTUME_ROOM
         val npcTypes = NpcTypes.of(agent, dummyNpc, undeadDummyNpc, ornateDummyNpc, *clayStones.toTypedArray())
         World(
             crcs,
@@ -262,6 +267,8 @@ class HeadlessHouseTest {
                 add(ZoneLoc(STAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hall.templateX + 3, hall.templateZ + 3, 0))
                 add(ZoneLoc(STAIR_TOP_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hallTop.templateX + 3, hallTop.templateZ + 3, 0))
                 doors(hall.templateX, hall.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                // A costume room's treasure chest space, one tile.
+                add(ZoneLoc(CHEST_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, costume.templateX + 4, costume.templateZ + 4, 0))
                 doors(hallTop.templateX, hallTop.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
                 // A combat room's ring cut down to one rope, on the east side of 2,3, and the mat's middle inside it at 3,3
                 // (the cache's is 6 by 6 round a 4 by 4 mat), and its storage space.
@@ -291,6 +298,7 @@ class HeadlessHouseTest {
                     RoomType.GARDEN.id to listOf(emptyList(), emptyList(), trees, emptyList(), emptyList(), smallPlants),
                     RoomType.SKILL_HALL.id to listOf(staircases),
                     RoomType.COMBAT_ROOM.id to listOf(rings, emptyList(), emptyList(), racks),
+                    RoomType.COSTUME_ROOM.id to List(4) { emptyList<FurnitureOption>() } + listOf(treasureChests),
                 ),
             ),
         )
@@ -300,6 +308,13 @@ class HeadlessHouseTest {
     private val chairs = listOf(
         FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
         FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
+    )
+
+    /** The costume room's treasure chests (rows 5940 to 5942), as the cache has them: each upgrades the one before. */
+    private val treasureChests = listOf(
+        FurnitureOption(OAK_TREASURE_CHEST_ROW, "Oak treasure chest", 8402, listOf(OAK_PLANK to 2), level = 48, upgradeFrom = 1),
+        FurnitureOption(OAK_TREASURE_CHEST_ROW + 1, "Teak treasure chest", 8403, listOf(TEAK_PLANK to 2), level = 66, upgradeFrom = 1),
+        FurnitureOption(OAK_TREASURE_CHEST_ROW + 2, "Mahogany treasure chest", 8404, listOf(MAHOGANY_PLANK to 2), level = 84, upgradeFrom = 1),
     )
 
     /** The larder space's first choice (row 5562). */
@@ -1013,6 +1028,51 @@ class HeadlessHouseTest {
                 val read = assertNotNull(PlayerSave.fromJson(server.world.snapshot(player).toJson("ivan")).house)
                 val room = read.rooms.single { it.type == RoomType.WORKSHOP }
                 assertEquals(mapOf(TOOL_SPACE_A to TOOLS_1, TOOL_SPACE_B to TOOLS_2, WORKBENCH_SPACE to WOODEN_WORKBENCH, WORKBENCH_STOOL_SPACE to STOOL), room.built)
+            }
+        }
+    }
+
+    @Test
+    fun `a costume room's treasure chest is built on its space, upgraded to the teak one over it, and the top one has no Upgrade`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("una").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("una")!!
+                player.house!!.rooms += HouseRoom(RoomType.COSTUME_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 66")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 2")
+                client.command("item $TEAK_PLANK 2")
+                client.await("the planks") { if (client.count(OAK_PLANK) == 2 && client.count(TEAK_PLANK) == 2) Unit else null }
+                val xp = client.await("level 66") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 66 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3) + 4
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                fun menu(id: Int, op: Int, offered: List<Int>) {
+                    val before = client.clientScripts().size
+                    client.locOp(id, cx, cz, op)
+                    client.await("the creation menu on $id") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    val shown = client.await("its slots") { client.clientScripts().drop(before).filter { it.id == Furniture.ENTRY_SCRIPT }.map { it.args[1] }.takeIf { it.size >= offered.size } }
+                    assertEquals(offered, shown)
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                }
+
+                // The empty space offers only the oak chest: the others upgrade it.
+                menu(CHEST_SPACE, House.BUILD, listOf(OAK_TREASURE_CHEST_ROW))
+                client.await("the oak chest") { if (client.shown(OAK_TREASURE_CHEST, cx, cz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 120 } }
+
+                // Upgrade offers the teak chest, built over it for its own XP.
+                menu(OAK_TREASURE_CHEST, Furniture.UPGRADE, listOf(OAK_TREASURE_CHEST_ROW + 1))
+                client.await("the teak chest") { if (client.shown(TEAK_TREASURE_CHEST, cx, cz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 300 } }
+                assertEquals(0, client.count(OAK_PLANK) + client.count(TEAK_PLANK))
+                assertEquals(mapOf(CHEST_SPACE to TEAK_TREASURE_CHEST), player.house!!.rooms.single { it.type == RoomType.COSTUME_ROOM }.built)
+
+                // The mahogany chest is the top one: nothing upgrades it, so it has no Upgrade handler.
+                assertTrue(18808 !in FurnitureBuilds.UPGRADABLE && TEAK_TREASURE_CHEST in FurnitureBuilds.UPGRADABLE)
             }
         }
     }
@@ -2095,6 +2155,12 @@ class HeadlessHouseTest {
         const val GREENMAN = 57012
         const val OAK_PLANK = 8778
         const val NOTED_BANANA = 1964
+        const val TEAK_PLANK = 8780
+        const val MAHOGANY_PLANK = 8782
+        const val CHEST_SPACE = 18813
+        const val OAK_TREASURE_CHEST_ROW = 5940
+        const val OAK_TREASURE_CHEST = 18804
+        const val TEAK_TREASURE_CHEST = 18806
         const val GREENMAN_ITEM = 31024
         const val STOVE_SPACE = 15398
         const val SHELF_SPACE = 15399
