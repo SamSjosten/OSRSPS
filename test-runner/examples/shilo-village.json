@@ -1,0 +1,47 @@
+{
+  "name": "Karamja step K4.3: Mosol Rei's Follow taking the player into Shilo Village, the broken cart climbed back over, the metal gate walked through, Obli's talk opening his store and the stepping stone crossed at 32 Agility (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's levels back"},
+    {"step": "command", "text": "::tele 2882 2952 0", "expectMessage": "Teleported to 2882, 2952, 0", "comment": "by Mosol Rei, who wanders within 3 of 2883,2951"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Mosol Rei", "option": "Follow", "timeoutMs": 20000},
+    {"step": "assertLocation", "x": 2866, "y": 2952, "plane": 0, "timeoutMs": 10000, "comment": "just inside the wooden gate (guessed)"},
+    {"step": "assertMessage", "contains": "mosol_rei.leaves"},
+
+    {"step": "command", "text": "::tele 2876 2952 0", "expectMessage": "Teleported to 2876, 2952, 0", "comment": "west of the cart"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "locOption", "locId": 2216, "option": "Climb over", "x": 2877, "y": 2951},
+    {"step": "assertLocation", "x": 2880, "y": 2952, "plane": 0, "timeoutMs": 10000},
+    {"step": "assertMessage", "contains": "shilo_cart.from_west_2"},
+
+    {"step": "command", "text": "::tele 2875 2952 0", "expectMessage": "Teleported to 2875, 2952, 0", "comment": "east of the metal gate"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "locOption", "locId": 2259, "option": "Open", "x": 2875, "y": 2952},
+    {"step": "assertLocation", "x": 2874, "y": 2952, "plane": 0, "timeoutMs": 10000},
+
+    {"step": "command", "text": "::tele 2825 2958 0", "expectMessage": "Teleported to 2825, 2958, 0", "comment": "in Obli's General Store"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Obli", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[obli.welcome]"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[obli.yes_please]"},
+    {"step": "continueDialogue", "comment": "the player says it"},
+    {"step": "assertInterface", "interfaceId": 300, "timeoutMs": 5000, "comment": "the store"},
+
+    {"step": "command", "text": "::setlevel agility 32"},
+    {"step": "command", "text": "::tele 2863 2976 0", "expectMessage": "Teleported to 2863, 2976, 0", "comment": "the river's north bank"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "locOption", "locId": 16466, "option": "Cross", "x": 2863, "y": 2974},
+    {"step": "assertLocation", "x": 2863, "y": 2971, "plane": 0, "timeoutMs": 10000, "comment": "the south bank (inferred from the map)"},
+
+    {"step": "command", "text": "::tele 2851 2956 0", "expectMessage": "Teleported to 2851, 2956, 0", "comment": "in the bank"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Banker", "option": "Bank", "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 5000, "comment": "the bank"},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

@@ -227,6 +227,7 @@ import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerBrimhavenAgilityArena
 import osrsps.game.content.registerCairnIsle
 import osrsps.game.content.registerTaiBwoWannai
+import osrsps.game.content.registerShiloVillage
 import osrsps.game.content.AgilityArena
 import osrsps.game.content.BrimhavenAgilityArena
 import osrsps.game.content.registerInfernalEels
@@ -1454,6 +1455,7 @@ class World(
         registerBrimhavenAgilityArena(this)
         registerCairnIsle(this)
         registerTaiBwoWannai(this)
+        registerShiloVillage(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)

@@ -50,8 +50,14 @@ object Bankers {
     /** banker1_west, banker1_east and banker2_east: the Grand Exchange's bankers. */
     val GRAND_EXCHANGE = listOf(1633, 1634, 3089)
 
+    /**
+     * shilobanker: Shilo Village's two bankers (Karamja step K4.3). The Wiki's Transcript:Banker (Shilo Village) has the
+     * castle banker's greeting and options but buying bank slots, an option added since (inferred), so they say his.
+     */
+    const val SHILO = 3093
+
     /** Every banker with the standard conversation. */
-    val STANDARD = listOf(BANKER, VARROCK_BANKER_2) + DRAYNOR + AL_KHARID + GRAND_EXCHANGE
+    val STANDARD = listOf(BANKER, VARROCK_BANKER_2) + DRAYNOR + AL_KHARID + GRAND_EXCHANGE + SHILO
     const val TALK_TO = 1
 
     /** The NPCs' Bank option (op3 in the 241 cache). */

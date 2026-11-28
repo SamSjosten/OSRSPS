@@ -100,6 +100,7 @@ class AgilityDataTest {
                 "shortcut_brimhaven_dungeon_stones_south" to (56 to 0),
                 "shortcut_brimhaven_dungeon_vine" to (87 to 0),
                 "shortcut_cairn_isle_rocks" to (15 to 10),
+                "shortcut_shilo_stepping_stone" to (32 to 0),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -119,6 +120,7 @@ class AgilityDataTest {
                 "shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft",
                 "shortcut_lumbridge_swamp_desert_stone", "shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south",
                 "shortcut_brimhaven_dungeon_west_stones", "shortcut_brimhaven_dungeon_stones_north", "shortcut_brimhaven_dungeon_stones_south",
+                "shortcut_shilo_stepping_stone",
             ),
             shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )

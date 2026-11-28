@@ -159,6 +159,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `tai-bwo-wannai-parcels.json` (Karamja step K4.2d, for test on 215: 25 trading sticks, 100 coins and 5 logs, Rionasta's Send-parcel (6432, wandering by 2782,3094) opening the parcel service on the deposit box screen (192), whose deposit-inventory button sends 2 logs for 20 sticks and refuses the coins; the screen is a guess, so a failure there may only mean live has its own) needs 0.6.1 for `assertInterface` and `clickWidget`.
 
+`shilo-village.json` (Karamja step K4.3, for test on 215: Mosol Rei's Follow (8696, wandering by 2883,2951) taking the player just inside the wooden gate (a guessed tile), the broken cart (2216) climbed from the west, the metal gate (2259) walked through, Obli's talk opening his store, the river's stepping stone (16466) crossed north to south at 32 Agility (tiles inferred from the map) and a banker's Bank) needs 0.6.1 for `assertInterface`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
