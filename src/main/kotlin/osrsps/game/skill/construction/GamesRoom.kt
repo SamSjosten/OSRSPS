@@ -20,7 +20,7 @@ import osrsps.game.zone.ZoneLoc
  * from the Wiki's Games room and Hoop and stick pages (read 2026-11-27).
  *
  * Hoop and stick: "the player will make 10 attempts at landing the hoop on the stick", each landing by the player's
- * Ranged level and worth 2.5 Ranged XP ([hoop]). The page's Jagex chart gives about 29.7% at level 1 and 94.1% at 99:
+ * Ranged level and worth 2.5 Ranged XP ([hoopThrow]). The page's Jagex chart gives about 29.7% at level 1 and 94.1% at 99:
  * 76 and 241 in 256, the usual skilling roll's ends ([landChance]). GUESSED: a throw every [THROW_TICKS]; the
  * human_throw_hoop1 animation for each throw; the score told at the end (the page's scoreboard is left out); the
  * words. Anyone in the house can play.
@@ -35,13 +35,13 @@ import osrsps.game.zone.ZoneLoc
  * deal damage to the player" (how often and how much is not on the pages), and the refusal of stat-lowering spells.
  *
  * Step CON6g, the dartboard and archery target (their Wiki pages, read 2026-11-27): ten throws or shots each
- * ([rangingGame]), "Whoever has the highest score after ten throws is the winner". The dartboard takes darts, throwing
+ * ([rangingShot]), "Whoever has the highest score after ten throws is the winner". The dartboard takes darts, throwing
  * knives and thrownaxes from the weapon slot, used up, as "Ava's devices will not return them", and refuses the
  * blowpipe ("You can't use that weapon here"); a hit on it is 7.5 Ranged XP. The archery target takes a bow or
  * crossbow with the player's own arrows or bolts, a shot used up each time, for 10 Ranged XP a hit. GUESSED: a hit is
  * rolled as the hoop's landing is ([landChance]) and scores one point (the boards' rings are left out); a throw or
  * shot at the weapon's attack speed; the weapon's animation and launch graphic, but no projectile; the score told at
- * the end; the words.
+ * the end; the words. A game stops when the player walks off or does something else (R68B-2; GUESSED as live).
  *
  * Next: the prize chest, and the game space's games and the elemental balances.
  */
@@ -54,13 +54,16 @@ class GamesRoom(private val world: World, private val houses: Houses) {
 
     fun register() {
         world.handlers.onLoc(HOOP_AND_STICK, HOOP) { op ->
+            // Beside it already, this runs in the movement phase (as the lectern's Create-last decides).
+            val fromMovement = player.lastMoveTick != tick
             arriveDelay()
-            hoop(this, op.loc ?: return@onLoc)
+            start(this, op.loc ?: return@onLoc, fromMovement) { at, movement -> hoopThrow(at, 1, 0, movement) }
         }
         for ((loc, game) in listOf(DARTBOARD to RangingGame.DARTS, ARCHERY_TARGET to RangingGame.ARCHERY)) {
             world.handlers.onLoc(loc, RANGING_OP) { op ->
+                val fromMovement = player.lastMoveTick != tick
                 arriveDelay()
-                rangingGame(this, op.loc ?: return@onLoc, game)
+                start(this, op.loc ?: return@onLoc, fromMovement) { at, movement -> rangingShot(at, game, 1, 0, movement) }
             }
         }
         for (stone in Stone.entries) {
@@ -82,34 +85,57 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         world.npcScripts.onDeath(baseTypes) { broken(it) }
     }
 
-    /** Throw-at on the dartboard or Shoot-at on the archery target [loc]: ten throws or shots, then the score. */
-    private suspend fun rangingGame(context: ScriptContext, loc: ZoneLoc, game: RangingGame) {
+    /** The tick each player may throw or shoot next in the games room, kept across games started again. */
+    private val nextThrow = java.util.WeakHashMap<Player, Long>()
+
+    /**
+     * Starts a game at [loc]: each throw is a weak queue entry ([QUEUE]), so walking off or doing something else stops
+     * the game (R68B-2), and a game started again waits out the last throw's ticks ([nextThrow]). [fromMovement] when it
+     * starts in the movement phase, which comes after the script phase where a queue's delay first counts down.
+     */
+    private fun start(context: ScriptContext, loc: ZoneLoc, fromMovement: Boolean, first: ScriptContext.(ZoneLoc, Boolean) -> Unit) {
         val player = context.player
         if (houses.houseAt(loc.x, loc.z) == null) return
-        var score = 0
-        for (shot in 1..THROWS) {
-            if (!world.locs.exists(loc) || houses.houseAt(loc.x, loc.z) == null) return
-            val weapon = world.rangedWeapons.weapon(world.objTypes[player.equipment[WearPos.WEAPON]?.id ?: -1])
-            if (game == RangingGame.DARTS && weapon?.loaded == true) return world.message(player, ConstructionLines.DARTBOARD_BLOWPIPE)
-            val fits = when (game) {
-                RangingGame.DARTS -> weapon != null && weapon.thrown && weapon.kind == AmmoKind.DARTS && !weapon.splash
-                RangingGame.ARCHERY -> weapon != null && !weapon.loaded && (weapon.kind == AmmoKind.ARROWS || weapon.kind == AmmoKind.BOLTS)
-            }
-            if (!fits || weapon == null) return if (shot == 1) world.message(player, game.weaponLine) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
-            val ammo = if (game == RangingGame.ARCHERY) world.rangedWeapons.ammo(world.objTypes[player.equipment[WearPos.AMMO]?.id ?: -1]) else null
-            if (game == RangingGame.ARCHERY && (ammo == null || !weapon.fires(ammo))) {
-                return if (shot == 1) world.message(player, ConstructionLines.ARCHERY_AMMO) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
-            }
-            val speed = world.combat.attackSpeed(player)
-            player.equipment.remove(if (game == RangingGame.DARTS) WearPos.WEAPON else WearPos.AMMO, 1)
-            if (weapon.anim >= 0) player.anim(weapon.anim)
-            val launch = if (weapon.launch >= 0) weapon.launch else ammo?.launch ?: -1
-            if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
-            if (world.random.nextInt(256) < landChance(player.skills.currentLevel(Skill.RANGED))) {
-                score++
-                player.skills.addTenths(Skill.RANGED, game.xpTenths)
-            }
-            context.delay(speed)
+        world.scripts.clearQueue(player, QUEUE)
+        val wait = ((nextThrow[player] ?: 0L) - world.tick).toInt()
+        if (wait <= 0) return context.first(loc, fromMovement)
+        context.queue(QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) wait - 1 else wait) { first(loc, false) }
+    }
+
+    /** Whether the game at [loc] goes on: it is still there, in the house the player is in. */
+    private fun ScriptContext.stillPlaying(loc: ZoneLoc): Boolean {
+        val house = houses.houseAt(loc.x, loc.z) ?: return false
+        return world.locs.exists(loc) && houses.houseAt(player.x, player.z) === house
+    }
+
+    /** Throw-at on the dartboard or Shoot-at on the archery target [loc]: throw or shot [shot] of ten, then the score. */
+    private fun ScriptContext.rangingShot(loc: ZoneLoc, game: RangingGame, shot: Int, scored: Int, fromMovement: Boolean) {
+        if (!stillPlaying(loc)) return
+        var score = scored
+        val weapon = world.rangedWeapons.weapon(world.objTypes[player.equipment[WearPos.WEAPON]?.id ?: -1])
+        if (game == RangingGame.DARTS && weapon?.loaded == true) return world.message(player, ConstructionLines.DARTBOARD_BLOWPIPE)
+        val fits = when (game) {
+            RangingGame.DARTS -> weapon != null && weapon.thrown && weapon.kind == AmmoKind.DARTS && !weapon.splash
+            RangingGame.ARCHERY -> weapon != null && !weapon.loaded && (weapon.kind == AmmoKind.ARROWS || weapon.kind == AmmoKind.BOLTS)
+        }
+        if (!fits || weapon == null) return if (shot == 1) world.message(player, game.weaponLine) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+        val ammo = if (game == RangingGame.ARCHERY) world.rangedWeapons.ammo(world.objTypes[player.equipment[WearPos.AMMO]?.id ?: -1]) else null
+        if (game == RangingGame.ARCHERY && (ammo == null || !weapon.fires(ammo))) {
+            return if (shot == 1) world.message(player, ConstructionLines.ARCHERY_AMMO) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+        }
+        val speed = world.combat.attackSpeed(player)
+        player.equipment.remove(if (game == RangingGame.DARTS) WearPos.WEAPON else WearPos.AMMO, 1)
+        if (weapon.anim >= 0) player.anim(weapon.anim)
+        val launch = if (weapon.launch >= 0) weapon.launch else ammo?.launch ?: -1
+        if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
+        if (world.random.nextInt(256) < landChance(player.skills.currentLevel(Skill.RANGED))) {
+            score++
+            player.skills.addTenths(Skill.RANGED, game.xpTenths)
+        }
+        nextThrow[player] = world.tick + speed
+        if (shot < THROWS) {
+            queue(QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) speed - 1 else speed) { rangingShot(loc, game, shot + 1, score, false) }
+            return
         }
         world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
         logger.info { "${player.username} scored $score of $THROWS at ${game.name.lowercase()}" }
@@ -152,19 +178,24 @@ class GamesRoom(private val world: World, private val houses: Houses) {
     /** A combat stone broke: whoever dealt it the most wins, everyone who hit it is told, and the stone is back. */
     private fun broken(npc: Npc) {
         val game = games.remove(npc) ?: return
-        val winner = game.entries.maxByOrNull { it.value }?.key
-        val name = world.onlinePlayers.firstOrNull { it.saveKey == winner }?.username ?: winner ?: return
-        for (player in world.onlinePlayers) if (player.saveKey in game) world.message(player, ConstructionLines.STONE_WINNER, "name" to name)
-        logger.info { "$name won an attack stone game: $game" }
-        val house = houses.houseAt(npc.x, npc.z) ?: return
-        val (slot, attached) = house.dummies.entries.firstOrNull { it.value.npc === npc }?.toPair() ?: return
-        house.dummies.remove(slot)
-        world.npcScripts.later(BACK_TICKS) {
-            val loc = attached.loc
-            if (houses.houseAt(loc.x, loc.z) === house && slot !in house.dummies && world.locs[loc.x, loc.z, loc.level, loc.layer] == null && stillBuilt(house, loc)) {
-                world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
+        // The stone's slot is freed and its return set first, whoever won: one that died with no damage kept (::kill)
+        // still comes back (R68B-1).
+        val house = houses.houseAt(npc.x, npc.z)
+        val entry = house?.dummies?.entries?.firstOrNull { it.value.npc === npc }?.toPair()
+        if (house != null && entry != null) {
+            val (slot, attached) = entry
+            house.dummies.remove(slot)
+            world.npcScripts.later(BACK_TICKS) {
+                val loc = attached.loc
+                if (houses.houseAt(loc.x, loc.z) === house && slot !in house.dummies && world.locs[loc.x, loc.z, loc.level, loc.layer] == null && stillBuilt(house, loc)) {
+                    world.locs.setPermanent(loc.x, loc.z, loc.level, loc.layer, loc)
+                }
             }
         }
+        val winner = game.entries.maxByOrNull { it.value }?.key ?: return
+        val name = world.onlinePlayers.firstOrNull { it.saveKey == winner }?.username ?: winner
+        for (player in world.onlinePlayers) if (player.saveKey in game) world.message(player, ConstructionLines.STONE_WINNER, "name" to name)
+        logger.info { "$name won an attack stone game: $game" }
     }
 
     /**
@@ -181,22 +212,21 @@ class GamesRoom(private val world: World, private val houses: Houses) {
     /** The attack stones: their gameval kind and the loc each is built as. */
     enum class Stone(val key: String, val loc: Int) { CLAY("clay", 13393), LIMESTONE("limestone", 13392), MARBLE("marble", 13394) }
 
-    /** Hoop on the hoop and stick [loc]: ten throws, then the score. */
-    private suspend fun hoop(context: ScriptContext, loc: ZoneLoc) {
-        val player = context.player
-        if (houses.houseAt(loc.x, loc.z) == null) return
-        var landed = 0
-        repeat(THROWS) {
-            if (!world.locs.exists(loc) || houses.houseAt(loc.x, loc.z) == null) return
-            player.anim(THROW_ANIM)
-            context.delay(THROW_TICKS)
+    /** Hoop on the hoop and stick [loc]: throw [throwNo] of ten, landing or not [THROW_TICKS] later, then the score. */
+    private fun ScriptContext.hoopThrow(loc: ZoneLoc, throwNo: Int, landed: Int, fromMovement: Boolean) {
+        if (!stillPlaying(loc)) return
+        player.anim(THROW_ANIM)
+        nextThrow[player] = world.tick + THROW_TICKS
+        queue(QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) THROW_TICKS - 1 else THROW_TICKS) {
+            var now = landed
             if (world.random.nextInt(256) < landChance(player.skills.currentLevel(Skill.RANGED))) {
-                landed++
+                now++
                 player.skills.addTenths(Skill.RANGED, LAND_XP_TENTHS)
             }
+            if (throwNo < THROWS) return@queue hoopThrow(loc, throwNo + 1, now, false)
+            world.message(player, ConstructionLines.HOOP_SCORE, "score" to now)
+            logger.info { "${player.username} landed $now of $THROWS hoops" }
         }
-        world.message(player, ConstructionLines.HOOP_SCORE, "score" to landed)
-        logger.info { "${player.username} landed $landed of $THROWS hoops" }
     }
 
     companion object {
@@ -228,6 +258,9 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         const val HOOP = 1
 
         const val THROWS = 10
+
+        /** The games' own queue key, apart from Making's. */
+        const val QUEUE = "poh_games"
 
         /** 2.5 Ranged XP a landing (the Hoop and stick page). */
         const val LAND_XP_TENTHS = 25
