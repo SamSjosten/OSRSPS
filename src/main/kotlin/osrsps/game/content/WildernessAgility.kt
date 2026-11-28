@@ -27,6 +27,7 @@ object WildernessAgilityLines : Lines("wilderness_agility", "Wilderness Agility 
  * - **The dungeon below**: the ladder past the ropeswing ([LADDER_DOWN] at 3005,3963) climbs down to [BELOW], and the
  *   ladder there (`ladder_from_cellar`) climbs back up with every other dungeon ladder of that type
  *   ([climbDungeonLadder]). The ropeswing and log falls land there (agility.json).
+ * - **Singles-plus combat** across the course ([onCourse]): a player can attack someone a monster is fighting.
  *
  * GUESSED: Redeem takes every ticket at once (the Wiki gives no count prompt); the ticket waits for the Tag rather than
  * coming with the lap, and one lap's Tag can't give two; the landing below the ladder. Not built: the 150,000 coin fee
@@ -39,6 +40,14 @@ object WildernessAgility {
     const val LADDER_DOWN = 14758
     val LADDER_DOWN_AT = Tile(3005, 3963)
     val BELOW = Tile(3005, 10362)
+
+    /**
+     * Inside the course's walls, from the gates north past the ladder: singles-plus combat ([SinglesPlus]; the Wiki's
+     * Wilderness Agility Course and Singles-plus combat pages: "the entire course", since 10 April 2024). INFERRED: the
+     * bounds, from the obstacles' tiles and the gates in the 242 map; the ridge south of the gates and the dungeon below
+     * stay single-way (the Wiki names neither).
+     */
+    fun onCourse(x: Int, z: Int): Boolean = x in 2989..3008 && z in 3931..3967
 
     /** The [osrsps.game.Charges] counter: 1 when a lap has counted and the dispenser hasn't been tagged since. */
     const val UNTAGGED = "wilderness_agility_untagged"
