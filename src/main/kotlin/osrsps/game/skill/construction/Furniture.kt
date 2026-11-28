@@ -187,6 +187,12 @@ object FurnitureBuilds {
         15344 to Hotspot(RoomType.GAMES_ROOM, 4),
         15345 to Hotspot(RoomType.GAMES_ROOM, 5),
         15346 to Hotspot(RoomType.GAMES_ROOM, 6),
+        // The portal chamber (step CON7c): its three portal spaces (poh_teleroom_1 to _3, 2 by 1) and centrepiece space
+        // (_7, 2 by 2), its fourth to seventh places in the cache's table (its first three are empty).
+        15406 to Hotspot(RoomType.PORTAL_CHAMBER, 3),
+        15407 to Hotspot(RoomType.PORTAL_CHAMBER, 4),
+        15408 to Hotspot(RoomType.PORTAL_CHAMBER, 5),
+        15409 to Hotspot(RoomType.PORTAL_CHAMBER, 6),
         // The study (step CON7a): its lectern space (poh_study_1, 3 by 3), globe space (_2, 3 by 3), crystal ball space
         // (_4), wall chart spaces (_5), telescope space (_6) and bookcase spaces (_7), its first, second and fourth to
         // seventh places.
@@ -473,6 +479,14 @@ object FurnitureBuilds {
         5630 to Build(13398, 120),
         5631 to Build(13400, 290),
         5632 to Build(13402, 600),
+        // The portal chamber (the pieces' Wiki pages' XP): teak, mahogany and marble portal frames (poh_portal_teak_empty,
+        // _mag_empty, _marble_empty), then the teleport focus, greater teleport focus and scrying pool.
+        5794 to Build(13636, 270),
+        5795 to Build(13637, 420),
+        5796 to Build(13638, 1500),
+        5798 to Build(13640, 40),
+        5799 to Build(13641, 500),
+        5800 to Build(13639, 2000),
         // The study (the pieces' Wiki pages' XP). Lecterns: oak, eagle, demon, teak eagle, teak demon, mahogany eagle,
         // mahogany demon (poh_lectern_1 to _7) and marble (_8).
         5769 to Build(13642, 60),
@@ -556,6 +570,10 @@ object FurnitureBuilds {
         (RoomType.GAMES_ROOM to 4) to 5624..5626,
         (RoomType.GAMES_ROOM to 5) to 5627..5629,
         (RoomType.GAMES_ROOM to 6) to 5630..5632,
+        (RoomType.PORTAL_CHAMBER to 3) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 4) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 5) to 5794..5796,
+        (RoomType.PORTAL_CHAMBER to 6) to 5798..5800,
         (RoomType.STUDY to 0) to 5769..5776,
         (RoomType.STUDY to 1) to 5777..5783,
         (RoomType.STUDY to 3) to 5784..5786,
@@ -580,8 +598,10 @@ object FurnitureBuilds {
     val WATERING_CANS: List<Int> = (5333..5340).toList() + 13353
 
     /** Whether [loc] is what one of the pieces [hotspot]'s place offers builds as on that hotspot. */
-    fun buildsOn(hotspot: Int, loc: Int): Boolean {
-        if (loc == NONE) return false
+    fun buildsOn(hotspot: Int, built: Int): Boolean {
+        if (built == NONE) return false
+        // A directed portal is its frame (step CON7c).
+        val loc = PortalDestinations.frame(built)
         val spot = HOTSPOTS[hotspot] ?: return false
         val rows = PLACES[spot.room to spot.index] ?: return false
         return rows.any { row -> BUILDS[row]?.locFor(spot.variant) == loc }
@@ -609,7 +629,7 @@ object FurnitureBuilds {
         if (ids.none { it in built }) return null
         return PLACES[spot.room to spot.index]?.firstOrNull { row ->
             val build = BUILDS[row] ?: return@firstOrNull false
-            ids.all { id -> (built[id] ?: NONE) == build.locFor(HOTSPOTS.getValue(id).variant) }
+            ids.all { id -> PortalDestinations.frame(built[id] ?: NONE) == build.locFor(HOTSPOTS.getValue(id).variant) }
         }
     }
 
@@ -636,7 +656,7 @@ object FurnitureBuilds {
     }
 
     /** Every built loc type, each with Remove as its op 5. */
-    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc } - NONE
+    val BUILT_LOCS: Set<Int> get() = BUILDS.values.flatMapTo(HashSet()) { it.variants.values + it.loc } + PortalDestinations.DIRECTED - NONE
 
     /** Hotspots and what is built on them: the house's locs that need handlers in its instance. */
     val INSTANCE_LOCS: Set<Int> get() = HOTSPOTS.keys + BUILT_LOCS
@@ -789,6 +809,8 @@ class Furniture(private val world: World, private val houses: Houses, internal v
         for (id in FurnitureBuilds.siblings(hotspot, room.type)) {
             val loc = build.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
             if (loc == FurnitureBuilds.NONE) room.built.remove(id) else room.built[id] = loc
+            // A portal frame shows the place its space keeps (step CON7c).
+            PortalDestinations.apply(room, id)
         }
     }
 
@@ -830,7 +852,7 @@ class Furniture(private val world: World, private val houses: Houses, internal v
     private fun portals(player: Player): Int = player.house?.rooms?.sumOf { room -> room.built.values.count { it == House.EXIT_PORTAL } } ?: 0
 
     /** Shows what is built now on every tile of [room] holding [hotspot] or one of its siblings, or the hotspot itself. */
-    private fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
+    internal fun redraw(house: Houses.Open, room: HouseRoom, hotspot: Int) {
         val ids = FurnitureBuilds.siblings(hotspot, room.type)
         val baseX = house.instance.baseX + (room.x shl 3)
         val baseZ = house.instance.baseZ + (room.z shl 3)
