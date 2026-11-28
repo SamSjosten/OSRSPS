@@ -1564,6 +1564,25 @@ class HeadlessHouseTest {
                 a.await("the Make-X box a third time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes2 } }
                 a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 3, 1)
                 a.await("the level refusal") { a.messages().firstOrNull { it.text.startsWith("[construction.lectern_level") } }
+
+                // Walking off stops a batch (Codex review on #1057): runes and clay for three, one made, then a step away.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 2)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 9)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 3)
+                }
+                a.await("the runes for three") { Unit.takeIf { a.count(TeleportObjs.LAW) == 3 && a.count(Study.SOFT_CLAY) == 3 } }
+                val boxes3 = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box a fourth time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes3 } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                a.await("the first of three") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 4 } }
+                a.walk(ola.x, ola.z - 1)
+                val stepped = server.world.tick
+                a.await("three tablets' time", timeoutMillis = 30_000) { Unit.takeIf { server.world.tick >= stepped + 3 * Study.TABLET_TICKS } }
+                assertEquals(4, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(2, a.count(Study.SOFT_CLAY))
             }
         }
     }

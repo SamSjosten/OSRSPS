@@ -92,25 +92,32 @@ class Study(private val world: World, private val houses: Houses) {
         makeTablets(context, loc, spell, picked.second)
     }
 
-    /** Makes up to [count] of [spell]'s tablet at the lectern [loc], one each [TABLET_TICKS], while it all lasts. */
-    private suspend fun makeTablets(context: ScriptContext, loc: ZoneLoc, spell: TeleportSpell, count: Int) {
-        val player = context.player
-        repeat(count) {
-            if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
-            if (loc.id != MARBLE_LECTERN && Spellbook.of(player) != Spellbook.STANDARD) return world.message(player, ConstructionLines.LECTERN_SPELLBOOK)
-            if (player.skills.currentLevel(Skill.MAGIC) < spell.level) return world.message(player, ConstructionLines.LECTERN_LEVEL, "level" to spell.level)
-            if (player.inventory.count(SOFT_CLAY) < 1) return world.message(player, ConstructionLines.LECTERN_CLAY)
-            val weapon = player.equipment[WearPos.WEAPON]?.id
-            val provided = world.spells.runesFrom(weapon)
-            val costs = spell.runes.filter { it.rune !in provided } + listOfNotNull(spell.extra)
-            if (costs.any { player.inventory.count(it.rune) < it.count }) return world.message(player, ConstructionLines.LECTERN_RUNES)
-            for (cost in costs) Ned.take(player.inventory, cost.rune, cost.count)
-            Ned.take(player.inventory, SOFT_CLAY, 1)
-            player.inventory.add(world.objTypes[spell.tablet] ?: return, 1)
-            player.anim(if (provided.isNotEmpty()) CREATE_ANIM_STAFF else CREATE_ANIM)
-            player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-            context.delay(TABLET_TICKS)
-        }
+    /**
+     * Makes up to [count] of [spell]'s tablet at the lectern [loc], one each [TABLET_TICKS], while it all lasts. Each next
+     * tablet is a weak queue entry on [osrsps.game.skill.Making.QUEUE], as Making's products are, so walking off or
+     * starting something else stops the batch (Codex review on #1057).
+     */
+    private fun makeTablets(context: ScriptContext, loc: ZoneLoc, spell: TeleportSpell, count: Int) {
+        world.scripts.clearQueue(context.player, osrsps.game.skill.Making.QUEUE)
+        context.makeTablet(loc, spell, count)
+    }
+
+    /** One tablet, then the next queued while [left] remain. */
+    private fun ScriptContext.makeTablet(loc: ZoneLoc, spell: TeleportSpell, left: Int) {
+        if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
+        if (loc.id != MARBLE_LECTERN && Spellbook.of(player) != Spellbook.STANDARD) return world.message(player, ConstructionLines.LECTERN_SPELLBOOK)
+        if (player.skills.currentLevel(Skill.MAGIC) < spell.level) return world.message(player, ConstructionLines.LECTERN_LEVEL, "level" to spell.level)
+        if (player.inventory.count(SOFT_CLAY) < 1) return world.message(player, ConstructionLines.LECTERN_CLAY)
+        val weapon = player.equipment[WearPos.WEAPON]?.id
+        val provided = world.spells.runesFrom(weapon)
+        val costs = spell.runes.filter { it.rune !in provided } + listOfNotNull(spell.extra)
+        if (costs.any { player.inventory.count(it.rune) < it.count }) return world.message(player, ConstructionLines.LECTERN_RUNES)
+        for (cost in costs) Ned.take(player.inventory, cost.rune, cost.count)
+        Ned.take(player.inventory, SOFT_CLAY, 1)
+        player.inventory.add(world.objTypes[spell.tablet] ?: return, 1)
+        player.anim(if (provided.isNotEmpty()) CREATE_ANIM_STAFF else CREATE_ANIM)
+        player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
+        if (left > 1) queue(osrsps.game.skill.Making.QUEUE, osrsps.game.script.QueueType.WEAK, TABLET_TICKS) { makeTablet(loc, spell, left - 1) }
     }
 
     /** [staff], in pack slot [slot], used on a crystal ball [loc] that changes staves up to [tier]: to another element. */
