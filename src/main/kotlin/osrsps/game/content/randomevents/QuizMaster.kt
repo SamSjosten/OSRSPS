@@ -132,7 +132,13 @@ object QuizMaster : RandomEvent("quiz_master", 6755) {
         var streak = 0
         var welcomed = false
         var done = false
+
+        /** The question on screen until it is answered, so one dropped with Esc comes back the same (exploit review R64C-4). */
+        var asking: Question? = null
     }
+
+    /** One question: the three items shown, and where the odd one is among them. */
+    class Question(val shown: List<Item>, val oddAt: Int)
 
     private const val QUIZ_SCRIPT = "quiz_master_show"
 
@@ -190,7 +196,7 @@ object QuizMaster : RandomEvent("quiz_master", 6755) {
                     show.welcomed = true
                 }
                 while (show.streak < TO_WIN) {
-                    val right = question(world, this@start)
+                    val right = question(world, this@start, show)
                     if (right) {
                         show.streak++
                         if (show.streak < TO_WIN) say(ChatAnim.HAPPY, text(RIGHT[world.random.nextInt(RIGHT.size)]))
@@ -209,21 +215,28 @@ object QuizMaster : RandomEvent("quiz_master", 6755) {
         }
     }
 
-    /** One question: both items of one kind and one of another, in a random order. True when the odd one is picked. */
-    private suspend fun question(world: World, dialogue: Dialogue): Boolean {
-        val player = dialogue.player
+    /** Both items of one kind and one of another, in a random order. */
+    private fun newQuestion(world: World): Question {
         val pair = world.random.nextInt(KINDS.size)
         val oddKind = (pair + 1 + world.random.nextInt(KINDS.size - 1)) % KINDS.size
         val odd = KINDS[oddKind][world.random.nextInt(2)]
         val shown = KINDS[pair].toMutableList()
         val oddAt = world.random.nextInt(3)
         shown.add(oddAt, odd)
+        return Question(shown, oddAt)
+    }
+
+    /** The question on screen, or a new one; true when the odd one is picked. Dropped with Esc, it is kept for next time. */
+    private suspend fun question(world: World, dialogue: Dialogue, show: Show): Boolean {
+        val player = dialogue.player
+        val q = show.asking ?: newQuestion(world).also { show.asking = it }
         world.interfaces.openChatModal(player, INTERFACE, unclamp = null)
         player.session.queue(IfSetEventsV2(INTERFACE, BUTTONS, 0, 2, 0, 1))
-        player.session.queue(RunClientScript(INIT_SCRIPT, listOf((INTERFACE shl 16) or BUTTONS) + shown.flatMap { listOf(it.model, it.zoom) }))
+        player.session.queue(RunClientScript(INIT_SCRIPT, listOf((INTERFACE shl 16) or BUTTONS) + q.shown.flatMap { listOf(it.model, it.zoom) }))
         val (_, sub) = dialogue.context.pauseButtons(INTERFACE, listOf(BUTTONS), 0..2)
         world.interfaces.closeChatModal(player)
-        return sub == oddAt
+        show.asking = null
+        return sub == q.oddAt
     }
 
     /** The studio's check: a quiz dropped is asked again; a player gone some other way leaves the show behind. */

@@ -84,6 +84,9 @@ class HeadlessEvilChickenTest {
                 val gaps = hits.zipWithNext { a, b -> b.ticks - a.ticks }
                 assertTrue(gaps.all { it > 0 && it % 4 == 0 } && 4 in gaps, "hits $hits")
                 assertEquals(home, chicken.x to chicken.z, "it stands where it was")
+                // Four hits can't kill a player on 99, but the clock runs on through the long waits below on a slow runner:
+                // unhurt from here, so no death can drop the commands after.
+                client.commandReply("god on") { it.startsWith("You can't be hurt") }
 
                 // Attack XP for damage on it at 2.5%: 4 a point becomes a tenth a point. Unarmed against its 126 defence about
                 // two swings in three miss or roll 0, so the wait is long enough for many swings on a loaded CI runner (it
