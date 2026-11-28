@@ -5,9 +5,11 @@ import javax.inject.Inject;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.client.chat.ChatMessageManager;
@@ -19,9 +21,9 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 /**
- * Room and run timers for The Fractured Archive. It reads only where you are standing, never the bosses or anything
- * about them, and sends nothing: see the rules doc this thread keeps (Jagex's third-party client guidelines) before
- * adding a feature.
+ * Room and run timers for The Fractured Archive, and on our own server alone, help with the bosses' mechanics. It sends
+ * nothing. Anything that reads a boss draws only while {@link OwnServer#connected} is true: such features break Jagex's
+ * third-party client guidelines on the live game. The room and run timers read only where you stand and work anywhere.
  */
 @PluginDescriptor(
 	name = "TFA Helper",
@@ -43,9 +45,13 @@ public class TfaHelperPlugin extends Plugin
 	private TfaHelperOverlay overlay;
 
 	@Inject
+	private FinalStandOverlay finalStandOverlay;
+
+	@Inject
 	private ChatMessageManager chatMessageManager;
 
 	private final RaidTracker tracker = new RaidTracker();
+	private final FinalStand finalStand = new FinalStand();
 	/** Game ticks seen since the plugin started; the tracker's clock. */
 	private int tick;
 
@@ -59,13 +65,16 @@ public class TfaHelperPlugin extends Plugin
 	protected void startUp()
 	{
 		overlayManager.add(overlay);
+		overlayManager.add(finalStandOverlay);
 	}
 
 	@Override
 	protected void shutDown()
 	{
 		overlayManager.remove(overlay);
+		overlayManager.remove(finalStandOverlay);
 		tracker.reset();
+		finalStand.reset();
 	}
 
 	@Subscribe
@@ -89,6 +98,24 @@ public class TfaHelperPlugin extends Plugin
 		if (event.getGameState() == GameState.LOGIN_SCREEN)
 		{
 			tracker.reset();
+			finalStand.reset();
+		}
+	}
+
+	@Subscribe
+	public void onAnimationChanged(AnimationChanged event)
+	{
+		// Only tracked on our own server: see OwnServer.
+		if (!(event.getActor() instanceof NPC) || !OwnServer.connected(client))
+		{
+			return;
+		}
+		NPC npc = (NPC) event.getActor();
+		if (npc.getAnimation() == FinalStand.ANIM_RISE && "Ocellus".equals(npc.getName()))
+		{
+			// A server tick's packets (this animation among them) arrive before that tick's GameTick, which counts it,
+			// so he rose on the tick about to be counted. Inferred from RuneLite's order of events.
+			finalStand.rise(tick + 1);
 		}
 	}
 
@@ -120,6 +147,11 @@ public class TfaHelperPlugin extends Plugin
 			separator = ", ";
 		}
 		return line.toString();
+	}
+
+	FinalStand finalStand()
+	{
+		return finalStand;
 	}
 
 	RaidTracker tracker()
