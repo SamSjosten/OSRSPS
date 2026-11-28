@@ -903,6 +903,10 @@ class MeleeCombat(
     fun sees(npc: Npc, player: Player): Boolean =
         npc.level == player.level && LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
 
+    /** Whether [npc] sees [player] or [player] sees it ([LineOfSight.clearEitherWay]): for a monster that never moves. */
+    fun seesEitherWay(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && LineOfSight.clearEitherWay(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
+
     /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
     fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
 
