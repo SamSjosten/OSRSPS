@@ -255,6 +255,8 @@ object HouseSaves {
     /** Whether this server builds [loc] on [hotspot] in a [type] room: the garden's exit portal, or CON3's furniture. */
     private fun builds(type: RoomType, hotspot: Int, loc: Int): Boolean {
         if (loc == House.EXIT_PORTAL) return type == RoomType.GARDEN && hotspot == House.CENTREPIECE_SPACE
+        // A portal space's kept place, under the space's id negated (step CON7c).
+        if (hotspot < 0) return type == RoomType.PORTAL_CHAMBER && PortalDestinations.remembers(-hotspot, loc)
         val spot = FurnitureBuilds.HOTSPOTS[hotspot] ?: return false
         if (spot.room != type.base || (spot.only != null && spot.only != type)) return false
         return FurnitureBuilds.buildsOn(hotspot, loc)
