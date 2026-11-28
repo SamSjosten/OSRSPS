@@ -45,7 +45,7 @@ class HeadlessWildernessBossLootTest {
         listOf(osrsps.game.collection.CollectionLogCatalog.Tab(0, 471, listOf(osrsps.game.collection.CollectionLogCatalog.Page(1, 0, 0, listOf(532), completedVarbit = null)))),
     )
 
-    private fun server(dir: Path, deathTicks: Int? = null, group: Boolean = true, topDamage: Boolean = false) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, deathTicks: Int? = null, group: Boolean = true, topDamage: Boolean = false, clue: Boolean = topDamage) = TestServer(dir) { crcs, millis ->
         val objs = ObjTypes.of(
             ObjType(532, "Big bones"), ObjType(995, "Coins", stackable = true),
             ObjType(ELITE_CLUE, "Clue scroll (elite)", iops = listOf("Read", null, null, null, "Drop"), params = mapOf(osrsps.game.trail.TrailTier.ELITE.param to 1)),
@@ -59,7 +59,7 @@ class HeadlessWildernessBossLootTest {
                     "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
                     "anims": { "attack": null, "defend": null, "death": null }, "deathTicks": $deathTicks, "respawnTicks": 100, "source": "test" } ] }""",
                 types, SeqNames.NONE,
-            ), npcDrops = NpcDrops.parse(if (topDamage) clueDrops else drops, types, objs), cycleMillis = millis,
+            ), npcDrops = NpcDrops.parse(if (clue) clueDrops else drops, types, objs), cycleMillis = millis,
             collectionLogCatalog = catalog,
         ).also { it.wildernessBosses.register(osrsps.game.content.WildernessBoss("test boss", setOf(BOSS), KILL_COUNT_VARP, group = group && !topDamage, topDamage = topDamage)) }
     }
@@ -360,6 +360,35 @@ class HeadlessWildernessBossLootTest {
                     a.await("ada's pile") { Unit.takeIf { pile(ada).isNotEmpty() } }
                     assertEquals(listOf(532, 995, osrsps.game.trail.TrailTier.ELITE.scrollBox), pile(ada), "the box, not the raw clue")
                     assertEquals(1, world.collectionLog.count(ada, 532), "the bones in ada's collection log")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a group kill's clue scroll drops as a scroll box, and as nothing for a looter at the clue cap`(@TempDir dir: Path) {
+        server(dir, clue = true).use { server ->
+            server.login("ada").use { a ->
+                server.login("bea").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    val box = osrsps.game.trail.TrailTier.ELITE.scrollBox
+                    a.commandReply("item $box ${osrsps.game.trail.TreasureTrails.BOX_CAP}") { it.startsWith("Added") }
+                    a.tele(3200, 3900)
+                    b.tele(3200, 3901)
+                    a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                    val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                    a.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    a.commandReply("hit 30 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    val world = server.world
+                    val ada = world.playerNamed("ada")!!
+                    val bea = world.playerNamed("bea")!!
+                    fun pile(player: osrsps.game.Player) = world.groundObjs.visibleAt(player, npc.x, npc.z, npc.level).map { it.id }.sorted()
+                    a.await("the piles") { Unit.takeIf { pile(ada).isNotEmpty() && pile(bea).isNotEmpty() } }
+                    assertEquals(listOf(532, 995, box), pile(bea), "bea's box, not the raw clue")
+                    assertEquals(listOf(532, 995), pile(ada), "ada, at the cap, gets none")
                 }
             }
         }
