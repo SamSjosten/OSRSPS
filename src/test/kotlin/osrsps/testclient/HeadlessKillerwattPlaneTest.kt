@@ -47,7 +47,7 @@ class HeadlessKillerwattPlaneTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val types = NpcTypes.of(orb, biped, oddenstein)
         World(
-            crcs, CollisionMap().apply { markLoaded(3110 shr 6, 3362 shr 6); markLoaded(2660 shr 6, 5214 shr 6) },
+            crcs, CollisionMap().apply { markLoaded(3110 shr 6, 3362 shr 6); markLoaded(2660 shr 6, 5214 shr 6); markLoaded(FAR_X shr 6, 5214 shr 6) },
             random = GameRandom(9),
             npcTypes = types,
             npcCombat = NpcCombat.load(types, SeqNames.NONE),
@@ -227,6 +227,136 @@ class HeadlessKillerwattPlaneTest {
         }
     }
 
+    /**
+     * Each tick for [ticks] ticks after it takes on [name] where they stand at ([fromX], [ORB_Z]) and they are put on
+     * ([toX], [toZ]) the tick after, read on the game thread: its next attack tick, its distance from them on either axis,
+     * its animation, and whether it still fights them.
+     */
+    private data class Seen(val nextAttack: Long, val distance: Int, val anim: Int?, val fighting: Boolean)
+
+    private fun fought(
+        server: TestServer, client: HeadlessClient, name: String, fromX: Int, toX: Int, ticks: Int, toZ: Int = ORB_Z,
+    ): List<Seen> {
+        client.await("the login rebuild") { client.position }
+        client.commandReply("setlevel hitpoints 99") { it.isNotEmpty() }
+        client.command("tele $fromX $ORB_Z 2")
+        client.at(fromX, ORB_Z, 2)
+        val world = server.world
+        val player = world.playerNamed(name)!!
+        val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+        val samples = java.util.concurrent.CompletableFuture<List<Seen>>()
+        fun sample(into: MutableList<Seen>) {
+            world.npcScripts.later(1) {
+                val distance = maxOf(kotlin.math.abs(killerwatt.x - player.x), kotlin.math.abs(killerwatt.z - player.z))
+                into += Seen(killerwatt.nextAttackTick, distance, killerwatt.effects.anim?.id, killerwatt.target === player)
+                if (into.size == ticks) samples.complete(into) else sample(into)
+            }
+        }
+        world.npcScripts.later(1) {
+            world.meleeCombat.aggress(killerwatt, player, world.tick)
+            world.npcScripts.later(1) {
+                if (toX != player.x || toZ != player.z) world.teleport(player, toX, toZ, 2)
+                sample(ArrayList())
+            }
+        }
+        return samples.get(15, java.util.concurrent.TimeUnit.SECONDS)
+    }
+
+    @Test
+    fun `a killerwatt taken on in melee walks after the player past its leash and swings, never shooting`(@TempDir dir: Path) {
+        // Beside it, then 11 tiles from its spawn: past the 7 an NPC keeps to while it fights (exploit reviews 66 and 67,
+        // R66C-1 and R67B-1). In melee it keeps after them (the Wiki's Killerwatt): it comes beside them and attacks there.
+        server(dir).use { server ->
+            server.login("fay").use { client ->
+                val seen = fought(server, client, "fay", fromX = ORB_X - 1, toX = ORB_X - 11, ticks = 16)
+                assertTrue(seen.all { it.fighting }, "it never gives up on them: $seen")
+                val beside = seen.indexOfFirst { it.distance == 1 }
+                assertTrue(beside >= 0, "it comes beside them: $seen")
+                assertTrue(seen.drop(beside).map { it.nextAttack }.distinct().size >= 2, "and attacks there: $seen")
+                assertTrue(seen.none { it.anim == KillerwattPlane.CAST_ANIM }, "never with its ranged cast: $seen")
+            }
+        }
+    }
+
+    @Test
+    fun `a killerwatt taken on in melee keeps walking after a player more than 32 tiles off`(@TempDir dir: Path) {
+        // Past Npcs.FOLLOW_RANGE (Codex review on #1044): it still comes after them, closer each tick, and keeps the fight.
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                val seen = fought(server, client, "ida", fromX = ORB_X - 1, toX = FAR_X, ticks = 6)
+                assertTrue(seen.first().distance > 32, "they start past its follow range: $seen")
+                assertTrue(seen.all { it.fighting }, "it never gives up on them: $seen")
+                assertTrue(seen.last().distance <= seen.first().distance - 3, "it walks after them: $seen")
+            }
+        }
+    }
+
+    @Test
+    fun `a killerwatt left far from home when its fight ends walks back and can be fought on the way`(@TempDir dir: Path) {
+        // Lured 40 tiles off, then its player goes home: it stays unleashed so a new fight there isn't cut off by its
+        // leash, walks home, and is leashed again once back (Codex review on #1044).
+        server(dir).use { server ->
+            server.login("jo").use { client ->
+                val world = server.world
+                val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                fought(server, client, "jo", fromX = ORB_X - 1, toX = FAR_X, ticks = 1)
+                val jo = world.playerNamed("jo")!!
+                fun <T> onTick(block: () -> T): T {
+                    val result = java.util.concurrent.CompletableFuture<T>()
+                    world.npcScripts.later(1) { result.complete(block()) }
+                    return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                }
+                // Its fight goes on, lured off, until it's 25 tiles from home.
+                var away = 0
+                while (away < 25) away = onTick { kotlin.math.abs(killerwatt.x - killerwatt.spawn.x) }
+                val home = KillerwattPlane.MANOR_LANDING
+                onTick { world.teleport(jo, home.x, home.z, home.level) }
+                val after = onTick { Triple(killerwatt.target, killerwatt.unleashed, kotlin.math.abs(killerwatt.x - killerwatt.spawn.x)) }
+                assertEquals(null, after.first, "its fight is over: $after")
+                assertTrue(after.second && after.third > 18, "far off, still unleashed: $after")
+                // Taken on again out there, its new fight holds rather than ending on its leash.
+                onTick {
+                    world.teleport(jo, killerwatt.x - 1, killerwatt.z, 2)
+                    world.meleeCombat.aggress(killerwatt, jo, world.tick)
+                }
+                onTick { }
+                assertTrue(onTick { killerwatt.target === jo }, "a new fight out there holds")
+                onTick { world.teleport(jo, home.x, home.z, home.level) }
+                var back = false
+                repeat(80) { if (!back) back = onTick { !killerwatt.unleashed } }
+                assertTrue(back, "it walked home and is leashed again")
+                assertTrue(onTick { kotlin.math.abs(killerwatt.x - killerwatt.spawn.x) <= 7 }, "home")
+            }
+        }
+    }
+
+    @Test
+    fun `a killerwatt taken on from range keeps shooting when the player comes beside it`(@TempDir dir: Path) {
+        // As the Wiki's strategy has it: from range it shoots for the whole fight, Protect from Missiles' to block, and
+        // doesn't come to melee (exploit review 67, R67B-2, is live).
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                val seen = fought(server, client, "gus", fromX = ORB_X - 5, toX = ORB_X - 1, ticks = 6)
+                assertTrue(seen.all { it.fighting && it.distance == 1 }, "it fights them beside it: $seen")
+                assertTrue(seen.any { it.anim == KillerwattPlane.CAST_ANIM }, "with its ranged cast: $seen")
+            }
+        }
+    }
+
+    @Test
+    fun `a killerwatt in melee gives up the fight once the player is home off the plane`(@TempDir dir: Path) {
+        // Home through the portal is on the plane's level: unleashed, only leaving the plane ends its fight.
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                val home = KillerwattPlane.MANOR_LANDING
+                val seen = fought(server, client, "hal", fromX = ORB_X - 1, toX = home.x, toZ = home.z, ticks = 3)
+                assertTrue(seen.none { it.fighting }, "its fight is over: $seen")
+                val killerwatt = server.world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                assertTrue(!killerwatt.unleashed, "and it keeps to its spawn again")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94
@@ -236,5 +366,6 @@ class HeadlessKillerwattPlaneTest {
         const val ORB_X = 2660
         const val ORB_Z = 5214
         const val RANGED_SPEED = 2L
+        const val FAR_X = ORB_X - 40
     }
 }
