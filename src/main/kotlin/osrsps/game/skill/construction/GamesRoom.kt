@@ -4,7 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.NpcType
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.AmmoKind
 import osrsps.game.content.arriveDelay
 import osrsps.game.content.message
 import osrsps.game.npc.MoveRestrict
@@ -32,7 +34,16 @@ import osrsps.game.zone.ZoneLoc
  * first; the stone is back on its place 3 ticks after it breaks; the words. Left out: the chips that "may chip off and
  * deal damage to the player" (how often and how much is not on the pages), and the refusal of stat-lowering spells.
  *
- * Next: the dartboard and archery target, the prize chest, and the game space's games and the elemental balances.
+ * Step CON6g, the dartboard and archery target (their Wiki pages, read 2026-11-27): ten throws or shots each
+ * ([rangingGame]), "Whoever has the highest score after ten throws is the winner". The dartboard takes darts, throwing
+ * knives and thrownaxes from the weapon slot, used up, as "Ava's devices will not return them", and refuses the
+ * blowpipe ("You can't use that weapon here"); a hit on it is 7.5 Ranged XP. The archery target takes a bow or
+ * crossbow with the player's own arrows or bolts, a shot used up each time, for 10 Ranged XP a hit. GUESSED: a hit is
+ * rolled as the hoop's landing is ([landChance]) and scores one point (the boards' rings are left out); a throw or
+ * shot at the weapon's attack speed; the weapon's animation and launch graphic, but no projectile; the score told at
+ * the end; the words.
+ *
+ * Next: the prize chest, and the game space's games and the elemental balances.
  */
 class GamesRoom(private val world: World, private val houses: Houses) {
     /** Each stone's looks by chips, poh_tbt_<kind>_000 to _333, by [Stone]. */
@@ -45,6 +56,12 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         world.handlers.onLoc(HOOP_AND_STICK, HOOP) { op ->
             arriveDelay()
             hoop(this, op.loc ?: return@onLoc)
+        }
+        for ((loc, game) in listOf(DARTBOARD to RangingGame.DARTS, ARCHERY_TARGET to RangingGame.ARCHERY)) {
+            world.handlers.onLoc(loc, RANGING_OP) { op ->
+                arriveDelay()
+                rangingGame(this, op.loc ?: return@onLoc, game)
+            }
         }
         for (stone in Stone.entries) {
             val all = (0..63).mapNotNull { world.npcTypes.find("poh_tbt_${stone.key}_${it / 16}${it / 4 % 4}${it % 4}") }
@@ -63,6 +80,45 @@ class GamesRoom(private val world: World, private val houses: Houses) {
         val passive = world.combat.passive
         world.combat.passive = { npc -> npc.spawn.type.id in baseTypes || passive(npc) }
         world.npcScripts.onDeath(baseTypes) { broken(it) }
+    }
+
+    /** Throw-at on the dartboard or Shoot-at on the archery target [loc]: ten throws or shots, then the score. */
+    private suspend fun rangingGame(context: ScriptContext, loc: ZoneLoc, game: RangingGame) {
+        val player = context.player
+        if (houses.houseAt(loc.x, loc.z) == null) return
+        var score = 0
+        for (shot in 1..THROWS) {
+            if (!world.locs.exists(loc) || houses.houseAt(loc.x, loc.z) == null) return
+            val weapon = world.rangedWeapons.weapon(world.objTypes[player.equipment[WearPos.WEAPON]?.id ?: -1])
+            if (game == RangingGame.DARTS && weapon?.loaded == true) return world.message(player, ConstructionLines.DARTBOARD_BLOWPIPE)
+            val fits = when (game) {
+                RangingGame.DARTS -> weapon != null && weapon.thrown && weapon.kind == AmmoKind.DARTS && !weapon.splash
+                RangingGame.ARCHERY -> weapon != null && !weapon.loaded && (weapon.kind == AmmoKind.ARROWS || weapon.kind == AmmoKind.BOLTS)
+            }
+            if (!fits || weapon == null) return if (shot == 1) world.message(player, game.weaponLine) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+            val ammo = if (game == RangingGame.ARCHERY) world.rangedWeapons.ammo(world.objTypes[player.equipment[WearPos.AMMO]?.id ?: -1]) else null
+            if (game == RangingGame.ARCHERY && (ammo == null || !weapon.fires(ammo))) {
+                return if (shot == 1) world.message(player, ConstructionLines.ARCHERY_AMMO) else world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+            }
+            val speed = world.combat.attackSpeed(player)
+            player.equipment.remove(if (game == RangingGame.DARTS) WearPos.WEAPON else WearPos.AMMO, 1)
+            if (weapon.anim >= 0) player.anim(weapon.anim)
+            val launch = if (weapon.launch >= 0) weapon.launch else ammo?.launch ?: -1
+            if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
+            if (world.random.nextInt(256) < landChance(player.skills.currentLevel(Skill.RANGED))) {
+                score++
+                player.skills.addTenths(Skill.RANGED, game.xpTenths)
+            }
+            context.delay(speed)
+        }
+        world.message(player, ConstructionLines.RANGING_SCORE, "score" to score)
+        logger.info { "${player.username} scored $score of $THROWS at ${game.name.lowercase()}" }
+    }
+
+    /** The ranging games with weapons: what each refuses with when the weapon is wrong, and the XP of a hit. */
+    enum class RangingGame(val weaponLine: osrsps.game.dialogue.Line, val xpTenths: Int) {
+        DARTS(ConstructionLines.DARTBOARD_WEAPON, 75),
+        ARCHERY(ConstructionLines.ARCHERY_WEAPON, 100),
     }
 
     /** Set-up on attack stone [loc]: the combat stone stands in its place until it breaks or the room goes. */
@@ -145,6 +201,14 @@ class GamesRoom(private val world: World, private val houses: Houses) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        /** The dartboard and archery target as built (poh_dartboard1, poh_archery_target1), and their Throw-at and Shoot-at (op 1). */
+        const val DARTBOARD = 13400
+        const val ARCHERY_TARGET = 13402
+        const val RANGING_OP = 1
+
+        /** The launch graphic's height, as a ranged attack's. */
+        private const val LAUNCH_HEIGHT = 96
 
         /** The attack stones' Set-up (op 1), and the combat stone's Hit, which attacks it. */
         const val SET_UP = 1

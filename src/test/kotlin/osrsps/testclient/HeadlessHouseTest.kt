@@ -127,6 +127,8 @@ class HeadlessHouseTest {
         LocType(BEAM_RIGHT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
         LocType(GamesRoom.Stone.CLAY.loc, "Clay attack stone", ops = listOf("Set-up", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GamesRoom.DARTBOARD, "Dartboard", ops = listOf("Throw-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GamesRoom.ARCHERY_TARGET, "Archery target", ops = listOf("Shoot-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GamesRoom.HOOP_AND_STICK, "Hoop and stick", ops = listOf("Hoop", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
@@ -143,6 +145,10 @@ class HeadlessHouseTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
+        // The ranging games' weapons (CON6g), with the Wiki's ranged numbers from the resources.
+        objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
+        objs[SHORTBOW] = ObjType(SHORTBOW, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
+        objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
         objs[PLANK] = ObjType(PLANK, "Plank")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
@@ -192,6 +198,7 @@ class HeadlessHouseTest {
                 markLoaded(AGENT_X shr 6, AGENT_Z shr 6)
             },
             objTypes = ObjTypes(objs),
+            rangedWeapons = osrsps.game.combat.RangedWeapons.load(ObjTypes(objs), osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE),
             npcTypes = npcTypes,
             // The combat stones' entry from the resources (the dummies' too), so Hit fights them as live.
             npcCombat = osrsps.game.combat.NpcCombat.load(npcTypes, osrsps.game.SeqNames.NONE),
@@ -1394,6 +1401,49 @@ class HeadlessHouseTest {
     }
 
     @Test
+    fun `the dartboard takes ten darts and the archery target ten arrows, used up, for 7,5 and 10 Ranged XP a hit`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // The dartboard and archery target beside her in the garden (the games room's space isn't in this fixture).
+                server.onTick {
+                    server.world.locs.add(ZoneLoc(GamesRoom.DARTBOARD, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                    server.world.locs.add(ZoneLoc(GamesRoom.ARCHERY_TARGET, LocShape.CENTREPIECE_STRAIGHT, 0, at.x - 1, at.z, House.GROUND))
+                }
+                a.commandReply("setlevel ranged 99") { true }
+
+                // Nothing wielded: the dartboard refuses.
+                a.locOp(GamesRoom.DARTBOARD, at.x + 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the weapon refusal") { a.messages().firstOrNull { it.text == "[construction.dartboard_weapon]" } }
+
+                // Twelve darts: ten thrown and used up, 7.5 XP a hit, then the score.
+                server.onTick { ola.equipment[WearPos.WEAPON] = InvObj(BRONZE_DART, 12) }
+                var before = ola.skills.xp(Skill.RANGED)
+                a.locOp(GamesRoom.DARTBOARD, at.x + 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the darts' score", timeoutMillis = 60_000) { a.messages().firstOrNull { it.text.startsWith("[construction.ranging_score") } }
+                assertEquals(2, ola.equipment[WearPos.WEAPON]?.count)
+                assertTrue(ola.skills.xp(Skill.RANGED) - before in 7..75, "darts XP")
+
+                // A bow without arrows: refused; with fifteen, ten shot and used up, 10 XP a hit.
+                server.onTick { ola.equipment[WearPos.WEAPON] = InvObj(SHORTBOW, 1) }
+                a.locOp(GamesRoom.ARCHERY_TARGET, at.x - 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the ammo refusal") { a.messages().firstOrNull { it.text == "[construction.archery_ammo]" } }
+                server.onTick { ola.equipment[WearPos.AMMO] = InvObj(BRONZE_ARROW, 15) }
+                before = ola.skills.xp(Skill.RANGED)
+                val scores = a.messages().count { it.text.startsWith("[construction.ranging_score") }
+                a.locOp(GamesRoom.ARCHERY_TARGET, at.x - 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the arrows' score", timeoutMillis = 60_000) { Unit.takeIf { a.messages().count { it.text.startsWith("[construction.ranging_score") } > scores } }
+                assertEquals(5, ola.equipment[WearPos.AMMO]?.count)
+                val gained = ola.skills.xp(Skill.RANGED) - before
+                assertTrue(gained in 10..100 && gained % 10 == 0, "archery XP $gained")
+            }
+        }
+    }
+
+    @Test
     fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ola").use { a ->
@@ -1680,6 +1730,9 @@ class HeadlessHouseTest {
         const val COMBAT_DUMMY = 29336
         const val DUMMY_NPC = 2668
         const val CLAY_STONE_NPC = 20_000
+        const val BRONZE_DART = 806
+        const val SHORTBOW = 841
+        const val BRONZE_ARROW = 882
         const val UNDEAD_DUMMY_NPC = 7413
         const val ORNATE_DUMMY_NPC = 10507
         const val SLAYER_HELMET = 11864
