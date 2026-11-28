@@ -156,6 +156,9 @@ class HeadlessHouseTest {
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         // The teleport spells and their tablets, for the lecterns.
         for (type in osrsps.game.skill.magic.TeleportObjs.all) objs[type.id] = type
+        // The banana with its noted form, for Ape Atoll's portal.
+        objs[TeleportObjs.BANANA] = ObjType(TeleportObjs.BANANA, "Banana", certlink = NOTED_BANANA)
+        objs[NOTED_BANANA] = ObjType(NOTED_BANANA, "Banana", stackable = true, certlink = TeleportObjs.BANANA, certtemplate = 799)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
         // The ranging games' weapons (CON6g), with the Wiki's ranged numbers from the resources.
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
@@ -1684,6 +1687,31 @@ class HeadlessHouseTest {
                 }
                 a.await("the marble portal") { Unit.takeIf { chamber.built[PortalChamber.PORTAL_SPACES[0]] == MARBLE_LUMBRIDGE_PORTAL } }
 
+                // Ape Atoll takes 100 bananas, which only fit noted: 80 noted and the 20 unnoted are all taken (Codex review on #1059).
+                a.commandReply("setlevel magic 64") { true }
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.WATER]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 200)
+                    ola.inventory.add(server.world.objTypes[NOTED_BANANA]!!, 80)
+                    repeat(20) { ola.inventory.add(server.world.objTypes[TeleportObjs.BANANA]!!, 1) }
+                }
+                a.await("the bananas") { Unit.takeIf { a.count(NOTED_BANANA) == 80 && a.count(TeleportObjs.BANANA) == 20 } }
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                // Page on with More until Ape Atoll shows.
+                var ape = -1
+                repeat(4) {
+                    if (ape >= 0) return@repeat
+                    val shown = a.awaitDialogue("a page of places") { it is DialogueView.Menu } as DialogueView.Menu
+                    val at = shown.options.indexOfFirst { "Ape Atoll" in it }
+                    if (at >= 0) { ape = at; a.chooseOption(at + 1) } else a.chooseOption(shown.options.size)
+                }
+                assertTrue(ape >= 0, "Ape Atoll is offered")
+                a.await("Ape Atoll directed") { Unit.takeIf { chamber.built[-PortalChamber.PORTAL_SPACES[0]] == TeleportObjs.APE_ATOLL } }
+                assertEquals(0, a.count(NOTED_BANANA) + a.count(TeleportObjs.BANANA))
+
                 // Enter on the directed portal: to Lumbridge.
                 server.onTick { server.world.locs.add(ZoneLoc(TEAK_LUMBRIDGE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, fx - 3, fz, House.GROUND)) }
                 a.locOp(TEAK_LUMBRIDGE_PORTAL, fx - 3, fz, PortalChamber.ENTER)
@@ -2066,6 +2094,7 @@ class HeadlessHouseTest {
         const val WOOD_TABLE = 13293
         const val GREENMAN = 57012
         const val OAK_PLANK = 8778
+        const val NOTED_BANANA = 1964
         const val GREENMAN_ITEM = 31024
         const val STOVE_SPACE = 15398
         const val SHELF_SPACE = 15399

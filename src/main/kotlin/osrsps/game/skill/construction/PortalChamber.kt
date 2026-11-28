@@ -63,9 +63,18 @@ class PortalChamber(private val world: World, private val houses: Houses) {
         val frame = PortalDestinations.FRAMES.indexOf(PortalDestinations.frame(room.built[space] ?: -1))
         if (frame < 0) return
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) return world.message(player, ConstructionLines.PORTAL_LEVEL, "level" to spell.level)
-        val costs = (spell.runes + listOfNotNull(spell.extra)).map { it.rune to it.count * RUNE_TIMES }
-        if (costs.any { (rune, count) -> player.inventory.count(rune) < count }) return world.message(player, ConstructionLines.PORTAL_RUNES)
-        for ((rune, count) in costs) Ned.take(player.inventory, rune, count)
+        // Each cost may be paid in the item or its noted form: 100 bananas for Ape Atoll can't fit unnoted (the Portal
+        // chamber page; Codex review on #1059). Runes have no noted form.
+        val costs = (spell.runes + listOfNotNull(spell.extra)).map { cost -> forms(cost.rune) to cost.count * RUNE_TIMES }
+        if (costs.any { (ids, count) -> ids.sumOf { player.inventory.count(it) } < count }) return world.message(player, ConstructionLines.PORTAL_RUNES)
+        for ((ids, count) in costs) {
+            var left = count.toLong()
+            for (id in ids) {
+                val take = minOf(left, player.inventory.count(id))
+                if (take > 0) Ned.take(player.inventory, id, take.toInt())
+                left -= take
+            }
+        }
         player.skills.addTenths(Skill.MAGIC, spell.xpTenths * XP_TIMES)
         room.built[-space] = spell.obj
         PortalDestinations.apply(room, space)
@@ -73,6 +82,9 @@ class PortalChamber(private val world: World, private val houses: Houses) {
         world.message(player, ConstructionLines.PORTAL_DIRECTED)
         logger.info { "${player.username} directed portal $portal to ${spell.name}" }
     }
+
+    /** [item] and, when it has one, its noted form, unnoted first. */
+    private fun forms(item: Int): List<Int> = listOfNotNull(item, world.objTypes[item]?.certlink?.takeIf { it >= 0 })
 
     /** The places, four a page with More at the end: the spell picked, or null. */
     private suspend fun pickPlace(context: ScriptContext): TeleportSpell? {
