@@ -1473,6 +1473,12 @@ class HeadlessHouseTest {
                 assertTrue(gained in 0..1, "combat XP $gained")
                 // The stone is back on its place.
                 a.await("the stone back") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
+
+                // Set up again and killed with no damage kept (::kill): it still comes back (R68B-1).
+                a.locOp(clay, at.x + 1, at.z, GamesRoom.SET_UP)
+                val again = a.await("the stone again") { server.world.npcs.all.firstOrNull { it.spawn.type.id == CLAY_STONE_NPC && it.x == at.x + 1 && it.z == at.z && !it.dead } }
+                a.commandReply("kill ${again.index}") { true }
+                a.await("back after ::kill", timeoutMillis = 20_000) { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
                 }
             }
         }
@@ -1800,6 +1806,17 @@ class HeadlessHouseTest {
                 // 2.5 XP a landing, at most ten; at level 99 almost all land (241 in 256 each).
                 val gained = ola.skills.xp(Skill.RANGED) - before
                 assertTrue(gained in 1..GamesRoom.THROWS * GamesRoom.LAND_XP_TENTHS / 10, "Ranged XP $gained")
+
+                // Walking off stops a game (R68B-2): one throw, a step away, and no more throws and no score.
+                val scores = a.messages().count { it.text.startsWith("[construction.hoop_score") }
+                val anims = a.animationTicks().size
+                a.locOp(GamesRoom.HOOP_AND_STICK, at.x + 1, at.z, GamesRoom.HOOP)
+                a.await("the first throw") { Unit.takeIf { a.animationTicks().size > anims } }
+                a.walk(at.x - 1, at.z)
+                val stepped = server.world.tick
+                a.await("four throws' time", timeoutMillis = 30_000) { Unit.takeIf { server.world.tick >= stepped + 4 * GamesRoom.THROW_TICKS } }
+                assertTrue(a.animationTicks().size - anims <= 2, "the game stopped")
+                assertEquals(scores, a.messages().count { it.text.startsWith("[construction.hoop_score") })
             }
         }
     }
