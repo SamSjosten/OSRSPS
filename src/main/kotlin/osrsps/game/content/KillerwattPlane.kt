@@ -10,6 +10,7 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
 import osrsps.game.script.ScriptContext
 import osrsps.map.LineOfSight
+import osrsps.map.Tile
 
 /** Professor Oddenstein's warning at the rift (the Wiki's Transcript:Professor Oddenstein, read 2026-11-19). */
 object KillerwattPlaneLines : Lines("killerwatt_plane", "Transcript:Professor Oddenstein") {
@@ -113,9 +114,14 @@ class KillerwattPlane(private val world: World) {
         val player = npc.target
         if (player == null) {
             if (melee.remove(npc) != null) {
+                world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
+                if (!home(npc)) npc.destination = Tile(npc.spawn.x, npc.spawn.z)
+            }
+            // Unleashed until it's back home: far off, a new fight there would end at once on its leash before this
+            // could start it (Codex review on #1044).
+            if (npc.unleashed && home(npc)) {
                 npc.unleashed = false
                 npc.huntsAnywhere = false
-                world.npcTypes[ORB]?.let { world.npcs.transform(npc, it, 1) }
             }
             return
         }
@@ -148,6 +154,10 @@ class KillerwattPlane(private val world: World) {
             fighting.fireAt(npc, player, tick, attack, AttackType.RANGED)
         }
     }
+
+    /** Within [Npcs.MAX_RANGE] of its spawn on both axes. */
+    private fun home(npc: Npc): Boolean =
+        kotlin.math.abs(npc.x - npc.spawn.x) <= Npcs.MAX_RANGE && kotlin.math.abs(npc.z - npc.spawn.z) <= Npcs.MAX_RANGE
 
     /** Within [PLANE_REACH] of the plane's landing on both axes: the plane's map squares, with a margin. Guessed. */
     private fun onPlane(x: Int, z: Int): Boolean =

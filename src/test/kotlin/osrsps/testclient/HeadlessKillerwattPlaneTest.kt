@@ -292,6 +292,45 @@ class HeadlessKillerwattPlaneTest {
     }
 
     @Test
+    fun `a killerwatt left far from home when its fight ends walks back and can be fought on the way`(@TempDir dir: Path) {
+        // Lured 40 tiles off, then its player goes home: it stays unleashed so a new fight there isn't cut off by its
+        // leash, walks home, and is leashed again once back (Codex review on #1044).
+        server(dir).use { server ->
+            server.login("jo").use { client ->
+                val world = server.world
+                val killerwatt = world.npcs.all.first { it.spawn.type.id == KillerwattPlane.ORB }
+                fought(server, client, "jo", fromX = ORB_X - 1, toX = FAR_X, ticks = 1)
+                val jo = world.playerNamed("jo")!!
+                fun <T> onTick(block: () -> T): T {
+                    val result = java.util.concurrent.CompletableFuture<T>()
+                    world.npcScripts.later(1) { result.complete(block()) }
+                    return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
+                }
+                // Its fight goes on, lured off, until it's 25 tiles from home.
+                var away = 0
+                while (away < 25) away = onTick { kotlin.math.abs(killerwatt.x - killerwatt.spawn.x) }
+                val home = KillerwattPlane.MANOR_LANDING
+                onTick { world.teleport(jo, home.x, home.z, home.level) }
+                val after = onTick { Triple(killerwatt.target, killerwatt.unleashed, kotlin.math.abs(killerwatt.x - killerwatt.spawn.x)) }
+                assertEquals(null, after.first, "its fight is over: $after")
+                assertTrue(after.second && after.third > 18, "far off, still unleashed: $after")
+                // Taken on again out there, its new fight holds rather than ending on its leash.
+                onTick {
+                    world.teleport(jo, killerwatt.x - 1, killerwatt.z, 2)
+                    world.meleeCombat.aggress(killerwatt, jo, world.tick)
+                }
+                onTick { }
+                assertTrue(onTick { killerwatt.target === jo }, "a new fight out there holds")
+                onTick { world.teleport(jo, home.x, home.z, home.level) }
+                var back = false
+                repeat(80) { if (!back) back = onTick { !killerwatt.unleashed } }
+                assertTrue(back, "it walked home and is leashed again")
+                assertTrue(onTick { kotlin.math.abs(killerwatt.x - killerwatt.spawn.x) <= 7 }, "home")
+            }
+        }
+    }
+
+    @Test
     fun `a killerwatt taken on from range keeps shooting when the player comes beside it`(@TempDir dir: Path) {
         // As the Wiki's strategy has it: from range it shoots for the whole fight, Protect from Missiles' to block, and
         // doesn't come to melee (exploit review 67, R67B-2, is live).
