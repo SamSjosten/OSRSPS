@@ -236,11 +236,17 @@ class HeadlessArchiveSuppliesTest {
                 client.await("the side panel open") { (OmnishopScreen.SIDE in client.openInterfaces()).takeIf { it } }
                 assertEquals(ArchiveSupplies.SHOP, client.varp(OmnishopScreen.LASTSHOP_VARP))
                 assertEquals(-1, client.varp(OmnishopScreen.SELECTED_VARP))
-                val scripts = client.clientScripts()
-                assertTrue(ClientScript(OmnishopScreen.MAINMODAL_BACKGROUND_SCRIPT, listOf(-1, -3)) in scripts, "$scripts")
-                assertTrue(ClientScript(OmnishopScreen.MAIN_INIT_SCRIPT, listOf(ArchiveSupplies.SHOP, ArchiveSupplies.STOCK_INV, -1)) in scripts, "$scripts")
-                assertTrue(ClientScript(OmnishopScreen.SIDE_INIT_SCRIPT, listOf(ArchiveSupplies.SHOP)) in scripts, "$scripts")
-                assertTrue((1..5).all { client.opEnabled(OmnishopScreen.MAIN, OmnishopScreen.LIST, 12, it) } && client.opEnabled(OmnishopScreen.MAIN, OmnishopScreen.LIST, 12, 10))
+                // The screens' scripts and ops come in packets of their own after the opens: waited for, not read
+                // once (CI on #1053 read the side panel's init script a packet early).
+                val wanted = listOf(
+                    ClientScript(OmnishopScreen.MAINMODAL_BACKGROUND_SCRIPT, listOf(-1, -3)),
+                    ClientScript(OmnishopScreen.MAIN_INIT_SCRIPT, listOf(ArchiveSupplies.SHOP, ArchiveSupplies.STOCK_INV, -1)),
+                    ClientScript(OmnishopScreen.SIDE_INIT_SCRIPT, listOf(ArchiveSupplies.SHOP)),
+                )
+                client.await("the shop's scripts") { client.clientScripts().takeIf { scripts -> wanted.all { it in scripts } } }
+                client.await("the list's ops") {
+                    Unit.takeIf { (1..5).all { client.opEnabled(OmnishopScreen.MAIN, OmnishopScreen.LIST, 12, it) } && client.opEnabled(OmnishopScreen.MAIN, OmnishopScreen.LIST, 12, 10) }
+                }
                 client.awaitStock(BREW, 6)
                 for ((id, count) in ArchiveSupplies.STOCK) assertEquals(count, client.stock(id), "stock of $id")
 

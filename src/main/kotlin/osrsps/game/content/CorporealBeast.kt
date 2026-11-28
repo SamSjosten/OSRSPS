@@ -161,7 +161,7 @@ object CorporealBeast {
 
     fun def(world: World): EncounterDef? {
         val type = world.npcTypes[BOSS] ?: return null
-        return EncounterDef("corporeal_beast", type, listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))), scriptedAttacks = true)
+        return EncounterDef("corporeal_beast", type, listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })), scriptedAttacks = true)
     }
 
     /**
@@ -219,6 +219,7 @@ object CorporealBeast {
         if (now - fight.lastFought >= RESET_TICKS && (boss.hitpoints < boss.maxHitpoints || boss.drained.any { it > 0 })) {
             boss.hitpoints = boss.maxHitpoints
             boss.drained.fill(0)
+            forget(fight)
             log("whole again")
         }
         if (now < fight.nextStomp) return
@@ -247,6 +248,24 @@ object CorporealBeast {
             boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + healed)
             log("heals $healed")
         }
+        // Healed whole in an empty room, it starts over as its idle reset does (exploit review round 63, R63B-1/2).
+        if (inRoom.isEmpty() && boss.hitpoints >= boss.maxHitpoints) forget(fight)
+    }
+
+    /**
+     * A fresh start once it is whole again: no one's damage counts toward its kill any more, so damage banked before a
+     * reset can't take a later team's loot (inferred: the Wiki doesn't say; keeping it is the exploitable side), and its
+     * core goes with its cores' state, so no core left in an empty room leeches the next one in (exploit review round 63,
+     * R63B-1 and R63B-2).
+     */
+    private fun EncounterContext.forget(fight: Fight) {
+        world.wildernessBosses.reset(boss)
+        fight.core?.let { if (!it.dead && world.npcs[it.index] === it) world.removeNpc(it) }
+        fight.core = null
+        fight.coreNext = Long.MIN_VALUE
+        fight.coreLands = Long.MIN_VALUE
+        fight.coreDue = false
+        fight.noMoreCores = false
     }
 
     /** Its core, out north of it, and its next attack 4 ticks off; one core at a time. */
