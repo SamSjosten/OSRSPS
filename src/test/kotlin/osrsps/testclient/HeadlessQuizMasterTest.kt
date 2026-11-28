@@ -171,6 +171,32 @@ class HeadlessQuizMasterTest {
         }
     }
 
+    @Test
+    fun `a logout with a question on screen leaves the studio, back home with no window`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready()
+                client.intoStudio("carol")
+                client.question(0)
+                // The question takes the chatbox, so the rl-client script leaves this way (nightly 2026-11-28).
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            val deadline = System.nanoTime() + 10_000_000_000
+            while (server.world.onlinePlayers.isNotEmpty()) {
+                check(System.nanoTime() < deadline) { "carol still online" }
+                Thread.sleep(20)
+            }
+            server.login("carol").use { client ->
+                client.await("home") { client.position?.takeIf { it == home } }
+                client.awaitTicks(QuizMaster.WATCH_TICKS + 2)
+                assertTrue(QuizMaster.INTERFACE !in client.openInterfaces(), "no question window")
+                assertEquals(null, client.dialogueView, "no talk")
+                client.await("the show ended") { if (server.world.instances.all.isEmpty()) Unit else null }
+            }
+        }
+    }
+
     private companion object {
         const val OPEN_BUTTON_OP = 2
     }
