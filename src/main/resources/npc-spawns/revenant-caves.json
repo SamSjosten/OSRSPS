@@ -1,5 +1,5 @@
 {
-  "about": "The Revenant Caves (Wilderness step W5.2): the 30 revenants where the OSRS Wiki's locations maps pin them (read 2026-11-15), as many of each as the Wiki's Revenant Caves page counts; mejrs's NPCList_OSRS has only some. Their wander ranges are guessed until recorded.",
+  "about": "The Revenant Caves (Wilderness step W5.2): the 30 revenants (step W5.2) and the Emblem Trader (step W5.3) where the OSRS Wiki's locations maps pin them (read 2026-11-15), as many of each as the Wiki's Revenant Caves page counts; mejrs's NPCList_OSRS has only some. Their wander ranges are guessed until recorded.",
   "spawns": [
     {"npc": "wild_cave_imp", "x": 3212, "z": 10196, "wander": 5, "source": "OSRS Wiki, Revenant imp, its locations map; wander guessed"},
     {"npc": "wild_cave_imp", "x": 3218, "z": 10188, "wander": 5, "source": "OSRS Wiki, Revenant imp, its locations map; wander guessed"},
@@ -30,6 +30,7 @@
     {"npc": "wild_cave_knight", "x": 3209, "z": 10216, "wander": 5, "source": "OSRS Wiki, Revenant knight, its locations map; wander guessed"},
     {"npc": "wild_cave_knight", "x": 3228, "z": 10221, "wander": 5, "source": "OSRS Wiki, Revenant knight, its locations map; wander guessed"},
     {"npc": "wild_cave_dragon", "x": 3230, "z": 10201, "wander": 5, "source": "OSRS Wiki, Revenant dragon, its locations map; wander guessed"},
-    {"npc": "wild_cave_dragon", "x": 3244, "z": 10198, "wander": 5, "source": "OSRS Wiki, Revenant dragon, its locations map; wander guessed"}
+    {"npc": "wild_cave_dragon", "x": 3244, "z": 10198, "wander": 5, "source": "OSRS Wiki, Revenant dragon, its locations map; wander guessed"},
+    {"npc": "wild_cave_trader", "x": 3196, "z": 10224, "wander": 4, "source": "OSRS Wiki, Emblem Trader (Revenant Caves), its map: a square of radius 4 round 3196,10224"}
   ]
 }

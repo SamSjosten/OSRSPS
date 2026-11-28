@@ -169,6 +169,36 @@ class HeadlessCorporealBeastTest {
     }
 
     @Test
+    fun `whole again, it forgets the damage dealt and its core goes`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val level = CorporealBeast.LAIR_LEVEL
+                client.tele(CorporealBeast.SPAWN.x + 2, CorporealBeast.SPAWN.z + 5, level)
+                val npc = server.world.npcs.all.first { it.type.id == CorporealBeast.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                val fight = client.await("its fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                var core = CorporealBeast.core(npc)
+                repeat(60) {
+                    if (core != null) return@repeat
+                    client.commandReply("hit 40 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                    core = runCatching { client.await("its core", timeoutMillis = 300) { CorporealBeast.core(npc) } }.getOrNull()
+                }
+                val out = core ?: throw AssertionError("no core: ${fight.lines.toList().takeLast(20)}")
+                assertEquals(1, server.world.wildernessBosses.tallies, "hal's damage counted")
+                // Out of its room: it heals or resets back to whole, and starts over.
+                client.tele(CorporealBeast.ARRIVAL.x, CorporealBeast.ARRIVAL.z, level)
+                client.keepAlive()
+                client.await("whole and fresh", timeoutMillis = 30_000) {
+                    Unit.takeIf { npc.hitpoints == npc.maxHitpoints && server.world.wildernessBosses.tallies == 0 && server.world.npcs.all.none { it === out } }
+                }
+                assertEquals(null, CorporealBeast.core(npc))
+            }
+        }
+    }
+
+    @Test
     fun `its armour halves all but magic and a corpbane weapon's stab`() {
         val spear = ObjType(1249, "Dragon spear", params = mapOf(CorporealBeast.PARAM_CORPBANE to 1))
         val whip = ObjType(4151, "Abyssal whip")

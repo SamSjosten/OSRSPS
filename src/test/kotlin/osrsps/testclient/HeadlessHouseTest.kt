@@ -6,9 +6,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.Inventory
+import osrsps.game.PlayerOps
 import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -16,6 +19,8 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
 import osrsps.game.Skill
+import osrsps.game.skill.construction.GamesRoom
+import osrsps.game.combat.PvpInteraction
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
@@ -24,6 +29,8 @@ import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.combat.SlayerHelm
+import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.construction.CombatRoom
@@ -38,6 +45,10 @@ import osrsps.game.skill.construction.Houses
 import osrsps.game.skill.construction.HouseRoom
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.skill.construction.Stairs
+import osrsps.game.skill.construction.Study
+import osrsps.game.skill.construction.PortalChamber
+import osrsps.game.skill.construction.PortalDestinations
+import osrsps.game.skill.magic.TeleportObjs
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -54,6 +65,13 @@ import osrsps.map.LocShape
  */
 class HeadlessHouseTest {
     private val agent = NpcType(EstateAgent.ID, "Estate agent", ops = listOf("Talk-to", null, "Relocate", "Redecorate", null), internalName = "poh_estate_agent")
+    private val dummyNpc = NpcType(DUMMY_NPC, "<col=00ffff>Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_npc")
+    private val undeadDummyNpc = NpcType(UNDEAD_DUMMY_NPC, "<col=00ffff>Undead Combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Upgrade", "Remove"), internalName = "poh_combat_dummy_undeadslayer_npc")
+    /** The clay combat stone's 64 looks, poh_tbt_clay_000 to _333, with the Wiki's 40 hitpoints. */
+    private val clayStones = (0..63).map { i ->
+        NpcType(CLAY_STONE_NPC + i, "Clay attack stone", ops = listOf(null, GamesRoom.HIT, null, null, null), stats = osrsps.game.NpcStats(hitpoints = 40), internalName = "poh_tbt_clay_${i / 16}${i / 4 % 4}${i % 4}")
+    }
+    private val ornateDummyNpc = NpcType(ORNATE_DUMMY_NPC, "<col=00ffff>Ornate undead combat dummy</col>", ops = listOf(null, "Attack", "Detach", "Swap", "Remove"), internalName = "poh_combat_dummy_upgraded_undeadslayer_npc")
 
     private fun hotspot(id: Int, name: String, width: Int = 1) =
         LocType(id, name, ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = width, length = width, interactType = 0))
@@ -105,7 +123,26 @@ class HeadlessHouseTest {
         hotspot(RING_CORNER_SPACE, "Combat ring space"), hotspot(PEDESTAL_WALL_SPACE, "Combat ring space"),
         LocType(BOXING_CORNER, "Boxing ring", ops = listOf("Climb-over", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(BARRIER, "Magic barrier", ops = listOf("Walk-through", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        hotspot(DUMMY_SPACE, "Combat dummy space"),
+        LocType(COMBAT_DUMMY, "Combat dummy", ops = listOf("Attach", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        hotspot(FLOOR_NW_SPACE, "Combat ring space"), hotspot(FLOOR_N_SPACE, "Combat ring space"), hotspot(FLOOR_NE_SPACE, "Combat ring space"),
+        LocType(BEAM_MIDDLE, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BEAM_LEFT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(BEAM_RIGHT, "Balance beam", ops = listOf("Stand-on", null, null, "Get-down", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         LocType(GLOVE_RACK, "Glove Rack", ops = listOf("Search", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1, interactType = 0)),
+        LocType(GamesRoom.Stone.CLAY.loc, "Clay attack stone", ops = listOf("Set-up", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GamesRoom.DARTBOARD, "Dartboard", ops = listOf("Throw-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GamesRoom.ARCHERY_TARGET, "Archery target", ops = listOf("Shoot-at", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(GamesRoom.HOOP_AND_STICK, "Hoop and stick", ops = listOf("Hoop", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(ELEMENTAL_SPHERE, "Elemental sphere", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(MAHOGANY_TELESCOPE, "Telescope", ops = listOf("Observe", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(TEAK_EAGLE_LECTERN, "Lectern", ops = listOf("Study", "Create-last", null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(PortalChamber.FOCI.first(), "Teleportation focus", ops = listOf("Direct-portal", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 2)),
+        LocType(PortalDestinations.FRAMES.first(), "Portal frame", ops = listOf(null, null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
+        LocType(TEAK_LUMBRIDGE_PORTAL, "Lumbridge Portal", ops = listOf("Enter", null, null, null, "Remove"), collision = LocCollisionType(width = 2, length = 1)),
+        hotspot(CHEST_SPACE, "Treasure chest space"),
+        LocType(OAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
+        LocType(TEAK_TREASURE_CHEST, "Treasure chest", ops = listOf("Open", null, null, "Upgrade", "Remove"), collision = LocCollisionType(width = 1, length = 1)),
     ).associateBy { it.id }
 
     /** The four door hotspot pairs of a template zone at [x], [z] on the sides [sides] (0 west, 1 north, 2 east, 3 south), as the cache places them. */
@@ -120,8 +157,20 @@ class HeadlessHouseTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
+        // The teleport spells and their tablets, for the lecterns.
+        for (type in osrsps.game.skill.magic.TeleportObjs.all) objs[type.id] = type
+        // The banana with its noted form, for Ape Atoll's portal.
+        objs[TeleportObjs.BANANA] = ObjType(TeleportObjs.BANANA, "Banana", certlink = NOTED_BANANA)
+        objs[NOTED_BANANA] = ObjType(NOTED_BANANA, "Banana", stackable = true, certlink = TeleportObjs.BANANA, certtemplate = 799)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
+        // The ranging games' weapons (CON6g), with the Wiki's ranged numbers from the resources.
+        objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_dart")
+        objs[SHORTBOW] = ObjType(SHORTBOW, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
+        objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
+        for (id in listOf(AIR_STAFF, FIRE_STAFF, AIR_BATTLESTAFF, FIRE_BATTLESTAFF, MYSTIC_AIR_STAFF)) objs[id] = ObjType(id, "Staff", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON)
+        objs[FIRE_RUNE] = ObjType(FIRE_RUNE, "Fire rune", stackable = true)
         objs[PLANK] = ObjType(PLANK, "Plank")
+        objs[Study.SOFT_CLAY] = ObjType(Study.SOFT_CLAY, "Soft clay")
         objs[BOLT_OF_CLOTH] = ObjType(BOLT_OF_CLOTH, "Bolt of cloth")
         objs[SOFT_CLAY] = ObjType(SOFT_CLAY, "Soft clay")
         objs[TEA_LEAVES] = ObjType(TEA_LEAVES, "Tea leaves")
@@ -134,6 +183,7 @@ class HeadlessHouseTest {
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         objs[STEEL_BAR] = ObjType(STEEL_BAR, "Steel bar")
         objs[OAK_PLANK] = ObjType(OAK_PLANK, "Oak plank")
+        objs[TEAK_PLANK] = ObjType(TEAK_PLANK, "Teak plank")
         objs[GREENMAN_ITEM] = ObjType(GREENMAN_ITEM, "Greenman carving")
         objs[KETTLE] = ObjType(KETTLE, "Kettle")
         objs[CLAY_TEAPOT] = ObjType(CLAY_TEAPOT, "Teapot")
@@ -145,9 +195,13 @@ class HeadlessHouseTest {
         objs[BAGGED_PLANT_1] = ObjType(BAGGED_PLANT_1, "Bagged plant 1")
         objs[WATERING_CAN_8] = ObjType(WATERING_CAN_8, "Watering can(8)")
         objs[KNIFE] = ObjType(KNIFE, "Knife")
+        objs[SLAYER_HELMET] = ObjType(SLAYER_HELMET, "Slayer helmet", wearpos1 = WearPos.HEAD)
+        objs[SLAYER_HELMET_I] = ObjType(SLAYER_HELMET_I, "Slayer helmet (i)", wearpos1 = WearPos.HEAD)
         for (gloves in listOf(CombatRoom.RED_GLOVES, CombatRoom.BLUE_GLOVES)) {
             objs[gloves] = ObjType(gloves, "Boxing gloves", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, wearpos3 = WearPos.HANDS)
         }
+        objs[CombatRoom.PUGEL] = ObjType(CombatRoom.PUGEL, "Pugel", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, internalName = "poh_pugel")
+        objs[WOODEN_SHIELD] = ObjType(WOODEN_SHIELD, "Wooden shield", wearpos1 = WearPos.SHIELD)
         for (id in listOf(Cooking.SHRIMPS.raw, Cooking.SHRIMPS.cooked, Cooking.SHRIMPS.burnt)) objs[id] = ObjType(id, "Shrimps")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
@@ -157,6 +211,8 @@ class HeadlessHouseTest {
         val hall = RoomType.SKILL_HALL
         val hallTop = RoomType.SKILL_HALL_STAIRS
         val combat = RoomType.COMBAT_ROOM
+        val costume = RoomType.COSTUME_ROOM
+        val npcTypes = NpcTypes.of(agent, dummyNpc, undeadDummyNpc, ornateDummyNpc, *clayStones.toTypedArray())
         World(
             crcs,
             CollisionMap().apply {
@@ -165,7 +221,10 @@ class HeadlessHouseTest {
                 markLoaded(AGENT_X shr 6, AGENT_Z shr 6)
             },
             objTypes = ObjTypes(objs),
-            npcTypes = NpcTypes.of(agent),
+            rangedWeapons = osrsps.game.combat.RangedWeapons.load(ObjTypes(objs), osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE),
+            npcTypes = npcTypes,
+            // The combat stones' entry from the resources (the dummies' too), so Hit fights them as live.
+            npcCombat = osrsps.game.combat.NpcCombat.load(npcTypes, osrsps.game.SeqNames.NONE),
             npcSpawns = listOf(NpcSpawn(agent, AGENT_X, AGENT_Z, source = "test")),
             locTypes = LocTypes(types),
             staticLocs = StaticLocs().apply {
@@ -208,6 +267,8 @@ class HeadlessHouseTest {
                 add(ZoneLoc(STAIR_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hall.templateX + 3, hall.templateZ + 3, 0))
                 add(ZoneLoc(STAIR_TOP_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, hallTop.templateX + 3, hallTop.templateZ + 3, 0))
                 doors(hall.templateX, hall.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
+                // A costume room's treasure chest space, one tile.
+                add(ZoneLoc(CHEST_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, costume.templateX + 4, costume.templateZ + 4, 0))
                 doors(hallTop.templateX, hallTop.templateZ, listOf(0, 1, 2, 3)).forEach(::add)
                 // A combat room's ring cut down to one rope, on the east side of 2,3, and the mat's middle inside it at 3,3
                 // (the cache's is 6 by 6 round a 4 by 4 mat), and its storage space.
@@ -217,6 +278,12 @@ class HeadlessHouseTest {
                 add(ZoneLoc(RING_CORNER_SPACE, LocShape.WALL_SQUARE_CORNER, 1, combat.templateX + 2, combat.templateZ + 1, 0))
                 add(ZoneLoc(PEDESTAL_WALL_SPACE, LocShape.WALL_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 5, 0))
                 add(ZoneLoc(STORAGE_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 5, combat.templateZ + 6, 0))
+                // The beam's row of floor along 2..5, 5, as the cache has it.
+                add(ZoneLoc(FLOOR_NW_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 2, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_N_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 3, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_N_SPACE, LocShape.GROUND_DECOR, 1, combat.templateX + 4, combat.templateZ + 5, 0))
+                add(ZoneLoc(FLOOR_NE_SPACE, LocShape.GROUND_DECOR, 2, combat.templateX + 5, combat.templateZ + 5, 0))
+                add(ZoneLoc(DUMMY_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, combat.templateX + 2, combat.templateZ + 6, 0))
                 doors(combat.templateX, combat.templateZ, listOf(0, 2, 3)).forEach(::add)
             },
             // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
@@ -231,6 +298,7 @@ class HeadlessHouseTest {
                     RoomType.GARDEN.id to listOf(emptyList(), emptyList(), trees, emptyList(), emptyList(), smallPlants),
                     RoomType.SKILL_HALL.id to listOf(staircases),
                     RoomType.COMBAT_ROOM.id to listOf(rings, emptyList(), emptyList(), racks),
+                    RoomType.COSTUME_ROOM.id to List(4) { emptyList<FurnitureOption>() } + listOf(treasureChests),
                 ),
             ),
         )
@@ -240,6 +308,13 @@ class HeadlessHouseTest {
     private val chairs = listOf(
         FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
         FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
+    )
+
+    /** The costume room's treasure chests (rows 5940 to 5942), as the cache has them: each upgrades the one before. */
+    private val treasureChests = listOf(
+        FurnitureOption(OAK_TREASURE_CHEST_ROW, "Oak treasure chest", 8402, listOf(OAK_PLANK to 2), level = 48, upgradeFrom = 1),
+        FurnitureOption(OAK_TREASURE_CHEST_ROW + 1, "Teak treasure chest", 8403, listOf(TEAK_PLANK to 2), level = 66, upgradeFrom = 1),
+        FurnitureOption(OAK_TREASURE_CHEST_ROW + 2, "Mahogany treasure chest", 8404, listOf(MAHOGANY_PLANK to 2), level = 84, upgradeFrom = 1),
     )
 
     /** The larder space's first choice (row 5562). */
@@ -274,7 +349,11 @@ class HeadlessHouseTest {
     private val staircases = listOf(FurnitureOption(OAK_STAIRCASE_ROW, "Oak staircase", 8249, listOf(OAK_PLANK to 5, STEEL_BAR to 2), level = 27))
 
     /** The rug space's first choice (row 5524). */
-    private val rings = listOf(FurnitureOption(BOXING_RING_ROW, "Boxing ring", 8023, listOf(OAK_PLANK to 6, BOLT_OF_CLOTH to 4), level = 32))
+    private val rings = listOf(
+        FurnitureOption(BOXING_RING_ROW, "Boxing ring", 8023, listOf(OAK_PLANK to 6, BOLT_OF_CLOTH to 4), level = 32),
+        // The balance beam (row 5637) at its level, with half its steel bars and none of its teak.
+        FurnitureOption(FurnitureBuilds.BALANCE_BEAM, "Balance beam", 8027, listOf(STEEL_BAR to 2), level = 81),
+    )
     private val racks = listOf(FurnitureOption(GLOVE_RACK_ROW, "Glove rack", 8028, listOf(OAK_PLANK to 2), level = 34))
     private val rugs = listOf(FurnitureOption(BROWN_RUG_ROW, "Brown rug", 8316, listOf(BOLT_OF_CLOTH to 2), level = 2))
 
@@ -954,6 +1033,51 @@ class HeadlessHouseTest {
     }
 
     @Test
+    fun `a costume room's treasure chest is built on its space, upgraded to the teak one over it, and the top one has no Upgrade`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("una").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("una")!!
+                player.house!!.rooms += HouseRoom(RoomType.COSTUME_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 66")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $OAK_PLANK 2")
+                client.command("item $TEAK_PLANK 2")
+                client.await("the planks") { if (client.count(OAK_PLANK) == 2 && client.count(TEAK_PLANK) == 2) Unit else null }
+                val xp = client.await("level 66") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 66 } }.xp
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3) + 4
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                fun menu(id: Int, op: Int, offered: List<Int>) {
+                    val before = client.clientScripts().size
+                    client.locOp(id, cx, cz, op)
+                    client.await("the creation menu on $id") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                    val shown = client.await("its slots") { client.clientScripts().drop(before).filter { it.id == Furniture.ENTRY_SCRIPT }.map { it.args[1] }.takeIf { it.size >= offered.size } }
+                    assertEquals(offered, shown)
+                    client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                }
+
+                // The empty space offers only the oak chest: the others upgrade it.
+                menu(CHEST_SPACE, House.BUILD, listOf(OAK_TREASURE_CHEST_ROW))
+                client.await("the oak chest") { if (client.shown(OAK_TREASURE_CHEST, cx, cz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 120 } }
+
+                // Upgrade offers the teak chest, built over it for its own XP.
+                menu(OAK_TREASURE_CHEST, Furniture.UPGRADE, listOf(OAK_TREASURE_CHEST_ROW + 1))
+                client.await("the teak chest") { if (client.shown(TEAK_TREASURE_CHEST, cx, cz)) Unit else null }
+                client.await("its XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == xp + 300 } }
+                assertEquals(0, client.count(OAK_PLANK) + client.count(TEAK_PLANK))
+                assertEquals(mapOf(CHEST_SPACE to TEAK_TREASURE_CHEST), player.house!!.rooms.single { it.type == RoomType.COSTUME_ROOM }.built)
+
+                // The mahogany chest is the top one: nothing upgrades it, so it has no Upgrade handler.
+                assertTrue(18808 !in FurnitureBuilds.UPGRADABLE && TEAK_TREASURE_CHEST in FurnitureBuilds.UPGRADABLE)
+            }
+        }
+    }
+
+    @Test
     fun `a tree or plant needs a watering can but no hammer or saw, gives Farming XP too, and the only exit portal stays`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("jade").use { client ->
@@ -1211,7 +1335,756 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `a combat dummy is attached and detached, Remove waits for Detach, and removing its room takes it away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("nell").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("nell")!!
+                // A combat room east of the parlour with a combat dummy already in it.
+                val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                room.built[DUMMY_SPACE] = COMBAT_DUMMY
+                player.house!!.rooms += room
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val house = assertNotNull(server.world.houses.houseAt(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                val px = cx - 8
+                fun dummy() = server.world.npcs.all.firstOrNull { it.type.id == DUMMY_NPC && it.x == cx + 2 && it.z == cz + 6 }
+                client.await("the dummy") { if (client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+
+                // Attach: the loc gives way to the dummy NPC on its tile.
+                client.locOp(COMBAT_DUMMY, cx + 2, cz + 6, CombatRoom.ATTACH)
+                val npc = client.await("the dummy attached") { dummy() }
+                client.await("the loc gone") { if (!client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+                assertTrue(server.world.combat.dummy(npc))
+                assertEquals(1, house.dummies.size)
+
+                // Remove on it waits for Detach; Detach puts the loc back.
+                client.npcOp(npc.index, CombatRoom.NPC_REMOVE)
+                client.await("detach first") { client.messages().firstOrNull { it.text == "[construction.dummy_detach_first]" } }
+                assertEquals(COMBAT_DUMMY, player.house!!.room(House.STARTER_X + 1, House.STARTER_Z + 1)!!.built[DUMMY_SPACE])
+                client.npcOp(npc.index, CombatRoom.DETACH)
+                client.await("the loc back") { if (client.shown(COMBAT_DUMMY, cx + 2, cz + 6)) Unit else null }
+                assertNull(dummy())
+                assertTrue(house.dummies.isEmpty())
+
+                // Attached again, then the room removed: the dummy goes with it.
+                client.locOp(COMBAT_DUMMY, cx + 2, cz + 6, CombatRoom.ATTACH)
+                client.await("attached again") { dummy() }
+                client.command("tele ${px + 6} ${cz + 3} ${House.GROUND}")
+                client.await("beside the parlour's east door") { client.position?.takeIf { it == Coord(px + 6, cz + 3, House.GROUND) } }
+                client.locOp(House.DOOR_HOTSPOT_LEFT, px + 7, cz + 3, House.BUILD)
+                client.menu("construction.remove_yes", "construction.remove_no")
+                client.chooseOption(1)
+                client.await("the room gone") { if (player.house!!.room(House.STARTER_X + 1, House.STARTER_Z + 1) == null) Unit else null }
+                assertNull(dummy())
+                assertTrue(house.dummies.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `the undead combat dummies count as any Slayer task for a Slayer helmet, and the plain one doesn't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rue").use { client ->
+                client.ready()
+                val player = server.world.playerNamed("rue")!!
+                val slayer = server.world.slayer
+                fun npc(type: NpcType) = Npc(0, NpcSpawn(type, 0, 0, source = "test", respawns = false))
+                // No task at all.
+                assertNull(slayer.task(player))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(undeadDummyNpc)), "no helmet, no bonus")
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET, 1)
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.MELEE, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+                player.equipment[WearPos.HEAD] = InvObj(SLAYER_HELMET_I, 1)
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(undeadDummyNpc)))
+                assertEquals(SlayerHelm.IMBUED, slayer.helm(player, npc(ornateDummyNpc)))
+                assertEquals(SlayerHelm.NONE, slayer.helm(player, npc(dummyNpc)))
+            }
+        }
+    }
+
+    @Test
+    fun `an attack stone is set up, never fights back, chips as it goes down, pays 2,5 percent XP and none for Hitpoints, and the most damage wins`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                server.login("pia").use { b ->
+                a.ready()
+                b.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val pia = server.world.playerNamed("pia")!!
+                val at = a.goIn(House.HOME)
+                // A clay attack stone beside her in the garden, built there as far as the house knows (the games room's
+                // stone space isn't in this fixture).
+                val clay = GamesRoom.Stone.CLAY.loc
+                server.onTick {
+                    ola.house!!.room(House.STARTER_X, House.STARTER_Z)!!.built[-1] = clay
+                    server.world.locs.add(ZoneLoc(clay, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                }
+                a.await("the stone") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
+                for (c in listOf(a, b)) {
+                    c.commandReply("setlevel attack 99") { true }
+                    c.commandReply("setlevel strength 99") { true }
+                }
+                a.commandReply("sure max") { it.startsWith("Your attacks") }
+                server.onTick {
+                    pia.sureHits = true
+                    pia.sureMaxHits = true
+                }
+                // pia is brought in on the stone's other side (guests come with step CON11).
+                b.command("tele ${at.x + 2} ${at.z} ${House.GROUND}")
+                b.await("pia in the garden") { b.position?.takeIf { it == Coord(at.x + 2, at.z, House.GROUND) } }
+
+                // Set-up: the loc gives way to the combat stone, 40 hitpoints, on its tile.
+                a.locOp(clay, at.x + 1, at.z, GamesRoom.SET_UP)
+                val stone = a.await("the combat stone") { server.world.npcs.all.firstOrNull { it.spawn.type.id == CLAY_STONE_NPC && it.x == at.x + 1 && it.z == at.z } }
+                assertEquals(40, stone.maxHitpoints)
+                a.await("the loc gone") { if (!a.shown(clay, at.x + 1, at.z)) Unit else null }
+
+                // Both hit it until it breaks: it never hits back, it chips on the way, and the XP is 2.5% with none for
+                // Hitpoints. ola's fight doesn't lock pia out (Codex review on #1051).
+                val hp = ola.hitpoints
+                val hpXp = ola.skills.xp(Skill.HITPOINTS)
+                val piaHpXp = pia.skills.xp(Skill.HITPOINTS)
+                val combatXp = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) + pia.skills.xp(it) }
+                var chipped = false
+                a.npcOp(stone.index, 2)
+                a.await("ola's first hit") { Unit.takeIf { stone.hitpoints < 40 } }
+                b.await("the stone in view") { b.npcs().takeIf { n -> n.any { it.index == stone.index } } }
+                b.npcOp(stone.index, 2)
+                a.await("the win", timeoutMillis = 60_000) {
+                    if ((stone.transformedTo?.id ?: CLAY_STONE_NPC) != CLAY_STONE_NPC) chipped = true
+                    a.messages().firstOrNull { it.text.startsWith("[construction.stone_winner") }
+                }
+                // Everyone who hit it is told: pia landed hits on it too.
+                b.await("pia told") { b.messages().firstOrNull { it.text.startsWith("[construction.stone_winner") } }
+                assertTrue(chipped, "a chip came off")
+                assertEquals(hp, ola.hitpoints)
+                assertEquals(hpXp, ola.skills.xp(Skill.HITPOINTS))
+                assertEquals(piaHpXp, pia.skills.xp(Skill.HITPOINTS))
+                // 2.5% of the 40 damage dealt is 1 XP, shared between them here, not 2.5% of the usual 160 (Codex review on #1051).
+                val gained = listOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE).sumOf { ola.skills.xp(it) + pia.skills.xp(it) } - combatXp
+                assertTrue(gained in 0..1, "combat XP $gained")
+                // The stone is back on its place.
+                a.await("the stone back") { if (a.shown(clay, at.x + 1, at.z)) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the dartboard takes ten darts and the archery target ten arrows, used up, for 7,5 and 10 Ranged XP a hit`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // The dartboard and archery target beside her in the garden (the games room's space isn't in this fixture).
+                server.onTick {
+                    server.world.locs.add(ZoneLoc(GamesRoom.DARTBOARD, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                    server.world.locs.add(ZoneLoc(GamesRoom.ARCHERY_TARGET, LocShape.CENTREPIECE_STRAIGHT, 0, at.x - 1, at.z, House.GROUND))
+                }
+                a.commandReply("setlevel ranged 99") { true }
+
+                // Nothing wielded: the dartboard refuses.
+                a.locOp(GamesRoom.DARTBOARD, at.x + 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the weapon refusal") { a.messages().firstOrNull { it.text == "[construction.dartboard_weapon]" } }
+
+                // Twelve darts: ten thrown and used up, 7.5 XP a hit, then the score.
+                server.onTick { ola.equipment[WearPos.WEAPON] = InvObj(BRONZE_DART, 12) }
+                var before = ola.skills.xp(Skill.RANGED)
+                a.locOp(GamesRoom.DARTBOARD, at.x + 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the darts' score", timeoutMillis = 60_000) { a.messages().firstOrNull { it.text.startsWith("[construction.ranging_score") } }
+                assertEquals(2, ola.equipment[WearPos.WEAPON]?.count)
+                assertTrue(ola.skills.xp(Skill.RANGED) - before in 7..75, "darts XP")
+
+                // A bow without arrows: refused; with fifteen, ten shot and used up, 10 XP a hit.
+                server.onTick { ola.equipment[WearPos.WEAPON] = InvObj(SHORTBOW, 1) }
+                a.locOp(GamesRoom.ARCHERY_TARGET, at.x - 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the ammo refusal") { a.messages().firstOrNull { it.text == "[construction.archery_ammo]" } }
+                server.onTick { ola.equipment[WearPos.AMMO] = InvObj(BRONZE_ARROW, 15) }
+                before = ola.skills.xp(Skill.RANGED)
+                val scores = a.messages().count { it.text.startsWith("[construction.ranging_score") }
+                a.locOp(GamesRoom.ARCHERY_TARGET, at.x - 1, at.z, GamesRoom.RANGING_OP)
+                a.await("the arrows' score", timeoutMillis = 60_000) { Unit.takeIf { a.messages().count { it.text.startsWith("[construction.ranging_score") } > scores } }
+                assertEquals(5, ola.equipment[WearPos.AMMO]?.count)
+                val gained = ola.skills.xp(Skill.RANGED) - before
+                assertTrue(gained in 10..100 && gained % 10 == 0, "archery XP $gained")
+            }
+        }
+    }
+
+    @Test
+    fun `the elemental sphere changes a staff or battlestaff for runes but not a mystic staff, and a telescope is looked through`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // An elemental sphere and a mahogany telescope beside her in the garden (the study isn't in this fixture).
+                server.onTick {
+                    server.world.locs.add(ZoneLoc(ELEMENTAL_SPHERE, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND))
+                    server.world.locs.add(ZoneLoc(MAHOGANY_TELESCOPE, LocShape.CENTREPIECE_STRAIGHT, 0, at.x - 1, at.z, House.GROUND))
+                    ola.inventory.add(server.world.objTypes[AIR_STAFF]!!, 1)
+                    ola.inventory.add(server.world.objTypes[AIR_BATTLESTAFF]!!, 1)
+                    ola.inventory.add(server.world.objTypes[MYSTIC_AIR_STAFF]!!, 1)
+                }
+                a.await("the staves") { a.slotOf(MYSTIC_AIR_STAFF).takeIf { it >= 0 } }
+
+                // A mystic staff is beyond the elemental sphere.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(MYSTIC_AIR_STAFF), MYSTIC_AIR_STAFF)
+                a.await("the staff refusal") { a.messages().firstOrNull { it.text == "[construction.crystal_ball_staff]" } }
+
+                // A staff is changed free: the menu offers the other three elements, fire last.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_STAFF), AIR_STAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the fire staff") { Unit.takeIf { a.count(FIRE_STAFF) == 1 && a.count(AIR_STAFF) == 0 } }
+
+                // A battlestaff needs 100 runes of the new element: refused without, changed with them taken.
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_BATTLESTAFF), AIR_BATTLESTAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the runes refusal") { a.messages().firstOrNull { it.text.startsWith("[construction.crystal_ball_runes") } }
+                assertEquals(1, a.count(AIR_BATTLESTAFF))
+                server.onTick { ola.inventory.add(server.world.objTypes[FIRE_RUNE]!!, 150) }
+                a.await("the runes") { Unit.takeIf { a.count(FIRE_RUNE) == 150 } }
+                a.locTarget(ELEMENTAL_SPHERE, at.x + 1, at.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, a.slotOf(AIR_BATTLESTAFF), AIR_BATTLESTAFF)
+                a.menu("construction.crystal_ball_water", "construction.crystal_ball_earth", "construction.crystal_ball_fire")
+                a.chooseOption(3)
+                a.await("the fire battlestaff") { Unit.takeIf { a.count(FIRE_BATTLESTAFF) == 1 && a.count(AIR_BATTLESTAFF) == 0 } }
+                assertEquals(50, a.count(FIRE_RUNE))
+
+                // Observe on the telescope shows what it sees in a message box.
+                a.locOp(MAHOGANY_TELESCOPE, at.x - 1, at.z, Study.OBSERVE)
+                a.awaitDialogue("the telescope's view") { it is DialogueView.Message }
+            }
+        }
+    }
+
+    @Test
+    fun `a teak eagle lectern makes the teleport tablets it has, from soft clay and the spell's runes, for the spell's XP, and Create-last makes them again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A teak eagle lectern beside her in the garden (the study isn't in this fixture).
+                server.onTick { server.world.locs.add(ZoneLoc(TEAK_EAGLE_LECTERN, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND)) }
+                a.commandReply("setlevel magic 40") { true }
+
+                // Study: the Make-X box shows Varrock, Lumbridge, Falador and Camelot, Kourend Castle and Ardougne.
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                val box = a.await("the Make-X box") { a.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                val shown = listOf(TeleportObjs.VARROCK_TABLET, TeleportObjs.LUMBRIDGE_TABLET, TeleportObjs.FALADOR_TABLET, TeleportObjs.CAMELOT_TABLET, TeleportObjs.KOUREND_TABLET, TeleportObjs.ARDOUGNE_TABLET)
+                for (id in shown) assertTrue(id in box.args, "the box shows $id: ${box.args}")
+                assertTrue(TeleportObjs.WATCHTOWER_TABLET !in box.args, "no Watchtower tablet on a teak eagle lectern")
+                // Without soft clay: refused.
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                a.await("the clay refusal") { a.messages().firstOrNull { it.text == "[construction.lectern_clay]" } }
+
+                // Three clay and the runes for two Varrock tablets: two made, 35 XP each, then the runes run out.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 2)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 6)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 2)
+                }
+                a.await("the clay") { Unit.takeIf { a.count(Study.SOFT_CLAY) == 3 } }
+                val before = ola.skills.xp(Skill.MAGIC)
+                val boxes = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box again") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                a.await("the runes refusal", timeoutMillis = 30_000) { a.messages().firstOrNull { it.text == "[construction.lectern_runes]" } }
+                assertEquals(2, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(1, a.count(Study.SOFT_CLAY))
+                assertEquals(0, a.count(TeleportObjs.LAW))
+                assertEquals(70, ola.skills.xp(Skill.MAGIC) - before)
+
+                // Create-last: Varrock again.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 1)
+                }
+                a.await("the law rune") { Unit.takeIf { a.count(TeleportObjs.LAW) == 1 } }
+                val clayRefusals = a.messages().count { it.text == "[construction.lectern_clay]" }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                // One made (3 asked for last time), then the clay runs out.
+                a.await("the clay running out", timeoutMillis = 30_000) { Unit.takeIf { a.messages().count { it.text == "[construction.lectern_clay]" } > clayRefusals } }
+                assertEquals(3, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(0, a.count(Study.SOFT_CLAY))
+
+                // Camelot needs Magic 45.
+                server.onTick { ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 1) }
+                val boxes2 = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box a third time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes2 } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 3, 1)
+                a.await("the level refusal") { a.messages().firstOrNull { it.text.startsWith("[construction.lectern_level") } }
+
+                // Walking off stops a batch (Codex review on #1057): runes and clay for three, one made, then a step away.
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 2)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 9)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 3)
+                }
+                a.await("the runes for three") { Unit.takeIf { a.count(TeleportObjs.LAW) == 3 && a.count(Study.SOFT_CLAY) == 3 } }
+                val boxes3 = a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.STUDY)
+                a.await("the Make-X box a fourth time") { Unit.takeIf { a.clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } > boxes3 } }
+                a.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                a.await("the first of three") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 4 } }
+                a.walk(ola.x, ola.z - 1)
+                val stepped = server.world.tick
+                a.await("three tablets' time", timeoutMillis = 30_000) { Unit.takeIf { server.world.tick >= stepped + 3 * Study.TABLET_TICKS } }
+                assertEquals(4, a.count(TeleportObjs.VARROCK_TABLET))
+                assertEquals(2, a.count(Study.SOFT_CLAY))
+
+                // Create-last clicked again and again can't beat the 4 ticks (Codex review on #1057). She steps back first.
+                a.walk(at.x, at.z)
+                a.await("back beside it") { Unit.takeIf { ola.x == at.x && ola.z == at.z } }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the fifth") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 5 } }
+                val fifth = server.world.tick
+                while (server.world.tick < fifth + Study.TABLET_TICKS - 1) {
+                    val tick = server.world.tick
+                    a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                    a.await("a tick on") { Unit.takeIf { server.world.tick > tick } }
+                    if (server.world.tick < fifth + Study.TABLET_TICKS) assertEquals(5, a.count(TeleportObjs.VARROCK_TABLET), "no tablet before 4 ticks")
+                }
+                a.await("the sixth, in its time", timeoutMillis = 30_000) { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 6 } }
+                assertTrue(server.world.tick >= fifth + Study.TABLET_TICKS)
+
+                // A full stack of the tablet: nothing taken (Codex review on #1057).
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.VARROCK_TABLET]!!, Int.MAX_VALUE - 6)
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 1)
+                }
+                a.await("the full stack") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == Int.MAX_VALUE } }
+                val clay = a.count(Study.SOFT_CLAY)
+                val laws = a.count(TeleportObjs.LAW)
+                val noSpace = a.messages().count { it.text == "[make.no_space]" }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the no-space message", timeoutMillis = 30_000) { Unit.takeIf { a.messages().count { it.text == "[make.no_space]" } > noSpace } }
+                assertEquals(clay, a.count(Study.SOFT_CLAY))
+                assertEquals(laws, a.count(TeleportObjs.LAW))
+            }
+        }
+    }
+
+    @Test
+    fun `the teleport focus directs a portal for 100 times the spell's runes and 5 times its XP, and the portal is entered to the place`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A portal chamber east of the garden with a teak frame on portal 1, and its focus laid by hand (the
+                // chamber's template isn't in this fixture).
+                val house = server.world.houses.houseAt(at.x, at.z)!!
+                val chamber = HouseRoom(RoomType.PORTAL_CHAMBER, House.STARTER_X + 1, House.STARTER_Z)
+                val fx = house.instance.baseX + (chamber.x shl 3) + 3
+                val fz = house.instance.baseZ + (chamber.z shl 3) + 3
+                server.onTick {
+                    chamber.built[PortalChamber.PORTAL_SPACES[0]] = PortalDestinations.FRAMES[0]
+                    ola.house!!.rooms += chamber
+                    server.world.locs.add(ZoneLoc(PortalChamber.FOCI.first(), LocShape.CENTREPIECE_STRAIGHT, 0, fx, fz, House.GROUND))
+                    server.world.teleport(ola, fx - 1, fz, House.GROUND)
+                }
+                a.await("beside the focus") { Unit.takeIf { ola.x == fx - 1 } }
+                a.commandReply("setlevel magic 31") { true }
+
+                // Portal 2 has no frame: refused.
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(2)
+                a.await("the frame refusal") { a.messages().firstOrNull { it.text == "[construction.portal_no_frame]" } }
+
+                // Portal 1 to Lumbridge (the second place, after Varrock): refused without the runes, then directed.
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                a.awaitDialogue("the places") { it is DialogueView.Menu && (it as DialogueView.Menu).options.size == 5 }
+                a.chooseOption(2)
+                a.await("the runes refusal") { a.messages().firstOrNull { it.text == "[construction.portal_runes]" } }
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 100)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 300)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.EARTH]!!, 100)
+                }
+                a.await("the runes") { Unit.takeIf { a.count(TeleportObjs.EARTH) == 100 } }
+                val before = ola.skills.xp(Skill.MAGIC)
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                a.awaitDialogue("the places again") { it is DialogueView.Menu && (it as DialogueView.Menu).options.size == 5 }
+                a.chooseOption(2)
+                a.await("the portal directed") { a.messages().firstOrNull { it.text == "[construction.portal_directed]" } }
+                assertEquals(TEAK_LUMBRIDGE_PORTAL, chamber.built[PortalChamber.PORTAL_SPACES[0]])
+                assertEquals(0, a.count(TeleportObjs.LAW) + a.count(TeleportObjs.AIR) + a.count(TeleportObjs.EARTH))
+                assertEquals(205, ola.skills.xp(Skill.MAGIC) - before)
+
+                // A removed frame keeps the place: a frame built again shows it.
+                server.onTick {
+                    chamber.built[PortalChamber.PORTAL_SPACES[0]] = PortalDestinations.FRAMES[2]
+                    PortalDestinations.apply(chamber, PortalChamber.PORTAL_SPACES[0])
+                }
+                a.await("the marble portal") { Unit.takeIf { chamber.built[PortalChamber.PORTAL_SPACES[0]] == MARBLE_LUMBRIDGE_PORTAL } }
+
+                // Ape Atoll takes 100 bananas, which only fit noted: 80 noted and the 20 unnoted are all taken (Codex review on #1059).
+                a.commandReply("setlevel magic 64") { true }
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.WATER]!!, 200)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 200)
+                    ola.inventory.add(server.world.objTypes[NOTED_BANANA]!!, 80)
+                    repeat(20) { ola.inventory.add(server.world.objTypes[TeleportObjs.BANANA]!!, 1) }
+                }
+                a.await("the bananas") { Unit.takeIf { a.count(NOTED_BANANA) == 80 && a.count(TeleportObjs.BANANA) == 20 } }
+                a.locOp(PortalChamber.FOCI.first(), fx, fz, PortalChamber.DIRECT)
+                a.menu("construction.portal_1", "construction.portal_2", "construction.portal_3")
+                a.chooseOption(1)
+                // Page on with More until Ape Atoll shows.
+                var ape = -1
+                repeat(4) {
+                    if (ape >= 0) return@repeat
+                    val shown = a.awaitDialogue("a page of places") { it is DialogueView.Menu } as DialogueView.Menu
+                    val at = shown.options.indexOfFirst { "Ape Atoll" in it }
+                    if (at >= 0) { ape = at; a.chooseOption(at + 1) } else a.chooseOption(shown.options.size)
+                }
+                assertTrue(ape >= 0, "Ape Atoll is offered")
+                a.await("Ape Atoll directed") { Unit.takeIf { chamber.built[-PortalChamber.PORTAL_SPACES[0]] == TeleportObjs.APE_ATOLL } }
+                assertEquals(0, a.count(NOTED_BANANA) + a.count(TeleportObjs.BANANA))
+
+                // Enter on the directed portal: to Lumbridge.
+                server.onTick { server.world.locs.add(ZoneLoc(TEAK_LUMBRIDGE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, fx - 3, fz, House.GROUND)) }
+                a.locOp(TEAK_LUMBRIDGE_PORTAL, fx - 3, fz, PortalChamber.ENTER)
+                a.await("Lumbridge") { Unit.takeIf { ola.x in 3219..3223 && ola.z in 3216..3220 } }
+            }
+        }
+    }
+
+    @Test
+    fun `the hoop and stick takes ten throws, each landing worth 2,5 Ranged XP, and tells the score`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                a.ready()
+                a.buyHouse()
+                val ola = server.world.playerNamed("ola")!!
+                val at = a.goIn(House.HOME)
+                // A hoop and stick beside her in the garden (the games room's ranging game space isn't in this fixture).
+                server.onTick { server.world.locs.add(ZoneLoc(GamesRoom.HOOP_AND_STICK, LocShape.CENTREPIECE_STRAIGHT, 0, at.x + 1, at.z, House.GROUND)) }
+                a.commandReply("setlevel ranged 99") { true }
+                val before = ola.skills.xp(Skill.RANGED)
+                val animsBefore = a.animationTicks().size
+                a.locOp(GamesRoom.HOOP_AND_STICK, at.x + 1, at.z, GamesRoom.HOOP)
+                a.await("the score", timeoutMillis = 30_000) { a.messages().firstOrNull { it.text.startsWith("[construction.hoop_score") } }
+                // Ten throws, each with its animation.
+                assertEquals(GamesRoom.THROWS, a.animationTicks().size - animsBefore)
+                // 2.5 XP a landing, at most ten; at level 99 almost all land (241 in 256 each).
+                val gained = ola.skills.xp(Skill.RANGED) - before
+                assertTrue(gained in 1..GamesRoom.THROWS * GamesRoom.LAND_XP_TENTHS / 10, "Ranged XP $gained")
+            }
+        }
+    }
+
+    @Test
+    fun `two players box in the boxing ring, with no skull, nothing worn but gloves, both inside the ropes, and a death stays in the room`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                server.login("pia").use { b ->
+                    a.ready()
+                    b.ready()
+                    a.buyHouse()
+                    val ola = server.world.playerNamed("ola")!!
+                    val pia = server.world.playerNamed("pia")!!
+                    // A combat room east of the parlour with a boxing ring in it.
+                    val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                    val ring = FurnitureBuilds.BUILDS.getValue(BOXING_RING_ROW)
+                    for (id in FurnitureBuilds.siblings(RING_FLOOR_SPACE)) {
+                        val loc = ring.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                        if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                    }
+                    ola.house!!.rooms += room
+                    val at = a.goIn(House.HOME)
+                    val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                    val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                    val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                    a.await("the mat") { if (a.shown(BOXING_MAT, cx + 3, cz + 3)) Unit else null }
+                    for (c in listOf(a, b)) c.commandReply("setlevel strength 99") { true }
+                    a.commandReply("sure max") { it.startsWith("Your attacks") }
+                    // Both inside the ropes (pia is brought in: guests come with step CON11).
+                    a.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    b.command("tele ${cx + 4} ${cz + 4} ${House.GROUND}")
+                    b.await("pia in the ring") { b.position?.takeIf { it == Coord(cx + 4, cz + 4, House.GROUND) } }
+                    a.await("Attack given") { Unit.takeIf { a.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    a.await("pia in view") { a.otherPlayers().takeIf { it.isNotEmpty() } }
+
+                    // Bare fists: the punch lands, and nobody is skulled.
+                    val before = pia.hitpoints
+                    val xpBefore = Skill.entries.sumOf { ola.skills.xp(it) }
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the punch") { Unit.takeIf { pia.hitpoints < before } }
+                    assertEquals(0, ola.skullTicks)
+                    // No XP and no kill credit in a ring (exploit review R65A-1, R65A-2); the PJ timer runs inside.
+                    assertEquals(xpBefore, Skill.entries.sumOf { ola.skills.xp(it) })
+                    assertTrue(pia.pvpDamage.isEmpty())
+                    assertTrue(ola.pjUntil > 0)
+
+                    // A hat is armour: refused.
+                    ola.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_kit]" } }
+                    ola.equipment.remove(WearPos.HEAD, 1)
+
+                    // Nor may she wear one: armour on the one attacked is refused too (Codex review on #1017).
+                    pia.equipment[WearPos.HEAD] = InvObj(PLANK, 1)
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the target's kit refusal") { a.messages().firstOrNull { it.text == "[construction.arena_target_kit]" } }
+                    pia.equipment.remove(WearPos.HEAD, 1)
+
+                    // A punch on its way when its target leaves the ring lands as nothing (exploit review R65A-1): on
+                    // the game thread, pia punches ola, and ola is taken out of the ring before it lands.
+                    val caughtAt = server.onTick {
+                        ola.vars[osrsps.game.EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+                        ola.hitpoints = 99
+                        pia.sureHits = true
+                        pia.sureMaxHits = true
+                        pia.nextAttackTick = 0
+                        val pvp = server.world.pvpCombat
+                        pvp.tryInteract(pia, PvpInteraction(ola, null, pvp))
+                        assertTrue(pvp.incoming(ola), "a punch on its way")
+                        server.world.teleport(ola, cx + 1, cz + 3, House.GROUND)
+                        ola.hitpoints
+                    }
+                    a.await("ola out of the ring") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    repeat(3) { server.onTick { } }
+                    assertEquals(caughtAt, ola.hitpoints)
+                    assertTrue(server.onTick { !server.world.pvpCombat.incoming(ola) })
+                    a.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    a.await("ola back in") { a.position?.takeIf { it == Coord(cx + 3, cz + 4, House.GROUND) } }
+
+                    // pia outside the ropes: no Attack for her, and ola's attack is refused.
+                    b.command("tele ${cx + 1} ${cz + 3} ${House.GROUND}")
+                    b.await("Attack taken away") { Unit.takeIf { b.playerOps()[PlayerOps.ATTACK] == null } }
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    a.await("the ring refusal") { a.messages().firstOrNull { it.text == "[construction.arena_not_same]" } }
+
+                    // Back in at 1 hitpoint: the next punch kills her, and she comes back in the room with her things.
+                    b.command("tele ${cx + 4} ${cz + 4} ${House.GROUND}")
+                    b.await("pia back in") { b.position?.takeIf { it == Coord(cx + 4, cz + 4, House.GROUND) } }
+                    pia.inventory[20] = InvObj(PLANK, 1)
+                    pia.hitpoints = 1
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    b.await("back in the room") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertEquals(1, pia.inventory.count(PLANK))
+                    assertEquals(0, ola.skullTicks)
+
+                    // Out of the house, the ring's PJ timer goes with her (exploit review R65A-3).
+                    assertTrue(ola.pjUntil > 0)
+                    a.tele(OUTSIDE.x, OUTSIDE.z)
+                    a.await("ola's timer gone") { Unit.takeIf { ola.pjUntil == 0L && ola.pjOpponent == null } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `two players on the balance beam with a pugel each, a landed hit knocks the other off with no damage, and Get-down`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ola").use { a ->
+                server.login("pia").use { b ->
+                    a.ready()
+                    b.ready()
+                    a.buyHouse()
+                    val ola = server.world.playerNamed("ola")!!
+                    val pia = server.world.playerNamed("pia")!!
+                    // A combat room east of the parlour with the balance beam in it.
+                    val room = HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                    val beam = FurnitureBuilds.BUILDS.getValue(FurnitureBuilds.BALANCE_BEAM)
+                    for (id in FurnitureBuilds.siblings(FLOOR_NW_SPACE)) {
+                        val loc = beam.locFor(FurnitureBuilds.HOTSPOTS.getValue(id).variant)
+                        if (loc != FurnitureBuilds.NONE) room.built[id] = loc
+                    }
+                    ola.house!!.rooms += room
+                    val at = a.goIn(House.HOME)
+                    val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                    val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                    val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                    a.await("the beam") { if (a.shown(BEAM_LEFT, cx + 2, cz + 5) && a.shown(BEAM_MIDDLE, cx + 3, cz + 5)) Unit else null }
+                    a.command("tele ${cx + 2} ${cz + 4} ${House.GROUND}")
+                    b.command("tele ${cx + 3} ${cz + 4} ${House.GROUND}")
+                    b.await("pia beside the beam") { b.position?.takeIf { it == Coord(cx + 3, cz + 4, House.GROUND) } }
+
+                    // No pugel: refused.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("the pugel refusal") { a.messages().firstOrNull { it.text == "[construction.beam_pugel]" } }
+                    ola.inventory[20] = InvObj(CombatRoom.PUGEL, 1)
+                    pia.inventory[20] = InvObj(CombatRoom.PUGEL, 1)
+                    // A shield in hand: refused.
+                    ola.equipment[WearPos.SHIELD] = InvObj(WOODEN_SHIELD, 1)
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("the hands refusal") { a.messages().firstOrNull { it.text == "[construction.beam_hands]" } }
+                    ola.equipment.remove(WearPos.SHIELD, 1)
+
+                    // Up: a second pugel wielded, the first still carried.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on the beam") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    a.await("the pugel wielded") { a.inventory(Inventory.WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == CombatRoom.PUGEL } }
+                    assertEquals(1, a.count(CombatRoom.PUGEL))
+                    // Her part of the beam is taken.
+                    b.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    b.await("the taken refusal") { b.messages().firstOrNull { it.text == "[construction.beam_taken]" } }
+                    b.locOp(BEAM_MIDDLE, cx + 3, cz + 5, CombatRoom.STAND_ON)
+                    b.await("pia on the beam") { b.position?.takeIf { it == Coord(cx + 3, cz + 5, House.GROUND) } }
+                    a.await("Attack given") { Unit.takeIf { a.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    a.await("pia in view") { a.otherPlayers().takeIf { it.isNotEmpty() } }
+
+                    // ola's landed bash knocks pia off: no damage, her worn pugel gone, the carried one kept, no skull.
+                    for (c in listOf(a, b)) c.commandReply("setlevel strength 99") { true }
+                    a.commandReply("sure max") { it.startsWith("Your attacks") }
+                    val before = pia.hitpoints
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    b.await("pia knocked off") { b.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertEquals(before, pia.hitpoints)
+                    // Still a hit by ola: the logout lock holds (Codex review on #1018).
+                    assertSame(ola, pia.attackedByPlayer)
+                    assertTrue(pia.attackedByPlayerTick >= 0)
+                    assertNull(pia.equipment[WearPos.WEAPON])
+                    assertEquals(1L, pia.inventory.count(CombatRoom.PUGEL))
+                    assertEquals(0, ola.skullTicks)
+                    // And ola stops going for her.
+                    a.awaitTicks(3)
+                    assertNull(ola.interaction)
+
+                    // Its pugel taken off into the pack on the beam still goes back at Get-down (Codex review on #1018).
+                    ola.equipment[WearPos.WEAPON] = null
+                    ola.inventory.add(server.world.objTypes[CombatRoom.PUGEL]!!, 1)
+                    assertEquals(2L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // Get-down: off the beam, the pugel it gave taken back.
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.GET_DOWN)
+                    a.await("ola down") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                    assertNull(ola.equipment[WearPos.WEAPON])
+                    assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // A death on the beam takes the pugel it gave back too (Codex review on #1018).
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on to die") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    a.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    a.await("ola back in the room") { a.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) && !ola.dead } }
+                    assertNull(ola.equipment[WearPos.WEAPON])
+                    assertEquals(1L, ola.inventory.count(CombatRoom.PUGEL))
+
+                    // ola back on, then out of the house without Get-down: nothing is kept for her (Codex review on #1018).
+                    assertEquals(0, server.world.combatRoom.tracked())
+                    a.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                    a.await("ola on again") { a.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                    assertEquals(1, server.world.combatRoom.tracked())
+                    a.tele(OUTSIDE.x, OUTSIDE.z)
+                    a.await("out of the house") { if (server.world.combatRoom.tracked() == 0) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `building the balance beam moves whoever stands on its row off it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rae").use { client ->
+                client.ready()
+                client.buyHouse()
+                val player = server.world.playerNamed("rae")!!
+                player.house!!.rooms += HouseRoom(RoomType.COMBAT_ROOM, House.STARTER_X + 1, House.STARTER_Z + 1)
+                client.command("setlevel construction 81")
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $STEEL_BAR 2")
+                client.await("the bars") { if (client.count(STEEL_BAR) == 2) Unit else null }
+                client.await("level 81") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.level == 81 } }
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + ((House.STARTER_X + 1) shl 3)
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3)
+                // Built from the beam's own row, beside its left end.
+                client.command("tele ${cx + 3} ${cz + 5} ${House.GROUND}")
+                client.await("on the row") { client.position?.takeIf { it == Coord(cx + 3, cz + 5, House.GROUND) } }
+                client.locOp(FLOOR_NW_SPACE, cx + 2, cz + 5, House.BUILD)
+                client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 2)
+                client.await("the beam") { if (client.shown(BEAM_LEFT, cx + 2, cz + 5) && client.shown(BEAM_MIDDLE, cx + 3, cz + 5)) Unit else null }
+                client.await("moved off it") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                assertNull(player.equipment[WearPos.WEAPON])
+
+                // Back on it with a pugel, then the beam removed: off it first, the pugel it gave taken back (Codex review on #1018).
+                client.command("item ${CombatRoom.PUGEL} 1")
+                client.await("the pugel") { if (client.count(CombatRoom.PUGEL) == 1) Unit else null }
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, CombatRoom.STAND_ON)
+                client.await("on the beam") { client.position?.takeIf { it == Coord(cx + 2, cz + 5, House.GROUND) } }
+                assertEquals(CombatRoom.PUGEL, player.equipment[WearPos.WEAPON]?.id)
+                client.locOp(BEAM_LEFT, cx + 2, cz + 5, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("off the removed beam") { client.position?.takeIf { it == Coord(cx + 1, cz + 3, House.GROUND) } }
+                assertNull(player.equipment[WearPos.WEAPON])
+                assertEquals(1L, player.inventory.count(CombatRoom.PUGEL))
+
+            }
+        }
+    }
+
+    /** Runs [block] on the game thread, at the next tick. */
+    private fun <T> TestServer.onTick(block: () -> T): T {
+        val result = java.util.concurrent.CompletableFuture<T>()
+        world.npcScripts.later(1) { result.complete(block()) }
+        return result.get(10, java.util.concurrent.TimeUnit.SECONDS)
+    }
+
     private companion object {
+        const val FLOOR_NW_SPACE = 15290
+        const val FLOOR_N_SPACE = 15288
+        const val FLOOR_NE_SPACE = 15289
+        const val BEAM_MIDDLE = 13142
+        const val BEAM_LEFT = 13143
+        const val BEAM_RIGHT = 13144
+        const val WOODEN_SHIELD = 7676
+        const val DUMMY_SPACE = 29335
+        const val COMBAT_DUMMY = 29336
+        const val DUMMY_NPC = 2668
+        const val CLAY_STONE_NPC = 20_000
+        const val BRONZE_DART = 806
+        const val SHORTBOW = 841
+        const val BRONZE_ARROW = 882
+        const val AIR_STAFF = 1381
+        const val FIRE_STAFF = 1387
+        const val AIR_BATTLESTAFF = 1397
+        const val FIRE_BATTLESTAFF = 1393
+        const val MYSTIC_AIR_STAFF = 1405
+        const val FIRE_RUNE = 554
+        const val ELEMENTAL_SPHERE = 13660
+        const val MAHOGANY_TELESCOPE = 13658
+        const val TEAK_EAGLE_LECTERN = 13645
+        const val TEAK_LUMBRIDGE_PORTAL = 13616
+        const val MARBLE_LUMBRIDGE_PORTAL = 13630
+        const val UNDEAD_DUMMY_NPC = 7413
+        const val ORNATE_DUMMY_NPC = 10507
+        const val SLAYER_HELMET = 11864
+        const val SLAYER_HELMET_I = 11865
         const val STAIR_SPACE = 15380
         const val STAIR_TOP_SPACE = 15381
         const val OAK_STAIRCASE_ROW = 5644
@@ -1281,6 +2154,13 @@ class HeadlessHouseTest {
         const val WOOD_TABLE = 13293
         const val GREENMAN = 57012
         const val OAK_PLANK = 8778
+        const val NOTED_BANANA = 1964
+        const val TEAK_PLANK = 8780
+        const val MAHOGANY_PLANK = 8782
+        const val CHEST_SPACE = 18813
+        const val OAK_TREASURE_CHEST_ROW = 5940
+        const val OAK_TREASURE_CHEST = 18804
+        const val TEAK_TREASURE_CHEST = 18806
         const val GREENMAN_ITEM = 31024
         const val STOVE_SPACE = 15398
         const val SHELF_SPACE = 15399

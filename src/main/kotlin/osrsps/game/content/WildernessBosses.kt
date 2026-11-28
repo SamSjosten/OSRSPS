@@ -30,6 +30,8 @@ class WildernessBoss(
     val uniques: Set<Int> = emptySet(),
     val lair: Boolean = false,
     val topDamage: Boolean = false,
+    /** Puts down the loot itself from each player's damage by save key, instead of its drop table (the Revenant maledictus). */
+    val customLoot: ((npc: Npc, damage: Map<String, Int>) -> Unit)? = null,
 )
 
 /**
@@ -119,6 +121,17 @@ class WildernessBosses(private val world: World) {
         bodyGoing = if (tally != null && npc.hitpoints <= 0) npc to tally else null
     }
 
+    /**
+     * [npc] is back to full and starting over (the Corporeal Beast's reset, Vet'ion calming down): the damage dealt so
+     * far no longer counts toward its kill (exploit review round 63, R63B-1).
+     */
+    fun reset(npc: Npc) {
+        damage.remove(npc)
+    }
+
+    /** The damage dealt to [npc] so far by player save key, for tests. */
+    internal fun dealt(npc: Npc): Map<String, Int> = damage[npc]?.damage.orEmpty().toMap()
+
     /** How many boss NPCs have a damage tally, for tests: none once each has died or gone. */
     internal val tallies: Int get() = damage.size
 
@@ -178,7 +191,12 @@ class WildernessBosses(private val world: World) {
         val shares = damage[npc]?.atKill ?: shares(npc)
         // The top of those still at the fight at the kill (exploit review rounds 40 and 42).
         val top = shares.firstOrNull()?.key
-        damage.remove(npc)
+        // A custom loot gets everyone's damage: the maledictus's food drops under each who dealt any, wherever they are.
+        val dealt = damage.remove(npc)?.damage.orEmpty()
+        boss.customLoot?.let {
+            it(npc, dealt)
+            return true
+        }
         if (boss.topDamage) {
             val def = world.npcDrops[npc.type] ?: return true
             for (rolled in def.roll(world.random)) {
@@ -201,7 +219,8 @@ class WildernessBosses(private val world: World) {
         val def = world.npcDrops[npc.type] ?: return true
         val drops = split(shares, boss.uniques, world.random) { def.roll(world.random) }
         for ((key, items) in drops) {
-            for (drop in items) {
+            for (rolled in items) {
+                val drop = clueChecked(key, rolled) ?: continue
                 world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, key, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
                 world.lootDroppedFor(key, drop.type, drop.count)
             }
@@ -209,7 +228,10 @@ class WildernessBosses(private val world: World) {
         return true
     }
 
-    /** [rolled] as the looter saved under [key] gets it: a clue scroll as its scroll box, or null past their clue cap. */
+    /**
+     * [rolled] as its looter [key] gets it: a clue scroll as its tier's scroll box, or nothing past the clue cap, as a
+     * solo kill's drop goes through [osrsps.game.trail.TreasureTrails.dropFor] (exploit review round 55, R55B-5).
+     */
     private fun clueChecked(key: String?, rolled: osrsps.game.combat.Drop): osrsps.game.combat.Drop? {
         val player = key?.let { k -> world.onlinePlayers.firstOrNull { it.saveKey == k && !it.loggedOut } }
         val type = world.trails.dropFor(player, rolled.type) ?: return null

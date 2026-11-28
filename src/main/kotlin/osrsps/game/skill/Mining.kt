@@ -237,6 +237,62 @@ class Mining(private val world: World) {
         world.handlers.onNpc(npcType, option) { op -> mineNpc(op, type, taken) }
     }
 
+    /**
+     * Mine on a gem rock loc that the caller empties: Tai Bwo Wannai's (Karamja step K4.2b), which come out of the jungle
+     * and give three gems before they go. A swing and roll as at any gem rock (the glory's tripled chance too); each gem
+     * calls [taken] with the loc, which ends the swing, and the caller turns the loc into its next stage or takes it away.
+     */
+    fun onGemRock(locId: Int, taken: (Player, osrsps.game.zone.ZoneLoc) -> Unit) {
+        world.handlers.onLoc(locId, mineOption(locId)) { op -> mineGemLoc(op, taken) }
+    }
+
+    private suspend fun ScriptContext.mineGemLoc(op: Op, taken: (Player, osrsps.game.zone.ZoneLoc) -> Unit) {
+        val loc = op.loc ?: return
+        if (op.repeat && player.modalOpen) return stop()
+        if (!world.locs.exists(loc)) return stop()
+        val text = world.textFor(player)
+        val type = GEM_ROCK
+        if (player.inventory.freeSlots == 0) {
+            player.message(text[MiningLines.GEM_ROCK_FULL])
+            return stop()
+        }
+        if (player.skills.currentLevel(Skill.MINING) < type.level) {
+            player.message(text[MiningLines.LEVEL, "level" to type.level])
+            return stop()
+        }
+        val tool = (tools.best(player) as? ToolCheck.Found)?.tool
+        if (tool == null) {
+            player.message(text[MiningLines.NO_PICKAXE])
+            return stop()
+        }
+        val pickaxe = pickaxes.getValue(tool.obj)
+        if (!op.repeat) {
+            player.message(text[MiningLines.SWING])
+            player.anim(tool.anim)
+        }
+        val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
+        if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
+            player.anim(tool.anim)
+            val glory = wearsChargedGlory(player)
+            val low = if (glory) type.low * GLORY_GEM_ROCK_MULTIPLIER else type.low
+            val high = if (glory) type.high * GLORY_GEM_ROCK_MULTIPLIER else type.high
+            // The celestial ring's invisible boost, as at every other rock (Codex review on #1033).
+            if (SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.MINING) + celestialBoost(player))) {
+                val gem = BirdNests.pick(world.random, GEM_ROCK_TABLE)
+                val gemType = world.objTypes[gem] ?: error("No obj type $gem for a gem rock's gem")
+                player.inventory.add(gemType, 1)
+                player.skills.addTenths(Skill.MINING, type.xpTenths)
+                GEM_ROCK_LINES[gem]?.let { player.message(text[it]) }
+                // The skilling clue roll, as at the gem rocks of mine (Codex review on #1033).
+                world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
+                stop()
+                taken(player, loc)
+                return
+            }
+        }
+        world.repeatOp(player, op)
+    }
+
     private suspend fun ScriptContext.mineNpc(op: Op, type: RockType, taken: (Npc) -> Unit) {
         val npc = op.npc ?: return
         if (op.repeat && player.modalOpen) return stop()

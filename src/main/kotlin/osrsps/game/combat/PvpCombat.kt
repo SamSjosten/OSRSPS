@@ -113,12 +113,58 @@ class PvpCombat(
         val hit: Boolean = true,
         val landed: () -> Unit = {},
         val level: Int = target.level,
+        /** Made on an arena's special ground ([arenaHitQueued]): it lands by [arenaHit] wherever the target is by then. */
+        val arena: Boolean = false,
+        /**
+         * Made from an arena ([inArena]): it lands only on a target still in one, and counts for no kill credit
+         * ([dealtBy]), as a fight there risks nothing (exploit review R65A-1).
+         */
+        val ring: Boolean = false,
     ) {
         /** A phoenix necklace's heal before it landed ([dropIncoming]): it lands nowhere, [landed] aside. */
         var cancelled = false
     }
 
     private val hits = ArrayList<Hit>()
+
+    /**
+     * Set by content: whether [Player] stands in a fighting arena outside the Wilderness, a house's fighting ring
+     * ([osrsps.game.skill.construction.CombatRoom]): Attack shows on other players there, an attack gives no skull, and
+     * the arena's own rules ([arenaRefusal]) take the Wilderness's ([PvpRules]) place.
+     */
+    var inArena: (Player) -> Boolean = { false }
+
+    /**
+     * Set by content: the lines refusing [Player]'s attack on another [Player] from an arena ([inArena]), empty when its
+     * rules allow it. The [Boolean] is whether the attack is a cast from the spellbook.
+     */
+    var arenaRefusal: (Player, Player, Boolean) -> List<Line> = { _, _, _ -> emptyList() }
+
+    /**
+     * Set by content: what a melee hit of the [Int] damage from the first [Player] does to the second when it was made on
+     * an arena's own ground ([arenaHitQueued]), whose rules take the hit's place, as the balance beam's knock-off does.
+     * True when it took the hit, which then deals no damage and draws nothing back.
+     */
+    var arenaHit: (Player, Player, Int) -> Boolean = { _, _, _ -> false }
+
+    /**
+     * Set by content: whether a melee hit [Player] makes on [Player] now lands by [arenaHit] instead of as damage, decided
+     * as it is made, so the target leaving the arena before it lands changes nothing (Codex review on #1018).
+     */
+    var arenaHitQueued: (Player, Player) -> Boolean = { _, _ -> false }
+
+    /** The lines refusing [attacker]'s attack on [target]: an arena's ([arenaRefusal]) from one, else the Wilderness's. */
+    private fun refusal(attacker: Player, target: Player, spell: Boolean = false): List<Line> =
+        if (inArena(attacker)) arenaRefusal(attacker, target, spell) else PvpRules.refusal(attacker, target)
+
+    /** Whether the skull prevention setting refuses the attack: never in an arena, which gives no skull. */
+    private fun skullPrevented(attacker: Player, target: Player, tick: Long): Boolean =
+        !inArena(attacker) && Skulls.prevented(attacker, target, tick)
+
+    /** [attacker]'s attack on [target] skulls as [Skulls] says, except in an arena. GUESSED: the Wiki says nothing of skulls there. */
+    private fun skull(attacker: Player, target: Player, tick: Long) {
+        if (!inArena(attacker)) Skulls.attacked(attacker, target, tick)
+    }
 
     /** The hits [land] is landing now, so [dropIncoming] reaches those not landed yet. */
     private var landingNow: List<Hit> = emptyList()
@@ -152,10 +198,10 @@ class PvpCombat(
     }
 
     private fun start(attacker: Player, target: Player, spell: CombatSpell?): List<Line> {
-        val refusal = PvpRules.refusal(attacker, target)
+        val refusal = refusal(attacker, target, spell != null)
         if (refusal.isNotEmpty()) return refusal
         singleWayRefusal(attacker, target, currentTick())?.let { return listOf(it) }
-        if (Skulls.prevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
+        if (skullPrevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
         if (mode(attacker, spell) == null) {
             cantFight(attacker)
             return emptyList()
@@ -188,7 +234,7 @@ class PvpCombat(
     internal fun tryInteract(player: Player, fight: PvpInteraction): Boolean {
         val target = fight.target
         if (!inWorld(target) || target.dead || target.hitpoints <= 0 || target.level != player.level) return true
-        val refusal = PvpRules.refusal(player, target)
+        val refusal = refusal(player, target, fight.spell != null)
         if (refusal.isNotEmpty()) {
             for (line in refusal) message(player, words(player)[line])
             return true
@@ -199,7 +245,7 @@ class PvpCombat(
             return true
         }
         // A skull can run out on the way.
-        if (Skulls.prevented(player, target, currentTick())) {
+        if (skullPrevented(player, target, currentTick())) {
             message(player, words(player)[PvpLines.SKULL_PREVENTED])
             return true
         }
@@ -232,12 +278,16 @@ class PvpCombat(
         player.waypoints.clear()
         val tick = currentTick()
         if (tick < player.nextAttackTick) return false
-        return when {
-            mode.spell != null -> castSpell(player, target, fight, mode.spell, tick)
-            mode.weapon != null -> shoot(player, target, mode.weapon, tick)
-            else -> {
-                swing(player, target, tick)
-                false
+        // No XP for a fight in an arena, where a death costs nothing and restores the stats, so two accounts can't
+        // train there with no risk (exploit review R65A-2; GUESSED, the Wiki's Combat room page doesn't say).
+        return player.skills.withoutXpIf(inArena(player)) {
+            when {
+                mode.spell != null -> castSpell(player, target, fight, mode.spell, tick)
+                mode.weapon != null -> shoot(player, target, mode.weapon, tick)
+                else -> {
+                    swing(player, target, tick)
+                    false
+                }
             }
         }
     }
@@ -254,7 +304,7 @@ class PvpCombat(
      */
     fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
         if (!multi.at(attacker.level, attacker.x, attacker.z) &&
-            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && fightingAnyNpc(attacker, tick)))
+            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && ownNpcFight(attacker, tick)))
         ) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
@@ -287,6 +337,14 @@ class PvpCombat(
         return tick < player.pjUntil && opponent.saveKey == other.saveKey
     }
 
+    /**
+     * Whether an attacker's own monster fight bars their PvP attack: a monster fighting them, or one they are fighting,
+     * in singles-plus combat too. The Wiki's priority ("another player attacking will take priority over fighting the
+     * monster", OSRS Wiki, Singles-plus combat) is the attacked player's, so someone losing to a monster can't splash an
+     * alt to be let go (exploit review R64B-2). Guessed: no source says what an attacker's own fight does there.
+     */
+    private fun ownNpcFight(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
+
     /** Whether a monster is fighting [player], or they are fighting one, outside singles-plus combat ([npcBars]). */
     private fun fightingAnyNpc(player: Player, tick: Long): Boolean =
         npcBars(player, tick) || (!singlesPlus(player.level, player.x, player.z) && melee.fightingNpc(player))
@@ -305,7 +363,7 @@ class PvpCombat(
 
     /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other, and a skull if unprovoked. */
     private fun fought(attacker: Player, target: Player, tick: Long) {
-        Skulls.attacked(attacker, target, tick)
+        skull(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
         attacker.pjAfterKill = false
@@ -313,9 +371,9 @@ class PvpCombat(
         target.pjUntil = tick + PJ_TICKS
         target.pjAfterKill = false
         // In singles-plus combat "another player attacking will take priority over fighting the monster" (OSRS Wiki,
-        // Singles-plus combat): each one's monster fight ends, theirs on it and its on them, the attacker's player fight
-        // kept (Codex review on #1002).
-        for (player in arrayOf(attacker, target)) if (singlesPlus(player.level, player.x, player.z)) melee.leaveNpcFight(player)
+        // Singles-plus combat): the target's monster fight ends, theirs on it and its on them (Codex review on #1002).
+        // The attacker has none: [ownNpcFight] refused the attack (exploit review R64B-2).
+        if (singlesPlus(target.level, target.x, target.z)) melee.leaveNpcFight(target)
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
@@ -345,7 +403,7 @@ class PvpCombat(
         player.effects.anim(combat.anims(player).attack(matchup.style), 0)
         val damage = dealt(target, matchup.style.type, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
         styleXp(player, matchup.style, damage)
-        hits += Hit(player, target, damage, tick + late(target, tick))
+        hits += Hit(player, target, damage, tick + late(target, tick), arena = arenaHitQueued(player, target), ring = inArena(player))
         fought(player, target, tick)
     }
 
@@ -364,7 +422,7 @@ class PvpCombat(
             ranged.flyAt(player, target, travel, delay.toLong(), shot)
             val damage = dealt(target, AttackType.RANGED, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
             styleXp(player, matchup.style, damage)
-            hits += Hit(player, target, damage, tick + delay, landed = { ranged.landAmmo(player, spent, target.x, target.z, target.level) })
+            hits += Hit(player, target, damage, tick + delay, landed = { ranged.landAmmo(player, spent, target.x, target.z, target.level) }, ring = inArena(player))
         }
         // The last one thrown: the fight ends rather than going on bare-handed (guessed, as at an NPC).
         return weapon.thrown && player.equipment[WearPos.WEAPON] == null
@@ -396,7 +454,7 @@ class PvpCombat(
                 other.pjUntil = tick + PJ_TICKS
                 other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
-                Skulls.attacked(player, other, tick)
+                skull(player, other, tick)
             }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
@@ -422,7 +480,7 @@ class PvpCombat(
             player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        hits += Hit(player, target, damage, landTick, spell, hit = rolled != null)
+        hits += Hit(player, target, damage, landTick, spell, hit = rolled != null, ring = inArena(player))
         return rolled != null
     }
 
@@ -437,8 +495,8 @@ class PvpCombat(
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null &&
-                    !Skulls.prevented(player, it, tick)
+                    refusal(player, it, spell = true).isEmpty() && singleWayRefusal(player, it, tick) == null &&
+                    !skullPrevented(player, it, tick)
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)
@@ -469,11 +527,21 @@ class PvpCombat(
             hit.landed()
             if (hit.cancelled) continue
             if (!inWorld(player) || player.dead || player.hitpoints <= 0 || player.level != hit.level) continue
+            // An arena's hit on someone who has left the arena since does nothing (exploit review R65A-1).
+            if (hit.ring && !inArena(player)) continue
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
+            if (spell == null && hit.arena && arenaHit(hit.attacker, player, hit.damage)) {
+                // Still a hit by a player: the logout lock holds as for one that hurt (Codex review on #1018).
+                player.attackedByPlayer = hit.attacker
+                player.attackedByPlayerTick = tick
+                // Out of the fight: the attacker stops going for them.
+                if ((hit.attacker.interaction as? PvpInteraction)?.target === player) hit.attacker.interaction = null
+                continue
+            }
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
-                dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
+                if (!hit.ring) dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
                 val (fromX, fromZ, fromLevel) = Triple(player.x, player.z, player.level)
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
                 // A ring of life took them away: out of the fight, no hitting back or freeze (Codex review on #956).
@@ -608,6 +676,19 @@ class PvpCombat(
         player.lastPvpHitTick = -1
     }
 
+    /**
+     * [player] has left a house, whose arenas' fights they leave behind: their PJ timer ends, so it gives no single-way
+     * cover outside (exploit review R65A-3), and the damage players dealt them is forgotten, so no one is credited
+     * with a kill there they had no part in (R65A-1). GUESSED: the Wiki doesn't say.
+     */
+    fun leftHouse(player: Player) {
+        player.pjOpponent = null
+        player.pjUntil = 0
+        player.pjAfterKill = false
+        player.pvpDamage.clear()
+        player.lastPvpHitTick = -1
+    }
+
     /** The hits on their way to or from [player] are dropped, and freezes they cast forgotten: they left the world. */
     fun forget(player: Player) {
         hits.removeAll { it.attacker === player || it.target === player }
@@ -619,8 +700,8 @@ class PvpCombat(
      */
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
-        if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        if (singleWayRefusal(player, attacker, tick) != null || Skulls.prevented(player, attacker, tick)) return
+        if (!inWorld(attacker) || attacker.dead || refusal(player, attacker).isNotEmpty()) return
+        if (singleWayRefusal(player, attacker, tick) != null || skullPrevented(player, attacker, tick)) return
         val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
         player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)

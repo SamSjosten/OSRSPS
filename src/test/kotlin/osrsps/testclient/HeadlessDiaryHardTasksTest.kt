@@ -41,7 +41,7 @@ class HeadlessDiaryHardTasksTest {
         params = mapOf(630 to bit, 1751 to (Prayers.PRAYERBOOK shl 16 or component), 1752 to name, 1753 to level, 1755 to 2690),
     )
 
-    private val smite = prayerObj(SMITE_OBJ, "Smite", 23, SMITE_COMPONENT, 52)
+    private val smite = prayerObj(SMITE_OBJ, "Smite", 17, SMITE_COMPONENT, 52)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val ids = listOf(Mining.RUNE_ESSENCE, water.rune, earth.rune, Smithing.HAMMER, Smithing.ADAMANTITE.obj, SMITE_OBJ) +
@@ -115,7 +115,7 @@ class HeadlessDiaryHardTasksTest {
 
                 // Smite on, at Lumbridge's altar: nothing.
                 client.ifButton(Prayers.PRAYERBOOK, SMITE_COMPONENT, 1)
-                client.await("Smite on") { Unit.takeIf { client.varp(Prayers.VARP_PRAYERS) and (1 shl 23) != 0 } }
+                client.await("Smite on") { Unit.takeIf { client.varp(Prayers.VARP_PRAYERS) and (1 shl 17) != 0 } }
                 client.tele(LUMBRIDGE_ALTAR_X - 1, LUMBRIDGE_ALTAR_Z)
                 client.locOp(Church.ALTAR, LUMBRIDGE_ALTAR_X, LUMBRIDGE_ALTAR_Z, 1)
                 client.awaitTicks(3)
@@ -220,7 +220,7 @@ class HeadlessDiaryHardTasksTest {
         const val SMITHING = 13
         const val RUNECRAFT = 20
         const val SMITE_OBJ = 20820
-        const val SMITE_COMPONENT = 32
+        const val SMITE_COMPONENT = 26
         const val PLATEBODY = 22
         const val ADAMANT_PLATEBODY = 1123
 

@@ -1,0 +1,269 @@
+{
+ "name": "Construction step CON6d: in building mode, a combat room added off the garden takes the balance beam (1,000 XP); Stand-on needs a pugel, wields a second one and keeps the first, and Get-down takes the worn one back (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 81",
+   "expectMessage": "81",
+   "comment": "the combat room needs 32, the balance beam 81"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 25000",
+   "expectMessage": "25,000",
+   "comment": "the combat room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 50,
+   "comment": "the combat room's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "1,000 paid for the house, 25,000 for the combat room"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 10",
+   "expectMessage": "Teak plank",
+   "comment": "the balance beam's materials (the Balance beam page: 10 teak planks, 5 steel bars)"
+  },
+  {
+   "step": "command",
+   "text": "::item 2353 5",
+   "expectMessage": "Steel bar"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15290,
+   "option": "Build",
+   "comment": "the combat ring space's north-west floor corner, where the beam's left end goes"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 8,
+   "comment": "slot 5: the balance beam"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 2193818,
+   "timeoutMs": 5000,
+   "comment": "level 81's 2,192,818 XP and the beam's 1,000"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Steel bar",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 13143,
+   "option": "Stand-on",
+   "comment": "no pugel yet"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.beam_pugel]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 7679 1",
+   "expectMessage": "Pugel"
+  },
+  {
+   "step": "locOption",
+   "locId": 13143,
+   "option": "Stand-on"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Pugel",
+   "timeoutMs": 5000,
+   "comment": "a second pugel wielded"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pugel",
+   "count": 1,
+   "comment": "the first still carried (the Pugel page)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 13143,
+   "option": "Get-down"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "empty": true,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pugel",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 13143,
+   "option": "Stand-on",
+   "comment": "and up again"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Pugel",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "locOption",
+   "locId": 13143,
+   "option": "Get-down"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "empty": true,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

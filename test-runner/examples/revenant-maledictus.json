@@ -1,0 +1,15 @@
+{
+  "name": "Wilderness step W5.4: the Revenant maledictus put out with ::wboss in the hellhounds' ruins of the Revenant Caves, attacked under ::god and a hitsplat on it, then ::kill (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3238 10163 0", "expectMessage": "Teleported to 3238, 10163, 0", "comment": "the hellhounds' ruins, one of its places"},
+    {"step": "command", "text": "::wboss revenant maledictus", "expectMessage": "Spawned Revenant maledictus"},
+    {"step": "npcOption", "npc": "Revenant maledictus", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Revenant maledictus", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Revenant maledictus #"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

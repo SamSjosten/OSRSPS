@@ -130,6 +130,11 @@ object NpcSpawnFile {
         "silk-chasm.json",
         "corporeal-beast-lair.json",
         "revenant-caves.json",
+        "killerwatt-plane.json",
+        "deep-wilderness-dungeon.json",
+        "wilderness-slayer-cave.json",
+        "wilderness-god-wars-dungeon.json",
+        "wilderness-agility-course.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

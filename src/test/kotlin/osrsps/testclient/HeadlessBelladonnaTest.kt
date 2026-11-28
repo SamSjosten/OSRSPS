@@ -96,7 +96,8 @@ class HeadlessBelladonnaTest {
                 client.locOp(PATCH, X, Z, 1)
                 client.await("[farming.picked produce=nightshade]") { client.messages().firstOrNull { it.text == "[farming.picked produce=nightshade]" } }
                 client.awaitPatch(3)
-                val picked = client.count(NIGHTSHADE)
+                // Waited on: the pack's update can reach the client after the patch's.
+                val picked = client.await("the nightshade") { client.count(NIGHTSHADE).takeIf { it > 0 } }
                 // 6, and 0 to 62 / 8 more at level 63.
                 assertTrue(picked in 6..13, "6 to 13 nightshade at 63, not $picked")
                 // 91 and 512 XP at once, on top of the raking's 12.
@@ -134,7 +135,9 @@ class HeadlessBelladonnaTest {
 
                 client.locOp(PATCH, X, Z, 1)
                 client.awaitPatch(3)
-                assertTrue(client.count(NIGHTSHADE) >= 7, "1 held and 6 or more picked, not ${client.count(NIGHTSHADE)}")
+                // The pack's update can reach the client after the patch's, so the stack is waited on, not read at once
+                // (it read under 7 once in CI, server-tests (3), 27 Nov; the yield is never under 6).
+                client.await("1 held and 6 or more picked") { client.count(NIGHTSHADE).takeIf { it >= 7 } }
             }
         }
     }

@@ -50,8 +50,12 @@ class HeadlessPlayerOpsSettingsTest {
                 done.get(10, java.util.concurrent.TimeUnit.SECONDS)
                 open(client)
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
-                client.await("Trade with gone") { Unit.takeIf { PlayerOps.TRADE in client.playerOps() && client.playerOps()[PlayerOps.TRADE] == null } }
-                assertEquals(SLOT_5_TEXT, client.playerOps()[PlayerOps.SLOT_5])
+                // The menu comes again slot by slot, Trade with's before slot 5's: wait for both, not Trade with's alone,
+                // or slot 5 can be read between the two (a CI flake on #1018).
+                client.await("Trade with gone, slot 5 kept") {
+                    val ops = client.playerOps()
+                    Unit.takeIf { PlayerOps.TRADE in ops && ops[PlayerOps.TRADE] == null && ops[PlayerOps.SLOT_5] == SLOT_5_TEXT }
+                }
             }
         }
     }

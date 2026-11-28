@@ -39,8 +39,8 @@ import osrsps.map.LocShape
  * Wilderness step W3.3 through the headless client: the spawn file for levels 21 to 35 loads every NPC in it and a
  * client visiting each map square sees that square's NPCs; the Bandit Camp mine's mithril and adamantite rocks mine as
  * any others do; a chaos dwarf goes for a level-3 player unprovoked, and a chaos dwarf and a Forgotten Cemetery Ankou
- * fought with the real combat and drop files drop their bones and only what their tables name; and the Wilderness God
- * Wars Dungeon's mouth stands at level 28 and leads nowhere until step W6.3.
+ * fought with the real combat and drop files drop their bones and only what their tables name. The Wilderness God Wars
+ * Dungeon's mouth is step W6.3's (HeadlessWildernessGodWarsTest).
  */
 class HeadlessWilderness21To35Test {
     /** The file's NPCs by their 242 cache ids, read by name as the server reads them. */
@@ -187,15 +187,13 @@ class HeadlessWilderness21To35Test {
         objs[RUNE_PICKAXE] = ObjType(RUNE_PICKAXE, "Rune pickaxe")
         val mine = listOf("Mine", null, null, null, null)
         fun rock(id: Int, name: String) = LocType(id, name, mine, LocCollisionType(width = 1, length = 1))
-        val entrance = LocType(GWD_ENTRANCE, "Cave", listOf("Enter", null, null, null, null), LocCollisionType(width = 3, length = 2))
         World(
-            crcs, CollisionMap().apply { markLoaded(MITHRIL_X shr 6, MITHRIL_Z shr 6); markLoaded(GWD_X shr 6, GWD_Z shr 6) },
+            crcs, CollisionMap().apply { markLoaded(MITHRIL_X shr 6, MITHRIL_Z shr 6) },
             objTypes = ObjTypes(objs), random = GameRandom(5),
-            locTypes = LocTypes(listOf(rock(MITHRIL, "Mithril rocks"), rock(ADAMANTITE, "Adamantite rocks"), entrance).associateBy { it.id }),
+            locTypes = LocTypes(listOf(rock(MITHRIL, "Mithril rocks"), rock(ADAMANTITE, "Adamantite rocks")).associateBy { it.id }),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(MITHRIL, LocShape.CENTREPIECE_STRAIGHT, 2, MITHRIL_X, MITHRIL_Z, 0))
                 add(ZoneLoc(ADAMANTITE, LocShape.CENTREPIECE_STRAIGHT, 3, ADAMANTITE_X, ADAMANTITE_Z, 0))
-                add(ZoneLoc(GWD_ENTRANCE, LocShape.CENTREPIECE_STRAIGHT, 2, GWD_X, GWD_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -224,21 +222,6 @@ class HeadlessWilderness21To35Test {
         }
     }
 
-    @Test
-    fun `the Wilderness God Wars Dungeon's mouth is at level 28 and leads nowhere yet`(@TempDir dir: Path) {
-        server(dir).use { server ->
-            server.login("quil").use { client ->
-                client.await("the login rebuild") { client.position }
-                client.commandReply("keys on") { it == "Dialogue shows keys" }
-                assertEquals(28, Wilderness.level(GWD_X, GWD_Z))
-                client.tele(GWD_X + 1, GWD_Z - 1)
-                client.locOp(GWD_ENTRANCE, GWD_X, GWD_Z, 1)
-                client.awaitMessage("nothing interesting") { it == "[game.nothing_interesting]" }
-                assertEquals(Coord(GWD_X + 1, GWD_Z - 1, 0), client.position)
-            }
-        }
-    }
-
     private companion object {
         /** mithrilrock1 and adamantiterock1, as the 242 map places them in the Bandit Camp mine. */
         const val MITHRIL = 11372
@@ -252,11 +235,6 @@ class HeadlessWilderness21To35Test {
         const val RUNE_PICKAXE = 1275
         const val BACKPACK = 93
         const val MINING = 14
-
-        /** wilderness_gwd_entrance (3 by 2), as the 242 map places it east of the Forgotten Cemetery. */
-        const val GWD_ENTRANCE = 26766
-        const val GWD_X = 3016
-        const val GWD_Z = 3738
 
         /** A chaos dwarf's and an Ankou's spawns from the file, at levels 30 and 28. */
         const val CHAOS_DWARF = 291

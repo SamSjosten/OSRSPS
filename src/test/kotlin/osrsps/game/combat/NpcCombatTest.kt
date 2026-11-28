@@ -51,6 +51,8 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "tbw_mosquito_attack" to 2397, "tbw_mosquito_defend" to 2399, "tbw_mosquito_death" to 2398,
+            "tbw_broodoo_dance" to 2401, "tbw_broodoo_shield_block" to 2403,
             "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
             "monkey_attack" to 220, "monkey_block" to 221, "monkey_death" to 223,
             "dog_update_small_dog_attack" to 6562, "dog_update_medium_dog_defend" to 6563, "dog_update_medium_dog_death" to 6564,
@@ -78,6 +80,10 @@ class NpcCombatTest {
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929, "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "corpbeast_swiping_attack" to 1683, "corpbeast_defend" to 1677, "corpbeast_death" to 1676,
             "pyrefiend_attack" to 1582, "pyrefiend_defend" to 1581, "pyrefiend_death" to 1580, "ork_update_double_grip_attack" to 4320, "ork_update_defend" to 4322, "ork_update_death" to 4321, "dark_beast_update_attack" to 2731, "dark_beast_update_defend" to 2732, "dark_beast_update_death" to 2733,
+            "npc_revenant_superior_attack_melee" to 9277, "npc_revenant_superior_death" to 9280,
+            "giant_update_fire_attack" to 4666, "giant_update_fire_defend" to 4664, "giant_update_fire_death" to 4668,
+            "abyssal_attack" to 1537, "abyssal_death" to 1538, "demons_attack" to 1528, "demons_parry" to 1531, "demons_death" to 1530, "dustdevil_attack" to 1557, "dustdevil_defend" to 1555, "dustdevil_death" to 1558, "jelly_defend" to 1585,
+            "bloodveld_attack" to 1552, "bloodveld_death" to 1553, "bloodveld_defend" to 1550, "godwars_ancient_ork_death" to 7031, "godwars_armadyl_cannon_attack" to 6955, "godwars_armadyl_death" to 6959, "godwars_armadyl_defend" to 6958, "godwars_armadyl_spear_attack" to 6956, "godwars_armadyl_sword_attack" to 6957, "godwars_spiritual_armadyl_warrior_magic" to 6975, "godwars_spiritual_ork_mage_magic_attack" to 6982, "godwars_spiritual_ork_ranger_ranged_attack" to 6972, "gorak_attack" to 4300, "gorak_death" to 4302, "gorak_defend" to 4301, "human_dhsword_chop" to 406, "human_dhsword_block" to 410, "ogre_attack" to 359, "ogre_block" to 360, "ogre_death" to 361, "werewolf_update_attack" to 6536, "werewolf_update_death" to 6537, "werewolf_update_defend" to 6538,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -97,6 +103,7 @@ class NpcCombatTest {
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "sourhog_attack_melee" to 8769, "sourhog_attack_ranged" to 8770, "sourhog_death" to 8771,
+            "killerwatt_biped_attack" to 3163, "killerwatt_biped_block" to 3165, "killerwatt_biped_death" to 3162,
             "champions_imp_stab" to 2954, "champions_imp_throw" to 2955, "goblin_update_champion_casting" to 6134, "goblin_block" to 312, "goblin_death" to 313,
             "skeleton_update_champion_attack" to 5512, "skeleton_update_champion_defend" to 5513, "skeleton_update_champion_death" to 5514,
             "zombie_update_attack_champion" to 5581, "champions_zombie_defend" to 2926, "champions_zombie_death" to 2925,
@@ -487,6 +494,26 @@ class NpcCombatTest {
         assertEquals(AttackType.RANGED, spit.type)
         assertEquals(NpcRangedAttack(anim = 8770, projectile = 1817, impact = 1818, maxHit = 6), spit.attack)
         assertEquals(NpcBlinding(setOf(24942, 11864, 11865, 25177, 26674), 20, 30, 90, listOf(Skill.ATTACK, Skill.DEFENCE)), def.blinds)
+    }
+
+    @Test
+    fun `killerwatts in both forms hit 6 in melee every 2 ticks, need Slayer 37 and are weak to air`() {
+        val stats = NpcStats(attack = 50, defence = 40, strength = 50, hitpoints = 51, ranged = 67, magic = 67)
+        val types = NpcTypes.of(
+            NpcType(470, "Killerwatt", internalName = "slayer_killerwatt_ball", stats = stats),
+            NpcType(469, "Killerwatt", internalName = "slayer_killerwatt", stats = stats),
+        )
+        val combat = NpcCombat.load(types, seqs)
+        for (id in listOf(470, 469)) {
+            val def = combat[id]!!
+            assertEquals(CombatMath.npcMaxHit(50, 0), def.maxHit)
+            assertEquals(listOf(2, 6, 30, 37, 30), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.slayerLevel, def.attackBonus))
+            assertEquals(AttackType.CRUSH, def.attackType)
+            assertEquals(NpcCombatAnims(3163, 3165, 3162), def.anims)
+            assertEquals(20, def.defence.against(AttackType.MAGIC))
+            assertEquals(60, def.weakness?.percent)
+            assertNull(def.aggression)
+        }
     }
 
     @Test

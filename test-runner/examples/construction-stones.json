@@ -1,0 +1,235 @@
+{
+ "name": "Construction step CON6f: a games room added off the garden takes the clay attack stone (100 XP); Set-up puts up the combat stone, Hit attacks it, it never fights back, gives no Hitpoints XP, and when it breaks the one who dealt the most wins and the stone is back (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 39",
+   "expectMessage": "39",
+   "comment": "the games room needs 30, the clay attack stone 39"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 25000",
+   "expectMessage": "25,000",
+   "comment": "the combat room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 15,
+   "comment": "the games room's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 1761 10",
+   "expectMessage": "Soft clay",
+   "comment": "the clay attack stone's"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15344,
+   "option": "Build",
+   "comment": "the stone space (poh_games_room_5)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the clay attack stone"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 33748,
+   "timeoutMs": 5000,
+   "comment": "level 39's 33,648 XP and the stone's 100"
+  },
+  {
+   "step": "locOption",
+   "locId": 13393,
+   "option": "Set-up",
+   "comment": "the combat stone stands in its place"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::setlevel attack 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel strength 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Combat stone",
+   "option": "Hit",
+   "comment": "Hit attacks it"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "construction.stone_winner",
+   "timeoutMs": 60000,
+   "comment": "its 40 hitpoints broken, the only hitter wins"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Attack",
+   "level": 99,
+   "xp": 13034432,
+   "comment": "99's 13,034,431 and 2.5% of the 40 damage dealt to the clay stone (its 40 hitpoints, the cache's): 1"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Hitpoints",
+   "level": 10,
+   "xp": 1154,
+   "comment": "no Hitpoints XP"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5
+  },
+  {
+   "step": "locOption",
+   "locId": 13393,
+   "option": "Set-up",
+   "comment": "the stone is back and sets up again"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

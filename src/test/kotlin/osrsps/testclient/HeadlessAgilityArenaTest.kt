@@ -24,6 +24,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopScreen
+import osrsps.game.skill.Agility
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -86,7 +87,8 @@ class HeadlessAgilityArenaTest {
         // The western planks, ends and middle pieces, and a climbing rope in the pit below their east end.
         PLANKS.flatMap { (z, ids) -> ids.mapIndexed { i, (id, angle) -> ZoneLoc(id, 22, angle, 2764 + i, z, 3) } } +
         ZoneLoc(BrimhavenAgilityArena.CLIMBING_ROPE, 10, 0, 2771, 9557, 0) +
-        ZoneLoc(MONKEY_BARS, 22, 0, 2771, 9570, 3)
+        ZoneLoc(MONKEY_BARS, 22, 0, 2771, 9570, 3) +
+        ZoneLoc(HAND_HOLDS, 22, 0, 2759, 9559, 3)
 
     private fun server(dir: Path, omnishops: Omnishops = this.omnishops) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
@@ -419,6 +421,97 @@ class HeadlessAgilityArenaTest {
     }
 
     @Test
+    fun `the hand holds' grab is stopped before the steps across, or the client holds the player still`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2759, 9559, 3)
+                client.awaitTicks(2)
+                val from = client.actorEvents().size
+                client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                client.await("across") { client.position?.takeIf { it == Coord(2759, 9566, 3) } }
+                val anims = client.actorEvents(from).filter { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION }.map { it.id }
+                val grab = anims.indexOf(HAND_HOLDS_GRAB)
+                assertTrue(grab >= 0, "the grab played: $anims")
+                assertEquals(-1, anims.getOrNull(grab + 1), "the grab stopped before the walk: $anims")
+            }
+        }
+    }
+
+    @Test
+    fun `the hand holds' climb-off waits for the last step to be drawn, or the client holds the player a tile short`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds2").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2759, 9559, 3)
+                client.awaitTicks(2)
+                val from = client.actorEvents().size
+                client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                client.await("across") { client.position?.takeIf { it == Coord(2759, 9566, 3) } }
+                val off = client.await("the climb-off") {
+                    client.actorEvents(from).firstOrNull { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_OFF }
+                }
+                assertEquals(Agility.WALK_END_DELAY, off.amount, "the climb-off's delay")
+                val grab = client.actorEvents(from).first { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_GRAB }
+                assertEquals(0, grab.amount, "the grab, before any walk, plays at once")
+            }
+        }
+    }
+
+    @Test
+    fun `a fall from the hand holds plays at once, so the drop that follows doesn't overtake it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("holds3").use { client ->
+                client.ready()
+                client.command("setlevel agility 20")
+                client.await("level 20") { client.stat(AGILITY)?.takeIf { it.level == 20 } }
+                val from = client.actorEvents().size
+                // About a third of crossings fail at level 20; 30 tries all crossing is under one in a million.
+                for (attempt in 1..30) {
+                    client.tele(2759, 9559, 3)
+                    client.awaitTicks(2)
+                    client.locOp(HAND_HOLDS, 2759, 9559, 1)
+                    val end = client.await("off the hand holds") { client.position?.takeIf { it == Coord(2759, 9566, 3) || it.level == 0 } }
+                    client.awaitTicks(2)
+                    if (end.level == 0) break
+                }
+                val fall = client.actorEvents(from).firstOrNull { !it.npc && it.index == client.index && it.kind == ActorEventKind.ANIMATION && it.id == HAND_HOLDS_FALL }
+                assertTrue(fall != null, "a fall in 30 tries")
+                assertEquals(0, fall.amount, "the fall's delay")
+            }
+        }
+    }
+
+    @Test
+    fun `a teleport off the monkey bars ends the walk there, with no drag back toward them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("mo").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2771, 9570, 3)
+                client.awaitTicks(2)
+                client.locOp(MONKEY_BARS, 2771, 9570, 1)
+                client.await("on the bars") { client.position?.takeIf { it.z > 9570 } }
+                // Away mid-walk: none of the walk's steps left pulls them a tile a tick back toward the bars (exploit
+                // review R65A-4).
+                client.command("tele 2771 9560 3")
+                client.await("away") { client.position?.takeIf { it == Coord(2771, 9560, 3) } }
+                client.awaitTicks(15)
+                assertEquals(Coord(2771, 9560, 3), client.position)
+            }
+        }
+    }
+
+    @Test
     fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.world.agilityArena.rotateTicks = Int.MAX_VALUE
@@ -692,6 +785,10 @@ class HeadlessAgilityArenaTest {
         const val AGILITY = 16
         const val HITPOINTS = 3
         const val MONKEY_BARS = 3564
+        const val HAND_HOLDS = 3583
+        const val HAND_HOLDS_GRAB = 1117
+        const val HAND_HOLDS_OFF = 1121
+        const val HAND_HOLDS_FALL = 1119
         const val TOADFLAX = 2998
         const val PIRATES_HOOK = 2997
         const val TICKETS = 620

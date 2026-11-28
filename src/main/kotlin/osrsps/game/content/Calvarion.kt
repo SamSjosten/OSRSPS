@@ -297,6 +297,9 @@ class SkeletalLord(val config: Config) {
         // [calmDown] does the rest in his fight's tick without touching his hitpoints again.
         val lord = boss
         lord.transformEnded = {
+            // Back to full, the fight starts over: no damage banked from before counts toward his split, though that
+            // tick's hits still do (exploit review round 63, R63B-1).
+            world.wildernessBosses.reset(lord)
             lord.hitpoints = lord.maxHitpoints
             fullBar(lord)
             lord.holdsAtZero = true

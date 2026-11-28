@@ -23,6 +23,7 @@ object ClanPartyLines : Lines("clan_party", "Clan hall party chest") {
     val NO_LEVER = line("no_lever", "Pull by a rank below the clan's Pull the lever permission (guessed)")
     val NOT_TRADEABLE = line("not_tradeable", "offering an item that can't be traded (guessed, as Falador's chest)")
     val OFFER_FULL = line("offer_full", "offering with the 8 offer slots taken (guessed)")
+    val BUSY = line("busy", "Confirm refused because too many clans wrote to the disk this tick; try again (guessed)")
     val CHEST_FULL = line("chest_full", "Confirm with no room left in the 216-slot chest (guessed)")
     val EMPTY = line("empty", "Pull with nothing in the chest (guessed)")
     val NO_COINS = line("no_coins", "Pull without the coins it costs in the inventory (guessed)", "cost")
@@ -252,7 +253,12 @@ class ClanParty(private val world: World) {
         // The allowance is taken only when something can go in, so confirms at a full chest don't use it up for every
         // other clan (Codex on PR 975).
         if (player.priceChecker.contents().none { (_, obj) -> fits(party.chest, obj.id) }) return world.message(player, ClanPartyLines.CHEST_FULL)
-        if (!world.clans.takeDurableWrite(world.tick)) return
+        if (!world.clans.takeDurableWrite(world.tick, clan.id)) {
+            // Refused by the server-wide cap: the player may try again next tick, not wait out the whole cooldown, and
+            // is told (R64C-3); more clicks this tick are still turned away by the check at the top (Codex on PR 1025).
+            lastConfirm[player.saveKey] = world.tick - CONFIRM_TICKS + 1
+            return world.message(player, ClanPartyLines.BUSY)
+        }
         party.lastConfirm = world.tick
         var full = false
         val moved = ArrayList<Pair<osrsps.game.ObjType, Int>>()

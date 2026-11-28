@@ -146,6 +146,18 @@ class Combat(
     var ruled: (Player, Npc, AttackType?) -> Line? = { _, _, _ -> null }
 
     /**
+     * Set by content: whether [Npc] may only be attacked by a player with it as their Slayer task and [Player] hasn't,
+     * as the Wilderness Slayer Cave's abyssal demons are ([osrsps.game.content.WildernessSlayerCave]).
+     */
+    var taskOnly: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
+     * Set by content: tells [Player] in its own way why [Npc] can't be attacked, for the [Line] [barred] gave, and
+     * returns true; false leaves the line as a game message. Asked only where an attack is clicked or walked to.
+     */
+    var tellBarred: (Player, Npc, Line) -> Boolean = { _, _, _ -> false }
+
+    /**
      * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
      * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
      * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
@@ -193,6 +205,54 @@ class Combat(
     var noCooldown: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
+     * Set by content: whether [Npc] is a max hit dummy, the house's combat dummy ([osrsps.game.skill.construction.CombatRoom];
+     * OSRS Wiki, Combat dummy: "no experience will be granted for hitting it. Any ammunition fired at it will always be
+     * lost"): no XP for hitting it, it never fights back or goes down, and no ammunition fired at it is kept. That every
+     * hit is the max one is its [sureHit].
+     */
+    var dummy: (Npc) -> Boolean = { false }
+
+    /**
+     * Set by content: whether [Npc] never fights back or keeps who attacked it, as a [dummy] and the house's attack
+     * stones ([osrsps.game.skill.construction.GamesRoom]).
+     */
+    var passive: (Npc) -> Boolean = { npc -> dummy(npc) }
+
+    /** Whether hitting [npc] gives XP: anything but a [dummy]. */
+    fun paysXp(npc: Npc): Boolean = !dummy(npc)
+
+    /**
+     * Set by content: for an [Npc] whose hits pay XP by the damage alone, in place of the usual combat XP, the XP for a
+     * point of damage in thousandths; null for the usual XP. The house's attack stones give 25 (OSRS Wiki, Clay attack
+     * stone: "Players gain experience for only 2.5% of the damage dealt, in the skill of their attack style", and "no
+     * Hitpoints experience is rewarded for hitting the stone").
+     */
+    var damageXpPermille: (Npc) -> Int? = { null }
+
+    /**
+     * What each player has toward the next tenth of each skill's XP by [damageXpPermille], in sixths of a thousandth of a
+     * tenth, so a share among two or three skills divides exactly.
+     */
+    private val damageXpLeft = java.util.WeakHashMap<Player, IntArray>()
+
+    /**
+     * Pays [player] for [damage] on [npc] by [damageXpPermille], shared evenly among [skills], each skill keeping its own
+     * part of a tenth for the next hit (Codex review on #1051); false, paying nothing, for an NPC that pays the usual XP.
+     */
+    fun damageXp(player: Player, npc: Npc, skills: List<Skill>, damage: Int): Boolean {
+        val permille = damageXpPermille(npc) ?: return false
+        if (skills.isEmpty()) return true
+        val left = damageXpLeft.getOrPut(player) { IntArray(Skill.entries.size) }
+        val share = damage * permille * 10 * DAMAGE_XP_SIXTHS / skills.size
+        for (skill in skills) {
+            val total = share + left[skill.ordinal]
+            left[skill.ordinal] = total % (1000 * DAMAGE_XP_SIXTHS)
+            if (total >= 1000 * DAMAGE_XP_SIXTHS) player.skills.addTenths(skill, total / (1000 * DAMAGE_XP_SIXTHS))
+        }
+        return true
+    }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC. [weapon] false leaves out what the wielded weapon bars ([weaponBarred]), for damage
@@ -201,6 +261,7 @@ class Combat(
      */
     fun barred(player: Player, npc: Npc, weapon: Boolean = true, type: AttackType? = null): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
+        taskOnly(player, npc) -> CombatLines.TASK_ONLY
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
         else -> (if (weapon) weaponBarred(player, npc) else null) ?: ruled(player, npc, type) ?: notYours(player, npc)
     }
@@ -228,7 +289,10 @@ class Combat(
     }
 
     /** The animations the player swings and blocks with: their weapon's category's. */
-    fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
+    fun anims(player: Player): WeaponAnims {
+        val weapon = equipment.weapon(player)
+        return if (weapon?.internalName == Weapons.PUGEL) WeaponAnims.PUGEL else WeaponAnims.of(Weapons.category(weapon))
+    }
 
     /**
      * Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when
@@ -553,6 +617,9 @@ class Combat(
     }
 
     companion object {
+        /** [Combat.damageXp]'s parts of a thousandth of a tenth: six, so one, two or three skills share a hit exactly. */
+        private const val DAMAGE_XP_SIXTHS = 6
+
         /**
          * The styles of a player autocasting ([style]), on varp 43's [Autocast.COM_MODE]. The XP is what [MagicCombat]
          * gives, Defence too when defensive (OSRS Wiki, Autocast). Guessed: no stance bonus to the player's Defence

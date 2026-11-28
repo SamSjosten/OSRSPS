@@ -1,0 +1,33 @@
+{
+  "about": "The Deep Wilderness Dungeon (Wilderness step W6.1): its hill giants, chaos dwarves, shadow spiders, fire giants and monks of Zamorak where the OSRS Wiki's locations maps pin them (read 2026-11-15). Their wander ranges are guessed until recorded (the monks stand).",
+  "spawns": [
+    {"npc": "giant", "x": 3042, "z": 10317, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "giant2", "x": 3044, "z": 10306, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "giant3", "x": 3045, "z": 10308, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "giant", "x": 3045, "z": 10311, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "giant2", "x": 3045, "z": 10321, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "giant3", "x": 3046, "z": 10315, "wander": 4, "source": "OSRS Wiki, Hill Giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "dwarf_chaos", "x": 3029, "z": 10313, "wander": 4, "source": "OSRS Wiki, Chaos dwarf, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "dwarf_chaos", "x": 3030, "z": 10308, "wander": 4, "source": "OSRS Wiki, Chaos dwarf, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "dwarf_chaos", "x": 3034, "z": 10310, "wander": 4, "source": "OSRS Wiki, Chaos dwarf, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "dwarf_chaos", "x": 3036, "z": 10311, "wander": 4, "source": "OSRS Wiki, Chaos dwarf, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3015, "z": 10318, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3016, "z": 10323, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3019, "z": 10313, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3020, "z": 10322, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3020, "z": 10329, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3025, "z": 10330, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3026, "z": 10339, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3028, "z": 10327, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3029, "z": 10334, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3030, "z": 10346, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "shadow_spider", "x": 3032, "z": 10342, "wander": 4, "source": "OSRS Wiki, Shadow spider, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "firegiant", "x": 3046, "z": 10341, "wander": 4, "source": "OSRS Wiki, Fire giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "firegiant2", "x": 3047, "z": 10344, "wander": 4, "source": "OSRS Wiki, Fire giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "firegiant3", "x": 3049, "z": 10338, "wander": 4, "source": "OSRS Wiki, Fire giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "firegiant", "x": 3052, "z": 10347, "wander": 4, "source": "OSRS Wiki, Fire giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "firegiant2", "x": 3053, "z": 10338, "wander": 4, "source": "OSRS Wiki, Fire giant, its Deep Wilderness Dungeon locations map; wander guessed; which of the cache's look-alike types guessed"},
+    {"npc": "chaos_temple_monk_wilderness", "x": 3020, "z": 10355, "wander": 0, "source": "OSRS Wiki, Monk of Zamorak, its Deep Wilderness Dungeon locations map; wander guessed"},
+    {"npc": "chaos_temple_monk_wilderness", "x": 3060, "z": 10333, "wander": 0, "source": "OSRS Wiki, Monk of Zamorak, its Deep Wilderness Dungeon locations map; wander guessed"}
+  ]
+}

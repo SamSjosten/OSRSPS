@@ -205,7 +205,7 @@ class TeleportData(val spells: List<TeleportSpell>) {
  * Seers' Village, Watchtower's Yanille; their tablets' ops 2 to 4), Teleport to House, Tele Other, Teleport Block, the
  * Wilderness level checked at the landing, and the items a teleport breaks on the way (2004Scape's rum and plague sample).
  */
-class Teleports(private val world: World, private val data: TeleportData) {
+class Teleports(private val world: World, val data: TeleportData) {
     fun register() {
         for (spell in data.spells) {
             world.handlers.onButton(Spells.SPELLBOOK, spell.component, CAST) { cast(spell) }

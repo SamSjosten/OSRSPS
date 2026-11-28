@@ -144,7 +144,9 @@ class HeadlessTreasureTrailsSourcesTest {
                 val anims = client.animationTicks().size
                 client.objOp(TrailTier.EASY.scrollBox, x, z, TAKE)
                 client.await("the box") { if (client.count(TrailTier.EASY.scrollBox) == 1) Unit else null }
-                assertTrue(client.animationTicks().size > anims, "the table pickup animates")
+                // The pickup's animation and the take are the same tick, but the backpack is flushed before PLAYER_INFO is
+                // built, so the box can be seen a packet before the animation (CI on #1049).
+                client.await("the table pickup animation") { Unit.takeIf { client.animationTicks().size > anims } }
                 assertEquals(at.x to at.z, player.x to player.z, "taken from beside the table")
             }
         }

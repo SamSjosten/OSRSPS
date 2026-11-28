@@ -1,0 +1,25 @@
+{
+  "name": "Karamja step K4.2c: ::tbwevent bringing a green Broodoo victim out of the jungle, under ::god, and ::kill for its tribal mask (::keys on). The runner has no use-item-on-NPC step, so the weakness items are the headless test's (HeadlessTaiBwoBroodooTest)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and levels back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::varp tbw_cleanup 31", "comment": "met Murcaily, hacked, repaired and had his first sticks"},
+    {"step": "command", "text": "::setlevel woodcutting 99"},
+    {"step": "command", "text": "::god on"},
+    {"step": "command", "text": "::item 975 1", "comment": "a machete"},
+    {"step": "command", "text": "::tele 2770 3060 0", "expectMessage": "Teleported to 2770, 3060, 0", "comment": "south of the light jungle at 2770,3061"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::resetlocs 3"},
+    {"step": "command", "text": "::tbwevent broodoo_poison", "expectMessage": "Your next Tai Bwo Wannai jungle event: broodoo_poison"},
+    {"step": "locOption", "locId": 9010, "option": "Hack", "x": 2770, "y": 3061},
+    {"step": "assertMessage", "contains": "tbw_event.monster", "timeoutMs": 15000},
+    {"step": "command", "text": "::kill Broodoo victim", "expectMessage": "Killed Broodoo victim"},
+    {"step": "assertGroundItem", "item": "Tribal mask", "timeoutMs": 10000},
+    {"step": "command", "text": "::god off"},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

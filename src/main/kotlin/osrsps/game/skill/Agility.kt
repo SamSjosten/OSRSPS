@@ -58,6 +58,15 @@ object AgilityLines : Lines("agility", "Agility") {
     val CAIRN_ROCKS_LEVEL = line("cairn_rocks_level", "Shortcut: the rock slide up to Cairn Isle's bridge, below level 15 (keys only: the Wiki gives no words)", "level")
     val CAIRN_ROCKS_FALL = line("cairn_rocks_fall", "Shortcut: the rock slide up to Cairn Isle's bridge, failed (the Wiki's Rock slide (Cairn Isle) page)")
     val BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL = line("brimhaven_arena_hand_holds_level", "Brimhaven Agility Arena: the hand holds clicked below level 20 (keys only: the Wiki gives no words)", "level")
+    val WILDERNESS_LAPS = line("wilderness_laps", "Wilderness Agility Course: the lap count message after each lap", "count")
+    val WILDERNESS_ROPESWING = line("wilderness_ropeswing", "Wilderness Agility Course: across the ropeswing")
+    val WILDERNESS_ROPESWING_FAIL = line("wilderness_ropeswing_fail", "Wilderness Agility Course: a fall from the ropeswing into the pit")
+    val WILDERNESS_STONES_START = line("wilderness_stones_start", "Wilderness Agility Course: starting across the stepping stones")
+    val WILDERNESS_STONES = line("wilderness_stones", "Wilderness Agility Course: across the stepping stones")
+    val WILDERNESS_STONES_FAIL = line("wilderness_stones_fail", "Wilderness Agility Course: a fall from the stepping stones into the lava")
+    val WILDERNESS_LOG_START = line("wilderness_log_start", "Wilderness Agility Course: starting across the log balance")
+    val WILDERNESS_LOG = line("wilderness_log", "Wilderness Agility Course: across the log balance")
+    val WILDERNESS_LOG_FAIL = line("wilderness_log_fail", "Wilderness Agility Course: a fall from the log balance onto the spikes")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -162,6 +171,14 @@ class Obstacle(
      * bind that may be left (the Revenant Caves' pillars' 3); -1 for most, which only bar the walk to the start.
      */
     val frozenGraceTicks: Int = -1,
+    /**
+     * For a failure whose damage goes by the player's hitpoints instead of [damage]: the percentage of their current
+     * hitpoints, rounded down, plus 1 (the Wilderness Agility Course's 15 and 20, OSRS Wiki); 0 for none.
+     */
+    val failHpPercent: Int = 0,
+    /** Game messages on starting across (after the walk to the start) and on getting across; null for none. */
+    val startLine: Line? = null,
+    val successLine: Line? = null,
 ) {
     /** Whether the loc at [tile] is this obstacle, when its type is several. */
     fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
@@ -283,6 +300,9 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["rigged"]?.jsonPrimitive?.boolean ?: false,
                 json["damageHits"]?.jsonPrimitive?.int ?: 1,
                 json["frozenGraceTicks"]?.jsonPrimitive?.int ?: -1,
+                json["failHpPercent"]?.jsonPrimitive?.int ?: 0,
+                json["startLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey),
+                json["successLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey),
             )
         }
 
@@ -330,6 +350,9 @@ class Agility(private val world: World, val data: AgilityData) {
      */
     val rigs = HashMap<String, (Player, ZoneLoc) -> Boolean>()
 
+    /** Called when a player's lap of a course counts, after its XP and message: the Wilderness course's dispenser hooks in. */
+    var onLap: (osrsps.game.Player, AgilityCourse) -> Unit = { _, _ -> }
+
     fun register() {
         for ((locId, obstacles) in data.byLoc) {
             world.handlers.onLoc(locId, option(locId, obstacles.first().option)) { op -> cross(op, obstacles) }
@@ -363,6 +386,13 @@ class Agility(private val world: World, val data: AgilityData) {
             player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
             return
         }
+        // Frozen or bound, no walk to the obstacle's start: the walk there is a forced one, which a freeze doesn't stop
+        // (exploit review round 35, R35A-6). From its start tile it goes ahead, as the Wiki's Freeze page has forced
+        // movement through an adjacent object (a ladder, a cave entrance) unaffected.
+        if ((player.freezeTicks > 0 || player.rootedTicks > 0) && (player.x != route.from.x || player.z != route.from.z)) {
+            player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
+            return
+        }
         if (!walkTo(route.from)) return
         val success = when {
             obstacle.rigged -> rigs[obstacle.key]?.invoke(player, loc) ?: true
@@ -371,7 +401,17 @@ class Agility(private val world: World, val data: AgilityData) {
                 SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
             } ?: true
         }
-        for (move in if (success) route.moves else route.fail) play(move)
+        obstacle.startLine?.let { player.message(world.textFor(player)[it]) }
+        // A teleport partway (::tele, say) ends the obstacle there: the rest isn't played from the new tile, nor
+        // the player pulled back to its end.
+        val moves = if (success) route.moves else route.fail
+        for ((i, move) in moves.withIndex()) {
+            // Only an animation that ends the crossing waits for the walk's last step (nothing after it to overtake
+            // it): one followed by another animation or a teleport, as a fall's, plays at once (Codex review on #1032).
+            val settle = i > 0 && moves[i - 1] is AgilityMove.Walk && moves.drop(i + 1).all { it is AgilityMove.Xp }
+            if (!play(move, settle)) return
+        }
+        if (success) obstacle.successLine?.let { player.message(world.textFor(player)[it]) }
         world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
@@ -381,6 +421,10 @@ class Agility(private val world: World, val data: AgilityData) {
             if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)
             if (obstacle.failDouses) LightSources.extinguish(player)
             obstacle.failLine?.let { player.message(world.textFor(player)[it]) }
+            if (obstacle.failHpPercent > 0) {
+                world.meleeCombat.statusHit(player, player.skills.currentLevel(Skill.HITPOINTS) * obstacle.failHpPercent / 100 + 1, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+                return
+            }
             if (obstacle.damage.isEmpty()) return
             val hitpoints = player.skills.currentLevel(Skill.HITPOINTS)
             repeat(obstacle.damageHits) {
@@ -417,6 +461,7 @@ class Agility(private val world: World, val data: AgilityData) {
         if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
         player.message(world.textFor(player)[course.lapLine, "count" to laps])
         world.diaries.lap(player, course.lapLine)
+        onLap(player, course)
         rollMark(course)
     }
 
@@ -495,20 +540,41 @@ class Agility(private val world: World, val data: AgilityData) {
         while (player.forcedSteps.isNotEmpty()) delay(1)
     }
 
-    private suspend fun ScriptContext.play(move: AgilityMove) {
+    /** Plays [move]; false when something else teleported the player meanwhile. */
+    private suspend fun ScriptContext.play(move: AgilityMove, settle: Boolean = false): Boolean {
+        val start = Triple(player.x, player.z, player.level)
         when (move) {
             is AgilityMove.Anim -> {
-                player.anim(move.anim)
+                // Straight after a walk the client is still drawing its last step, and a sequence with no movement
+                // precedence holds the player still until it ends (the hand holds' climb-off, 1121, has a last frame
+                // of 20000 cycles): drawn a tile short on 217, 27 Nov. When it ends the crossing ([settle]), its start
+                // waits until the step is drawn.
+                player.anim(move.anim, if (settle && move.anim >= 0) WALK_END_DELAY else 0)
                 if (move.ticks > 0) delay(move.ticks)
+                return here() == start
             }
             is AgilityMove.Teleport -> world.teleport(player, move.to.x, move.to.z, move.to.level)
-            is AgilityMove.Walk -> walk(move)
-            is AgilityMove.Slide -> slide(move)
+            is AgilityMove.Walk -> {
+                val end = steps(Tile(start.first, start.second), move.path).lastOrNull() ?: return true
+                walk(move)
+                return here() == Triple(end.x, end.z, start.third)
+            }
+            is AgilityMove.Slide -> {
+                slide(move, start)
+                return here() == Triple(move.to.x, move.to.z, move.to.level)
+            }
             is AgilityMove.Xp -> player.skills.addTenths(Skill.AGILITY, move.tenths)
         }
+        return true
     }
 
+    private fun ScriptContext.here() = Triple(player.x, player.z, player.level)
+
     private suspend fun ScriptContext.walk(move: AgilityMove.Walk) {
+        // The move before may have started a sequence the client holds the player still for until it ends (the
+        // hand holds' grab, 1117, has a last frame of 20000 cycles and no movement precedence), so the steps would
+        // never show: it's stopped, and the stance below animates the walk.
+        player.anim(-1)
         player.stanceOverride = Stance(move.anim, move.anim, move.anim, move.anim, move.anim, move.anim, move.anim)
         try {
             val steps = steps(Tile(player.x, player.z), move.path)
@@ -521,14 +587,20 @@ class Agility(private val world: World, val data: AgilityData) {
 
     /**
      * Walks [steps] spread evenly over [ticks] ticks, for an obstacle slower than a tile a tick (the Brimhaven arena's
-     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due.
+     * monkey bars: 7 tiles in 13): each step is handed over once the walk's share of the ticks so far is due. A player
+     * no longer on the last step's tile (a teleport mid-walk) is walked no further, or each step left would drag them a
+     * tile through walls toward the obstacle (exploit review R65A-4).
      */
     private suspend fun ScriptContext.pacedWalk(steps: List<Tile>, ticks: Int) {
         val start = world.tick
+        var at = Tile(player.x, player.z)
+        val level = player.level
         for ((i, step) in steps.withIndex()) {
             val due = start + ticks.toLong() * i / steps.size
             while (world.tick < due) delay(1)
+            if (player.x != at.x || player.z != at.z || player.level != level) return
             forcedWalk(listOf(step))
+            at = step
         }
         while (world.tick < start + ticks) delay(1)
     }
@@ -538,12 +610,13 @@ class Agility(private val world: World, val data: AgilityData) {
      * when the slide's ticks are up, so the client keeps showing them where the slide ends until then; RSProt notes the
      * client goes back to the real tile once the move is over.
      */
-    private suspend fun ScriptContext.slide(move: AgilityMove.Slide) {
+    private suspend fun ScriptContext.slide(move: AgilityMove.Slide, start: Triple<Int, Int, Int>) {
         val angle = angle(move.to.x - player.x, move.to.z - player.z)
         player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, move.to.x, move.to.z, move.startCycles, move.endCycles, angle))
         player.anim(move.anim)
         delay(move.ticks)
-        world.teleport(player, move.to.x, move.to.z, move.to.level)
+        // A teleport during the slide (::tele, say) wins: the player isn't pulled back to the slide's end.
+        if (here() == start) world.teleport(player, move.to.x, move.to.z, move.to.level)
     }
 
     companion object {
@@ -560,6 +633,12 @@ class Agility(private val world: World, val data: AgilityData) {
         /** The minutes between marks, and the [osrsps.game.Charges] counter holding the minute of the last one. */
         const val MARK_TIMER_MINUTES = 3
         const val MARK_MINUTE = "agility_mark_minute"
+
+        /**
+         * The client cycles an animation straight after a walk waits: a step at walking speed takes 32 to draw, and a
+         * few more cover a client a little behind. GUESSED.
+         */
+        const val WALK_END_DELAY = 40
 
         /** 20 levels over a course cut its chance of a mark to a fifth. */
         const val OVER_LEVEL = 20

@@ -58,6 +58,7 @@ import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerTaiBwoCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerRandomEventCommands
 import osrsps.game.content.registerXpLamp
@@ -149,6 +150,9 @@ import osrsps.game.content.registerTearsOfGuthix
 import osrsps.game.content.registerCats
 import osrsps.game.content.Cats
 import osrsps.game.content.RatPits
+import osrsps.game.content.KillerwattPlane
+import osrsps.game.content.registerKillerwattPlane
+import osrsps.game.content.registerPostQuestLeftovers
 import osrsps.game.content.registerRatPits
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
@@ -202,6 +206,12 @@ import osrsps.game.content.RevenantCaves
 import osrsps.game.content.SinglesPlus
 import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
+import osrsps.game.content.registerEmblemTrader
+import osrsps.game.content.registerMaledictus
+import osrsps.game.content.registerDeepWildernessDungeon
+import osrsps.game.content.registerWildernessGodWars
+import osrsps.game.content.registerWildernessAgility
+import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -563,6 +573,9 @@ class World(
     /** Varrock's rat pits under the manhole east of the city; see [RatPits]. */
     val ratPits = RatPits(this, collision)
 
+    /** The Killerwatt plane through Professor Oddenstein's portal; see [KillerwattPlane]. */
+    val killerwattPlane = KillerwattPlane(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -814,6 +827,7 @@ class World(
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
             osrsps.game.content.CorporealBeast.damaged(this, npc, dealt)
             osrsps.game.content.EvilChicken.damaged(this, npc, player)
+            gamesRoom.damaged(npc, player, dealt)
         },
         hurtAlive = { jewelleryEffects.hurt(it) },
         dropPvpHits = { pvpCombat.dropIncoming(it) },
@@ -879,7 +893,8 @@ class World(
                 if (run.demonic) osrsps.game.content.DemonicBrutus.killedPlayer(this, run)
             }
         },
-        takePlaceItems = { randomEvents.areas.takePlaceItems(it) },
+        // And a death on the balance beam takes back the pugel it gave (Codex review on #1018).
+        takePlaceItems = { randomEvents.areas.takePlaceItems(it); combatRoom.dying(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -889,6 +904,7 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        supply = { id -> id in foods.all || id in potions.all || id == objTypes.find("jewl_necklace_of_phoenix")?.id },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
         forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
@@ -1124,12 +1140,17 @@ class World(
     val workshop = osrsps.game.skill.construction.Workshop(this, houses)
     /** The combat room's racks and ropes; see [osrsps.game.skill.construction.CombatRoom]. */
     val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
+    val gamesRoom = osrsps.game.skill.construction.GamesRoom(this, houses)
+    val study = osrsps.game.skill.construction.Study(this, houses)
+    val portalChamber = osrsps.game.skill.construction.PortalChamber(this, houses)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
     val clanCoffer = osrsps.game.content.ClanCoffer(this)
     val clanParty = osrsps.game.content.ClanParty(this)
+    val clanHallFurniture = osrsps.game.content.ClanHallFurniture(this)
+    val clanHallPeople = osrsps.game.content.ClanHallPeople(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1260,6 +1281,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerTaiBwoCommands()
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
@@ -1287,6 +1309,13 @@ class World(
         registerRandomEventCommands(this@World)
         registerLookCommands(this@World)
     }
+
+    /**
+     * Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. Declared
+     * before the init that registers content: set later, its empty start would wipe what registration added (Codex
+     * review on #1042).
+     */
+    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
 
     init {
         replayTradeJournal()
@@ -1358,6 +1387,8 @@ class World(
         registerTearsOfGuthix(this, tearsOfGuthix)
         registerCats(this, cats)
         registerRatPits(this, ratPits)
+        registerKillerwattPlane(this, killerwattPlane)
+        registerPostQuestLeftovers(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -1389,6 +1420,12 @@ class World(
         registerCorporealBeast(this)
         registerRevenantCaves(this)
         registerRevenants(this)
+        registerEmblemTrader(this)
+        registerMaledictus(this)
+        registerDeepWildernessDungeon(this)
+        registerWildernessSlayerCave(this)
+        registerWildernessGodWars(this)
+        registerWildernessAgility(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1499,10 +1536,15 @@ class World(
         kitchen.register()
         workshop.register()
         combatRoom.register()
+        gamesRoom.register()
+        study.register()
+        portalChamber.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
         clanParty.register()
+        clanHallFurniture.register()
+        clanHallPeople.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
@@ -1957,9 +1999,11 @@ class World(
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
         player.vars.setVarbitIfKnown(VARBIT_WILDY_HUB_BUFFER, if (inside && player.level == 0 && Wilderness.inFerox(player.x, player.z)) 1 else 0)
-        if (player.attackOp != inside) {
-            player.attackOp = inside
-            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        // A house's fighting ring offers Attack too (Construction CON6c).
+        val attack = inside || pvpCombat.inArena(player)
+        if (player.attackOp != attack) {
+            player.attackOp = attack
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { attack }))
         }
     }
 
@@ -2600,7 +2644,8 @@ class World(
         player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
-        PlayerOps.send(player.vars, player.session::queue)
+        // Challenge in the Rat Pits too (exploit review 64, R64A-3).
+        PlayerOps.send(player.vars, player.session::queue, slot5 = player.slot5Op)
         // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
         player.attackOp = false
         clans.resync(player)
@@ -3440,9 +3485,15 @@ class World(
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
-        // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
-            osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
+        // The revenants' shared table hangs on their combat level and the killer's skull (Wilderness step W5.3). A
+        // superior's three rolls on its normal counterpart's table come after its own drops.
+        val rolled = if (npc.type.id in osrsps.game.content.Revenants.IDS) {
+            val ownsBag = killer != null && osrsps.game.content.RevenantDrops.ownsBag(this, killer)
+            osrsps.game.content.RevenantDrops.roll(random, npc.type.id, npc.type.combatLevel, (killer?.skullTicks ?: 0) > 0, ownsBag) { objTypes[it] }
+        } else {
+            npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
+                osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
+        } + extraDrops(npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
@@ -3967,6 +4018,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            clanHallFurniture.forget(player)
             fairyRings.forget(player)
             balloons.forget(player)
             makeoverScreen.forget(player)

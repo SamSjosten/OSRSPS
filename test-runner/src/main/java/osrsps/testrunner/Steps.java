@@ -213,6 +213,8 @@ final class Steps
 		private boolean sent;
 		private Tile lastAt;
 		private int stillSince;
+		/** (0.31.0) The player has stood on the tile, though something (a bridge, a trap) may have carried them on. */
+		private boolean reached;
 
 		Walk(long timeoutMs, int x, int y)
 		{
@@ -232,8 +234,16 @@ final class Steps
 			Tile drawn = run.game.drawnLocation();
 			if (at.x == x && at.y == y)
 			{
+				reached = true;
 				// The client draws the player a step behind while they walk, so this waits for them to arrive on screen.
 				return at.equals(drawn) ? Poll.pass("at " + at) : Poll.waiting(drawnElsewhere(at, drawn));
+			}
+			if (reached)
+			{
+				// Carried on past the tile by what stepping onto it started (Cairn Isle's bridge walks the player across):
+				// the walk got there, and clicking it again would only send them back. Passes once they are drawn
+				// where they stand.
+				return at.equals(drawn) ? Poll.pass("reached " + x + ", " + y + ", then carried on to " + at) : Poll.waiting(drawnElsewhere(at, drawn));
 			}
 			if (!at.equals(lastAt))
 			{

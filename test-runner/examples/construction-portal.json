@@ -1,0 +1,258 @@
+{
+ "name": "Construction step CON7c: a portal chamber added off the garden takes a teak portal frame (270 XP) and a teleport focus (40); Direct-portal sends portal 1 to Lumbridge for 100 times the spell's runes (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 50",
+   "expectMessage": "50",
+   "comment": "the portal chamber, a teak frame and the teleport focus all need 50"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 100000",
+   "expectMessage": "100,000",
+   "comment": "the portal chamber's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 27,
+   "comment": "the portal chamber's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 3",
+   "expectMessage": "Teak plank",
+   "comment": "the teak portal frame's 3"
+  },
+  {
+   "step": "command",
+   "text": "::item 3420 2",
+   "expectMessage": "Limestone brick",
+   "comment": "the teleport focus's 2"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15406,
+   "option": "Build",
+   "comment": "portal space 1 (poh_teleroom_1)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the teak portal frame"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 101603,
+   "timeoutMs": 5000,
+   "comment": "level 50's XP (101,333) and the frame's 270"
+  },
+  {
+   "step": "locOption",
+   "locId": 15409,
+   "option": "Build",
+   "comment": "the centrepiece space (poh_teleroom_7)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 4,
+   "comment": "slot 1: the teleport focus"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 101643,
+   "timeoutMs": 5000,
+   "comment": "and the focus's 40"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 31",
+   "expectMessage": "31",
+   "comment": "Lumbridge Teleport's level"
+  },
+  {
+   "step": "command",
+   "text": "::item 563 100",
+   "expectMessage": "Law rune",
+   "comment": "100 times Lumbridge Teleport's runes: 1 law, 3 air, 1 earth"
+  },
+  {
+   "step": "command",
+   "text": "::item 556 300",
+   "expectMessage": "Air rune"
+  },
+  {
+   "step": "command",
+   "text": "::item 557 100",
+   "expectMessage": "Earth rune"
+  },
+  {
+   "step": "locOption",
+   "locId": 13640,
+   "option": "Direct-portal"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.portal_1]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Lumbridge",
+   "comment": "the second place, after Varrock"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.portal_directed]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Law rune",
+   "count": 0
+  },
+  {
+   "step": "assertStat",
+   "skill": "Magic",
+   "xp": 15038,
+   "timeoutMs": 5000,
+   "comment": "level 31's XP (14,833) and 5 times the spell's 41"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
