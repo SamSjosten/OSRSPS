@@ -519,14 +519,25 @@ class Agility(private val world: World, val data: AgilityData) {
 
     /**
      * Walks the player to [tile] along the route finder's path, delayed so a click can't turn them back. False, and
-     * they stay put, when there is no way there.
+     * they stay put, when there is no way there; false where they are when a freeze or bind stops the walk.
      */
     private suspend fun ScriptContext.walkTo(tile: AgilityTile): Boolean {
         if (player.x == tile.x && player.z == tile.z) return true
         val route = world.findRoute(player, tile.x, tile.z)
         if (route.alternative || route.destination != Tile(tile.x, tile.z)) return false
         val steps = steps(Tile(player.x, player.z), route.waypoints)
-        forcedWalk(steps)
+        player.waypoints.clear()
+        player.forcedSteps.clear()
+        player.forcedSteps.addAll(steps)
+        while (player.forcedSteps.isNotEmpty()) {
+            // A freeze or bind landing on the way stops it there, short of the obstacle (exploit review R68A-3).
+            if (player.freezeTicks > 0 || player.rootedTicks > 0) {
+                player.forcedSteps.clear()
+                player.message(world.textFor(player)[osrsps.game.combat.PvpLines.MAGICAL_FORCE])
+                return false
+            }
+            delay(1)
+        }
         return true
     }
 
