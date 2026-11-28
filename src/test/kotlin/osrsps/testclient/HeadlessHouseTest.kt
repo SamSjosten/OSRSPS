@@ -1583,6 +1583,38 @@ class HeadlessHouseTest {
                 a.await("three tablets' time", timeoutMillis = 30_000) { Unit.takeIf { server.world.tick >= stepped + 3 * Study.TABLET_TICKS } }
                 assertEquals(4, a.count(TeleportObjs.VARROCK_TABLET))
                 assertEquals(2, a.count(Study.SOFT_CLAY))
+
+                // Create-last clicked again and again can't beat the 4 ticks (Codex review on #1057). She steps back first.
+                a.walk(at.x, at.z)
+                a.await("back beside it") { Unit.takeIf { ola.x == at.x && ola.z == at.z } }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the fifth") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 5 } }
+                val fifth = server.world.tick
+                while (server.world.tick < fifth + Study.TABLET_TICKS - 1) {
+                    val tick = server.world.tick
+                    a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                    a.await("a tick on") { Unit.takeIf { server.world.tick > tick } }
+                    if (server.world.tick < fifth + Study.TABLET_TICKS) assertEquals(5, a.count(TeleportObjs.VARROCK_TABLET), "no tablet before 4 ticks")
+                }
+                a.await("the sixth, in its time", timeoutMillis = 30_000) { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == 6 } }
+                assertTrue(server.world.tick >= fifth + Study.TABLET_TICKS)
+
+                // A full stack of the tablet: nothing taken (Codex review on #1057).
+                server.onTick {
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.VARROCK_TABLET]!!, Int.MAX_VALUE - 6)
+                    ola.inventory.add(server.world.objTypes[Study.SOFT_CLAY]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.LAW]!!, 1)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.AIR]!!, 3)
+                    ola.inventory.add(server.world.objTypes[TeleportObjs.FIRE]!!, 1)
+                }
+                a.await("the full stack") { Unit.takeIf { a.count(TeleportObjs.VARROCK_TABLET) == Int.MAX_VALUE } }
+                val clay = a.count(Study.SOFT_CLAY)
+                val laws = a.count(TeleportObjs.LAW)
+                val noSpace = a.messages().count { it.text == "[make.no_space]" }
+                a.locOp(TEAK_EAGLE_LECTERN, at.x + 1, at.z, Study.CREATE_LAST)
+                a.await("the no-space message", timeoutMillis = 30_000) { Unit.takeIf { a.messages().count { it.text == "[make.no_space]" } > noSpace } }
+                assertEquals(clay, a.count(Study.SOFT_CLAY))
+                assertEquals(laws, a.count(TeleportObjs.LAW))
             }
         }
     }

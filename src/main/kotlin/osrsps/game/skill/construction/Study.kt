@@ -55,7 +55,7 @@ class Study(private val world: World, private val houses: Houses) {
                 arriveDelay()
                 val at = op.loc ?: return@onLoc
                 val (spell, count) = lastMade[player]?.get(at.id) ?: return@onLoc studyLectern(this, at)
-                makeTablets(this, at, spell, count)
+                makeTablets(this, at, spell, count, fromMovement = true)
             }
         }
         for ((loc, tier) in BALLS) {
@@ -89,21 +89,31 @@ class Study(private val world: World, private val houses: Houses) {
         val spell = offered.getOrNull(picked.first) ?: return
         if (picked.second <= 0) return
         lastMade.getOrPut(player) { HashMap() }[loc.id] = spell to picked.second
-        makeTablets(context, loc, spell, picked.second)
+        makeTablets(context, loc, spell, picked.second, fromMovement = false)
     }
 
     /**
      * Makes up to [count] of [spell]'s tablet at the lectern [loc], one each [TABLET_TICKS], while it all lasts. Each next
      * tablet is a weak queue entry on [osrsps.game.skill.Making.QUEUE], as Making's products are, so walking off or
-     * starting something else stops the batch (Codex review on #1057).
+     * starting something else stops the batch (Codex review on #1057). A batch started again waits out the last tablet's
+     * ticks ([nextTablet]), so clicks can't beat them. [fromMovement] when it starts in the movement phase (Create-last
+     * on arrival), which comes after the tick's script phase where a queue's delay first counts down.
      */
-    private fun makeTablets(context: ScriptContext, loc: ZoneLoc, spell: TeleportSpell, count: Int) {
-        world.scripts.clearQueue(context.player, osrsps.game.skill.Making.QUEUE)
-        context.makeTablet(loc, spell, count)
+    private fun makeTablets(context: ScriptContext, loc: ZoneLoc, spell: TeleportSpell, count: Int, fromMovement: Boolean) {
+        val player = context.player
+        world.scripts.clearQueue(player, osrsps.game.skill.Making.QUEUE)
+        val wait = ((nextTablet[player] ?: 0L) - world.tick).toInt()
+        if (wait <= 0) return context.makeTablet(loc, spell, count, fromMovement)
+        context.queue(osrsps.game.skill.Making.QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) wait - 1 else wait) {
+            makeTablet(loc, spell, count, fromMovement = false)
+        }
     }
 
+    /** The tick each player may make their next tablet on. */
+    private val nextTablet = java.util.WeakHashMap<osrsps.game.Player, Long>()
+
     /** One tablet, then the next queued while [left] remain. */
-    private fun ScriptContext.makeTablet(loc: ZoneLoc, spell: TeleportSpell, left: Int) {
+    private fun ScriptContext.makeTablet(loc: ZoneLoc, spell: TeleportSpell, left: Int, fromMovement: Boolean) {
         if (houses.houseAt(loc.x, loc.z) == null || !world.locs.exists(loc)) return
         if (loc.id != MARBLE_LECTERN && Spellbook.of(player) != Spellbook.STANDARD) return world.message(player, ConstructionLines.LECTERN_SPELLBOOK)
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) return world.message(player, ConstructionLines.LECTERN_LEVEL, "level" to spell.level)
@@ -112,12 +122,24 @@ class Study(private val world: World, private val houses: Houses) {
         val provided = world.spells.runesFrom(weapon)
         val costs = spell.runes.filter { it.rune !in provided } + listOfNotNull(spell.extra)
         if (costs.any { player.inventory.count(it.rune) < it.count }) return world.message(player, ConstructionLines.LECTERN_RUNES)
+        val tablet = world.objTypes[spell.tablet] ?: return
+        // Rather than lose the clay and runes when the tablet won't fit (a full stack), all is put back, as Making does
+        // (Codex review on #1057).
+        val saved = player.inventory.contents().toMap()
         for (cost in costs) Ned.take(player.inventory, cost.rune, cost.count)
         Ned.take(player.inventory, SOFT_CLAY, 1)
-        player.inventory.add(world.objTypes[spell.tablet] ?: return, 1)
+        if (player.inventory.add(tablet, 1) < 1) {
+            for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
+            return player.message(world.textFor(player)[osrsps.game.skill.MakeLines.NO_SPACE])
+        }
         player.anim(if (provided.isNotEmpty()) CREATE_ANIM_STAFF else CREATE_ANIM)
         player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-        if (left > 1) queue(osrsps.game.skill.Making.QUEUE, osrsps.game.script.QueueType.WEAK, TABLET_TICKS) { makeTablet(loc, spell, left - 1) }
+        nextTablet[player] = world.tick + TABLET_TICKS
+        if (left > 1) {
+            queue(osrsps.game.skill.Making.QUEUE, osrsps.game.script.QueueType.WEAK, if (fromMovement) TABLET_TICKS - 1 else TABLET_TICKS) {
+                makeTablet(loc, spell, left - 1, fromMovement = false)
+            }
+        }
     }
 
     /** [staff], in pack slot [slot], used on a crystal ball [loc] that changes staves up to [tier]: to another element. */
