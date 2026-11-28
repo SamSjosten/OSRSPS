@@ -10,7 +10,7 @@
   {"step": "assertDialogue", "contains": "[post_quest_leftovers.cart]", "timeoutMs": 10000},
   {"step": "continueDialogue"},
   {"step": "assertNoDialogue", "timeoutMs": 5000},
-  {"step": "command", "text": "::tele 3166 3193 0", "expectMessage": "Teleported to 3166, 3193, 0", "comment": "the Lumbridge Swamp, by the bubbles at 3164, 3193 and 3165, 3194"},
+  {"step": "command", "text": "::tele 3165 3193 0", "expectMessage": "Teleported to 3165, 3193, 0", "comment": "the Lumbridge Swamp, on the stony band beside the bubbles at 3164, 3193 and 3165, 3194 (3166, 3193 is cut off from them by water: nightly Nov 28, probes on 217)"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "command", "text": "::empty"},
   {"step": "command", "text": "::item 2871 2", "comment": "two empty ogre bellows"},
