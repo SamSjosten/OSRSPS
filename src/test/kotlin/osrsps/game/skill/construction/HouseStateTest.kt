@@ -143,4 +143,20 @@ class HouseStateTest {
         val read = HouseSaves.fromJson(HouseSaves.toJson(house))
         assertEquals(1, read.room(3, 3)?.rotation)
     }
+
+    @Test
+    fun `a directed portal and the place its space keeps read back, and a kept place anywhere else is dropped`() {
+        val house = HouseState.starter()
+        val chamber = HouseRoom(RoomType.PORTAL_CHAMBER, 3, 3)
+        chamber.built[15406] = 13616
+        chamber.built[-15406] = 3289
+        house.rooms += chamber
+        val read = HouseSaves.fromJson(HouseSaves.toJson(house))
+        assertEquals<Map<Int, Int>?>(mapOf(15406 to 13616, -15406 to 3289), read.room(3, 3)?.built)
+        // A spell that isn't a portal's place, and a kept place on a space that isn't a portal space.
+        chamber.built[-15406] = 1
+        chamber.built[-15409] = 3289
+        val dropped = HouseSaves.fromJson(HouseSaves.toJson(house))
+        assertEquals<Map<Int, Int>?>(mapOf(15406 to 13616), dropped.room(3, 3)?.built)
+    }
 }

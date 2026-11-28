@@ -1142,6 +1142,7 @@ class World(
     val combatRoom = osrsps.game.skill.construction.CombatRoom(this, houses)
     val gamesRoom = osrsps.game.skill.construction.GamesRoom(this, houses)
     val study = osrsps.game.skill.construction.Study(this, houses)
+    val portalChamber = osrsps.game.skill.construction.PortalChamber(this, houses)
     /** A house's upper floor and its staircases; see [osrsps.game.skill.construction.Stairs]. */
     val stairs = osrsps.game.skill.construction.Stairs(this, houses, furniture)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
@@ -1537,6 +1538,7 @@ class World(
         combatRoom.register()
         gamesRoom.register()
         study.register()
+        portalChamber.register()
         stairs.register()
         clanHall.register()
         clanCoffer.register()
