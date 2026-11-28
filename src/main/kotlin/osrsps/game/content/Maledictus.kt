@@ -192,10 +192,14 @@ object Maledictus {
         )
     }
 
-    /** The players it can strike: in the fight, within [REACH] and in sight. */
+    /**
+     * The players it can strike: in the fight, within [REACH] and in sight either way. It never moves, and the line
+     * isn't the same both ways, so a tile from which only the player sees it would be safe for good: their own sight
+     * counts too (exploit review R66B-2). GUESSED: no source says how live traces it; this closes the safe spot.
+     */
     private fun EncounterContext.inRange(): List<Player> = players.filter {
         !it.dead && it.level == boss.level &&
-            LineOfSight.distance(boss.x, boss.z, boss.type.size, it.x, it.z) <= REACH && world.meleeCombat.sees(boss, it)
+            LineOfSight.distance(boss.x, boss.z, boss.type.size, it.x, it.z) <= REACH && world.meleeCombat.seesEitherWay(boss, it)
     }
 
     private fun EncounterContext.tick() {
