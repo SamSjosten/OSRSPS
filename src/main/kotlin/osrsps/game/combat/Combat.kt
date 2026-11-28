@@ -212,8 +212,45 @@ class Combat(
      */
     var dummy: (Npc) -> Boolean = { false }
 
+    /**
+     * Set by content: whether [Npc] never fights back or keeps who attacked it, as a [dummy] and the house's attack
+     * stones ([osrsps.game.skill.construction.GamesRoom]).
+     */
+    var passive: (Npc) -> Boolean = { npc -> dummy(npc) }
+
     /** Whether hitting [npc] gives XP: anything but a [dummy]. */
     fun paysXp(npc: Npc): Boolean = !dummy(npc)
+
+    /**
+     * Set by content: for an [Npc] whose hits pay XP by the damage alone, in place of the usual combat XP, the XP for a
+     * point of damage in thousandths; null for the usual XP. The house's attack stones give 25 (OSRS Wiki, Clay attack
+     * stone: "Players gain experience for only 2.5% of the damage dealt, in the skill of their attack style", and "no
+     * Hitpoints experience is rewarded for hitting the stone").
+     */
+    var damageXpPermille: (Npc) -> Int? = { null }
+
+    /**
+     * What each player has toward the next tenth of each skill's XP by [damageXpPermille], in sixths of a thousandth of a
+     * tenth, so a share among two or three skills divides exactly.
+     */
+    private val damageXpLeft = java.util.WeakHashMap<Player, IntArray>()
+
+    /**
+     * Pays [player] for [damage] on [npc] by [damageXpPermille], shared evenly among [skills], each skill keeping its own
+     * part of a tenth for the next hit (Codex review on #1051); false, paying nothing, for an NPC that pays the usual XP.
+     */
+    fun damageXp(player: Player, npc: Npc, skills: List<Skill>, damage: Int): Boolean {
+        val permille = damageXpPermille(npc) ?: return false
+        if (skills.isEmpty()) return true
+        val left = damageXpLeft.getOrPut(player) { IntArray(Skill.entries.size) }
+        val share = damage * permille * 10 * DAMAGE_XP_SIXTHS / skills.size
+        for (skill in skills) {
+            val total = share + left[skill.ordinal]
+            left[skill.ordinal] = total % (1000 * DAMAGE_XP_SIXTHS)
+            if (total >= 1000 * DAMAGE_XP_SIXTHS) player.skills.addTenths(skill, total / (1000 * DAMAGE_XP_SIXTHS))
+        }
+        return true
+    }
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
@@ -580,6 +617,9 @@ class Combat(
     }
 
     companion object {
+        /** [Combat.damageXp]'s parts of a thousandth of a tenth: six, so one, two or three skills share a hit exactly. */
+        private const val DAMAGE_XP_SIXTHS = 6
+
         /**
          * The styles of a player autocasting ([style]), on varp 43's [Autocast.COM_MODE]. The XP is what [MagicCombat]
          * gives, Defence too when defensive (OSRS Wiki, Autocast). Guessed: no stance bonus to the player's Defence

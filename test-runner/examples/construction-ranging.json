@@ -1,0 +1,325 @@
+{
+ "name": "Construction step CON6g: a games room added off the garden takes the dartboard (290 XP) and archery target (600); Throw-at needs thrown weapons and Shoot-at a bow and its arrows, and ten throws or shots use them up and end with the score (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario construction",
+   "expectMessage": "Started scenario construction.",
+   "comment": "beside the estate agent with 1,000 coins and no house; ::reset at the end takes the house away again"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Estate agent",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[estate_agent.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[estate_agent.sold_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Construction guide",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::setlevel construction 81",
+   "expectMessage": "81",
+   "comment": "the games room needs 30, the dartboard 54, the archery target 81"
+  },
+  {
+   "step": "command",
+   "text": "::item 995 25000",
+   "expectMessage": "25,000",
+   "comment": "the combat room's price"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2953 3224 0",
+   "expectMessage": "Teleported to 2953, 3224, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 15478,
+   "option": "Build mode"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the house is a new instance: the region redraws"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 2176,
+   "value": 1,
+   "comment": "poh_building_mode on"
+  },
+  {
+   "step": "locOption",
+   "locId": 15313,
+   "option": "Build",
+   "comment": "the nearest door hotspot to where entering puts you: the garden's south doorway, onto the yard"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 212,
+   "timeoutMs": 10000,
+   "comment": "poh_add_room"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 212,
+   "component": 15,
+   "comment": "the games room's button"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.build_room]",
+   "comment": "the ghost first faces a door north, onto the garden"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 8780 9",
+   "expectMessage": "Teak plank",
+   "comment": "the dartboard's 3 and the archery target's 6"
+  },
+  {
+   "step": "command",
+   "text": "::item 2353 4",
+   "expectMessage": "Steel bar",
+   "comment": "the dartboard's 1 and the archery target's 3"
+  },
+  {
+   "step": "command",
+   "text": "::item 2347 1",
+   "expectMessage": "Hammer"
+  },
+  {
+   "step": "command",
+   "text": "::item 8794 1",
+   "expectMessage": "Saw"
+  },
+  {
+   "step": "locOption",
+   "locId": 15346,
+   "option": "Build",
+   "comment": "the ranging game space (poh_games_room_7)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 5,
+   "comment": "slot 2: the dartboard"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 2193108,
+   "timeoutMs": 5000,
+   "comment": "level 81's XP and the dartboard's 290"
+  },
+  {
+   "step": "locOption",
+   "locId": 13400,
+   "option": "Throw-at",
+   "comment": "nothing wielded"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.dartboard_weapon]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 806 12",
+   "expectMessage": "Bronze dart"
+  },
+  {
+   "step": "itemOption",
+   "item": "Bronze dart",
+   "option": "Wield"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Bronze dart"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel ranged 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "locOption",
+   "locId": 13400,
+   "option": "Throw-at",
+   "comment": "ten throws, each dart used up"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "construction.ranging_score",
+   "timeoutMs": 60000
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Bronze dart",
+   "comment": "two left of twelve"
+  },
+  {
+   "step": "locOption",
+   "locId": 13400,
+   "option": "Remove",
+   "comment": "the dartboard goes, for the archery target"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[construction.remove_furniture_yes]"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "locId": 15346,
+   "option": "Build"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 458,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 458,
+   "component": 6,
+   "comment": "slot 3: the archery target"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Construction",
+   "xp": 2193708,
+   "timeoutMs": 5000,
+   "comment": "and the archery target's 600"
+  },
+  {
+   "step": "locOption",
+   "locId": 13402,
+   "option": "Shoot-at",
+   "comment": "darts wielded"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.archery_weapon]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 841 1",
+   "expectMessage": "Shortbow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Shortbow",
+   "option": "Wield"
+  },
+  {
+   "step": "locOption",
+   "locId": 13402,
+   "option": "Shoot-at",
+   "comment": "no arrows"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[construction.archery_ammo]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 882 10",
+   "expectMessage": "Bronze arrow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Bronze arrow",
+   "option": "Wield"
+  },
+  {
+   "step": "locOption",
+   "locId": 13402,
+   "option": "Shoot-at",
+   "comment": "ten shots, each arrow used up"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "construction.ranging_score",
+   "timeoutMs": 60000
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "ammo",
+   "empty": true,
+   "comment": "all ten arrows gone"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
