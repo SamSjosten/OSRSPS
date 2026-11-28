@@ -1411,6 +1411,11 @@ class NpcCombatTest {
         for (bad in listOf("""{ "element": "lava", "percent": 30 }""", """{ "element": "fire", "percent": 0 }""", """{ "element": "fire" }""")) {
             assertFailsWith<IllegalArgumentException>(bad) { NpcCombat.parse("""{ "npcs": [${weak(bad)}] }""", types, seqs) }
         }
+        // Prayed as melee only on a melee-range NPC (exploit review R67A-4): its shots would ignore it.
+        fun prayed(range: Int) = entry.format("\"man\"", "magic").replace("\"respawnTicks\"", "\"range\": $range, \"prayedAs\": \"melee\", \"respawnTicks\"")
+        assertEquals(AttackType.CRUSH, NpcCombat.parse("""{ "npcs": [${prayed(1)}] }""", types, seqs)[types.find("man")!!]!!.prayedAs)
+        val ranged = assertFailsWith<IllegalArgumentException> { NpcCombat.parse("""{ "npcs": [${prayed(7)}] }""", types, seqs) }
+        assertTrue("range above 1" in ranged.message!!, ranged.message)
     }
 
     private companion object {
